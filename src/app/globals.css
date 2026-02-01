@@ -1,0 +1,147 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 99%;
+    --foreground: 229 82% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 229 82% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 229 82% 25%;
+    --primary: 229 82% 25%;
+    --primary-light: 221 83% 53%;
+    --primary-dark: 261 80% 20%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 45 88% 50%;
+    --accent-foreground: 229 82% 25%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 45 88% 50%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 229 82% 10%;
+    --sidebar-foreground: 220 20% 90%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 229 82% 10%;
+    --sidebar-accent: 229 82% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 229 82% 15%;
+    --sidebar-ring: 45 88% 50%;
+    --neon-blue: 221 83% 53%;
+    --royal-blue: 229 82% 25%;
+    --pure-white: 0 0% 100%;
+  }
+  .dark {
+    --background: 229 82% 10%;
+    --foreground: 0 0% 98%;
+    --card: 229 82% 15%;
+    --card-foreground: 0 0% 98%;
+    --popover: 229 82% 15%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 45 88% 50%;
+    --primary-light: 45 88% 60%;
+    --primary-dark: 261 80% 20%;
+    --primary-foreground: 229 82% 25%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 45 88% 50%;
+    --accent-foreground: 229 82% 25%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 229 82% 35%;
+    --input: 229 82% 35%;
+    --ring: 45 88% 50%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Almarai', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-headline {
+    font-family: 'Cairo', sans-serif;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-animation {
+    background: linear-gradient(-45deg, hsl(var(--royal-blue)), hsl(var(--primary-dark)), #102a8a, #0b1a5c);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+  
+  .glow-on-hover:hover {
+    box-shadow: 0 0 5px hsl(var(--pure-white)), 
+                0 0 15px hsl(var(--pure-white)), 
+                0 0 25px hsl(var(--neon-blue)), 
+                0 0 35px hsl(var(--neon-blue));
+  }
+}
+
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%, 0% 0%;
+  }
+  100% {
+    background-position: -200% 50%, 0% 0%;
+  }
+}
+
+/* Add padding to the bottom of the main content to avoid overlap with bottom navbar */
+main {
+  padding-bottom: 80px; /* Adjust this value based on the height of your bottom navbar */
+}
+
+@media (min-width: 768px) {
+  main {
+    padding-bottom: 0;
+  }
+}
