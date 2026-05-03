@@ -1,0 +1,40 @@
+# Next.js
+.next/
+out/
+.next-production/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase
+.firebase/
+*.firebaserc
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Images والمحادثات
+*.jpg
+*.png
+*.txt
+.idx/
+.modified
+tsconfig.tsbuildinfo
+
+.idx/
+.modified
+tsconfig.tsbuildinfo
