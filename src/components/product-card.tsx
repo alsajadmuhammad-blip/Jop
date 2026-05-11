@@ -45,13 +45,21 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       <div className="h-full overflow-hidden rounded-lg border border-border/30 bg-card/50 transition-all duration-200 hover:shadow-sm hover:border-primary/40 hover:bg-card">
         <div className="relative h-32 md:h-40 w-full overflow-hidden bg-muted/20 flex items-center justify-center">
           {product.imageUrl ? (
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover transition-transform duration-200 group-hover:scale-105"
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-            />
+            product.imageUrl.startsWith('data:') ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="object-cover transition-transform duration-200 group-hover:scale-105 w-full h-full"
+              />
+            ) : (
+              <Image
+                src={product.imageUrl}
+                alt={product.name}
+                fill
+                className="object-cover transition-transform duration-200 group-hover:scale-105"
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              />
+            )
           ) : (
             <ImageIcon className="size-6 text-muted-foreground/20" />
           )}

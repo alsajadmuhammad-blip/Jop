@@ -237,7 +237,6 @@ function RepresentativesTab({ representatives, stores }: { representatives: User
                             <TableHead>المتاجر المطلوبة</TableHead>
                             <TableHead>المتاجر المسجلة</TableHead>
                             <TableHead>إجمالي المستحقات</TableHead>
-                            <TableHead className="text-left">الإجراءات</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -250,29 +249,10 @@ function RepresentativesTab({ representatives, stores }: { representatives: User
                                 <TableCell className="font-bold text-green-600">
                                     {(rep.totalEarnings || 0).toLocaleString()} د.ع
                                 </TableCell>
-                                <TableCell className="text-left">
-                                     <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                             <DropdownMenuItem>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                <span>تعديل (قريبا)</span>
-                                            </DropdownMenuItem>
-                                             <DropdownMenuItem className="text-destructive">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                <span>حذف (قريبا)</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
+                                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
                                     لا يوجد مندوبون لعرضهم.
                                 </TableCell>
                             </TableRow>
@@ -284,137 +264,6 @@ function RepresentativesTab({ representatives, stores }: { representatives: User
         </Card>
     );
 }
-
-// ===== Subscription Duration Manager =====
-const SubscriptionManager = React.memo(function SubscriptionManager({ store, onUpdate }: { store: Store, onUpdate: (storeId: string, data: Partial<Store>) => void }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [customDuration, setCustomDuration] = useState((store.subscriptionDuration || 30).toString());
-
-  const handleSelectChange = (value: string) => {
-    if (value === 'custom') {
-      setCustomDuration((store.subscriptionDuration || 30).toString());
-      setIsDialogOpen(true);
-    } else {
-      onUpdate(store.id, { subscriptionDuration: parseInt(value, 10) });
-    }
-  };
-
-  const handleSaveCustomDuration = () => {
-    const duration = parseInt(customDuration, 10);
-    if (!isNaN(duration) && duration > 0) {
-      onUpdate(store.id, { subscriptionDuration: duration });
-      setIsDialogOpen(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="flex items-center gap-2">
-        <Select value={(store.subscriptionDuration || 30).toString()} onValueChange={handleSelectChange}>
-          <SelectTrigger className="w-[120px]"><SelectValue placeholder="اختر المدة" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="30">30 يوم</SelectItem>
-            <SelectItem value="90">90 يوم</SelectItem>
-            <SelectItem value="365">سنة</SelectItem>
-            <SelectItem value="custom">مدة مخصصة...</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>تحديد مدة اشتراك مخصصة</DialogTitle>
-            <DialogDescription>أدخل مدة الاشتراك بالأيام لمتجر "{store.name}".</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="custom-duration">المدة بالأيام</Label>
-            <Input id="custom-duration" type="number" value={customDuration} onChange={(e) => setCustomDuration(e.target.value)} placeholder="مثال: 45" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleSaveCustomDuration}>حفظ</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-});
-
-
-// ===== Product Limit Manager =====
-const ProductLimitManager = React.memo(function ProductLimitManager({ store, onUpdate }: { store: Store, onUpdate: (storeId: string, data: Partial<Store>) => void }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [customLimit, setCustomLimit] = useState(store.productLimit.toString());
-  
-  const unlimitedValue = "999999";
-
-  const handleSelectChange = (value: string) => {
-    if (value === 'custom') {
-       setCustomLimit(store.productLimit.toString());
-       setIsDialogOpen(true);
-    } else {
-       onUpdate(store.id, { productLimit: parseInt(value, 10) });
-    }
-  };
-
-  const handleSaveCustomLimit = () => {
-    const limit = parseInt(customLimit, 10);
-    if (!isNaN(limit) && limit > 0) {
-      onUpdate(store.id, { productLimit: limit });
-      setIsDialogOpen(false);
-    }
-  };
-
-  const getDisplayValue = () => {
-    if (store.productLimit === 50) return '50';
-    if (store.productLimit === 150) return '150';
-    if (store.productLimit >= Number.MAX_SAFE_INTEGER || store.productLimit >= 999999) return unlimitedValue;
-    return 'custom';
-  }
-  
-  const getCustomDisplay = () => {
-     if (![50, 150].includes(store.productLimit) && (store.productLimit < Number.MAX_SAFE_INTEGER && store.productLimit < 999999) ) {
-        return `${store.productLimit} منتج`;
-     }
-     return 'مخصص...';
-  }
-
-
-  return (
-    <>
-      <div className="flex items-center gap-2">
-        <Select value={getDisplayValue()} onValueChange={handleSelectChange}>
-          <SelectTrigger className="w-[120px]"><SelectValue placeholder="اختر الباقة" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="50">50 منتج</SelectItem>
-            <SelectItem value="150">150 منتج</SelectItem>
-            <SelectItem value={unlimitedValue}>غير محدود</SelectItem>
-            <SelectItem value="custom">{getCustomDisplay()}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="ghost" size="icon" onClick={() => setIsDialogOpen(true)}><Settings className="w-4 h-4" /></Button>
-      </div>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>تحديد حد المنتجات المخصص</DialogTitle>
-            <DialogDescription>
-                أدخل الحد الأقصى لعدد المنتجات لمتجر "{store.name}".
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="custom-limit">الحد الأقصى للمنتجات</Label>
-            <Input id="custom-limit" type="number" value={customLimit} onChange={(e)=>setCustomLimit(e.target.value)} placeholder="مثال: 50" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={()=>setIsDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleSaveCustomLimit}>حفظ</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-});
 
 // ===== Hero Slider Manager =====
 const HeroSliderManager = React.memo(function HeroSliderManager({ stores }: { stores: Store[] }) {
@@ -657,20 +506,6 @@ const StoreManagementCard = React.memo(function StoreManagementCard({ store, onS
                         onCheckedChange={(checked) => onStatusToggle(store.id, checked, store)}
                     />
                 </div>
-                 <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                     <Label className="flex items-center gap-2">
-                        <Package className="h-4 w-4"/>
-                        <span>باقة المنتجات</span>
-                    </Label>
-                    <ProductLimitManager store={store} onUpdate={onDataUpdate} />
-                </div>
-                 <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                     <Label className="flex items-center gap-2">
-                        <Clock className="h-4 w-4"/>
-                        <span>مدة الاشتراك</span>
-                    </Label>
-                    <SubscriptionManager store={store} onUpdate={onDataUpdate} />
-                </div>
                 {!isPending && store.activationDate && (
                     <Alert variant={isExpired ? "destructive" : "default"} className="p-2">
                         <CalendarDays className="h-4 w-4" />
@@ -684,7 +519,7 @@ const StoreManagementCard = React.memo(function StoreManagementCard({ store, onS
                 )}
             </CardContent>
             <CardFooter className="justify-between flex-wrap gap-2">
-                <Link href={`/stores/${store.id}`} className="inline-flex items-center gap-2 rounded-full border border-primary/20 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5 transition">
+                <Link href={`/store?id=${store.id}`} className="inline-flex items-center gap-2 rounded-full border border-primary/20 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5 transition">
                   <Eye className="h-4 w-4" />
                   عرض المتجر
                 </Link>
@@ -875,6 +710,19 @@ function AdminDashboard() {
       const updatePayload: any = { is_active: true, activation_date: activationDate };
       const { error } = await supabase.from('stores').update(updatePayload).eq('id', storeId);
       if (error) throw error;
+
+      // Link the store to the owner user
+      if (storeData.ownerEmail) {
+        const { error: userError } = await supabase
+          .from('users')
+          .update({ store_id: storeId, role: 'store' })
+          .eq('email', storeData.ownerEmail);
+        if (userError) {
+          console.error('Failed to link store to user:', userError);
+          // Don't throw, as store is activated
+        }
+      }
+
       setStores((current) =>
         current.map((store) =>
           store.id === storeId
@@ -892,18 +740,30 @@ function AdminDashboard() {
 
   const handleStoreDataUpdate = async (storeId: string, data: Partial<Store>) => {
     try {
-      const updateData: any = { ...data };
-      if (data.productLimit && data.productLimit >= Number.MAX_SAFE_INTEGER) {
-        updateData.product_limit = 999999;
-      }
-      if (typeof updateData.productLimit !== 'undefined') {
-        updateData.product_limit = updateData.productLimit;
-        delete updateData.productLimit;
-      }
-      if (typeof updateData.subscriptionDuration !== 'undefined') {
-        updateData.subscription_duration = updateData.subscriptionDuration;
-        delete updateData.subscriptionDuration;
-      }
+      const updateData: any = {};
+      
+      // Convert camelCase to snake_case for database
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.logoUrl !== undefined) updateData.logo_url = data.logoUrl;
+      if (data.coverImageUrl !== undefined) updateData.cover_image_url = data.coverImageUrl;
+      if (data.rating !== undefined) updateData.rating = data.rating;
+      if (data.reviews !== undefined) updateData.reviews = data.reviews;
+      if (data.location !== undefined) updateData.location = data.location;
+      if (data.latitude !== undefined) updateData.latitude = data.latitude;
+      if (data.longitude !== undefined) updateData.longitude = data.longitude;
+      if (data.type !== undefined) updateData.type = data.type;
+      if (data.marketType !== undefined) updateData.market_type = data.marketType;
+      if (data.businessHours !== undefined) updateData.business_hours = data.businessHours;
+      if (data.whatsappNumber !== undefined) updateData.whatsapp_number = data.whatsappNumber;
+      if (data.hasDelivery !== undefined) updateData.has_delivery = data.hasDelivery;
+      if (data.isActive !== undefined) updateData.is_active = data.isActive;
+      if (data.productLimit !== undefined) updateData.product_limit = data.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : data.productLimit;
+      if (data.subscriptionDuration !== undefined) updateData.subscription_duration = data.subscriptionDuration;
+      if (data.activationDate !== undefined) updateData.activation_date = data.activationDate;
+      if (data.ownerId !== undefined) updateData.owner_id = data.ownerId;
+      if (data.ownerEmail !== undefined) updateData.owner_email = data.ownerEmail;
+      if (data.registeredByAgentId !== undefined) updateData.registered_by_agent_id = data.registeredByAgentId;
 
       const { error } = await supabase.from('stores').update(updateData).eq('id', storeId);
       if (error) throw error;

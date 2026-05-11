@@ -13,25 +13,41 @@ import { StoreStatusInfo } from "./store-status-info";
 
 export function StoreCard({ store, distance }: { store: Store; distance?: number | null }) {
   return (
-    <Link href={`/stores/${store.id}`} className="group">
+    <Link href={`/store?id=${store.id}`} className="group">
       <div className="bg-white/90 dark:bg-slate-900/90 rounded-3xl overflow-hidden shadow-lg shadow-slate-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-2xl border border-slate-200/80 dark:border-slate-700/80 h-full flex flex-col">
         <div className="relative h-36 md:h-44 w-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
           {store.coverImageUrl ? (
-            <Image
-              src={store.coverImageUrl}
-              alt={`${store.name}`}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
+            store.coverImageUrl.startsWith('data:') ? (
+              <img
+                src={store.coverImageUrl}
+                alt={`${store.name}`}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <Image
+                src={store.coverImageUrl}
+                alt={`${store.name}`}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            )
           ) : store.logoUrl ? (
-            <Image
-              src={store.logoUrl}
-              alt={`${store.name}`}
-              fill
-              className="object-contain group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
+            store.logoUrl.startsWith('data:') ? (
+              <img
+                src={store.logoUrl}
+                alt={`${store.name}`}
+                className="object-contain w-full h-full"
+              />
+            ) : (
+              <Image
+                src={store.logoUrl}
+                alt={`${store.name}`}
+                fill
+                className="object-contain group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            )
           ) : (
             <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-primary/10 to-primary/0">
               <ImageIcon className="w-10 h-10 text-slate-400" />

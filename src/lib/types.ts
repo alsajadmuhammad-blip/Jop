@@ -6,7 +6,10 @@ export type Product = {
   price: number;
   imageUrl?: string;
   storeId: string;
-  categoryId: string; // Add categoryId
+  categoryId: string;
+  isFeatured?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Category = {

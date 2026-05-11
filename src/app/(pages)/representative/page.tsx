@@ -66,7 +66,7 @@ export default function RepresentativeDashboard() {
                     <div className="text-xs text-muted-foreground">الباقة: {store.packageName}</div>
                   </div>
                   <div className="mt-2 md:mt-0">
-                    <Link href={`/stores/${store.id}`} className="text-primary hover:underline text-sm">عرض المتجر</Link>
+                    <Link href={`/store?id=${store.id}`} className="text-primary hover:underline text-sm">عرض المتجر</Link>
                   </div>
                 </li>
               ))}

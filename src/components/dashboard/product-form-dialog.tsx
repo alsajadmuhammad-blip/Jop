@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -70,7 +69,6 @@ export function ProductFormDialog({
     },
   });
 
-  // Fetch categories
   useEffect(() => {
     async function fetchCategories() {
       const fetchedCategories = await getCategories();
@@ -79,7 +77,6 @@ export function ProductFormDialog({
     fetchCategories();
   }, []);
 
-  // Reset form on open
   useEffect(() => {
     if (isOpen) {
       if (product) {
@@ -104,7 +101,6 @@ export function ProductFormDialog({
     }
   }, [product, form, isOpen]);
 
-  // Handle image upload
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -124,10 +120,8 @@ export function ProductFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="sm:max-w-[380px] w-full bg-white rounded-2xl shadow-lg max-h-[90vh] flex flex-col"
-      >
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[420px] w-[95vw] mx-auto bg-white rounded-2xl shadow-lg max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="pb-2">
           <DialogTitle className="text-lg font-bold text-gray-800">
             {product ? "تعديل المنتج" : "إضافة منتج جديد"}
           </DialogTitle>
@@ -139,173 +133,167 @@ export function ProductFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex-1 min-h-0 overflow-y-auto px-1"
-          >
-            <motion.div
-              className="space-y-4 py-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Product Name */}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>اسم المنتج</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: هاتف X1 برو" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Description */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>الوصف</FormLabel>
-                    </div>
-                    <FormControl>
-                      <Textarea
-                        placeholder="وصف تفصيلي للمنتج ومميزاته"
-                        {...field}
-                      />
-                    </FormControl>
-                    <div className="text-xs text-gray-400 mt-1 text-left">
-                      {field.value?.length || 0} / 500 حرف
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Price & Category */}
-              <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto px-4 pr-2 -mr-2">
+              <motion.div
+                className="space-y-4 py-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 <FormField
                   control={form.control}
-                  name="price"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>السعر (د.ع)</FormLabel>
+                      <FormLabel className="text-sm">اسم المنتج</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="1,250,000"
-                          {...field}
-                        />
+                        <Input placeholder="مثال: هاتف X1 برو" {...field} className="text-sm" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
-                  name="categoryId"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>الفئة</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر فئة المنتج" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel className="text-sm">الوصف</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="وصف تفصيلي للمنتج"
+                          {...field}
+                          className="text-sm resize-none h-20"
+                        />
+                      </FormControl>
+                      <div className="text-xs text-gray-400 mt-1 text-left">
+                        {field.value?.length || 0} / 500
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              {/* Product Image */}
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>صورة المنتج</FormLabel>
-                    {imagePreview && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="w-full relative aspect-square rounded-xl overflow-hidden border"
-                      >
-                        <Image
-                          src={imagePreview}
-                          alt="معاينة المنتج"
-                          fill
-                          className="object-cover"
-                        />
-                      </motion.div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">السعر (د.ع)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="1000"
+                            {...field}
+                            className="text-sm"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                    <FormControl>
-                      <div>
-                        <Label
-                          htmlFor="product-image-upload"
-                          className="w-full inline-block cursor-pointer"
+                  />
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">الفئة</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
                         >
-                          <motion.div
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium border bg-gray-50 hover:bg-gray-100 h-10 px-4 w-full transition"
-                          >
-                            <Upload className="ml-2 h-4 w-4" />
-                            <span>
-                              {imagePreview ? "تغيير الصورة" : "رفع صورة"}
-                            </span>
-                          </motion.div>
-                        </Label>
-                        <Input
-                          id="product-image-upload"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </motion.div>
+                          <FormControl>
+                            <SelectTrigger className="text-sm">
+                              <SelectValue placeholder="اختر" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id} className="text-sm">
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            {/* Buttons */}
-            <DialogFooter className="sticky bottom-0 bg-white border-t pt-3 pb-2 flex justify-between">
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">صورة المنتج</FormLabel>
+                      {imagePreview && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="w-full relative aspect-square rounded-lg overflow-hidden border"
+                        >
+                          <Image
+                            src={imagePreview}
+                            alt="معاينة المنتج"
+                            fill
+                            className="object-cover"
+                          />
+                        </motion.div>
+                      )}
+                      <FormControl>
+                        <div>
+                          <Label
+                            htmlFor="product-image-upload"
+                            className="w-full inline-block cursor-pointer"
+                          >
+                            <motion.div
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
+                              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-medium border bg-gray-50 hover:bg-gray-100 h-9 px-3 w-full transition"
+                            >
+                              <Upload className="ml-1 h-3 w-3" />
+                              <span>
+                                {imagePreview ? "تغيير" : "رفع صورة"}
+                              </span>
+                            </motion.div>
+                          </Label>
+                          <Input
+                            id="product-image-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+            </div>
+
+            <div className="flex gap-2 pt-3 border-t mt-auto flex-shrink-0 px-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="w-[48%]"
+                className="flex-1 text-sm"
               >
                 إلغاء
               </Button>
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="w-[48%] bg-primary text-white hover:bg-primary/90"
+                className="flex-1 text-sm"
               >
-                {form.formState.isSubmitting ? "جاري الحفظ..." : "حفظ"}
+                {form.formState.isSubmitting ? "جاري..." : "حفظ"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>

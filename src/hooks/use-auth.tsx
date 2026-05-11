@@ -48,16 +48,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     try {
-      const userId = sessionUser.id || sessionUser.user?.id || sessionUser.sub;
+      const userId = sessionUser.id || sessionUser.user?.id || sessionUser.sub || sessionUser.user?.sub;
       const email = sessionUser.email || sessionUser.user?.email;
+      if (!userId && !email) {
+        throw new Error('No authenticated user identifier available.');
+      }
+
       let row: any | null = null;
+      let userRows: any[] | null = null;
 
-      const { data: userRows, error } = await supabase.from('users').select('*').eq('id', userId).limit(1);
-      if (error) throw new Error(`Database query failed: ${error.message}`);
+      if (userId) {
+        const { data, error } = await supabase.from('users').select('*').eq('id', userId).limit(1);
+        if (error) throw new Error(`Database query failed: ${error.message}`);
+        userRows = data || null;
 
-      if (userRows && userRows.length > 0) {
-        row = userRows[0];
-      } else if (email) {
+        if (userRows && userRows.length > 0) {
+          row = userRows[0];
+        }
+      }
+
+      if (!row && email) {
         const { data: emailRows, error: emailError } = await supabase.from('users').select('*').eq('email', email).limit(1);
         if (emailError) throw new Error(`Database query failed: ${emailError.message}`);
         if (emailRows && emailRows.length > 0) {
@@ -66,15 +76,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      if (!row && userId) {
+        const storeQuery = await supabase
+          .from('stores')
+          .select('id')
+          .or(`owner_id.eq.${userId},owner_email.eq.${email}`)
+          .limit(1);
+        if (!storeQuery.error && storeQuery.data && storeQuery.data.length > 0) {
+          const fallbackStoreId = storeQuery.data[0].id;
+          row = { id: userId, email, role: 'store', store_id: fallbackStoreId };
+          console.warn('Fallback assigned storeId from store record for auth user', userId, fallbackStoreId);
+        }
+      }
+
       let appUser: User;
       if (!row) {
+        // If there is no users row, check whether this auth user owns a store by email or owner_id
+        let storeMatch: any[] | null = null;
+        if (userId || email) {
+          const conditions = [
+            userId ? `owner_id.eq.${userId}` : null,
+            email ? `owner_email.eq.${email}` : null,
+          ].filter(Boolean).join(',');
+
+          if (conditions.length > 0) {
+            const { data: storeRows, error: storeError } = await supabase
+              .from('stores')
+              .select('id')
+              .or(conditions)
+              .limit(1);
+
+            if (!storeError) {
+              storeMatch = storeRows || null;
+            }
+          }
+        }
+
         const isImplicitAdmin = email === 'admin@markazi.com';
         const newUser = {
           id: userId,
           name: sessionUser.user?.user_metadata?.full_name || sessionUser.user?.user_metadata?.name || 'مستخدم جديد',
           email,
-          role: isImplicitAdmin ? 'admin' : 'customer',
-          store_id: null,
+          role: storeMatch && storeMatch.length > 0 ? 'store' : isImplicitAdmin ? 'admin' : 'customer',
+          store_id: storeMatch && storeMatch.length > 0 ? storeMatch[0].id : null,
         };
 
         try {
@@ -84,6 +128,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (insertError) {
           console.warn('Failed to create user record in users table:', insertError);
           row = newUser as any;
+        }
+      } else {
+        // If user row exists but store linkage is missing, try to recover it from the stores table.
+        if ((!row.store_id || !row.role || row.role === 'customer') && (userId || email)) {
+          const conditions = [
+            userId ? `owner_id.eq.${userId}` : null,
+            email ? `owner_email.eq.${email}` : null,
+          ].filter(Boolean).join(',');
+
+          if (conditions.length > 0) {
+            const { data: storeRows, error: storeError } = await supabase
+              .from('stores')
+              .select('id')
+              .or(conditions)
+              .limit(1);
+
+            if (!storeError && storeRows && storeRows.length > 0) {
+              const storeId = storeRows[0].id;
+              try {
+                const updatePayload: any = { store_id: storeId, role: 'store' };
+                await supabase.from('users').update(updatePayload).eq('id', row.id);
+                row = { ...row, ...updatePayload };
+                console.warn('Recovered missing store linkage for user', row.id, storeId);
+              } catch (updateError) {
+                console.warn('Failed to persist recovered store linkage for user:', updateError);
+              }
+            }
+          }
         }
       }
 
@@ -165,12 +237,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: error.message || 'فشل تسجيل الدخول' };
       }
 
-      if (!data?.user) {
+      let authUser = data?.user || data?.session?.user;
+      if (!authUser) {
+        const sessionResult = await supabase.auth.getSession();
+        if (sessionResult.error) {
+          setLoading(false);
+          return { success: false, message: sessionResult.error.message || 'فشل تسجيل الدخول. لم يتم العثور على الجلسة.' };
+        }
+        authUser = sessionResult.data?.session?.user;
+      }
+
+      if (!authUser) {
         setLoading(false);
         return { success: false, message: 'فشل الحصول على بيانات المستخدم.' };
       }
 
-      const userFetched = await fetchAndSetUser(data.user, true);
+      const userFetched = await fetchAndSetUser(authUser, true);
       if (!userFetched) {
         setLoading(false);
         return { success: false, message: 'فشل تحميل بيانات المستخدم بعد تسجيل الدخول.' };
@@ -200,8 +282,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) {
+        return { success: false, message: error.message || 'فشل تسجيل الدخول باستخدام Google.' };
+      }
+
+      const authUser = data?.user || data?.session?.user;
+      if (authUser) {
+        const userFetched = await fetchAndSetUser(authUser, true);
+        if (!userFetched) {
+          return { success: false, message: 'فشل تحميل بيانات المستخدم بعد تسجيل الدخول باستخدام Google.' };
+        }
+      }
+
       return { success: true, message: 'تم تسجيل الدخول باستخدام Google' };
     } catch (err) {
       return { success: false, message: `خطأ: ${err instanceof Error ? err.message : 'فشل'}` };

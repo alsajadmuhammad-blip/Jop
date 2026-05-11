@@ -45,7 +45,7 @@ export function HeroCarousel({ heroCarouselItems, options }: HeroCarouselProps) 
 
   const handleSlideClick = (item: HeroCarouselItem) => {
     if (item.storeId) {
-      router.push(`/stores/${item.storeId}`);
+      router.push(`/store?id=${item.storeId}`);
     }
   };
 

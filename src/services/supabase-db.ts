@@ -149,6 +149,96 @@ export async function fetchProductById(productId: string): Promise<Product | nul
   return data ? mapProductRow(data) : null;
 }
 
+export async function createProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
+  const payload: any = {
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    store_id: product.storeId,
+    category_id: product.categoryId,
+    image_url: product.imageUrl,
+  };
+
+  const { data, error } = await supabase
+    .from('products')
+    .insert([payload])
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error creating product:', error.message);
+    return null;
+  }
+
+  return data ? mapProductRow(data) : null;
+}
+
+export async function updateProduct(productId: string, updates: Partial<Product>): Promise<Product | null> {
+  const payload: any = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.price !== undefined) payload.price = updates.price;
+  if (updates.categoryId !== undefined) payload.category_id = updates.categoryId;
+  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
+
+  const { data, error } = await supabase
+    .from('products')
+    .update(payload)
+    .eq('id', productId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating product:', error.message);
+    return null;
+  }
+
+  return data ? mapProductRow(data) : null;
+}
+
+export async function deleteProduct(productId: string, storeId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', productId)
+    .eq('store_id', storeId);
+
+  if (error) {
+    console.error('Error deleting product:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+export async function uploadStoreAsset(file: File, folder: string = 'avatars'): Promise<string | null> {
+  try {
+    const filePath = `${folder}/${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from(folder)
+      .upload(filePath, file, { upsert: true });
+
+    if (error) {
+      console.warn('Storage upload failed, falling back to data URL:', error.message);
+      return null;
+    }
+
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from(folder)
+      .getPublicUrl(filePath);
+
+    if (urlError) {
+      console.warn('Failed to get public URL:', urlError.message);
+      return null;
+    }
+
+    return urlData.publicUrl;
+  } catch (error: any) {
+    console.error('Unexpected storage upload error:', error.message || error);
+    return null;
+  }
+}
+
 export async function searchProducts(query: string): Promise<Product[]> {
   // Full-text search using Supabase's built-in search
   const { data, error } = await supabase
@@ -185,19 +275,22 @@ export async function fetchUserProfile(userId: string): Promise<User | null> {
 }
 
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<boolean> {
+  const dbData: any = {};
+  
+  // Convert camelCase to snake_case
+  if (updates.name !== undefined) dbData.name = updates.name;
+  if (updates.storeId !== undefined) dbData.store_id = updates.storeId;
+  if (updates.role !== undefined) dbData.role = updates.role;
+  if (updates.paymentSystem !== undefined) dbData.payment_system = updates.paymentSystem;
+  if (updates.totalEarnings !== undefined) dbData.total_earnings = updates.totalEarnings;
+  if (updates.monthlySalary !== undefined) dbData.monthly_salary = updates.monthlySalary;
+  if (updates.requiredStoresCount !== undefined) dbData.required_stores_count = updates.requiredStoresCount;
+  if (updates.monthlyActivations !== undefined) dbData.monthly_activations = updates.monthlyActivations;
+  if (updates.lastResetDate !== undefined) dbData.last_reset_date = updates.lastResetDate;
+
   const { error } = await supabase
     .from('users')
-    .update({
-      name: updates.name,
-      store_id: updates.storeId,
-      role: updates.role,
-      payment_system: updates.paymentSystem,
-      total_earnings: updates.totalEarnings,
-      monthly_salary: updates.monthlySalary,
-      required_stores_count: updates.requiredStoresCount,
-      monthly_activations: updates.monthlyActivations,
-      last_reset_date: updates.lastResetDate,
-    })
+    .update(dbData)
     .eq('id', userId);
 
   if (error) {
@@ -253,9 +346,23 @@ export async function fetchUserOrders(userId: string): Promise<any[]> {
 }
 
 export async function createOrder(order: any): Promise<string | null> {
+  // Ensure all fields use snake_case for database
+  const dbOrder: any = {
+    store_id: order.storeId || order.store_id,
+    store_name: order.storeName || order.store_name,
+    customer_id: order.customerId || order.customer_id,
+    customer_name: order.customerName || order.customer_name,
+    customer_phone: order.customerPhone || order.customer_phone,
+    items: order.items,
+    total_amount: order.totalAmount || order.total_amount,
+    status: order.status || 'pending',
+    notes: order.notes,
+    payment_method: order.paymentMethod || order.payment_method || 'whatsapp',
+  };
+
   const { data, error } = await supabase
     .from('orders')
-    .insert([order])
+    .insert([dbOrder])
     .select()
     .single();
 
@@ -310,7 +417,7 @@ export function mapStoreRow(row: any): Store {
   };
 }
 
-function mapProductRow(row: any): Product {
+export function mapProductRow(row: any): Product {
   return {
     id: row.id,
     name: row.name,

@@ -10,28 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Order, OrderStatus } from "@/lib/types";
 import { fetchStoreOrders, updateOrderStatus } from "@/services/orders";
-import { ShoppingCart, Phone, MapPin, Clock } from "lucide-react";
+import { ShoppingCart, Phone, Clock } from "lucide-react";
 
 const statusLabels: Record<OrderStatus, string> = {
   "pending": "في الانتظار",
@@ -238,45 +220,19 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
               {/* Status Update */}
               <div>
                 <p className="text-sm font-semibold mb-2">تحديث حالة الطلب:</p>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-2">
                   {getNextPossibleStatuses(order.status).length > 0 ? (
-                    <>
-                      {getNextPossibleStatuses(order.status).map(
-                        (nextStatus) => (
-                          <AlertDialog key={nextStatus}>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={updatingOrderId === order.id}
-                              >
-                                {statusLabels[nextStatus]}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  تحديث حالة الطلب
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  هل تريد تغيير حالة الطلب إلى "{statusLabels[nextStatus]}"؟
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleStatusChange(order.id, nextStatus)
-                                  }
-                                >
-                                  تأكيد
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )
-                      )}
-                    </>
+                    getNextPossibleStatuses(order.status).map((nextStatus) => (
+                      <Button
+                        key={nextStatus}
+                        size="sm"
+                        variant="outline"
+                        disabled={updatingOrderId === order.id}
+                        onClick={() => handleStatusChange(order.id, nextStatus)}
+                      >
+                        {statusLabels[nextStatus]}
+                      </Button>
+                    ))
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       هذا الطلب محفوظ في الحالة النهائية

@@ -19,11 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Store } from "@/lib/types";
+import { uploadStoreAsset } from "@/services/supabase-db";
 import { Card, CardContent } from "../ui/card";
 
 interface LogoUploaderProps {
   store: Store;
-  onSave: (newLogoUrl: string) => void;
+  onSave: (newLogoUrl: string) => Promise<void>;
 }
 
 const containerVariants = {
@@ -39,20 +40,41 @@ const itemVariants = {
 export function LogoUploader({ store, onSave }: LogoUploaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(store.logoUrl || null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        setSelectedFile(file);
+      };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSave = () => {
-    if (imagePreview) {
-      onSave(imagePreview);
+  const handleSave = async () => {
+    if (!imagePreview) return;
+    setIsSaving(true);
+    let finalUrl = imagePreview;
+
+    try {
+      if (selectedFile) {
+        const uploadedUrl = await uploadStoreAsset(selectedFile, 'store-assets');
+        if (uploadedUrl) {
+          finalUrl = uploadedUrl;
+        }
+      }
+
+      await onSave(finalUrl);
       setIsOpen(false);
+    } catch (error: any) {
+      console.error('Failed to save logo:', error);
+      alert(error?.message || 'فشل حفظ الشعار. الرجاء المحاولة مرة أخرى.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -124,13 +146,21 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
                       exit={{ opacity: 0, y: -8 }}
                       className="relative aspect-square w-24 mx-auto rounded-lg overflow-hidden border border-gray-300"
                     >
-                      <Image
-                        src={imagePreview}
-                        alt="معاينة الشعار"
-                        fill
-                        className="object-contain rounded-md"
-                        sizes="(max-width: 768px) 70vw, 160px"
-                      />
+                      {imagePreview.startsWith('data:') ? (
+                        <img
+                          src={imagePreview}
+                          alt="معاينة الشعار"
+                          className="object-contain rounded-md w-full h-full"
+                        />
+                      ) : (
+                        <Image
+                          src={imagePreview}
+                          alt="معاينة الشعار"
+                          fill
+                          className="object-contain rounded-md"
+                          sizes="(max-width: 768px) 70vw, 160px"
+                        />
+                      )}
                     </motion.div>
                   </AnimatePresence>
                 )}

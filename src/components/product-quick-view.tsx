@@ -121,13 +121,21 @@ export function ProductQuickView({
 
               <motion.div variants={itemVariants} className="relative w-full aspect-square bg-muted flex items-center justify-center">
                 {product.imageUrl ? (
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 90vw, 300px"
-                  />
+                  product.imageUrl.startsWith('data:') ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 90vw, 300px"
+                    />
+                  )
                 ) : (
                   <ImageIcon className="w-16 h-16 text-muted-foreground/50" />
                 )}
@@ -157,7 +165,7 @@ export function ProductQuickView({
                            <Skeleton className="h-3 w-20" />
                         </div>
                     ) : store ? (
-                        <Link href={`/stores/${store.id}`} onClick={onClose} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                        <Link href={`/store?id=${store.id}`} onClick={onClose} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
                             <StoreIcon className="w-3 h-3" />
                             <span>{store.name}</span>
                         </Link>

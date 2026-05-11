@@ -3,9 +3,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon } from "lucide-react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductFormDialog } from "@/components/dashboard/product-form-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { createProduct, deleteProduct, mapProductRow, mapStoreRow, updateProduct } from "@/services/supabase-db";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
 import {
@@ -171,6 +173,7 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave
                         <Switch id="delivery-switch" checked={!!store.hasDelivery} onCheckedChange={(checked) => onSettingChange("hasDelivery", checked)} dir="ltr" />
                         <Label htmlFor="delivery-switch" className="cursor-pointer">توفير خدمة التوصيل</Label>
                     </div>
+                </div>
             </div>
         </div>
     );
@@ -227,7 +230,6 @@ export default function StoreDashboardPage() {
   const { user, userRole, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [store, setStore] = useState<Store | null>(null);
@@ -237,7 +239,7 @@ export default function StoreDashboardPage() {
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
   const [isStoreActive, setIsStoreActive] = useState(false);
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
-  const [activeView, setActiveView] = useState(searchParams?.get('tab') || 'products');
+  const [activeView, setActiveView] = useState('products');
   const [loading, setLoading] = useState(true);
 
   const handleLogout = () => {
@@ -249,130 +251,125 @@ export default function StoreDashboardPage() {
   };
 
   useEffect(() => {
-    if (searchParams) {
-      const view = searchParams.get('tab') || 'products';
-      if (view !== activeView) {
-        setActiveView(view);
-      }
-    }
-  }, [searchParams, activeView]);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('tab') || 'products';
+    setActiveView(view);
+  }, []);
 
   useEffect(() => {
-    const currentView = searchParams?.get('tab') || 'products';
-    if (activeView !== currentView) {
-      const basePath = '/dashboard/store';
-      const newUrl = activeView === 'products' ? basePath : `${basePath}?tab=${encodeURIComponent(activeView)}`;
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [activeView, router, searchParams]);
+    if (!router) return;
+    const basePath = '/dashboard/store';
+    const newUrl = activeView === 'products' ? basePath : `${basePath}?tab=${encodeURIComponent(activeView)}`;
+    router.replace(newUrl, { scroll: false });
+  }, [activeView, router]);
 
   useEffect(() => {
     if (authLoading) {
-        return;
+      return;
     }
 
     if (!user || userRole !== "store") {
-        router.push("/login");
-        return;
+      router.push("/login");
+      return;
     }
 
     if (user.firstLogin && pathname !== '/dashboard/store/change-password') {
-        router.push('/dashboard/store/change-password');
-        return;
+      router.push('/dashboard/store/change-password');
+      return;
     }
 
-    if (!user.storeId) {
-        console.log("User is a store owner but storeId is missing.");
-        setLoading(false);
-        return;
-    }
+    const loadStore = async () => {
+      setLoading(true);
+      try {
+        let storeId = user.storeId;
+        console.log('User storeId:', storeId, 'User id:', user.id, 'User email:', user.email);
+        if (!storeId) {
+          console.log("User is a store owner but storeId is missing. Falling back to store record lookup.");
+          const conditions = [
+            user.id ? `owner_id.eq.${user.id}` : null,
+            user.email ? `owner_email.eq.${user.email}` : null,
+          ].filter(Boolean).join(',');
 
-    (async () => {
-        setLoading(true);
-        try {
-            const { data: storeRow, error: storeError } = await supabase
-                .from('stores')
-                .select('*')
-                .eq('id', user.storeId)
-                .single();
+          console.log('Fallback conditions:', conditions);
+          if (conditions) {
+            const { data: fallbackStore, error: fallbackError } = await supabase
+              .from('stores')
+              .select('*')
+              .or(conditions)
+              .limit(1);
 
-            if (storeError && storeError.code !== 'PGRST116') {
-                throw storeError;
+            console.log('Fallback store result:', fallbackStore, 'Error:', fallbackError);
+            if (fallbackError) {
+              throw fallbackError;
             }
 
-            if (!storeRow) {
-                setStore(null);
-            } else {
-                const storeData = {
-                    id: storeRow.id,
-                    name: storeRow.name,
-                    description: storeRow.description,
-                    logoUrl: storeRow.logo_url || storeRow.logoUrl,
-                    coverImageUrl: storeRow.cover_image_url || storeRow.coverImageUrl,
-                    rating: storeRow.rating || 0,
-                    reviews: storeRow.reviews || 0,
-                    location: storeRow.location || '',
-                    latitude: storeRow.latitude ?? null,
-                    longitude: storeRow.longitude ?? null,
-                    type: storeRow.type,
-                    marketType: storeRow.market_type || storeRow.marketType || '',
-                    businessHours: storeRow.business_hours || storeRow.businessHours,
-                    products: storeRow.products || [],
-                    whatsappNumber: storeRow.whatsapp_number || storeRow.whatsappNumber,
-                    hasDelivery: storeRow.has_delivery || storeRow.hasDelivery || false,
-                    isActive: storeRow.is_active || storeRow.isActive || false,
-                    productLimit: storeRow.product_limit || storeRow.productLimit || Number.MAX_SAFE_INTEGER,
-                    subscriptionDuration: storeRow.subscription_duration || storeRow.subscriptionDuration || 0,
-                    activationDate: storeRow.activation_date || storeRow.activationDate || null,
-                    ownerId: storeRow.owner_id || storeRow.ownerId || null,
-                    ownerEmail: storeRow.owner_email || storeRow.ownerEmail,
-                    password: storeRow.password,
-                    createdAt: storeRow.created_at || storeRow.createdAt || null,
-                    registeredByAgentId: storeRow.registered_by_agent_id || storeRow.registeredByAgentId || null,
-                } as Store;
-
-                const activationDays = storeData.activationDate ? differenceInDays(new Date(), parseISO(storeData.activationDate as string)) : 0;
-                const subscriptionDuration = storeData.subscriptionDuration || 30;
-                const daysLeft = subscriptionDuration - activationDays;
-
-                setRemainingDays(daysLeft);
-                setIsStoreActive(!!storeData.isActive);
-
-                const expired = !!storeData.isActive && daysLeft <= 0;
-                setIsSubscriptionExpired(expired);
-
-                if (expired) {
-                    toast({ variant: "destructive", title: "الاشتراك منتهي", description: "انتهت صلاحية الاشتراك. تواصل مع الإدارة لتجديده.", duration: Infinity });
-                }
-
-                setStore(storeData);
+            if (fallbackStore && fallbackStore.length > 0) {
+              storeId = fallbackStore[0].id;
+              console.log('Using fallback storeId:', storeId);
             }
-
-            const { data: productsRows, error: productsError } = await supabase
-                .from('products')
-                .select('*')
-                .eq('store_id', user.storeId);
-
-            if (productsError) throw productsError;
-            setProducts((productsRows || []).map((row: any) => ({
-                id: row.id,
-                name: row.name,
-                description: row.description,
-                price: row.price,
-                imageUrl: row.image_url || row.imageUrl,
-                storeId: row.store_id || row.storeId,
-                categoryId: row.category_id || row.categoryId,
-            }) as Product));
-        } catch (error) {
-            console.error("Error fetching store data:", error);
-            toast({ variant: "destructive", title: "خطأ في الاتصال", description: "فشل تحميل بيانات المتجر." });
-        } finally {
-            setLoading(false);
+          }
         }
-    })();
+
+        if (!storeId) {
+          console.log('No storeId found, showing error');
+          toast({ variant: "destructive", title: "خطأ في بيانات المتجر", description: "لم يتم العثور على متجر مرتبط بحسابك." });
+          setStore(null);
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+
+        const { data: storeRow, error: storeError } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('id', storeId)
+          .single();
+
+        if (storeError && storeError.code !== 'PGRST116') {
+          throw storeError;
+        }
+
+        if (!storeRow) {
+          setStore(null);
+        } else {
+          const storeData = mapStoreRow(storeRow);
+          const activationDays = storeData.activationDate ? differenceInDays(new Date(), parseISO(storeData.activationDate as string)) : 0;
+          const subscriptionDuration = storeData.subscriptionDuration || 30;
+          const daysLeft = subscriptionDuration - activationDays;
+
+          setRemainingDays(daysLeft);
+          setIsStoreActive(!!storeData.isActive);
+
+          const expired = !!storeData.isActive && daysLeft <= 0;
+          setIsSubscriptionExpired(expired);
+
+          if (expired) {
+            toast({ variant: "destructive", title: "الاشتراك منتهي", description: "انتهت صلاحية الاشتراك. تواصل مع الإدارة لتجديده.", duration: Infinity });
+          }
+
+          setStore(storeData);
+        }
+
+        const { data: productsRows, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('store_id', storeId);
+
+        if (productsError) throw productsError;
+        setProducts((productsRows || []).map(mapProductRow));
+      } catch (error) {
+        console.error("Error fetching store data:", error);
+        toast({ variant: "destructive", title: "خطأ في الاتصال", description: "فشل تحميل بيانات المتجر." });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStore();
 
     return () => {
-        // Nothing to clean up
+      // Nothing to clean up
     };
   }, [user, userRole, authLoading, router, pathname, toast]);
 
@@ -401,15 +398,30 @@ export default function StoreDashboardPage() {
   }, [store, products, user, userRole]);
 
   const updateStore = async (storeId: string, data: Partial<Store>) => {
-    const dbData: any = { ...data };
-
-    // Convert some known keys to snake_case for DB
-    if (dbData.logoUrl) { dbData.logo_url = dbData.logoUrl; delete dbData.logoUrl; }
-    if (dbData.coverImageUrl) { dbData.cover_image_url = dbData.coverImageUrl; delete dbData.coverImageUrl; }
-    if (dbData.whatsappNumber) { dbData.whatsapp_number = dbData.whatsappNumber; delete dbData.whatsappNumber; }
-    if (dbData.businessHours) { dbData.business_hours = dbData.businessHours; delete dbData.businessHours; }
-    if (dbData.hasDelivery !== undefined) { dbData.has_delivery = dbData.hasDelivery; delete dbData.hasDelivery; }
-    if (dbData.isActive !== undefined) { dbData.is_active = dbData.isActive; delete dbData.isActive; }
+    const dbData: any = {};
+    
+    // Convert all camelCase to snake_case for database
+    if (data.name !== undefined) dbData.name = data.name;
+    if (data.description !== undefined) dbData.description = data.description;
+    if (data.logoUrl !== undefined) dbData.logo_url = data.logoUrl;
+    if (data.coverImageUrl !== undefined) dbData.cover_image_url = data.coverImageUrl;
+    if (data.rating !== undefined) dbData.rating = data.rating;
+    if (data.reviews !== undefined) dbData.reviews = data.reviews;
+    if (data.location !== undefined) dbData.location = data.location;
+    if (data.latitude !== undefined) dbData.latitude = data.latitude;
+    if (data.longitude !== undefined) dbData.longitude = data.longitude;
+    if (data.type !== undefined) dbData.type = data.type;
+    if (data.marketType !== undefined) dbData.market_type = data.marketType;
+    if (data.businessHours !== undefined) dbData.business_hours = data.businessHours;
+    if (data.whatsappNumber !== undefined) dbData.whatsapp_number = data.whatsappNumber;
+    if (data.hasDelivery !== undefined) dbData.has_delivery = data.hasDelivery;
+    if (data.isActive !== undefined) dbData.is_active = data.isActive;
+    if (data.productLimit !== undefined) dbData.product_limit = data.productLimit;
+    if (data.subscriptionDuration !== undefined) dbData.subscription_duration = data.subscriptionDuration;
+    if (data.activationDate !== undefined) dbData.activation_date = data.activationDate;
+    if (data.ownerId !== undefined) dbData.owner_id = data.ownerId;
+    if (data.ownerEmail !== undefined) dbData.owner_email = data.ownerEmail;
+    if (data.registeredByAgentId !== undefined) dbData.registered_by_agent_id = data.registeredByAgentId;
 
     const { error } = await supabase.from('stores').update(dbData).eq('id', storeId);
     if (error) throw error;
@@ -419,6 +431,7 @@ export default function StoreDashboardPage() {
     if (!store) return;
     try {
       await updateStore(store.id, { logoUrl: newLogoUrl });
+      setStore({ ...store, logoUrl: newLogoUrl });
       toast({ title: "تم تحديث الشعار بنجاح." });
     } catch (err) {
       console.error("Failed to save logo:", err);
@@ -430,6 +443,7 @@ export default function StoreDashboardPage() {
     if (!store) return;
     try {
       await updateStore(store.id, { coverImageUrl: newCoverUrl });
+      setStore({ ...store, coverImageUrl: newCoverUrl });
       toast({ title: "تم تحديث صورة الغلاف بنجاح." });
     } catch (err) {
       console.error("Failed to save cover image:", err);
@@ -441,6 +455,7 @@ export default function StoreDashboardPage() {
     if (!store) return;
     try {
       await updateStore(store.id, { [key]: value } as Partial<Store>);
+      setStore({ ...store, [key]: value } as Store);
       toast({ title: "تم حفظ التغييرات بنجاح." });
     } catch (err) {
       console.error("Failed to update store setting:", err);
@@ -479,14 +494,16 @@ export default function StoreDashboardPage() {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!store) return;
+    const storeId = store?.id || user?.storeId;
+    if (!storeId) return;
+
     try {
-      const { error } = await supabase.from('products').delete().eq('id', productId).eq('store_id', store.id);
-      if (error) throw error;
+      const success = await deleteProduct(productId, storeId);
+      if (!success) throw new Error('فشل حذف المنتج.');
       toast({ title: "تم حذف المنتج بنجاح.", variant: "destructive" });
-      // Re-fetch products
-      const { data: productsRows } = await supabase.from('products').select('*').eq('store_id', store.id);
-      setProducts((productsRows || []).map((row: any) => ({ id: row.id, name: row.name, description: row.description, price: row.price, imageUrl: row.image_url || row.imageUrl, storeId: row.store_id || row.storeId, categoryId: row.category_id || row.categoryId }) as Product));
+      const { data: productsRows, error } = await supabase.from('products').select('*').eq('store_id', storeId);
+      if (error) throw error;
+      setProducts((productsRows || []).map(mapProductRow));
     } catch (error) {
       console.error("Failed to delete product:", error);
       toast({ title: "فشل حذف المنتج", variant: "destructive" });
@@ -494,40 +511,52 @@ export default function StoreDashboardPage() {
   };
 
   const handleSaveProduct = async (productData: Omit<Product, "id" | "storeId">) => {
-    if (!user?.storeId) return; // Should not happen if UI is correct
+    const storeId = user?.storeId || store?.id;
+    if (!storeId) {
+      toast({ title: "فشل حفظ المنتج", description: "لم يتم العثور على هوية المتجر.", variant: "destructive" });
+      return;
+    }
+
     const finalProductData = { ...productData };
 
     try {
       if (editingProduct) {
         if (!finalProductData.imageUrl) finalProductData.imageUrl = editingProduct.imageUrl;
-        const { error } = await supabase.from('products').update(finalProductData).eq('id', editingProduct.id).eq('store_id', user.storeId);
-        if (error) throw error;
+        const updated = await updateProduct(editingProduct.id, {
+          name: finalProductData.name,
+          description: finalProductData.description,
+          price: finalProductData.price,
+          imageUrl: finalProductData.imageUrl,
+          categoryId: finalProductData.categoryId,
+        });
+        if (!updated) throw new Error('فشل تحديث المنتج.');
         toast({ title: "تم تحديث المنتج بنجاح." });
       } else {
-        if (isProductLimitReached) return;
-        const dbProduct: any = { ...finalProductData, store_id: user.storeId, image_url: finalProductData.imageUrl || "" };
-        const { error } = await supabase.from('products').insert(dbProduct);
-        if (error) throw error;
+        if (isProductLimitReached) {
+          toast({ variant: 'destructive', title: 'تم الوصول للحد الأقصى', description: 'لا يمكنك إضافة المزيد من المنتجات.' });
+          return;
+        }
+        const created = await createProduct({
+          name: finalProductData.name,
+          description: finalProductData.description,
+          price: finalProductData.price,
+          imageUrl: finalProductData.imageUrl || "",
+          categoryId: finalProductData.categoryId,
+          storeId,
+        });
+        if (!created) throw new Error('فشل إضافة المنتج.');
         toast({ title: "تمت إضافة المنتج بنجاح." });
       }
 
-      // Re-fetch products
-      const { data: productsRows } = await supabase.from('products').select('*').eq('store_id', user.storeId);
-      setProducts((productsRows || []).map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        price: row.price,
-        imageUrl: row.image_url || row.imageUrl,
-        storeId: row.store_id || row.storeId,
-        categoryId: row.category_id || row.categoryId,
-      }) as Product));
+      const { data: productsRows, error } = await supabase.from('products').select('*').eq('store_id', storeId);
+      if (error) throw error;
+      setProducts((productsRows || []).map(mapProductRow));
 
       setIsDialogOpen(false);
       setEditingProduct(undefined);
     } catch (error) {
       console.error("Failed to save product:", error);
-      toast({ title: "فشل حفظ المنتج", variant: "destructive" });
+      toast({ title: "فشل حفظ المنتج", description: error instanceof Error ? error.message : undefined, variant: "destructive" });
     }
   };
   
@@ -618,7 +647,47 @@ export default function StoreDashboardPage() {
                 </header>
 
                 <main className="flex-1 px-4 md:px-8 py-6 space-y-6">
-                    {isPendingReview && (
+                    <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">المنتجات</p>
+                            <p className="mt-3 text-3xl font-semibold text-slate-950">{products.length}</p>
+                            <p className="text-sm text-slate-500 mt-1">إجمالي العناصر في المتجر</p>
+                        </div>
+                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">الحالة</p>
+                            <p className="mt-3 text-3xl font-semibold text-slate-950">{fullStoreData.isActive ? 'نشط' : 'متوقف'}</p>
+                            <p className="text-sm text-slate-500 mt-1">حالة عرض المتجر</p>
+                        </div>
+                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">التوصيل</p>
+                            <p className="mt-3 text-3xl font-semibold text-slate-950">{fullStoreData.hasDelivery ? 'متاح' : 'غير متاح'}</p>
+                            <p className="text-sm text-slate-500 mt-1">خيار التوصيل الحالي</p>
+                        </div>
+                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">الاشتراك</p>
+                            <p className="mt-3 text-3xl font-semibold text-slate-950">{remainingDays !== null ? `${remainingDays} يوم` : 'غير معروف'}</p>
+                            <p className="text-sm text-slate-500 mt-1">باقي من أيام الاشتراك</p>
+                        </div>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-900 p-6 text-white shadow-xl">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-300">نظرة سريعة</p>
+                        <h2 className="mt-3 text-2xl font-semibold">{fullStoreData.name}</h2>
+                        <p className="mt-3 text-sm leading-6 text-slate-300">
+                            {fullStoreData.description || 'لوحة تحكم متجرك منظمة لتسريع إدارة المنتجات والطلبات والإعدادات.'}
+                        </p>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <Button asChild size="sm" variant="secondary" className="rounded-full px-4 py-2">
+                                <Link href={`/store?id=${fullStoreData.id}`}>عرض المتجر</Link>
+                            </Button>
+                            <Button size="sm" className="rounded-full px-4 py-2" onClick={() => handleViewChange('settings')}>
+                                تعديل الإعدادات
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {isPendingReview && (
                       <Alert className="bg-blue-50 border-blue-200 text-blue-900">
                         <Info className="h-4 w-4 flex-shrink-0" />
                         <AlertTitle>جاري المراجعة</AlertTitle>

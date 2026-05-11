@@ -302,7 +302,7 @@ function HomePageContent() {
                   whileHover={{ y: -8 }}
                   className="group"
                 >
-                  <Link href={`/stores/${store.id}`}>
+                  <Link href={`/store?id=${store.id}`}>
                     <Card className="hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer h-full overflow-hidden border-0 shadow-lg bg-white/80 backdrop-blur-sm">
                       {store.logo_url && (
                         <div className="h-28 bg-gradient-to-br from-primary/20 via-blue-50 to-purple-50 overflow-hidden relative">

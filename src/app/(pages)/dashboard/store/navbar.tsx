@@ -5,25 +5,25 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { href: "/dashboard/store", label: "الرئيسية" },
-  { href: "/dashboard/store/orders", label: "الطلبات" },
-  { href: "/dashboard/store/products", label: "المنتجات" },
-  { href: "/dashboard/store/history", label: "سجل الطلبات" },
-  { href: "/dashboard/store/settings", label: "الإعدادات" }
+  { tab: "products", label: "المنتجات" },
+  { tab: "orders", label: "الطلبات" },
+  { tab: "settings", label: "الإعدادات" },
 ];
 
 export function StoreOwnerNavbar() {
   const pathname = usePathname();
+  const isStoreRoute = pathname?.startsWith("/dashboard/store");
+
   return (
-    <nav className="flex gap-2 border-b mb-6 bg-background px-2 py-2 rounded-lg shadow-sm">
-      {navLinks.map(link => (
+    <nav className="flex flex-wrap gap-2 border-b mb-6 bg-background px-3 py-3 rounded-2xl shadow-sm">
+      {navLinks.map((link) => (
         <Button
-          key={link.href}
+          key={link.tab}
           asChild
-          variant={pathname === link.href ? "default" : "ghost"}
+          variant="ghost"
           className="rounded-full"
         >
-          <Link href={link.href}>{link.label}</Link>
+          <Link href={`/dashboard/store?tab=${link.tab}`}>{link.label}</Link>
         </Button>
       ))}
     </nav>
