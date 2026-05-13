@@ -149,28 +149,45 @@ export async function fetchProductById(productId: string): Promise<Product | nul
   return data ? mapProductRow(data) : null;
 }
 
+const SUPABASE_CREATE_PRODUCT_FUNCTION_URL = "https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-product";
+
 export async function createProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
   const payload: any = {
+    storeId: product.storeId,
+    categoryId: product.categoryId ?? null,
     name: product.name,
-    description: product.description,
-    price: product.price,
-    store_id: product.storeId,
-    category_id: product.categoryId,
-    image_url: product.imageUrl,
+    description: product.description ?? null,
+    price: Number(product.price),
+    imageUrl: product.imageUrl ?? null,
+    isFeatured: false,
   };
 
-  const { data, error } = await supabase
-    .from('products')
-    .insert([payload])
-    .select('*')
-    .single();
+  try {
+    const response = await fetch(SUPABASE_CREATE_PRODUCT_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (error) {
-    console.error('Error creating product:', error.message);
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('Create product function error:', result);
+      return null;
+    }
+
+    if (!result?.product) {
+      console.error('Create product function returned invalid payload:', result);
+      return null;
+    }
+
+    return mapProductRow(result.product);
+  } catch (error: any) {
+    console.error('Failed to call create product function:', error?.message || error);
     return null;
   }
-
-  return data ? mapProductRow(data) : null;
 }
 
 export async function updateProduct(productId: string, updates: Partial<Product>): Promise<Product | null> {
