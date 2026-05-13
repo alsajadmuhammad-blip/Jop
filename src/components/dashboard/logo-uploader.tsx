@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Upload } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { StoreCard } from "@/components/store-card";
@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Store } from "@/lib/types";
-import { uploadStoreAsset } from "@/services/supabase-db";
+import { uploadStoreLogo } from "@/services/supabase-storage";
 import { Card, CardContent } from "../ui/card";
 
 interface LogoUploaderProps {
@@ -42,10 +43,27 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(store.logoUrl || null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // التحقق من نوع الملف
+      if (!file.type.startsWith('image/')) {
+        setError('يجب اختيار ملف صورة');
+        return;
+      }
+      
+      // التحقق من الحجم (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('حجم الصورة كبير جداً. الحد الأقصى 5MB');
+        return;
+      }
+
+      setError(null);
+      setSuccess(false);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -56,23 +74,37 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
   };
 
   const handleSave = async () => {
-    if (!imagePreview) return;
+    if (!imagePreview || !selectedFile) return;
+    
     setIsSaving(true);
-    let finalUrl = imagePreview;
+    setError(null);
+    setSuccess(false);
 
     try {
-      if (selectedFile) {
-        const uploadedUrl = await uploadStoreAsset(selectedFile, 'store-assets');
-        if (uploadedUrl) {
-          finalUrl = uploadedUrl;
-        }
+      // رفع الشعار إلى Supabase Storage
+      const result = await uploadStoreLogo(selectedFile, store.id);
+      
+      if (!result.success) {
+        setError(result.error || 'فشل رفع الشعار. حاول مرة أخرى.');
+        return;
       }
 
-      await onSave(finalUrl);
-      setIsOpen(false);
+      if (!result.url) {
+        setError('لم يتم الحصول على رابط الشعار');
+        return;
+      }
+
+      // حفظ الرابط في قاعدة البيانات
+      await onSave(result.url);
+      setSuccess(true);
+      
+      // إغلاق الحوار بعد ثانية
+      setTimeout(() => {
+        setIsOpen(false);
+      }, 1000);
     } catch (error: any) {
       console.error('Failed to save logo:', error);
-      alert(error?.message || 'فشل حفظ الشعار. الرجاء المحاولة مرة أخرى.');
+      setError(error?.message || 'حدث خطأ غير متوقع');
     } finally {
       setIsSaving(false);
     }
@@ -107,6 +139,20 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
           </DialogDescription>
         </DialogHeader>
 
+        {error && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {success && (
+          <Alert className="py-2 bg-green-50 text-green-800 border-green-200">
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">تم حفظ الشعار بنجاح!</AlertDescription>
+          </Alert>
+        )}
+
         <motion.div
           className="grid grid-cols-1 gap-3 py-2"
           variants={containerVariants}
@@ -135,6 +181,7 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
                     accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -189,6 +236,7 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
             size="sm"
             className="text-xs px-3 py-1 rounded-md"
             onClick={() => setIsOpen(false)}
+            disabled={isSaving}
           >
             إلغاء
           </Button>
@@ -196,9 +244,10 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
             size="sm"
             className="text-xs px-3 py-1 rounded-md"
             onClick={handleSave}
-            disabled={!imagePreview}
+            disabled={!imagePreview || isSaving}
+            loading={isSaving}
           >
-            حفظ
+            {isSaving ? 'جاري الحفظ...' : 'حفظ'}
           </Button>
         </DialogFooter>
       </DialogContent>
