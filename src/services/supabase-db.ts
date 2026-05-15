@@ -149,45 +149,112 @@ export async function fetchProductById(productId: string): Promise<Product | nul
   return data ? mapProductRow(data) : null;
 }
 
-const SUPABASE_CREATE_PRODUCT_FUNCTION_URL = "https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-product";
+async function invokeSupabaseFunction(functionName: string, payload: any) {
+  const body = JSON.stringify(payload);
+  let data: any = null;
+  let error: any = null;
 
-export async function createProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
+  try {
+    const result = await supabase.functions.invoke(functionName, {
+      body,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    data = result.data;
+    error = result.error;
+  } catch (invokeError) {
+    error = invokeError;
+  }
+
+  if (!error) {
+    return { data, error: null };
+  }
+
+  const message = String(error?.message || error);
+  console.warn('Supabase Edge Function invoke failed:', message);
+
+  if (!message.includes('Failed to send a request to the Edge Function')) {
+    return { data, error };
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    return { data: null, error: new Error('Supabase environment not configured for direct function fallback.') };
+  }
+
+  try {
+    const functionUrl = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/${functionName}`;
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      body,
+    });
+
+    const text = await response.text();
+    let parsed: any = text;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // ignore parse failure, keep raw text
+    }
+
+    if (!response.ok) {
+      return {
+        data: parsed,
+        error: new Error(parsed?.error || `Function request failed with status ${response.status}`),
+      };
+    }
+
+    return { data: parsed, error: null };
+  } catch (fetchError) {
+    console.error('Direct Supabase function fetch failed:', fetchError);
+    return { data: null, error: fetchError };
+  }
+}
+
+export async function createProduct(product: Omit<Product, 'id'>): Promise<Product> {
   const payload: any = {
     storeId: product.storeId,
+    store_id: product.storeId,
     categoryId: product.categoryId ?? null,
+    category_id: product.categoryId ?? null,
     name: product.name,
     description: product.description ?? null,
     price: Number(product.price),
     imageUrl: product.imageUrl ?? null,
+    image_url: product.imageUrl ?? null,
     isFeatured: false,
+    is_featured: false,
   };
 
-  try {
-    const response = await fetch(SUPABASE_CREATE_PRODUCT_FUNCTION_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('Create product function error:', result);
-      return null;
-    }
-
-    if (!result?.product) {
-      console.error('Create product function returned invalid payload:', result);
-      return null;
-    }
-
-    return mapProductRow(result.product);
-  } catch (error: any) {
-    console.error('Failed to call create product function:', error?.message || error);
-    return null;
+  const { data, error } = await invokeSupabaseFunction('create-product', payload);
+  if (error) {
+    console.error('Create product function error:', error?.message || error);
+    throw new Error(error?.message || 'فشل في استدعاء دالة إنشاء المنتج.');
   }
+
+  let responseData = data;
+  if (typeof responseData === 'string') {
+    try {
+      responseData = JSON.parse(responseData);
+    } catch (parseError) {
+      console.error('Failed to parse create product function response:', parseError);
+    }
+  }
+
+  if (!responseData || typeof responseData !== 'object' || !('product' in responseData)) {
+    console.error('Create product function returned invalid payload:', responseData);
+    throw new Error('استجابة دالة إنشاء المنتج غير صحيحة.');
+  }
+
+  return mapProductRow(responseData.product);
 }
 
 export async function updateProduct(productId: string, updates: Partial<Product>): Promise<Product | null> {

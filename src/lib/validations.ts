@@ -44,7 +44,7 @@ export const productFormSchema = z.object({
   description: z.string().min(10, { message: "يجب أن يكون الوصف 10 أحرف على الأقل." }),
   price: z.coerce.number().positive({ message: "الرجاء إدخال سعر صالح." }),
   imageUrl: z.string().optional(),
-  categoryId: z.string({ required_error: "الرجاء اختيار فئة للمنتج." }),
+  categoryId: z.string().min(1, { message: "الرجاء اختيار فئة للمنتج." }),
 });
 
 export const submitRatingSchema = z.object({

@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit",
     "serve": "next start",
     "build:analyze": "ANALYZE=true next build",
+    "export": "next build",
     "deploy:firebase": "npm run build && firebase deploy --only hosting",
-    "deploy:vercel": "vercel deploy --prod",
-    "export": "next build"
+    "deploy:vercel": "vercel deploy --prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

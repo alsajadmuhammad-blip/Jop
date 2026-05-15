@@ -45,7 +45,7 @@ type ProductFormValues = z.infer<typeof productFormSchema>;
 interface ProductFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Product, "id" | "storeId">) => void;
+  onSave: (data: Omit<Product, "id" | "storeId"> & { imageFile?: File | null }) => void;
   product?: Product;
 }
 
@@ -56,6 +56,7 @@ export function ProductFormDialog({
   product,
 }: ProductFormDialogProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
 
   const form = useForm<ProductFormValues>({
@@ -104,6 +105,7 @@ export function ProductFormDialog({
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
@@ -115,7 +117,7 @@ export function ProductFormDialog({
   };
 
   const onSubmit = (data: ProductFormValues) => {
-    onSave(data as Omit<Product, "id" | "storeId">);
+    onSave({ ...data, imageFile });
   };
 
   return (

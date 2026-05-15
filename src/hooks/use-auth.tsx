@@ -29,14 +29,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleRedirect = useCallback((role: string, appUser: User) => {
     const isAuthPage = pathname === '/login' || pathname === '/register';
-    if (isAuthPage) {
-      const redirectPath = role === 'admin' ? '/admin' : role === 'store' ? '/dashboard/store' : role === 'representative' ? '/dashboard/representative' : '/';
-      const toastTitle = role === 'admin' ? 'مرحباً أيها المشرف' : 'مرحباً بك';
-      const toastDescription = role === 'admin' ? 'تم تسجيل دخولك كمشرف.' : 'تم تسجيل الدخول بنجاح.';
-      toast({ title: toastTitle, description: toastDescription });
-      router.push(redirectPath);
-    }
+    if (!isAuthPage) return;
+    const redirectPath = role === 'admin' ? '/admin' : role === 'store' ? '/dashboard/store' : role === 'representative' ? '/dashboard/representative' : '/';
+    const toastTitle = role === 'admin' ? 'مرحباً أيها المشرف' : 'مرحباً بك';
+    const toastDescription = role === 'admin' ? 'تم تسجيل دخولك كمشرف.' : 'تم تسجيل الدخول بنجاح.';
+    toast({ title: toastTitle, description: toastDescription });
+    router.replace(redirectPath);
   }, [router, toast, pathname]);
+
+  const getAuthIdentifiers = (sessionUser: any) => {
+    if (!sessionUser) return { id: null, email: null };
+    const id = sessionUser.id || sessionUser.user?.id || sessionUser.sub || sessionUser.user?.sub || null;
+    const email = sessionUser.email || sessionUser.user?.email || null;
+    return { id, email };
+  };
 
   const fetchAndSetUser = useCallback(async (sessionUser: any | null, isLoginEvent = false) => {
     if (!sessionUser) {
@@ -47,14 +53,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const findStoreForAuthUser = async () => {
-      if (!sessionUser) return null;
-      const userId = sessionUser.id || sessionUser.user?.id || sessionUser.sub || sessionUser.user?.sub;
-      const email = sessionUser.email || sessionUser.user?.email;
+      const { id: userId, email } = getAuthIdentifiers(sessionUser);
       if (!userId && !email) return null;
 
       const conditions = [
         userId ? `owner_id.eq.${userId}` : null,
+        userId ? `"ownerId".eq.${userId}` : null,
         email ? `owner_email.eq.${email}` : null,
+        email ? `"ownerEmail".eq.${email}` : null,
       ]
         .filter(Boolean)
         .join(',');
@@ -77,23 +83,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     try {
-      const userId = sessionUser.id || sessionUser.user?.id || sessionUser.sub || sessionUser.user?.sub;
-      const email = sessionUser.email || sessionUser.user?.email;
+      const { id: userId, email } = getAuthIdentifiers(sessionUser);
       if (!userId && !email) {
         throw new Error('No authenticated user identifier available.');
       }
 
       let row: any | null = null;
-      let userRows: any[] | null = null;
 
       if (userId) {
         const { data, error } = await supabase.from('users').select('*').eq('id', userId).limit(1);
         if (error) throw new Error(`Database query failed: ${error.message}`);
-        userRows = data || null;
-
-        if (userRows && userRows.length > 0) {
-          row = userRows[0];
-        }
+        if (data && data.length > 0) row = data[0];
       }
 
       if (!row && email) {
@@ -115,6 +115,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email,
           role: storeMatch ? 'store' : isImplicitAdmin ? 'admin' : 'customer',
           store_id: storeMatch ? storeMatch.id : null,
+          storeId: storeMatch ? storeMatch.id : null,
+          first_login: true,
+          firstLogin: true,
         };
 
         try {
@@ -126,51 +129,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           row = newUser as any;
         }
       } else {
-        const needsStoreRecovery = (!row.store_id || row.role !== 'store') && storeMatch;
-        if (needsStoreRecovery) {
-          const updatePayload: any = {
-            store_id: storeMatch.id,
-            role: 'store',
-          };
-          try {
-            await supabase.from('users').update(updatePayload).eq('id', row.id);
-            row = { ...row, ...updatePayload };
-            console.warn('Recovered missing store linkage for user', row.id, storeMatch.id);
-          } catch (updateError) {
-            console.warn('Failed to persist recovered store linkage for user:', updateError);
-            row = { ...row, ...updatePayload };
-          }
+        const shouldRecoverStore = storeMatch && row.store_id !== storeMatch.id;
+        const shouldFixStoreRole = row.store_id && row.role !== 'store';
+        const shouldSetStoreRoleForMatchedStore = !row.store_id && storeMatch;
+        const updatePayload: any = {};
+
+        if (shouldRecoverStore || shouldSetStoreRoleForMatchedStore) {
+          updatePayload.store_id = storeMatch?.id;
+          updatePayload.role = 'store';
         }
 
-        if (row.store_id && row.role !== 'store') {
-          const updatePayload: any = { role: 'store' };
+        if (shouldFixStoreRole) {
+          updatePayload.role = 'store';
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
           try {
-            await supabase.from('users').update(updatePayload).eq('id', row.id);
+            await supabase.from('users').update({
+              ...updatePayload,
+              storeId: updatePayload.store_id ?? updatePayload.storeId,
+            }).eq('id', row.id);
             row = { ...row, ...updatePayload };
-            console.warn('Corrected user role to store for user', row.id);
+            console.warn('Persisted recovered store linkage or corrected role for user', row.id, updatePayload);
           } catch (updateError) {
-            console.warn('Failed to persist corrected user role for user:', updateError);
+            console.warn('Failed to persist recovered store linkage or corrected role for user:', updateError);
             row = { ...row, ...updatePayload };
           }
         }
       }
 
-      let storeId = row.store_id || row.storeId || null;
-      if (!storeId && storeMatch) {
-        storeId = storeMatch.id;
-      }
-
+      const storeId = row.store_id || row.storeId || null;
+      const role = row.role || (storeMatch ? 'store' : 'customer');
       const appUser: User = {
         id: String(row.id),
         name: row.name || sessionUser.user?.user_metadata?.full_name || 'مستخدم جديد',
         email: row.email || email,
-        role: row.role || (storeMatch ? 'store' : 'customer'),
+        role,
         storeId,
         firstLogin: row.firstLogin || row.first_login || false,
       };
 
-      setUser(appUser);
-      setUserRole(appUser.role);
+      setUser(prevUser => {
+        if (prevUser?.id === appUser.id &&
+            prevUser?.name === appUser.name &&
+            prevUser?.email === appUser.email &&
+            prevUser?.role === appUser.role &&
+            prevUser?.storeId === appUser.storeId &&
+            prevUser?.firstLogin === appUser.firstLogin) {
+          return prevUser;
+        }
+        return appUser;
+      });
+
+      setUserRole(prevRole => prevRole === appUser.role ? prevRole : appUser.role);
 
       if (isLoginEvent) handleRedirect(appUser.role, appUser);
       return true;

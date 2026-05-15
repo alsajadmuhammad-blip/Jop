@@ -4,7 +4,6 @@
 import { usePathname } from "next/navigation";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BottomNavbar } from "@/components/layout/bottom-navbar";
 import PwaInstall from '@/components/pwa-install';
@@ -30,7 +29,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                   <main className="flex-1">
                     {children}
                   </main>
-                  <Footer />
                   <BottomNavbar />
                   <PwaInstall />
                 </div>

@@ -171,6 +171,15 @@ export async function uploadProductImage(file: File, productId: string): Promise
   });
 }
 
+export async function uploadProductImageForStore(file: File, storeId: string): Promise<UploadResult> {
+  const fileName = generateFileName(file.name);
+  return uploadFile({
+    bucket: 'product-images',
+    file,
+    path: `stores/${storeId}/${fileName}`,
+  });
+}
+
 /**
  * رفع شعار المتجر
  */

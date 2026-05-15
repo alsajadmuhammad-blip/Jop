@@ -1,0 +1,22 @@
+{
+  "/(pages)/admin/page": "/admin",
+  "/(pages)/cart/page": "/cart",
+  "/(pages)/category/[id]/page": "/category/[id]",
+  "/(pages)/contact/page": "/contact",
+  "/(pages)/dashboard/representative/page": "/dashboard/representative",
+  "/(pages)/dashboard/store/change-password/page": "/dashboard/store/change-password",
+  "/(pages)/dashboard/store/page": "/dashboard/store",
+  "/(pages)/login/page": "/login",
+  "/(pages)/orders/page": "/orders",
+  "/(pages)/register/page": "/register",
+  "/(pages)/representative/add-store/page": "/representative/add-store",
+  "/(pages)/representative/page": "/representative",
+  "/(pages)/search/page": "/search",
+  "/(pages)/store/page": "/store",
+  "/(pages)/stores/page": "/stores",
+  "/(pages)/track/page": "/track",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/"
+}

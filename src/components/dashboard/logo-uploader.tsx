@@ -245,7 +245,6 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
             className="text-xs px-3 py-1 rounded-md"
             onClick={handleSave}
             disabled={!imagePreview || isSaving}
-            loading={isSaving}
           >
             {isSaving ? 'جاري الحفظ...' : 'حفظ'}
           </Button>

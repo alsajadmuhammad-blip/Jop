@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -15,6 +15,7 @@ import { ProductFormDialog } from "@/components/dashboard/product-form-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { createProduct, deleteProduct, mapProductRow, mapStoreRow, updateProduct } from "@/services/supabase-db";
+import { uploadProductImageForStore } from "@/services/supabase-storage";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
 import {
@@ -103,8 +104,8 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
 function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave }: {
     store: Store;
     onSettingChange: (key: keyof Store, value: any) => void;
-    onLogoSave: (newLogoUrl: string) => void;
-    onCoverImageSave: (newCoverUrl: string) => void;
+    onLogoSave: (newLogoUrl: string) => Promise<void>;
+    onCoverImageSave: (newCoverUrl: string) => Promise<void>;
 }) {
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -241,10 +242,97 @@ export default function StoreDashboardPage() {
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [activeView, setActiveView] = useState('products');
   const [loading, setLoading] = useState(true);
+  const [storeLoadAttempted, setStoreLoadAttempted] = useState(false);
+  const [storeLoadUserId, setStoreLoadUserId] = useState<string | null>(null);
 
   const handleLogout = () => {
     logout();
   };
+
+  const loadStore = useCallback(async () => {
+    const authUserId = user?.id ?? null;
+    setLoading(true);
+    setStoreLoadAttempted(true);
+    setStoreLoadUserId(authUserId);
+
+    try {
+      let storeId = user?.storeId ?? null;
+
+      const conditions = [
+        user?.id ? `owner_id.eq.${user.id}` : null,
+        user?.id ? `"ownerId".eq.${user.id}` : null,
+        user?.email ? `owner_email.eq.${user.email}` : null,
+        user?.email ? `"ownerEmail".eq.${user.email}` : null,
+      ]
+        .filter(Boolean)
+        .join(',');
+
+      if (conditions) {
+        const { data: fallbackStore, error: fallbackError } = await supabase
+          .from('stores')
+          .select('*')
+          .or(conditions)
+          .limit(1);
+
+        if (fallbackError) {
+          console.error('Store lookup failed:', fallbackError);
+        } else if (fallbackStore && fallbackStore.length > 0) {
+          storeId = fallbackStore[0].id;
+        }
+      }
+
+      if (!storeId) {
+        toast({ variant: 'destructive', title: 'خطأ في بيانات المتجر', description: 'لم يتم العثور على متجر مرتبط بحسابك.' });
+        setStore(null);
+        setProducts([]);
+        return;
+      }
+
+      const { data: storeRow, error: storeError } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('id', storeId)
+        .single();
+
+      if (storeError && storeError.code !== 'PGRST116') {
+        throw storeError;
+      }
+
+      if (!storeRow) {
+        setStore(null);
+      } else {
+        const storeData = mapStoreRow(storeRow);
+        const activationDays = storeData.activationDate ? differenceInDays(new Date(), parseISO(storeData.activationDate as string)) : 0;
+        const subscriptionDuration = storeData.subscriptionDuration || 30;
+        const daysLeft = subscriptionDuration - activationDays;
+
+        setRemainingDays(daysLeft);
+        setIsStoreActive(!!storeData.isActive);
+
+        const expired = !!storeData.isActive && daysLeft <= 0;
+        setIsSubscriptionExpired(expired);
+
+        if (expired) {
+          toast({ variant: 'destructive', title: 'الاشتراك منتهي', description: 'انتهت صلاحية الاشتراك. تواصل مع الإدارة لتجديده.', duration: Infinity });
+        }
+
+        setStore(storeData);
+      }
+
+      const { data: productsRows, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('store_id', storeId);
+
+      if (productsError) throw productsError;
+      setProducts((productsRows || []).map(mapProductRow));
+    } catch (error) {
+      console.error('Error fetching store data:', error);
+      toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'فشل تحميل بيانات المتجر.' });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -258,19 +346,31 @@ export default function StoreDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!router) return;
+    if (!router || typeof window === 'undefined') return;
     const basePath = '/dashboard/store';
+    const currentQuery = window.location.search ? window.location.search.substring(1) : '';
+    const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname;
     const newUrl = activeView === 'products' ? basePath : `${basePath}?tab=${encodeURIComponent(activeView)}`;
-    router.replace(newUrl, { scroll: false });
-  }, [activeView, router]);
+    if (currentUrl !== newUrl) {
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [activeView, router, pathname]);
 
   useEffect(() => {
     if (authLoading) {
       return;
     }
 
-    if (!user || userRole !== "store") {
-      router.push("/login");
+    if (!user) {
+      setStore(null);
+      setProducts([]);
+      setStoreLoadAttempted(false);
+      setStoreLoadUserId(null);
+      return;
+    }
+
+    if (userRole !== 'store') {
+      router.push('/login');
       return;
     }
 
@@ -279,99 +379,17 @@ export default function StoreDashboardPage() {
       return;
     }
 
-    const loadStore = async () => {
-      setLoading(true);
-      try {
-        let storeId = user.storeId;
-        console.log('User storeId:', storeId, 'User id:', user.id, 'User email:', user.email);
-        if (!storeId) {
-          console.log("User is a store owner but storeId is missing. Falling back to store record lookup.");
-          const conditions = [
-            user.id ? `owner_id.eq.${user.id}` : null,
-            user.email ? `owner_email.eq.${user.email}` : null,
-          ].filter(Boolean).join(',');
-
-          console.log('Fallback conditions:', conditions);
-          if (conditions) {
-            const { data: fallbackStore, error: fallbackError } = await supabase
-              .from('stores')
-              .select('*')
-              .or(conditions)
-              .limit(1);
-
-            console.log('Fallback store result:', fallbackStore, 'Error:', fallbackError);
-            if (fallbackError) {
-              throw fallbackError;
-            }
-
-            if (fallbackStore && fallbackStore.length > 0) {
-              storeId = fallbackStore[0].id;
-              console.log('Using fallback storeId:', storeId);
-            }
-          }
-        }
-
-        if (!storeId) {
-          console.log('No storeId found, showing error');
-          toast({ variant: "destructive", title: "خطأ في بيانات المتجر", description: "لم يتم العثور على متجر مرتبط بحسابك." });
-          setStore(null);
-          setProducts([]);
-          setLoading(false);
-          return;
-        }
-
-        const { data: storeRow, error: storeError } = await supabase
-          .from('stores')
-          .select('*')
-          .eq('id', storeId)
-          .single();
-
-        if (storeError && storeError.code !== 'PGRST116') {
-          throw storeError;
-        }
-
-        if (!storeRow) {
-          setStore(null);
-        } else {
-          const storeData = mapStoreRow(storeRow);
-          const activationDays = storeData.activationDate ? differenceInDays(new Date(), parseISO(storeData.activationDate as string)) : 0;
-          const subscriptionDuration = storeData.subscriptionDuration || 30;
-          const daysLeft = subscriptionDuration - activationDays;
-
-          setRemainingDays(daysLeft);
-          setIsStoreActive(!!storeData.isActive);
-
-          const expired = !!storeData.isActive && daysLeft <= 0;
-          setIsSubscriptionExpired(expired);
-
-          if (expired) {
-            toast({ variant: "destructive", title: "الاشتراك منتهي", description: "انتهت صلاحية الاشتراك. تواصل مع الإدارة لتجديده.", duration: Infinity });
-          }
-
-          setStore(storeData);
-        }
-
-        const { data: productsRows, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('store_id', storeId);
-
-        if (productsError) throw productsError;
-        setProducts((productsRows || []).map(mapProductRow));
-      } catch (error) {
-        console.error("Error fetching store data:", error);
-        toast({ variant: "destructive", title: "خطأ في الاتصال", description: "فشل تحميل بيانات المتجر." });
-      } finally {
-        setLoading(false);
-      }
-    };
+    const isSameUser = user.id === storeLoadUserId;
+    if (store !== null || (storeLoadAttempted && isSameUser)) {
+      return;
+    }
 
     loadStore();
 
     return () => {
       // Nothing to clean up
     };
-  }, [user, userRole, authLoading, router, pathname, toast]);
+  }, [user, userRole, authLoading, router, pathname, toast, store, storeLoadAttempted, storeLoadUserId, loadStore]);
 
   const fullStoreData = useMemo(() => {
     // If the store doc doesn't exist yet (e.g. pending review), create a temporary one for the UI
@@ -427,7 +445,7 @@ export default function StoreDashboardPage() {
     if (error) throw error;
   };
 
-  const handleLogoSave = async (newLogoUrl: string) => {
+  const handleLogoSave = async (newLogoUrl: string): Promise<void> => {
     if (!store) return;
     try {
       await updateStore(store.id, { logoUrl: newLogoUrl });
@@ -439,7 +457,7 @@ export default function StoreDashboardPage() {
     }
   };
   
-  const handleCoverImageSave = async (newCoverUrl: string) => {
+  const handleCoverImageSave = async (newCoverUrl: string): Promise<void> => {
     if (!store) return;
     try {
       await updateStore(store.id, { coverImageUrl: newCoverUrl });
@@ -510,7 +528,7 @@ export default function StoreDashboardPage() {
     }
   };
 
-  const handleSaveProduct = async (productData: Omit<Product, "id" | "storeId">) => {
+  const handleSaveProduct = async (productData: Omit<Product, "id" | "storeId"> & { imageFile?: File | null }) => {
     const storeId = user?.storeId || store?.id;
     if (!storeId) {
       toast({ title: "فشل حفظ المنتج", description: "لم يتم العثور على هوية المتجر.", variant: "destructive" });
@@ -520,6 +538,14 @@ export default function StoreDashboardPage() {
     const finalProductData = { ...productData };
 
     try {
+      if (productData.imageFile) {
+        const uploadResult = await uploadProductImageForStore(productData.imageFile, storeId);
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || 'فشل رفع صورة المنتج.');
+        }
+        finalProductData.imageUrl = uploadResult.url || finalProductData.imageUrl || undefined;
+      }
+
       if (editingProduct) {
         if (!finalProductData.imageUrl) finalProductData.imageUrl = editingProduct.imageUrl;
         const updated = await updateProduct(editingProduct.id, {
@@ -540,7 +566,7 @@ export default function StoreDashboardPage() {
           name: finalProductData.name,
           description: finalProductData.description,
           price: finalProductData.price,
-          imageUrl: finalProductData.imageUrl || "",
+          imageUrl: finalProductData.imageUrl || undefined,
           categoryId: finalProductData.categoryId,
           storeId,
         });
