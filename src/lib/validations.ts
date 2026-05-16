@@ -43,8 +43,10 @@ export const productFormSchema = z.object({
   name: z.string().min(3, { message: "يجب أن يكون الاسم 3 أحرف على الأقل." }),
   description: z.string().min(10, { message: "يجب أن يكون الوصف 10 أحرف على الأقل." }),
   price: z.coerce.number().positive({ message: "الرجاء إدخال سعر صالح." }),
+  sku: z.string().max(50, { message: "الرمز التعريفي يجب ألا يزيد عن 50 حرفًا." }).optional(),
+  stock: z.coerce.number().int({ message: "الرجاء إدخال كمية صحيحة." }).min(0, { message: "الكمية يجب أن تكون صفر أو أكثر." }),
   imageUrl: z.string().optional(),
-  categoryId: z.string().min(1, { message: "الرجاء اختيار فئة للمنتج." }),
+  sectionId: z.string().min(1, { message: "الرجاء اختيار القسم للمنتج." }),
 });
 
 export const submitRatingSchema = z.object({

@@ -4,7 +4,11 @@
  */
 
 import { supabase } from './supabase';
-import type { Product, Store, Category, User, CartItem } from '@/lib/types';
+import type { Product, Store, Section, Category, User, CartItem } from '@/lib/types';
+
+const SUPABASE_CREATE_PRODUCT_FUNCTION_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_CREATE_PRODUCT_FUNCTION_URL ||
+  'https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-product';
 
 // ============================================================================
 // STORES
@@ -100,6 +104,81 @@ export async function fetchProductsByStore(storeId: string): Promise<Product[]> 
   return (data || []).map(mapProductRow);
 }
 
+export async function fetchStoreSections(storeId: string): Promise<Section[]> {
+  const { data, error } = await supabase
+    .from('store_sections')
+    .select('*')
+    .eq('store_id', storeId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching store sections:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    storeId: row.store_id,
+    createdAt: row.created_at || row.createdAt,
+  }));
+}
+
+export async function createStoreSection(storeId: string, name: string): Promise<Section | null> {
+  const { data, error } = await supabase
+    .from('store_sections')
+    .insert({ store_id: storeId, name })
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error creating store section:', error.message);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    storeId: data.store_id,
+    createdAt: data.created_at || data.createdAt,
+  };
+}
+
+export async function updateStoreSection(sectionId: string, name: string): Promise<Section | null> {
+  const { data, error } = await supabase
+    .from('store_sections')
+    .update({ name })
+    .eq('id', sectionId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating store section:', error.message);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    storeId: data.store_id,
+    createdAt: data.created_at || data.createdAt,
+  };
+}
+
+export async function deleteStoreSection(sectionId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('store_sections')
+    .delete()
+    .eq('id', sectionId);
+
+  if (error) {
+    console.error('Error deleting store section:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
 export async function fetchProductsByCategory(categoryId: string): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
@@ -151,12 +230,54 @@ export async function fetchProductById(productId: string): Promise<Product | nul
 
 async function invokeSupabaseFunction(functionName: string, payload: any) {
   const body = JSON.stringify(payload);
+
+  if (functionName === 'create-product') {
+    try {
+      const anonymousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (anonymousKey) {
+        headers.apikey = anonymousKey;
+        headers.Authorization = `Bearer ${anonymousKey}`;
+      }
+
+      const response = await fetch(SUPABASE_CREATE_PRODUCT_FUNCTION_URL, {
+        method: 'POST',
+        headers,
+        body,
+      });
+
+      const text = await response.text();
+      let parsed: any = text;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // keep raw text if JSON parsing fails
+      }
+
+      if (!response.ok) {
+        return {
+          data: parsed,
+          error: new Error(parsed?.error || `Function request failed with status ${response.status}`),
+        };
+      }
+
+      return { data: parsed, error: null };
+    } catch (fetchError) {
+      console.error('Create product direct function fetch failed:', fetchError);
+      return { data: null, error: fetchError };
+    }
+  }
+
+  const bodyString = JSON.stringify(payload);
   let data: any = null;
   let error: any = null;
 
   try {
     const result = await supabase.functions.invoke(functionName, {
-      body,
+      body: bodyString,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -194,7 +315,7 @@ async function invokeSupabaseFunction(functionName: string, payload: any) {
         apikey: anonKey,
         Authorization: `Bearer ${anonKey}`,
       },
-      body,
+      body: bodyString,
     });
 
     const text = await response.text();
@@ -223,11 +344,13 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
   const payload: any = {
     storeId: product.storeId,
     store_id: product.storeId,
-    categoryId: product.categoryId ?? null,
-    category_id: product.categoryId ?? null,
+    sectionId: product.sectionId ?? null,
+    section_id: product.sectionId ?? null,
     name: product.name,
     description: product.description ?? null,
     price: Number(product.price),
+    sku: product.sku ?? null,
+    stock: Number(product.stock ?? 0),
     imageUrl: product.imageUrl ?? null,
     image_url: product.imageUrl ?? null,
     isFeatured: false,
@@ -262,7 +385,9 @@ export async function updateProduct(productId: string, updates: Partial<Product>
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.description !== undefined) payload.description = updates.description;
   if (updates.price !== undefined) payload.price = updates.price;
-  if (updates.categoryId !== undefined) payload.category_id = updates.categoryId;
+  if (updates.sectionId !== undefined) payload.section_id = updates.sectionId;
+  if (updates.sku !== undefined) payload.sku = updates.sku;
+  if (updates.stock !== undefined) payload.stock = updates.stock;
   if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
 
   const { data, error } = await supabase
@@ -510,6 +635,10 @@ export function mapProductRow(row: any): Product {
     imageUrl: row.image_url,
     storeId: row.store_id,
     categoryId: row.category_id,
+    sectionId: row.section_id,
+    sectionName: row.section_name || row.sectionName,
+    sku: row.sku || row.product_sku || undefined,
+    stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
   };
 }
 

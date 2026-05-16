@@ -6,10 +6,21 @@ export type Product = {
   price: number;
   imageUrl?: string;
   storeId: string;
-  categoryId: string;
+  categoryId?: string;
+  sectionId?: string;
+  sectionName?: string;
+  sku?: string;
+  stock: number;
   isFeatured?: boolean;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type Section = {
+  id: string;
+  name: string;
+  storeId: string;
+  createdAt?: string;
 };
 
 export type Category = {

@@ -36,8 +36,7 @@ import {
 } from "@/components/ui/select";
 
 import Image from "next/image";
-import type { Product, Category } from "@/lib/types";
-import { getCategories } from "@/services/data";
+import type { Product, Section } from "@/lib/types";
 import { productFormSchema } from "@/lib/validations";
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -47,6 +46,7 @@ interface ProductFormDialogProps {
   onClose: () => void;
   onSave: (data: Omit<Product, "id" | "storeId"> & { imageFile?: File | null }) => void;
   product?: Product;
+  sections: Section[];
 }
 
 export function ProductFormDialog({
@@ -54,10 +54,10 @@ export function ProductFormDialog({
   onClose,
   onSave,
   product,
+  sections,
 }: ProductFormDialogProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -65,18 +65,12 @@ export function ProductFormDialog({
       name: "",
       description: "",
       price: 0,
+      sku: "",
+      stock: 0,
       imageUrl: "",
-      categoryId: "",
+      sectionId: "",
     },
   });
-
-  useEffect(() => {
-    async function fetchCategories() {
-      const fetchedCategories = await getCategories();
-      setCategories(fetchedCategories);
-    }
-    fetchCategories();
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -85,8 +79,10 @@ export function ProductFormDialog({
           name: product.name,
           description: product.description,
           price: product.price,
+          sku: product.sku || "",
+          stock: product.stock || 0,
           imageUrl: product.imageUrl,
-          categoryId: product.categoryId,
+          sectionId: product.sectionId || "",
         });
         setImagePreview(product.imageUrl || null);
       } else {
@@ -94,8 +90,10 @@ export function ProductFormDialog({
           name: "",
           description: "",
           price: 0,
+          sku: "",
+          stock: 0,
           imageUrl: "",
-          categoryId: "",
+          sectionId: "",
         });
         setImagePreview(null);
       }
@@ -159,6 +157,20 @@ export function ProductFormDialog({
 
                 <FormField
                   control={form.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">الكود / SKU</FormLabel>
+                      <FormControl>
+                        <Input placeholder="مثال: SKU-001" {...field} className="text-sm" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -199,27 +211,54 @@ export function ProductFormDialog({
                   />
                   <FormField
                     control={form.control}
-                    name="categoryId"
+                    name="stock"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm">الفئة</FormLabel>
+                        <FormLabel className="text-sm">الكمية المتاحة</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="10"
+                            min={0}
+                            {...field}
+                            className="text-sm"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="sectionId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">القسم</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger className="text-sm">
-                              <SelectValue placeholder="اختر" />
+                              <SelectValue placeholder="اختر قسمًا" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.id} className="text-sm">
-                                {cat.name}
+                            {sections.map((section) => (
+                              <SelectItem key={section.id} value={section.id} className="text-sm">
+                                {section.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {!sections.length ? (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            أضف قسمًا أولاً من لوحة الأقسام ثم عُد لإنشاء المنتج.
+                          </p>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}

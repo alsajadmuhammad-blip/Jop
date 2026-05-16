@@ -25,11 +25,20 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (product.stock <= 0) {
+      toast({
+        title: "انتهى المخزون",
+        description: `لا يمكن إضافة "${product.name}" لأن الكمية غير متوفرة.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     addItem(product);
     toast({
       title: "تمت الإضافة إلى السلة",
       description: `تمت إضافة "${product.name}" بنجاح.`,
-      productImage: product.imageUrl
+      productImage: product.imageUrl,
     });
     setIsAdded(true);
     setTimeout(() => { setIsAdded(false); }, 1500);
@@ -68,18 +77,24 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
         
         <div className="p-2 md:p-3 space-y-1.5">
           <h3 className="line-clamp-2 text-xs md:text-sm font-semibold text-foreground">{product.name}</h3>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs md:text-sm font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
-            <Button
-              size="sm"
-              className={cn(
-                "size-7 md:size-8 rounded-md p-0 transition-all duration-150 shrink-0 text-xs",
-                isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
-              )}
-              onClick={handleAddToCart}
-            >
-              {isAdded ? <Check className="h-3 w-3 md:h-4 md:w-4" /> : <ShoppingCart className="h-3 w-3 md:h-4 md:w-4" />}
-            </Button>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs md:text-sm font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
+              <Button
+                size="sm"
+                className={cn(
+                  "size-7 md:size-8 rounded-md p-0 transition-all duration-150 shrink-0 text-xs",
+                  isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
+                )}
+                onClick={handleAddToCart}
+                disabled={product.stock <= 0}
+              >
+                {isAdded ? <Check className="h-3 w-3 md:h-4 md:w-4" /> : <ShoppingCart className="h-3 w-3 md:h-4 md:w-4" />}
+              </Button>
+            </div>
+            <p className={cn("text-[11px] md:text-xs font-medium", product.stock > 0 ? "text-success" : "text-destructive")}> 
+              {product.stock > 0 ? `متوفر: ${product.stock}` : "نفد المخزون"}
+            </p>
           </div>
         </div>
       </div>

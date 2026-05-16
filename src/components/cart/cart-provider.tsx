@@ -124,28 +124,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, isInitialLoad]);
 
   const addItem = useCallback((product: Product, quantity = 1) => {
+    if (product.stock <= 0) {
+      return;
+    }
+
     setItems((prevItems) => {
       const existingItem = prevItems.find(
         (item) => item.product.id === product.id
       );
       if (existingItem) {
+        const newQuantity = Math.min(existingItem.quantity + quantity, product.stock);
         return prevItems.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: newQuantity }
             : item
         );
       }
-      return [...prevItems, { product, quantity }];
+      return [...prevItems, { product, quantity: Math.min(quantity, product.stock) }];
     });
   }, []);
 
   const updateItemQuantity = useCallback((productId: string, quantity: number) => {
     setItems((prevItems) => {
-      if (quantity <= 0) {
+      const currentItem = prevItems.find((item) => item.product.id === productId);
+      if (!currentItem) {
+        return prevItems;
+      }
+
+      const boundedQuantity = Math.max(0, Math.min(quantity, currentItem.product.stock));
+      if (boundedQuantity <= 0) {
         return prevItems.filter((item) => item.product.id !== productId);
       }
       return prevItems.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        item.product.id === productId ? { ...item, quantity: boundedQuantity } : item
       );
     });
   }, []);

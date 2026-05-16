@@ -55,6 +55,8 @@ async function getCategoryProducts(categoryId: string): Promise<Product[]> {
     imageUrl: row.image_url || row.imageUrl,
     storeId: row.store_id || row.storeId,
     categoryId: row.category_id || row.categoryId,
+    sku: row.sku || row.product_sku || undefined,
+    stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
   } as Product));
 }
 

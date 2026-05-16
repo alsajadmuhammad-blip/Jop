@@ -149,7 +149,9 @@ export function ProductQuickView({
                 <motion.p variants={itemVariants} className="text-lg font-bold text-primary">
                   {product.price.toLocaleString()} د.ع
                 </motion.p>
-                
+                <motion.p variants={itemVariants} className={product.stock > 0 ? "text-success text-sm" : "text-destructive text-sm"}>
+                  {product.stock > 0 ? `متوفر: ${product.stock} قطعة` : "نفد المخزون"}
+                </motion.p>
                 <motion.p variants={itemVariants} className="text-muted-foreground text-xs leading-relaxed max-h-16 overflow-y-auto my-1">
                   {product.description}
                 </motion.p>
@@ -173,9 +175,14 @@ export function ProductQuickView({
                 </motion.div>
 
                 <motion.div variants={itemVariants} className="mt-auto pt-2">
-                  <Button size="default" className="w-full h-9 text-sm" onClick={handleAddToCart}>
+                  <Button
+                    size="default"
+                    className="w-full h-9 text-sm"
+                    onClick={handleAddToCart}
+                    disabled={product.stock <= 0}
+                  >
                     <ShoppingCart className="ml-2 h-4 w-4" />
-                    أضف إلى السلة
+                    {product.stock > 0 ? "أضف إلى السلة" : "غير متوفر"}
                   </Button>
                 </motion.div>
               </div>

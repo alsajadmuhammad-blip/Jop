@@ -50,6 +50,8 @@ async function getStore(id: string): Promise<Store | null> {
         imageUrl: row.image_url || row.imageUrl,
         storeId: row.store_id || row.storeId,
         categoryId: row.category_id || row.categoryId,
+        sku: row.sku || row.product_sku || undefined,
+        stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
     }));
 
     // Map store fields (snake_case in DB) to frontend Store type where necessary

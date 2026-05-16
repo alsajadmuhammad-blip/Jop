@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { fetchProductsByStore, fetchStoreById } from "@/services/supabase-db";
+import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
 import { BackButton } from "@/components/layout/back-button";
 import { ProductGrid } from "@/components/product-grid";
 import { Badge } from "@/components/ui/badge";
@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star, MapPin, Truck, Phone, Mail, Clock, Globe } from "lucide-react";
-import type { Product, Store } from "@/lib/types";
+import type { Product, Store, Section } from "@/lib/types";
 
 export default function StorePageClient() {
   const searchParams = useSearchParams();
   const storeId = searchParams.get("id");
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -45,9 +46,11 @@ export default function StorePageClient() {
         }
 
         const productsData = await fetchProductsByStore(storeId);
+        const sectionsData = await fetchStoreSections(storeId);
 
         setStore(fetchedStore);
         setProducts(productsData);
+        setSections(sectionsData);
       } catch (error: any) {
         setErrorMessage(error?.message || "حدث خطأ أثناء تحميل بيانات المتجر.");
         setStore(null);
@@ -201,7 +204,36 @@ export default function StorePageClient() {
               </CardHeader>
               <CardContent>
                 {products.length > 0 ? (
-                  <ProductGrid products={products} />
+                  <div className="space-y-8">
+                    {sections.length > 0 ? (
+                      sections.map((section) => {
+                        const sectionProducts = products.filter((product) => product.sectionId === section.id);
+                        if (!sectionProducts.length) return null;
+                        return (
+                          <div key={section.id} className="space-y-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <h3 className="text-xl font-semibold text-slate-900">{section.name}</h3>
+                                <p className="text-sm text-muted-foreground">{sectionProducts.length} منتج في هذا القسم.</p>
+                              </div>
+                              <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700 border-slate-200">
+                                {sectionProducts.length} منتج
+                              </Badge>
+                            </div>
+                            <ProductGrid products={sectionProducts} />
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <ProductGrid products={products} />
+                    )}
+                    {sections.length === 0 && (
+                      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                        <p className="text-sm font-medium text-slate-900">هذا المتجر لم يعرّف أقسامًا بعد.</p>
+                        <p className="text-sm text-muted-foreground mt-2">ستظهر المنتجات هنا بصورة عامة حتى يتم إعداد الأقسام.</p>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">

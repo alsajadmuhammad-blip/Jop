@@ -20,8 +20,23 @@ export async function createOrder(
   notes?: string
 ): Promise<Order | null> {
   try {
+    // Basic validation
+    if (!storeId) throw new Error('storeId is required.');
+    if (!customerId) throw new Error('customerId is required.');
+    if (!Array.isArray(items) || items.length === 0) throw new Error('items must be a non-empty array.');
+    if (typeof totalAmount !== 'number' || Number.isNaN(totalAmount) || totalAmount <= 0) throw new Error('totalAmount must be a positive number.');
+
     const now = new Date().toISOString();
-    
+
+    // Ensure items are plain JSON-serializable objects with expected fields
+    const safeItems = items.map((it) => ({
+      productId: it.productId,
+      productName: it.productName,
+      quantity: Number(it.quantity) || 0,
+      unitPrice: Number(it.unitPrice) || 0,
+      totalPrice: Number(it.totalPrice) || 0,
+    }));
+
     const { data, error } = await supabase
       .from('orders')
       .insert([
@@ -31,7 +46,7 @@ export async function createOrder(
           customer_id: customerId,
           customer_name: customerName || null,
           customer_phone: customerPhone || null,
-          items: items,
+          items: safeItems,
           total_amount: totalAmount,
           status: 'pending',
           notes: notes || null,
@@ -44,14 +59,15 @@ export async function createOrder(
       .single();
 
     if (error) {
-      console.error('Error creating order:', error);
-      return null;
+      const msg = error?.message || JSON.stringify(error);
+      console.error('Error creating order:', msg, error);
+      throw new Error(`فشل إنشاء الطلب: ${msg}`);
     }
 
     return mapOrderFromDB(data);
   } catch (error) {
-    console.error('Unexpected error creating order:', error);
-    return null;
+    console.error('Unexpected error creating order:', error instanceof Error ? error.message : error);
+    throw error instanceof Error ? error : new Error('Unexpected error creating order.');
   }
 }
 

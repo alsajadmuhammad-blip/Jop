@@ -167,12 +167,13 @@ export function CartSheet({ children }: { children: ReactNode }) {
         description: `سيتم توجيهك إلى واتساب ${checkoutData.storeName}. يمكنك تتبع الطلب من صفحة "طلباتي".`,
       });
     } catch (error) {
-      console.error("Error submitting order:", error);
-      toast({
-        variant: "destructive",
-        title: "خطأ",
-        description: "حدث خطأ في معالجة الطلب.",
-      });
+        console.error("Error submitting order:", error);
+        const message = error instanceof Error ? error.message : 'حدث خطأ في معالجة الطلب.';
+        toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: message,
+        });
     } finally {
       setIsSubmitting(false);
     }
@@ -217,19 +218,26 @@ export function CartSheet({ children }: { children: ReactNode }) {
                             </p>
                           </div>
                           <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-1">
+                             <div className="flex flex-col gap-2">
+                               <div className="flex items-center gap-1">
                                   <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateItemQuantity(item.product.id, item.quantity - 1)}>
                                       <Minus className="h-3 w-3" />
                                   </Button>
                                   <Input
                                       type="number"
                                       value={item.quantity}
-                                      onChange={(e) => updateItemQuantity(item.product.id, Math.max(1, parseInt(e.target.value) || 1))}
+                                      min={1}
+                                      max={item.product.stock}
+                                      onChange={(e) => updateItemQuantity(item.product.id, Math.max(1, Math.min(item.product.stock, parseInt(e.target.value) || 1)))}
                                       className="h-7 w-12 text-center"
                                   />
-                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)}>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)} disabled={item.quantity >= item.product.stock}>
                                       <Plus className="h-3 w-3" />
                                   </Button>
+                               </div>
+                               <p className="text-[11px] text-muted-foreground">
+                                 {item.product.stock > 0 ? `المتبقي: ${item.product.stock} قطعة` : 'نفد المخزون'}
+                               </p>
                              </div>
                             <Button
                               variant="ghost"

@@ -25,7 +25,8 @@ async function getProductsForStore(storeId: string): Promise<Product[]> {
         categoryId: row.category_id || row.categoryId,
         storeId: String(row.store_id || row.storeId),
         description: row.description || '',
-        available: typeof row.available === 'boolean' ? row.available : true,
+        sku: row.sku || row.product_sku || undefined,
+        stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
     } as Product));
 }
 

@@ -8,13 +8,13 @@ import { motion } from "framer-motion";
 import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
-import type { Product, Store } from "@/lib/types";
+import type { Product, Store, Section } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProductFormDialog } from "@/components/dashboard/product-form-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { createProduct, deleteProduct, mapProductRow, mapStoreRow, updateProduct } from "@/services/supabase-db";
+import { createProduct, deleteProduct, fetchStoreSections, mapProductRow, mapStoreRow, updateProduct, createStoreSection, updateStoreSection, deleteStoreSection } from "@/services/supabase-db";
 import { uploadProductImageForStore } from "@/services/supabase-storage";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
@@ -67,8 +67,18 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
             )}
         </div>
         <div className="p-4">
-            <h3 className="text-sm font-semibold truncate" title={product.name}>{product.name}</h3>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-sm font-semibold truncate" title={product.name}>{product.name}</h3>
+              {product.sectionName ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                  {product.sectionName}
+                </span>
+              ) : null}
+            </div>
             <p className="mt-3 text-sm font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
+            <p className={product.stock > 0 ? "mt-2 text-xs font-medium text-success" : "mt-2 text-xs font-medium text-destructive"}>
+              {product.stock > 0 ? `المخزون: ${product.stock}` : 'نفد المخزون'}
+            </p>
         </div>
         <div className="mt-auto p-4 pt-0 flex flex-wrap gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => onEdit(product)}>
@@ -235,6 +245,8 @@ export default function StoreDashboardPage() {
 
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [newSectionName, setNewSectionName] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
@@ -318,6 +330,9 @@ export default function StoreDashboardPage() {
 
         setStore(storeData);
       }
+
+      const sectionsRows = await fetchStoreSections(storeId);
+      setSections(sectionsRows);
 
       const { data: productsRows, error: productsError } = await supabase
         .from('products')
@@ -528,6 +543,36 @@ export default function StoreDashboardPage() {
     }
   };
 
+  const handleCreateSection = async () => {
+    const storeId = store?.id || user?.storeId;
+    if (!storeId || !newSectionName.trim()) {
+      return;
+    }
+
+    try {
+      const section = await createStoreSection(storeId, newSectionName.trim());
+      if (!section) throw new Error('فشل إنشاء القسم.');
+      setSections((prev) => [...prev, section]);
+      setNewSectionName('');
+      toast({ title: 'تم إنشاء القسم بنجاح.' });
+    } catch (error) {
+      console.error('Failed to create section:', error);
+      toast({ title: 'فشل إنشاء القسم', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteSection = async (sectionId: string) => {
+    try {
+      const success = await deleteStoreSection(sectionId);
+      if (!success) throw new Error('فشل حذف القسم.');
+      setSections((prev) => prev.filter((section) => section.id !== sectionId));
+      toast({ title: 'تم حذف القسم بنجاح.', variant: 'destructive' });
+    } catch (error) {
+      console.error('Failed to delete section:', error);
+      toast({ title: 'فشل حذف القسم', variant: 'destructive' });
+    }
+  };
+
   const handleSaveProduct = async (productData: Omit<Product, "id" | "storeId"> & { imageFile?: File | null }) => {
     const storeId = user?.storeId || store?.id;
     if (!storeId) {
@@ -553,7 +598,9 @@ export default function StoreDashboardPage() {
           description: finalProductData.description,
           price: finalProductData.price,
           imageUrl: finalProductData.imageUrl,
-          categoryId: finalProductData.categoryId,
+          sectionId: finalProductData.sectionId,
+          sku: finalProductData.sku,
+          stock: finalProductData.stock,
         });
         if (!updated) throw new Error('فشل تحديث المنتج.');
         toast({ title: "تم تحديث المنتج بنجاح." });
@@ -566,8 +613,10 @@ export default function StoreDashboardPage() {
           name: finalProductData.name,
           description: finalProductData.description,
           price: finalProductData.price,
+          sectionId: finalProductData.sectionId,
+          sku: finalProductData.sku,
+          stock: finalProductData.stock,
           imageUrl: finalProductData.imageUrl || undefined,
-          categoryId: finalProductData.categoryId,
           storeId,
         });
         if (!created) throw new Error('فشل إضافة المنتج.');
@@ -629,6 +678,12 @@ export default function StoreDashboardPage() {
                         <SidebarMenuButton onClick={() => handleViewChange("orders")} isActive={activeView === "orders"}>
                             <ShoppingCartIcon className="h-5 w-5 flex-shrink-0" />
                             <span>الطلبات</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => handleViewChange("sections")} isActive={activeView === "sections"}>
+                            <Package className="h-5 w-5 flex-shrink-0" />
+                            <span>الأقسام</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
@@ -754,6 +809,53 @@ export default function StoreDashboardPage() {
                     {activeView === 'orders' && (
                         <StoreOrdersTab storeId={fullStoreData.id} />
                     )}
+
+                    {activeView === 'sections' && (
+                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="flex flex-col gap-4">
+<div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                              <div>
+                                <h2 className="text-2xl font-bold">أقسام المتجر</h2>
+                                <p className="text-sm text-muted-foreground mt-1">أنشئ ونظّم الأقسام التي سيختار منها العملاء منتجاتك.</p>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                                <input
+                                  type="text"
+                                  value={newSectionName}
+                                  onChange={(event) => setNewSectionName(event.target.value)}
+                                  placeholder="أضف اسم قسم جديد"
+                                  className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition-colors duration-150 focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                />
+                                <Button type="button" onClick={handleCreateSection} className="whitespace-nowrap">
+                                  إضافة قسم
+                                </Button>
+                              </div>
+                            </div>
+
+                          {sections.length > 0 ? (
+                            <div className="grid gap-4 md:grid-cols-2">
+                              {sections.map((section) => (
+                                <div key={section.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4">
+                                  <div>
+                                    <p className="text-lg font-semibold">{section.name}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{section.createdAt ? new Date(section.createdAt).toLocaleDateString('ar-EG') : 'بدون تاريخ'}</p>
+                                  </div>
+                                  <Button variant="destructive" size="sm" onClick={() => handleDeleteSection(section.id)}>
+                                    حذف
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                              <p className="text-sm font-medium text-slate-900">لا توجد أقسام بعد.</p>
+                              <p className="text-sm text-muted-foreground mt-2">أضف قسمًا جديدًا كي تتمكن من تنظيم منتجاتك بشكل احترافي.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     {activeView === 'settings' && (
                         <StoreSettingsTab 
@@ -772,6 +874,7 @@ export default function StoreDashboardPage() {
             onClose={() => setIsDialogOpen(false)}
             onSave={handleSaveProduct}
             product={editingProduct}
+            sections={sections}
         />
     </SidebarProvider>
   );
