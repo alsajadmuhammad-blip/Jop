@@ -46,7 +46,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import { createStoreOwner } from '@/services/supabase-functions';
 
-async function createRepresentativeAction({ name, email, password, paymentSystem, monthlySalary, requiredStoresCount, commissionRate }: { name: string; email: string; password: string; paymentSystem: 'salary' | 'commission'; monthlySalary?: number; requiredStoresCount?: number; commissionRate?: number }) {
+async function createRepresentativeAction({ name, email, password, paymentSystem, monthlySalary, requiredStoresCount }: { name: string; email: string; password: string; paymentSystem: 'salary' | 'commission'; monthlySalary?: number; requiredStoresCount?: number }) {
     try {
         const insertPayload: any = {
             name,
@@ -54,18 +54,9 @@ async function createRepresentativeAction({ name, email, password, paymentSystem
             role: 'representative',
             payment_system: paymentSystem,
             total_earnings: 0,
+            monthly_salary: paymentSystem === 'salary' ? monthlySalary ?? 0 : 0,
+            required_stores_count: paymentSystem === 'salary' ? requiredStoresCount ?? 0 : 0,
         };
-
-        if (paymentSystem === 'salary') {
-            insertPayload.monthly_salary = monthlySalary ?? 0;
-            insertPayload.required_stores_count = requiredStoresCount ?? 0;
-        } else {
-            insertPayload.monthly_salary = 0;
-            insertPayload.required_stores_count = 0;
-            if (commissionRate !== undefined) {
-                insertPayload.commission_rate = commissionRate;
-            }
-        }
 
         const { data, error } = await supabase.from('users').insert(insertPayload).select().single();
         return { success: !error, error: error?.message, data };
@@ -83,7 +74,6 @@ const RepresentativeDialog = React.memo(function RepresentativeDialog({ isOpen, 
     const [paymentSystem, setPaymentSystem] = useState<'salary' | 'commission' | ''>('');
     const [monthlySalary, setMonthlySalary] = useState<number | ''>('');
     const [requiredStoresCount, setRequiredStoresCount] = useState<number | ''>('');
-    const [commissionRate, setCommissionRate] = useState<number | ''>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
 
@@ -105,7 +95,6 @@ const RepresentativeDialog = React.memo(function RepresentativeDialog({ isOpen, 
                 paymentSystem, 
                 monthlySalary: paymentSystem === 'salary' ? Number(monthlySalary) : undefined,
                 requiredStoresCount: paymentSystem === 'salary' ? Number(requiredStoresCount) : undefined,
-                commissionRate: paymentSystem === 'commission' && commissionRate ? Number(commissionRate) : undefined,
             });
              if (result.success) {
                 toast({ title: "تم تسجيل المندوب بنجاح" });
@@ -185,16 +174,8 @@ const RepresentativeDialog = React.memo(function RepresentativeDialog({ isOpen, 
                         </>
                     )}
                     {paymentSystem === 'commission' && (
-                        <div className="space-y-2">
-                            <Label htmlFor="commission-rate">نسبة العمولة (%)</Label>
-                            <Input
-                                id="commission-rate"
-                                type="number"
-                                value={commissionRate}
-                                onChange={(e) => setCommissionRate(e.target.value ? Number(e.target.value) : '')}
-                                placeholder="مثال: 5"
-                            />
-                            <p className="text-sm text-muted-foreground">استخدم نسبة العمولة هذه عند حساب قيمة العمولة من سعر الباقة لكل متجر يسجله المندوب.</p>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                            <p className="font-medium">سيتم حساب العمولة تلقائياً وفقاً لسياسات المنصة الداخلية.</p>
                         </div>
                     )}
                 </div>
@@ -643,11 +624,11 @@ function AdminDashboard() {
   const activeStoresCount = stores.filter((store) => store.isActive).length;
   const inactiveStoresCount = stores.length - activeStoresCount;
   const adminViewTabs = [
-    { key: 'statistics', label: 'الإحصائيات', icon: SlidersHorizontal },
     { key: 'stores', label: 'إدارة المتاجر', icon: Package2 },
-    { key: 'reps', label: 'المندوبين', icon: Users },
+    { key: 'reps', label: 'إدارة المندوبين', icon: Users },
     { key: 'subscriptions', label: 'الباقات', icon: DollarSign },
     { key: 'ads', label: 'الإعلانات', icon: SlidersHorizontal },
+    { key: 'statistics', label: 'الإحصائيات', icon: SlidersHorizontal },
   ];
 
   const fetchAll = async () => {
@@ -812,36 +793,14 @@ function AdminDashboard() {
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => handleViewChange('statistics')} isActive={activeView === 'statistics'}>
-                    <SlidersHorizontal className="h-5 w-5" />
-                    <span>الإحصائيات</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => handleViewChange('stores')} isActive={activeView === 'stores'}>
-                    <Package2 className="h-5 w-5" />
-                    <span>إدارة المتاجر</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => handleViewChange('reps')} isActive={activeView === 'reps'}>
-                    <Users className="h-5 w-5" />
-                    <span>إدارة المندوبين</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => handleViewChange('subscriptions')} isActive={activeView === 'subscriptions'}>
-                    <DollarSign className="h-5 w-5" />
-                    <span>الاشتراكات والباقات</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => handleViewChange('ads')} isActive={activeView === 'ads'}>
-                    <SlidersHorizontal className="h-5 w-5" />
-                     <span>إدارة الإعلانات</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {adminViewTabs.map((tab) => (
+                  <SidebarMenuItem key={tab.key}>
+                    <SidebarMenuButton onClick={() => handleViewChange(tab.key)} isActive={activeView === tab.key}>
+                      <tab.icon className="h-5 w-5" />
+                      <span>{tab.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>

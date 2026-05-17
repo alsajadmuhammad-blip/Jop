@@ -39,7 +39,7 @@ async function getCategoryProducts(categoryId: string): Promise<Product[]> {
   const { data: productsRows, error: productsError } = await supabase
     .from('products')
     .select('*')
-    .eq('category_id', categoryId)
+    .or(`category_id.eq.${categoryId},\"categoryId\".eq.${categoryId}`)
     .in('store_id', activeStoreIds);
 
   if (productsError) {

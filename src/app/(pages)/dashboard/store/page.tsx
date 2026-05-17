@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { StoreOwnerNavbar } from "./navbar";
 import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
@@ -45,7 +46,6 @@ import {
 // ...existing code...
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
 import { CoverImageUploader } from "@/components/dashboard/cover-image-uploader";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { BackButton } from "@/components/layout/back-button";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 
@@ -126,6 +126,26 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave
         onSettingChange("businessHours", newHours);
     };
 
+    const handleUseCurrentLocation = () => {
+      if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع.');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = Number(pos.coords.latitude.toFixed(6));
+          const lon = Number(pos.coords.longitude.toFixed(6));
+          onSettingChange('latitude', lat);
+          onSettingChange('longitude', lon);
+        },
+        (err) => {
+          console.error('Geolocation error', err);
+          alert('تعذر الحصول على الموقع. تأكد من السماح بالوصول للموقع.');
+        },
+        { enableHighAccuracy: true }
+      );
+    };
+
     return (
         <div className="space-y-8">
             <div className="border-b pb-6">
@@ -186,6 +206,40 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave
                     </div>
                 </div>
             </div>
+
+                <div className="border-b pb-6">
+                  <h3 className="text-lg font-semibold mb-2">الموقع الجغرافي</h3>
+                  <p className="text-muted-foreground text-sm mb-4">اضبط إحداثيات المتجر (خط العرض وخط الطول) ليتمكن العملاء من فتح موقع المتجر على خرائط هواتفهم.</p>
+                  <div className="grid gap-4">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm text-slate-700 mb-2">اضغط الزر لتحديد موقع متجرك تلقائياً. لن تحتاج لتعبئة الإحداثيات يدوياً.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={handleUseCurrentLocation} size="sm">تحديد الموقع الذكي</Button>
+                        <Button onClick={handleUseCurrentLocation} variant="outline" size="sm">تحديث الموقع</Button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">خط العرض</p>
+                        <p className="mt-2 text-sm text-slate-900">{store.latitude ?? 'لم يتم التحديد'}</p>
+                      </div>
+                      <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">خط الطول</p>
+                        <p className="mt-2 text-sm text-slate-900">{store.longitude ?? 'لم يتم التحديد'}</p>
+                      </div>
+                    </div>
+                    {store.latitude && store.longitude && (
+                      <a
+                        href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      >
+                        عرض الموقع على الخريطة
+                      </a>
+                    )}
+                  </div>
+                </div>
         </div>
     );
 }
@@ -349,7 +403,10 @@ export default function StoreDashboardPage() {
     }
   }, [user, toast]);
 
+  const validViews = ['products', 'orders', 'sections', 'settings'];
+
   const handleViewChange = (view: string) => {
+    if (!validViews.includes(view)) return;
     setActiveView(view);
   };
 
@@ -357,19 +414,8 @@ export default function StoreDashboardPage() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const view = params.get('tab') || 'products';
-    setActiveView(view);
+    handleViewChange(view);
   }, []);
-
-  useEffect(() => {
-    if (!router || typeof window === 'undefined') return;
-    const basePath = '/dashboard/store';
-    const currentQuery = window.location.search ? window.location.search.substring(1) : '';
-    const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname;
-    const newUrl = activeView === 'products' ? basePath : `${basePath}?tab=${encodeURIComponent(activeView)}`;
-    if (currentUrl !== newUrl) {
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [activeView, router, pathname]);
 
   useEffect(() => {
     if (authLoading) {
@@ -656,62 +702,12 @@ export default function StoreDashboardPage() {
   }
 
   return (
-    <SidebarProvider>
-        <Sidebar>
-            <SidebarHeader className="border-b">
-                 <div className="flex items-center gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground flex-shrink-0">
-                        <Package2 className="h-6 w-6" />
-                    </div>
-                    <span className="text-sm font-semibold truncate">{fullStoreData.name}</span>
-                </div>
-            </SidebarHeader>
-            <SidebarContent>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => handleViewChange("products")} isActive={activeView === "products"}>
-                            <Package className="h-5 w-5 flex-shrink-0" />
-                            <span>المنتجات</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => handleViewChange("orders")} isActive={activeView === "orders"}>
-                            <ShoppingCartIcon className="h-5 w-5 flex-shrink-0" />
-                            <span>الطلبات</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => handleViewChange("sections")} isActive={activeView === "sections"}>
-                            <Package className="h-5 w-5 flex-shrink-0" />
-                            <span>الأقسام</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => handleViewChange("settings")} isActive={activeView === "settings"}>
-                            <Settings className="h-5 w-5 flex-shrink-0" />
-                             <span>الإعدادات</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarContent>
-            <SidebarFooter className="border-t">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={handleLogout}>
-                            <LogOut className="h-5 w-5 flex-shrink-0" />
-                            <span>خروج</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
-        </Sidebar>
-        <SidebarInset>
-             <div className="min-h-screen bg-background flex flex-col">
+    <>
+      <div className="min-h-screen bg-background flex flex-col">
                 <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur-sm shadow-sm">
                     <div className="px-4 md:px-8 py-4 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             <BackButton href="/dashboard/store" />
-                            <SidebarTrigger className="md:hidden flex-shrink-0"/>
                             <div className="min-w-0">
                                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">
                                     {fullStoreData.name}
@@ -726,6 +722,10 @@ export default function StoreDashboardPage() {
                         </Button>
                     </div>
                 </header>
+
+                <div className="px-4 md:px-8">
+                  <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
+                </div>
 
                 <main className="flex-1 px-4 md:px-8 py-6 space-y-6">
                     <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
@@ -867,16 +867,15 @@ export default function StoreDashboardPage() {
                     )}
                 </main>
              </div>
-        </SidebarInset>
 
-        <ProductFormDialog
+      <ProductFormDialog
             isOpen={isDialogOpen}
             onClose={() => setIsDialogOpen(false)}
             onSave={handleSaveProduct}
             product={editingProduct}
             sections={sections}
         />
-    </SidebarProvider>
-  );
+    </>
+    );
 }
 

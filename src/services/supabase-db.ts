@@ -96,7 +96,7 @@ export async function fetchStoresByLocation(latitude: number, longitude: number,
 export async function fetchProductsByStore(storeId: string): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('*, store_sections(name)')
+    .select('*, store_sections(id, name)')
     .eq('store_id', storeId)
     .order('created_at', { ascending: false });
 
@@ -108,9 +108,11 @@ export async function fetchProductsByStore(storeId: string): Promise<Product[]> 
   return (data || []).map((row: any) => {
     const relation = row.store_sections || row.store_section;
     if (Array.isArray(relation) && relation.length > 0) {
-      row.section_name = relation[0]?.name || row.section_name;
+      row.section_id = row.section_id || relation[0]?.id || row.sectionId;
+      row.section_name = row.section_name || relation[0]?.name || row.sectionName;
     } else if (relation && typeof relation === 'object') {
-      row.section_name = relation.name || row.section_name;
+      row.section_id = row.section_id || relation.id || row.sectionId;
+      row.section_name = row.section_name || relation.name || row.sectionName;
     }
     return mapProductRow(row);
   });
@@ -232,10 +234,12 @@ export async function deleteStoreSection(sectionId: string): Promise<boolean> {
 }
 
 export async function fetchProductsByCategory(categoryId: string): Promise<Product[]> {
+  // Some schemas use camelCase quoted column names (e.g. "categoryId").
+  // Query both common variants to be tolerant and align with the authoritative schema.
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .eq('category_id', categoryId)
+    .or(`category_id.eq.${categoryId},\"categoryId\".eq.${categoryId}`)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -689,10 +693,10 @@ export function mapProductRow(row: any): Product {
     name: row.name,
     description: row.description || '',
     price: row.price,
-    imageUrl: row.image_url,
-    storeId: row.store_id,
-    categoryId: row.category_id,
-    sectionId: row.section_id,
+    imageUrl: row.image_url || row.imageUrl,
+    storeId: row.store_id || row.storeId,
+    categoryId: row.category_id || row.categoryId,
+    sectionId: row.section_id || row.sectionId,
     sectionName: row.section_name || row.sectionName,
     sku: row.sku || row.product_sku || undefined,
     stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),

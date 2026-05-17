@@ -73,7 +73,7 @@ function HomePageContent() {
                 price: row.price,
                 imageUrl: row.image_url || row.imageUrl,
                 storeId: row.store_id,
-                categoryId: row.category_id,
+                categoryId: row.category_id || row.categoryId,
                 sku: row.sku || row.product_sku || undefined,
                 stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
               }))

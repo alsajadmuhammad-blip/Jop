@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
 import { BackButton } from "@/components/layout/back-button";
 import { ProductGrid } from "@/components/product-grid";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -223,34 +224,52 @@ export default function StorePageClient() {
                 {products.length > 0 ? (
                   <div className="space-y-8">
                     {derivedSections.length > 0 ? (
-                      derivedSections.map((section) => {
-                        const sectionProducts = products.filter((product) => product.sectionId === section.id);
-                        return (
-                          <div key={section.id} className="space-y-4">
-                            <div className="flex items-center justify-between gap-4">
-                              <div>
-                                <h3 className="text-xl font-semibold text-slate-900">{section.name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {sectionProducts.length > 0
-                                    ? `${sectionProducts.length} منتج في هذا القسم.`
-                                    : 'لا توجد منتجات في هذا القسم بعد.'}
-                                </p>
+                      <Tabs defaultValue={derivedSections[0]?.id || 'all'}>
+                        <TabsList>
+                          <TabsTrigger value="all">الكل</TabsTrigger>
+                          {derivedSections.map((s) => (
+                            <TabsTrigger key={s.id} value={s.id}>
+                              {s.name}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+
+                        <TabsContent value="all">
+                          <ProductGrid products={products} />
+                        </TabsContent>
+
+                        {derivedSections.map((section) => {
+                          const sectionProducts = products.filter((product) => product.sectionId === section.id);
+                          return (
+                            <TabsContent key={section.id} value={section.id}>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-4">
+                                  <div>
+                                    <h3 className="text-xl font-semibold text-slate-900">{section.name}</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      {sectionProducts.length > 0
+                                        ? `${sectionProducts.length} منتج في هذا القسم.`
+                                        : 'لا توجد منتجات في هذا القسم بعد.'}
+                                    </p>
+                                  </div>
+                                  <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700 border-slate-200">
+                                    {sectionProducts.length} منتج
+                                  </Badge>
+                                </div>
+
+                                {sectionProducts.length > 0 ? (
+                                  <ProductGrid products={sectionProducts} />
+                                ) : (
+                                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                                    <p className="text-sm font-medium text-slate-900">لا توجد منتجات في هذا القسم بعد.</p>
+                                    <p className="text-sm text-muted-foreground mt-2">سوف تظهر المنتجات هنا بمجرد إضافتها.</p>
+                                  </div>
+                                )}
                               </div>
-                              <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700 border-slate-200">
-                                {sectionProducts.length} منتج
-                              </Badge>
-                            </div>
-                            {sectionProducts.length > 0 ? (
-                              <ProductGrid products={sectionProducts} />
-                            ) : (
-                              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                                <p className="text-sm font-medium text-slate-900">لا توجد منتجات في هذا القسم بعد.</p>
-                                <p className="text-sm text-muted-foreground mt-2">سوف تظهر المنتجات هنا بمجرد إضافتها.</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
+                            </TabsContent>
+                          );
+                        })}
+                      </Tabs>
                     ) : (
                       <ProductGrid products={products} />
                     )}
@@ -348,6 +367,26 @@ export default function StorePageClient() {
                     <div>
                       <p className="text-xs text-slate-500">واتساب</p>
                       <p className="text-sm font-semibold text-slate-900">{store.whatsappNumber}</p>
+                    </div>
+                  </div>
+                )}
+
+                {store.latitude && store.longitude && (
+                  <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                    <MapPin className="w-5 h-5 text-amber-600" />
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-500">الموقع</p>
+                      <p className="text-sm font-semibold text-slate-900">{store.location || `${store.latitude}, ${store.longitude}`}</p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <a
+                        href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-lg bg-primary px-3 py-2 text-white text-sm"
+                      >
+                        افتح الخريطة
+                      </a>
                     </div>
                   </div>
                 )}

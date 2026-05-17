@@ -15,10 +15,18 @@ export default function RepresentativeDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || userRole !== "representative") {
+    if (loading) return;
+    if (!user) {
       router.replace("/login");
       return;
     }
+    if (userRole !== "representative") {
+      if (userRole === "admin") router.replace("/admin");
+      else if (userRole === "store") router.replace("/dashboard/store");
+      else router.replace("/");
+      return;
+    }
+
     // جلب المتاجر التي أضافها هذا المندوب
     async function fetchStores() {
       setLoading(true);
@@ -33,7 +41,7 @@ export default function RepresentativeDashboard() {
       }
     }
     fetchStores();
-  }, [user, userRole, router]);
+  }, [user, userRole, router, loading]);
 
   return (
     <div className="container mx-auto py-8">

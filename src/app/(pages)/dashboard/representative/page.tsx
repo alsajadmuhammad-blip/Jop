@@ -3,11 +3,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-// ...existing code...
 import type { Store } from '@/lib/types';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/use-auth';
-import { Copy, LogOut, CheckCircle, Hourglass, XCircle, Store as StoreIcon, TrendingUp, Users, CalendarDays, BarChartHorizontal, DollarSign } from 'lucide-react';
+import { LogOut, CheckCircle, Hourglass, XCircle, Store as StoreIcon, TrendingUp, Users, CalendarDays, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,13 +14,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import Image from 'next/image';
-import { Input } from '@/components/ui/input';
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 
 const getStatusBadge = (store: Store) => {
@@ -40,8 +39,7 @@ function RepresentativeDashboard() {
     const { toast } = useToast();
     const [stores, setStores] = useState<Store[]>([]);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
-    const [isAddStoreDialogOpen, setIsAddStoreDialogOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState<'overview' | 'stores'>('overview');
 
     useEffect(() => {
         if (!user || user.role !== 'representative') return;
@@ -154,7 +152,7 @@ function RepresentativeDashboard() {
 
     return (
         <div className="bg-muted/30 min-h-screen">
-            <div className="container mx-auto p-4 md:p-8">
+            <div className="px-4 py-6 md:px-6 md:py-8">
                 <header className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
                     <div className="flex items-center gap-4">
                          <div className="relative h-16 w-16">
@@ -178,126 +176,129 @@ function RepresentativeDashboard() {
                     </Button>
                 </header>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    
-                    {/* Stats Cards */}
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">الراتب الشهري</CardTitle>
-                            <DollarSign className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{monthlySalary.toLocaleString()} <span className="text-sm">د.ع</span></div>
-                            <p className="text-xs text-muted-foreground">راتبك الشهري المحدد</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">إجمالي المتاجر المسجلة</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{totalStores}</div>
-                            <p className="text-xs text-muted-foreground">متجر قمت بتسجيله</p>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">المتاجر المطلوبة</CardTitle>
-                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{requiredStores}</div>
-                             <p className="text-xs text-muted-foreground">
-                                متاجر مطلوبة للحصول على الراتب
-                             </p>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">حالة الهدف</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{hasAchievedTarget ? 'مكتمل' : 'قيد التنفيذ'}</div>
-                            <p className="text-xs text-muted-foreground">{hasAchievedTarget ? 'لقد حققت الهدف!' : `متبقي ${requiredStores - totalStores} متجر`}</p>
-                        </CardContent>
-                    </Card>
+                <Tabs value={activeSection} onValueChange={setActiveSection}>
+                  <TabsList className="mb-6 rounded-3xl bg-white/80 p-1 shadow-sm border border-border/80">
+                    <TabsTrigger value="overview">الملخص</TabsTrigger>
+                    <TabsTrigger value="stores">المتاجر</TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
-                    {/* Monthly Stats Chart */}
-                    {monthlyStats.length > 0 && (
-                        <Card className="lg:col-span-4">
-                             <CardHeader>
-                                <CardTitle>أداء التسجيل الشهري</CardTitle>
-                                <CardDescription>عدد المتاجر التي سجلتها كل شهر.</CardDescription>
+                {activeSection === 'overview' ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">الراتب الشهري</CardTitle>
+                                <DollarSign className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
-                                <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                                    <BarChart accessibilityLayer data={monthlyStats}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis
-                                            dataKey="month"
-                                            tickLine={false}
-                                            tickMargin={10}
-                                            axisLine={false}
-                                            tickFormatter={(value) => value.slice(0, 8)}
-                                        />
-                                        <YAxis />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Bar dataKey="stores" fill="var(--color-stores)" radius={4} />
-                                    </BarChart>
-                                </ChartContainer>
+                                <div className="text-2xl font-bold">{monthlySalary.toLocaleString()} <span className="text-sm">د.ع</span></div>
+                                <p className="text-xs text-muted-foreground">راتبك الشهري المحدد</p>
                             </CardContent>
                         </Card>
-                    )}
-                </div>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">إجمالي المتاجر المسجلة</CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{totalStores}</div>
+                                <p className="text-xs text-muted-foreground">المتاجر التي قمت بتسجيلها</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">المتاجر النشطة</CardTitle>
+                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{activeStores}</div>
+                                <p className="text-xs text-muted-foreground">المتاجر المفعّلة حالياً</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">الهدف الشهري</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{hasAchievedTarget ? 'مكتمل' : 'قيد التنفيذ'}</div>
+                                <p className="text-xs text-muted-foreground">{hasAchievedTarget ? 'لقد حققت هدفك الشهري' : `متبقي ${requiredStores - totalStores} متجر`}</p>
+                            </CardContent>
+                        </Card>
 
-                {/* Stores Table */}
-                <Card className="mt-6">
-                    <CardHeader>
-                        <CardTitle>قائمة المتاجر المسجلة</CardTitle>
-                        <CardDescription>هذه هي المتاجر التي قمت بتسجيلها مباشرة في النظام.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {stores.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>اسم المتجر</TableHead>
-                                            <TableHead>الموقع</TableHead>
-                                            <TableHead className="text-center">الحالة</TableHead>
-                                            <TableHead>تاريخ التسجيل</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {stores.map(store => (
-                                            <TableRow key={store.id}>
-                                                <TableCell className="font-medium">{store.name}</TableCell>
-                                                <TableCell>{store.location}</TableCell>
-                                                <TableCell className="text-center">{getStatusBadge(store)}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <CalendarDays className="h-4 w-4 text-muted-foreground"/>
-                                                        <span>{store.createdAt ? new Date(typeof store.createdAt === 'string' ? store.createdAt : (store.createdAt as any).toDate()).toLocaleDateString('ar-EG') : 'غير معروف'}</span>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ) : (
-                            <div className="text-center py-16 rounded-lg bg-background border-2 border-dashed">
-                                <StoreIcon className="mx-auto h-16 w-16 text-muted-foreground" strokeWidth={1} />
-                                <h2 className="mt-4 text-xl font-semibold">ابدأ رحلتك الآن!</h2>
-                                <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-                                    لم تقم بتسجيل أي متاجر بعد. ابدأ بإضافة متاجر جديدة لتحقيق هدفك الشهري.
-                                </p>
-                            </div>
+                        {monthlyStats.length > 0 && (
+                            <Card className="lg:col-span-4">
+                                <CardHeader>
+                                    <CardTitle>أداء التسجيل الشهري</CardTitle>
+                                    <CardDescription>عدد المتاجر التي سجلتها كل شهر.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                                        <BarChart accessibilityLayer data={monthlyStats}>
+                                            <CartesianGrid vertical={false} />
+                                            <XAxis
+                                                dataKey="month"
+                                                tickLine={false}
+                                                tickMargin={10}
+                                                axisLine={false}
+                                                tickFormatter={(value) => value.slice(0, 8)}
+                                            />
+                                            <YAxis />
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                            <Bar dataKey="stores" fill="var(--color-stores)" radius={4} />
+                                        </BarChart>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                ) : (
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>قائمة المتاجر المسجلة</CardTitle>
+                            <CardDescription>هذه هي المتاجر التي قمت بتسجيلها مباشرة في النظام.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {stores.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>اسم المتجر</TableHead>
+                                                <TableHead>الموقع</TableHead>
+                                                <TableHead className="text-center">الحالة</TableHead>
+                                                <TableHead>تاريخ التسجيل</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {stores.map(store => (
+                                                <TableRow key={store.id}>
+                                                    <TableCell className="font-medium">{store.name}</TableCell>
+                                                    <TableCell>{store.location}</TableCell>
+                                                    <TableCell className="text-center">{getStatusBadge(store)}</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <CalendarDays className="h-4 w-4 text-muted-foreground"/>
+                                                            <span>{store.createdAt ? new Date(typeof store.createdAt === 'string' ? store.createdAt : (store.createdAt as any).toDate()).toLocaleDateString('ar-EG') : 'غير معروف'}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-16 rounded-lg bg-background border-2 border-dashed">
+                                    <StoreIcon className="mx-auto h-16 w-16 text-muted-foreground" strokeWidth={1} />
+                                    <h2 className="mt-4 text-xl font-semibold">ابدأ رحلتك الآن!</h2>
+                                    <p className="mt-2 text-muted-foreground max-w-md mx-auto">
+                                        لم تقم بتسجيل أي متاجر بعد. ابدأ بإضافة متاجر جديدة لتحقيق هدفك الشهري.
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

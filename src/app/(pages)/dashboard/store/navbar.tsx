@@ -1,31 +1,29 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
   { tab: "products", label: "المنتجات" },
   { tab: "orders", label: "الطلبات" },
+  { tab: "sections", label: "الأقسام" },
   { tab: "settings", label: "الإعدادات" },
 ];
 
-export function StoreOwnerNavbar() {
-  const pathname = usePathname();
-  const isStoreRoute = pathname?.startsWith("/dashboard/store");
-
+export function StoreOwnerNavbar({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) {
   return (
-    <nav className="flex flex-wrap gap-2 border-b mb-6 bg-background px-3 py-3 rounded-2xl shadow-sm">
-      {navLinks.map((link) => (
-        <Button
-          key={link.tab}
-          asChild
-          variant="ghost"
-          className="rounded-full"
-        >
-          <Link href={`/dashboard/store?tab=${link.tab}`}>{link.label}</Link>
-        </Button>
-      ))}
+    <nav className="overflow-x-auto pb-2">
+      <div className="inline-flex min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm">
+        {navLinks.map((link) => (
+          <Button
+            key={link.tab}
+            variant={activeTab === link.tab ? "default" : "outline"}
+            className="min-w-[95px] whitespace-nowrap rounded-full px-3 py-2 text-sm"
+            onClick={() => onTabChange(link.tab)}
+          >
+            {link.label}
+          </Button>
+        ))}
+      </div>
     </nav>
   );
 }
