@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
@@ -21,6 +21,23 @@ export default function StorePageClient() {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const derivedSections = useMemo(() => {
+    if (sections.length > 0) return sections;
+    const map = new Map<string, Section>();
+
+    products.forEach((product) => {
+      if (product.sectionId && product.sectionName) {
+        map.set(product.sectionId, {
+          id: product.sectionId,
+          name: product.sectionName,
+          storeId: store?.id || storeId || '',
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [sections, products, store?.id, storeId]);
 
   useEffect(() => {
     async function loadStore() {
@@ -205,29 +222,39 @@ export default function StorePageClient() {
               <CardContent>
                 {products.length > 0 ? (
                   <div className="space-y-8">
-                    {sections.length > 0 ? (
-                      sections.map((section) => {
+                    {derivedSections.length > 0 ? (
+                      derivedSections.map((section) => {
                         const sectionProducts = products.filter((product) => product.sectionId === section.id);
-                        if (!sectionProducts.length) return null;
                         return (
                           <div key={section.id} className="space-y-4">
                             <div className="flex items-center justify-between gap-4">
                               <div>
                                 <h3 className="text-xl font-semibold text-slate-900">{section.name}</h3>
-                                <p className="text-sm text-muted-foreground">{sectionProducts.length} منتج في هذا القسم.</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {sectionProducts.length > 0
+                                    ? `${sectionProducts.length} منتج في هذا القسم.`
+                                    : 'لا توجد منتجات في هذا القسم بعد.'}
+                                </p>
                               </div>
                               <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700 border-slate-200">
                                 {sectionProducts.length} منتج
                               </Badge>
                             </div>
-                            <ProductGrid products={sectionProducts} />
+                            {sectionProducts.length > 0 ? (
+                              <ProductGrid products={sectionProducts} />
+                            ) : (
+                              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                                <p className="text-sm font-medium text-slate-900">لا توجد منتجات في هذا القسم بعد.</p>
+                                <p className="text-sm text-muted-foreground mt-2">سوف تظهر المنتجات هنا بمجرد إضافتها.</p>
+                              </div>
+                            )}
                           </div>
                         );
                       })
                     ) : (
                       <ProductGrid products={products} />
                     )}
-                    {sections.length === 0 && (
+                    {derivedSections.length === 0 && (
                       <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
                         <p className="text-sm font-medium text-slate-900">هذا المتجر لم يعرّف أقسامًا بعد.</p>
                         <p className="text-sm text-muted-foreground mt-2">ستظهر المنتجات هنا بصورة عامة حتى يتم إعداد الأقسام.</p>

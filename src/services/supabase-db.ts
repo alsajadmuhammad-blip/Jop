@@ -10,6 +10,10 @@ const SUPABASE_CREATE_PRODUCT_FUNCTION_URL =
   process.env.NEXT_PUBLIC_SUPABASE_CREATE_PRODUCT_FUNCTION_URL ||
   'https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-product';
 
+const SUPABASE_CREATE_SECTION_FUNCTION_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_CREATE_SECTION_FUNCTION_URL ||
+  'https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-section';
+
 // ============================================================================
 // STORES
 // ============================================================================
@@ -92,7 +96,7 @@ export async function fetchStoresByLocation(latitude: number, longitude: number,
 export async function fetchProductsByStore(storeId: string): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('*')
+    .select('*, store_sections(name)')
     .eq('store_id', storeId)
     .order('created_at', { ascending: false });
 
@@ -101,7 +105,15 @@ export async function fetchProductsByStore(storeId: string): Promise<Product[]> 
     return [];
   }
 
-  return (data || []).map(mapProductRow);
+  return (data || []).map((row: any) => {
+    const relation = row.store_sections || row.store_section;
+    if (Array.isArray(relation) && relation.length > 0) {
+      row.section_name = relation[0]?.name || row.section_name;
+    } else if (relation && typeof relation === 'object') {
+      row.section_name = relation.name || row.section_name;
+    }
+    return mapProductRow(row);
+  });
 }
 
 export async function fetchStoreSections(storeId: string): Promise<Section[]> {
@@ -125,6 +137,46 @@ export async function fetchStoreSections(storeId: string): Promise<Section[]> {
 }
 
 export async function createStoreSection(storeId: string, name: string): Promise<Section | null> {
+  const payload = {
+    storeId,
+    store_id: storeId,
+    name,
+  };
+
+  const { data: functionData, error: functionError } = await invokeSupabaseFunction('create-section', payload);
+
+  let sectionPayload: any = null;
+
+  if (!functionError && functionData) {
+    if (typeof functionData === 'string') {
+      try {
+        sectionPayload = JSON.parse(functionData);
+      } catch (parseError) {
+        console.error('Failed to parse create section function response:', parseError);
+      }
+    } else {
+      sectionPayload = functionData;
+    }
+
+    if (sectionPayload) {
+      const section = sectionPayload.section || sectionPayload;
+      if (section && section.id && section.name) {
+        return {
+          id: section.id,
+          name: section.name,
+          storeId: section.store_id || section.storeId || storeId,
+          createdAt: section.created_at || section.createdAt,
+        };
+      }
+    }
+  }
+
+  if (functionError) {
+    console.warn('Create section function failed, falling back to direct insert:', functionError?.message || functionError);
+  } else {
+    console.warn('Create section function returned invalid payload, falling back to direct insert:', sectionPayload);
+  }
+
   const { data, error } = await supabase
     .from('store_sections')
     .insert({ store_id: storeId, name })
@@ -132,7 +184,7 @@ export async function createStoreSection(storeId: string, name: string): Promise
     .single();
 
   if (error) {
-    console.error('Error creating store section:', error.message);
+    console.error('Error creating store section directly:', error.message, 'storeId:', storeId, 'name:', name);
     return null;
   }
 
@@ -231,7 +283,7 @@ export async function fetchProductById(productId: string): Promise<Product | nul
 async function invokeSupabaseFunction(functionName: string, payload: any) {
   const body = JSON.stringify(payload);
 
-  if (functionName === 'create-product') {
+  if (functionName === 'create-product' || functionName === 'create-section') {
     try {
       const anonymousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       const headers: Record<string, string> = {
@@ -243,7 +295,12 @@ async function invokeSupabaseFunction(functionName: string, payload: any) {
         headers.Authorization = `Bearer ${anonymousKey}`;
       }
 
-      const response = await fetch(SUPABASE_CREATE_PRODUCT_FUNCTION_URL, {
+      const functionUrl =
+        functionName === 'create-product'
+          ? SUPABASE_CREATE_PRODUCT_FUNCTION_URL
+          : SUPABASE_CREATE_SECTION_FUNCTION_URL;
+
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers,
         body,
