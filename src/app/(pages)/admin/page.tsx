@@ -44,207 +44,362 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/use-auth';
-import { createStoreOwner } from '@/services/supabase-functions';
-
-async function createRepresentativeAction({ name, email, password, paymentSystem, monthlySalary, requiredStoresCount }: { name: string; email: string; password: string; paymentSystem: 'salary' | 'commission'; monthlySalary?: number; requiredStoresCount?: number }) {
-    try {
-        const insertPayload: any = {
-            name,
-            email,
-            role: 'representative',
-            payment_system: paymentSystem,
-            total_earnings: 0,
-            monthly_salary: paymentSystem === 'salary' ? monthlySalary ?? 0 : 0,
-            required_stores_count: paymentSystem === 'salary' ? requiredStoresCount ?? 0 : 0,
-        };
-
-        const { data, error } = await supabase.from('users').insert(insertPayload).select().single();
-        return { success: !error, error: error?.message, data };
-    } catch (err: any) {
-        return { success: false, error: err?.message || String(err) };
-    }
-}
+import { createStoreOwner, createRepresentative } from '@/services/supabase-functions';
 
 
 // ===== Representative Registration Dialog =====
-const RepresentativeDialog = React.memo(function RepresentativeDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (open: boolean) => void }) {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [paymentSystem, setPaymentSystem] = useState<'salary' | 'commission' | ''>('');
-    const [monthlySalary, setMonthlySalary] = useState<number | ''>('');
-    const [requiredStoresCount, setRequiredStoresCount] = useState<number | ''>('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { toast } = useToast();
+const RepresentativeDialog = React.memo(function RepresentativeDialog({ 
+  isOpen, 
+  onOpenChange, 
+  onRepresentativeAdded 
+}: { 
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  onRepresentativeAdded?: () => void 
+}) {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    paymentSystem: 'salary' as 'salary' | 'commission',
+    monthlySalary: '',
+    requiredStoresCount: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-    const handleSubmit = async () => {
-        if (!name || !email || !password || !paymentSystem) {
-            toast({ title: "الرجاء ملء جميع الحقول", variant: "destructive" });
-            return;
-        }
-        if (paymentSystem === 'salary' && (!monthlySalary || !requiredStoresCount)) {
-            toast({ title: "الرجاء تحديد الراتب الشهري وعدد المتاجر المطلوبة لنظام الراتب", variant: "destructive" });
-            return;
-        }
-        setIsSubmitting(true);
-        try {
-            const result = await createRepresentativeAction({ 
-                name, 
-                email, 
-                password, 
-                paymentSystem, 
-                monthlySalary: paymentSystem === 'salary' ? Number(monthlySalary) : undefined,
-                requiredStoresCount: paymentSystem === 'salary' ? Number(requiredStoresCount) : undefined,
-            });
-             if (result.success) {
-                toast({ title: "تم تسجيل المندوب بنجاح" });
-                setName('');
-                setEmail('');
-                setPassword('');
-                setPaymentSystem('');
-                setMonthlySalary('');
-                setRequiredStoresCount('');
-                onOpenChange(false);
-            } else {
-                throw new Error(result.error || "An unknown error occurred.");
-            }
-        } catch (error: any) {
-            toast({ title: "فشل تسجيل المندوب", description: error.message, variant: "destructive" });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>إضافة مندوب تسويق جديد</DialogTitle>
-                    <DialogDescription>
-                        أدخل تفاصيل المندوب لإنشاء حساب خاص به. سيتمكن من تسجيل الدخول باستخدام هذه البيانات.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="rep-name">اسم المندوب الكامل</Label>
-                        <Input id="rep-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: علي حسن" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="rep-email">البريد الإلكتروني (للدخول)</Label>
-                        <Input id="rep-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="rep@example.com" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="rep-password">كلمة المرور</Label>
-                        <Input id="rep-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="payment-system">نظام الدفع</Label>
-                        <Select value={paymentSystem} onValueChange={(value) => setPaymentSystem(value as any)}>
-                            <SelectTrigger id="payment-system">
-                                <SelectValue placeholder="اختر نظام الدفع للمندوب" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="salary">نظام الراتب الشهري</SelectItem>
-                                <SelectItem value="commission">نظام العمولات</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    {paymentSystem === 'salary' && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="monthly-salary">الراتب الشهري (د.ع)</Label>
-                                <Input 
-                                    id="monthly-salary" 
-                                    type="number" 
-                                    value={monthlySalary} 
-                                    onChange={(e) => setMonthlySalary(e.target.value ? Number(e.target.value) : '')} 
-                                    placeholder="مثال: 500" 
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="required-stores">عدد المتاجر المطلوبة للراتب</Label>
-                                <Input 
-                                    id="required-stores" 
-                                    type="number" 
-                                    value={requiredStoresCount} 
-                                    onChange={(e) => setRequiredStoresCount(e.target.value ? Number(e.target.value) : '')} 
-                                    placeholder="مثال: 10" 
-                                />
-                            </div>
-                        </>
-                    )}
-                    {paymentSystem === 'commission' && (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                            <p className="font-medium">سيتم حساب العمولة تلقائياً وفقاً لسياسات المنصة الداخلية.</p>
-                        </div>
-                    )}
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-                    <Button onClick={handleSubmit} disabled={isSubmitting}>
-                        {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء حساب'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      paymentSystem: 'salary',
+      monthlySalary: '',
+      requiredStoresCount: '',
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // التحقق من الحقول الأساسية
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
+      toast({ 
+        title: "خطأ في التحقق", 
+        description: "الرجاء ملء: الاسم والبريد الإلكتروني وكلمة المرور",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // التحقق من نظام الراتب
+    if (formData.paymentSystem === 'salary') {
+      if (!formData.monthlySalary || !formData.requiredStoresCount) {
+        toast({ 
+          title: "خطأ في التحقق",
+          description: "الرجاء إدخال الراتب الشهري وعدد المتاجر المطلوبة",
+          variant: "destructive" 
+        });
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      console.log('🔄 جاري إرسال بيانات المندوب:', formData);
+      
+      const result = await createRepresentative({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        paymentSystem: formData.paymentSystem,
+        monthlySalary: formData.paymentSystem === 'salary' ? Number(formData.monthlySalary) : undefined,
+        requiredStoresCount: formData.paymentSystem === 'salary' ? Number(formData.requiredStoresCount) : undefined,
+      });
+
+      console.log('📦 النتيجة من الدالة:', result);
+
+      if (result.success) {
+        toast({ 
+          title: "✅ تم بنجاح",
+          description: "تم إنشاء حساب المندوب بنجاح",
+          variant: "default"
+        });
+        resetForm();
+        onOpenChange(false);
+        onRepresentativeAdded?.();
+      } else {
+        throw new Error(result.error || "فشل إنشاء المندوب بسبب خطأ غير معروف");
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في إنشاء المندوب:', error);
+      toast({ 
+        title: "❌ فشل تسجيل المندوب",
+        description: error?.message || "حدث خطأ في الاتصال. تحقق من الاتصال بالإنترنت وحاول مجددا",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>إضافة مندوب تسويق جديد</DialogTitle>
+          <DialogDescription>
+            أدخل تفاصيل المندوب لإنشاء حساب خاص به
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* اسم المندوب */}
+          <div className="space-y-2">
+            <Label htmlFor="name">اسم المندوب الكامل *</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="مثال: علي حسن"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* البريد الإلكتروني */}
+          <div className="space-y-2">
+            <Label htmlFor="email">البريد الإلكتروني *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="rep@example.com"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* كلمة المرور */}
+          <div className="space-y-2">
+            <Label htmlFor="password">كلمة المرور *</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* نظام الدفع */}
+          <div className="space-y-2">
+            <Label htmlFor="paymentSystem">نظام الدفع *</Label>
+            <Select 
+              value={formData.paymentSystem}
+              onValueChange={(value) => handleInputChange('paymentSystem', value)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="paymentSystem">
+                <SelectValue placeholder="اختر نظام الدفع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="salary">نظام الراتب الشهري</SelectItem>
+                <SelectItem value="commission">نظام العمولات</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* حقول الراتب (تظهر فقط عند اختيار الراتب الشهري) */}
+          {formData.paymentSystem === 'salary' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="monthlySalary">الراتب الشهري (د.ع) *</Label>
+                <Input
+                  id="monthlySalary"
+                  type="number"
+                  placeholder="500"
+                  value={formData.monthlySalary}
+                  onChange={(e) => handleInputChange('monthlySalary', e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="requiredStoresCount">عدد المتاجر المطلوبة *</Label>
+                <Input
+                  id="requiredStoresCount"
+                  type="number"
+                  placeholder="10"
+                  value={formData.requiredStoresCount}
+                  onChange={(e) => handleInputChange('requiredStoresCount', e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </>
+          )}
+
+          {/* رسالة العمولات */}
+          {formData.paymentSystem === 'commission' && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertTitle>نظام العمولات</AlertTitle>
+              <AlertDescription>
+                سيتم حساب العمولة تلقائياً وفقاً لسياسات المنصة
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* الأزرار */}
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? '⏳ جاري الإنشاء...' : '✅ إنشاء حساب'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 });
 
+RepresentativeDialog.displayName = 'RepresentativeDialog';
 
-// ===== Representatives Tab Content =====
-function RepresentativesTab({ representatives, stores }: { representatives: User[], stores: Store[] }) {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const { toast } = useToast();
+// ===== Representatives Management Page =====
+function RepresentativesTab({ 
+  representatives, 
+  stores, 
+  onRepresentativeAdded 
+}: { 
+  representatives: User[]
+  stores: Store[]
+  onRepresentativeAdded?: () => void 
+}) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
-    const getStoreCountForRep = (repId: string) => {
-        return stores.filter(store => store.registeredByAgentId === repId).length;
-    };
+  const getStoreCountForRep = (repId: string) => {
+    return stores.filter(store => store.registeredByAgentId === repId).length;
+  };
 
-    return (
-        <Card>
-            <CardHeader className="flex-row items-center justify-between">
-                <div>
-                    <CardTitle>إدارة المندوبين ({representatives.length})</CardTitle>
-                    <CardDescription>إضافة وتتبع أداء ومستحقات مندوبي التسويق.</CardDescription>
-                </div>
-                <Button onClick={() => setIsDialogOpen(true)}><UserPlus className="ml-2 h-4 w-4" /> إضافة مندوب</Button>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>اسم المندوب</TableHead>
-                            <TableHead>الراتب الشهري</TableHead>
-                            <TableHead>المتاجر المطلوبة</TableHead>
-                            <TableHead>المتاجر المسجلة</TableHead>
-                            <TableHead>إجمالي المستحقات</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {representatives.length > 0 ? representatives.map(rep => (
-                            <TableRow key={rep.id}>
-                                <TableCell className="font-medium">{rep.name}</TableCell>
-                                <TableCell>{(rep.monthlySalary || 0).toLocaleString()} د.ع</TableCell>
-                                <TableCell>{rep.requiredStoresCount || 0}</TableCell>
-                                <TableCell className="font-bold text-lg">{getStoreCountForRep(rep.id)}</TableCell>
-                                <TableCell className="font-bold text-green-600">
-                                    {(rep.totalEarnings || 0).toLocaleString()} د.ع
-                                </TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                                    لا يوجد مندوبون لعرضهم.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-            <RepresentativeDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />
-        </Card>
-    );
+  const handleAddClick = () => {
+    setIsDialogOpen(true);
+  };
+
+  const handleRepresentativeAdded = () => {
+    setIsDialogOpen(false);
+    onRepresentativeAdded?.();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            إدارة المندوبين ({representatives.length})
+          </CardTitle>
+          <CardDescription>إضافة وتتبع أداء ومستحقات مندوبي التسويق</CardDescription>
+        </div>
+        <Button 
+          onClick={handleAddClick}
+          className="gap-2"
+        >
+          <UserPlus className="w-4 h-4" />
+          إضافة مندوب
+        </Button>
+      </CardHeader>
+
+      <CardContent className="overflow-x-auto">
+        {representatives.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+            <p className="text-muted-foreground">لا يوجد مندوبون مسجلون حتى الآن</p>
+          </div>
+        ) : (
+          <Table className="min-w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead>اسم المندوب</TableHead>
+                <TableHead>البريد الإلكتروني</TableHead>
+                <TableHead>نظام الدفع</TableHead>
+                <TableHead>الراتب الشهري</TableHead>
+                <TableHead>المتاجر المطلوبة</TableHead>
+                <TableHead>المتاجر المسجلة</TableHead>
+                <TableHead>إجمالي المستحقات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {representatives.map(rep => {
+                const storeCount = getStoreCountForRep(rep.id);
+                const paymentSystemLabel = rep.paymentSystem === 'salary' ? '💰 راتب' : '📊 عمولة';
+                
+                return (
+                  <TableRow key={rep.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">{rep.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{rep.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={rep.paymentSystem === 'salary' ? 'secondary' : 'outline'}>
+                        {paymentSystemLabel}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {rep.paymentSystem === 'salary' 
+                        ? `${(rep.monthlySalary || 0).toLocaleString()} د.ع`
+                        : '-'
+                      }
+                    </TableCell>
+                    <TableCell>
+                      {rep.paymentSystem === 'salary' 
+                        ? (rep.requiredStoresCount || 0)
+                        : '-'
+                      }
+                    </TableCell>
+                    <TableCell className="font-bold">
+                      <Badge variant="outline">{storeCount}</Badge>
+                    </TableCell>
+                    <TableCell className="font-bold text-green-600">
+                      {(rep.totalEarnings || 0).toLocaleString()} د.ع
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {/* Dialog لإضافة مندوب جديد */}
+      <RepresentativeDialog 
+        isOpen={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+        onRepresentativeAdded={handleRepresentativeAdded} 
+      />
+    </Card>
+  );
 }
+
+RepresentativesTab.displayName = 'RepresentativesTab';
 
 // ===== Hero Slider Manager =====
 const HeroSliderManager = React.memo(function HeroSliderManager({ stores }: { stores: Store[] }) {
@@ -608,10 +763,24 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const [activeView, setActiveView] = useState(searchParams?.get('view') || 'stores');
+  const [activeView, setActiveView] = useState('stores');
+  const [isInitialViewLoaded, setIsInitialViewLoaded] = useState(false);
   const { logout } = useAuth();
   const router = useRouter();
   const [isAddStoreDialogOpen, setIsAddStoreDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (isInitialViewLoaded) return;
+    const view = searchParams?.get('view');
+    if (view && ['stores', 'reps', 'subscriptions', 'ads', 'statistics'].includes(view)) {
+      setActiveView(view);
+    }
+    setIsInitialViewLoaded(true);
+  }, [searchParams, isInitialViewLoaded]);
+
+  const handleRepresentativeAdded = async () => {
+    await fetchAll();
+  };
 
   const handleLogout = () => {
     logout();
@@ -619,6 +788,9 @@ function AdminDashboard() {
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
+    const basePath = '/admin';
+    const url = view === 'stores' ? basePath : `${basePath}?view=${encodeURIComponent(view)}`;
+    router.replace(url, { scroll: false });
   };
 
   const activeStoresCount = stores.filter((store) => store.isActive).length;
@@ -654,23 +826,6 @@ function AdminDashboard() {
     fetchAll();
   }, [toast]);
   
-  useEffect(() => {
-    if (searchParams) {
-      const view = searchParams.get('view') || 'stores';
-      if (view !== activeView) {
-        setActiveView(view);
-      }
-    }
-  }, [searchParams, activeView]);
-
-  useEffect(() => {
-    const currentView = searchParams?.get('view') || 'stores';
-    if (activeView !== currentView) {
-      const basePath = '/admin';
-      const newUrl = activeView === 'stores' ? basePath : `${basePath}?view=${encodeURIComponent(activeView)}`;
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [activeView, router, searchParams]);
 
   const handleStatusToggle = async (storeId: string, newIsActive: boolean, storeData: Store) => {
     try {
@@ -887,7 +1042,7 @@ function AdminDashboard() {
               />
             )}
             {activeView === 'reps' && (
-              <RepresentativesTab representatives={representatives} stores={stores} />
+              <RepresentativesTab representatives={representatives} stores={stores} onRepresentativeAdded={handleRepresentativeAdded} />
             )}
             {activeView === 'subscriptions' && (
               <SubscriptionsTab stores={stores} />
@@ -918,9 +1073,9 @@ function SubscriptionsTab({ stores }: { stores: Store[] }) {
         <CardTitle>إدارة الاشتراكات والباقات</CardTitle>
         <CardDescription>إدارة باقات الاشتراك والمتاجر المشتركة.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-x-auto">
         <div className="mb-8">
-          <Table>
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>اسم الباقة</TableHead>
@@ -943,7 +1098,7 @@ function SubscriptionsTab({ stores }: { stores: Store[] }) {
         </div>
         <div>
           <CardTitle className="mb-4">المتاجر المشتركة</CardTitle>
-          <Table>
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>اسم المتجر</TableHead>
