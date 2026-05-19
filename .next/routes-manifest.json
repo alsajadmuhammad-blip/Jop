@@ -56,12 +56,6 @@
       "namedRegex": "^/admin(?:/)?$"
     },
     {
-      "page": "/api/create-representative",
-      "regex": "^/api/create\\-representative(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/api/create\\-representative(?:/)?$"
-    },
-    {
       "page": "/cart",
       "regex": "^/cart(?:/)?$",
       "routeKeys": {},

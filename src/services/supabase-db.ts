@@ -663,8 +663,8 @@ export function mapStoreRow(row: any): Store {
     id: row.id,
     name: row.name,
     description: row.description,
-    logoUrl: row.logo_url,
-    coverImageUrl: row.cover_image_url,
+    logoUrl: row.logo_url || row.logoUrl,
+    coverImageUrl: row.cover_image_url || row.coverImageUrl,
     rating: row.rating || 0,
     reviews: row.reviews || 0,
     location: row.location || '',
@@ -682,6 +682,8 @@ export function mapStoreRow(row: any): Store {
     activationDate: row.activation_date || row.activationDate || null,
     ownerId: row.owner_id || row.ownerId || null,
     ownerEmail: row.owner_email || row.ownerEmail,
+    packageName: row.package_name || row.packageName,
+    paymentProofUrl: row.payment_proof_url || row.paymentProofUrl,
     createdAt: row.created_at || row.createdAt || null,
     registeredByAgentId: row.registered_by_agent_id || row.registeredByAgentId || null,
   };
@@ -717,6 +719,70 @@ function mapUserRow(row: any): User {
     monthlyActivations: row.monthly_activations,
     lastResetDate: row.last_reset_date,
   };
+}
+
+// ============================================================================
+// PACKAGES/SUBSCRIPTIONS
+// ============================================================================
+
+export async function fetchSubscriptionPackages(): Promise<{
+  name: string;
+  price: number;
+  limit: number;
+  duration: number;
+  description?: string;
+}[]> {
+  // Get all stores and extract unique packages based on their configuration
+  const { data, error } = await supabase
+    .from('stores')
+    .select('package_name, product_limit, subscription_duration')
+    .not('package_name', 'is', null);
+
+  if (error) {
+    console.error('Error fetching packages:', error.message);
+    // Return default packages as fallback
+    return [
+      { name: 'الباقة الأساسية', price: 0, limit: 50, duration: 30 },
+      { name: 'باقة متقدمة', price: 10000, limit: 150, duration: 90 },
+      { name: 'باقة غير محدودة', price: 25000, limit: 999999, duration: 365 },
+    ];
+  }
+
+  // Create a map of unique packages
+  const packageMap = new Map<string, { price: number; limit: number; duration: number }>();
+  
+  const packageNames: { [key: string]: { price: number; description: string } } = {
+    'basic': { price: 0, description: 'الباقة الأساسية' },
+    'advanced': { price: 10000, description: 'باقة متقدمة' },
+    'unlimited': { price: 25000, description: 'باقة غير محدودة' },
+  };
+
+  (data || []).forEach((row: any) => {
+    const packageName = row.package_name || 'basic';
+    if (!packageMap.has(packageName)) {
+      const packageConfig = packageNames[packageName] || { price: 0, description: packageName };
+      packageMap.set(packageName, {
+        price: packageConfig.price,
+        limit: row.product_limit || 50,
+        duration: row.subscription_duration || 30,
+      });
+    }
+  });
+
+  // Convert to array
+  const packages = Array.from(packageMap.entries()).map(([key, value]) => ({
+    name: packageNames[key]?.description || key,
+    price: value.price,
+    limit: value.limit,
+    duration: value.duration,
+  }));
+
+  // If no packages found, return defaults
+  return packages.length > 0 ? packages : [
+    { name: 'الباقة الأساسية', price: 0, limit: 50, duration: 30 },
+    { name: 'باقة متقدمة', price: 10000, limit: 150, duration: 90 },
+    { name: 'باقة غير محدودة', price: 25000, limit: 999999, duration: 365 },
+  ];
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

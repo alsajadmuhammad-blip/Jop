@@ -129,7 +129,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/workspaces/Same-",
+    "outputFileTracingRoot": "/workspaces/markazi",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -322,11 +322,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.js",
     "turbopack": {
-      "root": "/workspaces/Same-"
+      "root": "/workspaces/markazi"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "/workspaces/Same-",
+  "appDir": "/workspaces/markazi",
   "relativeAppDir": "",
   "files": [
     ".next/routes-manifest.json",

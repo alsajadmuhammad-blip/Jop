@@ -62,6 +62,8 @@ export type Store = {
   ownerId: string | null; // UID of the user who owns the store, null for pending
   ownerEmail?: string; // Store owner email for activation
   password?: string; // Store owner password for activation
+  packageName?: string; // Subscription package name (e.g., 'basic', 'advanced', 'unlimited')
+  paymentProofUrl?: string; // Payment proof image/document URL
   createdAt: string | number | null; // ISO date string, timestamp, or null
   registeredByAgentId?: string | null; // UID of the representative who registered the store
 };
