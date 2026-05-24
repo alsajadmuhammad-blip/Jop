@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductFormDialog } from "@/components/dashboard/product-form-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { createProduct, deleteProduct, fetchStoreSections, mapProductRow, mapStoreRow, updateProduct, createStoreSection, updateStoreSection, deleteStoreSection } from "@/services/supabase-db";
+import { createProduct, deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, mapProductRow, mapStoreRow, updateProduct, createStoreSection, updateStoreSection, deleteStoreSection } from "@/services/supabase-db";
 import { uploadProductImageForStore } from "@/services/supabase-storage";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
@@ -354,20 +354,10 @@ export default function StoreDashboardPage() {
         return;
       }
 
-      const { data: storeRow, error: storeError } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('id', storeId)
-        .single();
-
-      if (storeError && storeError.code !== 'PGRST116') {
-        throw storeError;
-      }
-
-      if (!storeRow) {
+      const storeData = await fetchStoreById(storeId);
+      if (!storeData) {
         setStore(null);
       } else {
-        const storeData = mapStoreRow(storeRow);
         const activationDays = storeData.activationDate ? differenceInDays(new Date(), parseISO(storeData.activationDate as string)) : 0;
         const subscriptionDuration = storeData.subscriptionDuration || 30;
         const daysLeft = subscriptionDuration - activationDays;
@@ -388,13 +378,8 @@ export default function StoreDashboardPage() {
       const sectionsRows = await fetchStoreSections(storeId);
       setSections(sectionsRows);
 
-      const { data: productsRows, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('store_id', storeId);
-
-      if (productsError) throw productsError;
-      setProducts((productsRows || []).map(mapProductRow));
+      const productsRows = await fetchProductsByStore(storeId);
+      setProducts(productsRows);
     } catch (error) {
       console.error('Error fetching store data:', error);
       toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'فشل تحميل بيانات المتجر.' });
@@ -482,25 +467,64 @@ export default function StoreDashboardPage() {
     // Convert all camelCase to snake_case for database
     if (data.name !== undefined) dbData.name = data.name;
     if (data.description !== undefined) dbData.description = data.description;
-    if (data.logoUrl !== undefined) dbData.logo_url = data.logoUrl;
-    if (data.coverImageUrl !== undefined) dbData.cover_image_url = data.coverImageUrl;
+    if (data.logoUrl !== undefined) {
+      dbData.logo_url = data.logoUrl;
+      dbData.logoUrl = data.logoUrl;  // Also update camelCase column for compatibility
+    }
+    if (data.coverImageUrl !== undefined) {
+      dbData.cover_image_url = data.coverImageUrl;
+      dbData.coverImageUrl = data.coverImageUrl;  // Also update camelCase column for compatibility
+    }
     if (data.rating !== undefined) dbData.rating = data.rating;
     if (data.reviews !== undefined) dbData.reviews = data.reviews;
     if (data.location !== undefined) dbData.location = data.location;
     if (data.latitude !== undefined) dbData.latitude = data.latitude;
     if (data.longitude !== undefined) dbData.longitude = data.longitude;
     if (data.type !== undefined) dbData.type = data.type;
-    if (data.marketType !== undefined) dbData.market_type = data.marketType;
-    if (data.businessHours !== undefined) dbData.business_hours = data.businessHours;
-    if (data.whatsappNumber !== undefined) dbData.whatsapp_number = data.whatsappNumber;
-    if (data.hasDelivery !== undefined) dbData.has_delivery = data.hasDelivery;
-    if (data.isActive !== undefined) dbData.is_active = data.isActive;
-    if (data.productLimit !== undefined) dbData.product_limit = data.productLimit;
-    if (data.subscriptionDuration !== undefined) dbData.subscription_duration = data.subscriptionDuration;
-    if (data.activationDate !== undefined) dbData.activation_date = data.activationDate;
-    if (data.ownerId !== undefined) dbData.owner_id = data.ownerId;
-    if (data.ownerEmail !== undefined) dbData.owner_email = data.ownerEmail;
-    if (data.registeredByAgentId !== undefined) dbData.registered_by_agent_id = data.registeredByAgentId;
+    if (data.marketType !== undefined) {
+      dbData.market_type = data.marketType;
+      dbData.marketType = data.marketType;
+    }
+    if (data.businessHours !== undefined) {
+      dbData.business_hours = data.businessHours;
+      dbData.businessHours = data.businessHours;
+    }
+    if (data.whatsappNumber !== undefined) {
+      dbData.whatsapp_number = data.whatsappNumber;
+      dbData.whatsappNumber = data.whatsappNumber;
+    }
+    if (data.hasDelivery !== undefined) {
+      dbData.has_delivery = data.hasDelivery;
+      dbData.hasDelivery = data.hasDelivery;
+    }
+    if (data.isActive !== undefined) {
+      dbData.is_active = data.isActive;
+      dbData.isActive = data.isActive;
+    }
+    if (data.productLimit !== undefined) {
+      dbData.product_limit = data.productLimit;
+      dbData.productLimit = data.productLimit;
+    }
+    if (data.subscriptionDuration !== undefined) {
+      dbData.subscription_duration = data.subscriptionDuration;
+      dbData.subscriptionDuration = data.subscriptionDuration;
+    }
+    if (data.activationDate !== undefined) {
+      dbData.activation_date = data.activationDate;
+      dbData.activationDate = data.activationDate;
+    }
+    if (data.ownerId !== undefined) {
+      dbData.owner_id = data.ownerId;
+      dbData.ownerId = data.ownerId;
+    }
+    if (data.ownerEmail !== undefined) {
+      dbData.owner_email = data.ownerEmail;
+      dbData.ownerEmail = data.ownerEmail;
+    }
+    if (data.registeredByAgentId !== undefined) {
+      dbData.registered_by_agent_id = data.registeredByAgentId;
+      dbData.registeredByAgentId = data.registeredByAgentId;
+    }
 
     const { error } = await supabase.from('stores').update(dbData).eq('id', storeId);
     if (error) throw error;
@@ -580,9 +604,8 @@ export default function StoreDashboardPage() {
       const success = await deleteProduct(productId, storeId);
       if (!success) throw new Error('فشل حذف المنتج.');
       toast({ title: "تم حذف المنتج بنجاح.", variant: "destructive" });
-      const { data: productsRows, error } = await supabase.from('products').select('*').eq('store_id', storeId);
-      if (error) throw error;
-      setProducts((productsRows || []).map(mapProductRow));
+      const productsRows = await fetchProductsByStore(storeId);
+      setProducts(productsRows);
     } catch (error) {
       console.error("Failed to delete product:", error);
       toast({ title: "فشل حذف المنتج", variant: "destructive" });
@@ -669,9 +692,8 @@ export default function StoreDashboardPage() {
         toast({ title: "تمت إضافة المنتج بنجاح." });
       }
 
-      const { data: productsRows, error } = await supabase.from('products').select('*').eq('store_id', storeId);
-      if (error) throw error;
-      setProducts((productsRows || []).map(mapProductRow));
+      const productsRows = await fetchProductsByStore(storeId);
+      setProducts(productsRows);
 
       setIsDialogOpen(false);
       setEditingProduct(undefined);

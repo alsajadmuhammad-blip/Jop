@@ -56,6 +56,12 @@
       "namedRegex": "^/admin(?:/)?$"
     },
     {
+      "page": "/admin/add-store",
+      "regex": "^/admin/add\\-store(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/add\\-store(?:/)?$"
+    },
+    {
       "page": "/cart",
       "regex": "^/cart(?:/)?$",
       "routeKeys": {},

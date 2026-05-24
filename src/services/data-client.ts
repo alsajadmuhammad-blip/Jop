@@ -4,8 +4,16 @@ import { supabase } from '@/services/supabase';
 import { categories as staticCategories } from '@/lib/data';import { mapStoreRow } from '@/services/supabase-db';
 // --- Client-Side Store Functions (Supabase) ---
 
+function buildDualIdCondition(columnBase: string, value: string): string {
+  const snake = `${columnBase}_id`;
+  const camel = `"${columnBase[0].toUpperCase()}${columnBase.slice(1)}Id"`;
+  return `${snake}.eq.${value},${camel}.eq.${value}`;
+}
+
 async function getProductsForStore(storeId: string): Promise<Product[]> {
-    // Assumes a table `products` with a `store_id` column.
+    if (!storeId) return [];
+    
+    // Query products by store_id
     const { data, error } = await supabase
         .from('products')
         .select('*')

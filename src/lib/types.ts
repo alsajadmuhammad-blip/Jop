@@ -28,6 +28,20 @@ export type Category = {
   name: string;
 };
 
+export type StorePackage = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  price: number;
+  productLimit: number;
+  subscriptionDuration: number;
+  isActive: boolean;
+  metadata?: Record<string, any> | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
 export type Store = {
   id: string;
   name:string;
@@ -110,7 +124,7 @@ export type Order = {
   id: string;
   storeId: string;
   storeName: string;
-  customerId: string;
+  customerId?: string | null;
   customerName?: string;
   customerPhone?: string;
   items: OrderItem[];

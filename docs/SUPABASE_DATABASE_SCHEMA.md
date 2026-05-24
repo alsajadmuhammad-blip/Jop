@@ -123,7 +123,137 @@ CREATE INDEX IF NOT EXISTS products_is_featured_idx ON public.products USING btr
 
 ---
 
-### 5. جدول `stores` - المتاجر
+### 5. جدول `store_sections` - أقسام المتجر
+```sql
+CREATE TABLE public.store_sections (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  store_id UUID NOT NULL,
+  "storeId" UUID NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "createdAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "updatedAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+
+  CONSTRAINT store_sections_pkey PRIMARY KEY (id),
+  CONSTRAINT store_sections_storeId_fkey FOREIGN KEY ("storeId") REFERENCES stores (id) ON DELETE CASCADE,
+  CONSTRAINT store_sections_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS store_sections_store_id_idx ON public.store_sections USING btree (store_id);
+
+**الغرض**: تخزين أقسام المنتجات داخل المتجر لتصنيف المنتجات في واجهة المتجر
+
+---
+
+### 6. جدول `store_packages` - خطط الاشتراك
+```sql
+CREATE TABLE public.store_packages (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  name CHARACTER VARYING(255) NOT NULL,
+  slug CHARACTER VARYING(255) NOT NULL,
+  description TEXT NULL,
+  price NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  product_limit INTEGER NULL DEFAULT 0,
+  "productLimit" INTEGER NULL DEFAULT 0,
+  subscription_duration INTEGER NULL DEFAULT 0,
+  "subscriptionDuration" INTEGER DEFAULT 0,
+  is_active BOOLEAN NULL DEFAULT false,
+  "isActive" BOOLEAN NULL DEFAULT false,
+  metadata JSONB NULL,
+  created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "createdAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "updatedAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+
+  CONSTRAINT store_packages_pkey PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS store_packages_slug_idx ON public.store_packages USING btree (slug);
+CREATE INDEX IF NOT EXISTS store_packages_is_active_idx ON public.store_packages USING btree (is_active);
+
+**الغرض**: تخزين خطط الاشتراك التي يمكن تعيينها للمتاجر
+
+---
+
+### 7. جدول `store_package_assignments` - تعيينات خطط الاشتراك
+```sql
+CREATE TABLE public.store_package_assignments (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  store_id UUID NOT NULL,
+  "storeId" UUID NOT NULL,
+  package_id UUID NOT NULL,
+  "packageId" UUID NOT NULL,
+  assigned_by UUID NULL,
+  "assignedBy" UUID NULL,
+  assigned_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "assignedAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NULL,
+  "expiresAt" TIMESTAMP WITH TIME ZONE NULL,
+  is_active BOOLEAN NULL DEFAULT true,
+  "isActive" BOOLEAN NULL DEFAULT true,
+  custom_product_limit INTEGER NULL,
+  "customProductLimit" INTEGER NULL,
+  custom_subscription_duration INTEGER NULL,
+  "customSubscriptionDuration" INTEGER NULL,
+  custom_price NUMERIC(12, 2) NULL,
+  "customPrice" NUMERIC(12, 2) NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "createdAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "updatedAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+
+  CONSTRAINT store_package_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT store_package_assignments_storeId_fkey FOREIGN KEY ("storeId") REFERENCES stores (id) ON DELETE CASCADE,
+  CONSTRAINT store_package_assignments_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE,
+  CONSTRAINT store_package_assignments_packageId_fkey FOREIGN KEY ("packageId") REFERENCES store_packages (id) ON DELETE CASCADE,
+  CONSTRAINT store_package_assignments_package_id_fkey FOREIGN KEY (package_id) REFERENCES store_packages (id) ON DELETE CASCADE,
+  CONSTRAINT store_package_assignments_assignedBy_fkey FOREIGN KEY ("assignedBy") REFERENCES auth.users (id) ON DELETE SET NULL,
+  CONSTRAINT store_package_assignments_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES auth.users (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS store_package_assignments_store_id_idx ON public.store_package_assignments USING btree (store_id);
+CREATE INDEX IF NOT EXISTS store_package_assignments_package_id_idx ON public.store_package_assignments USING btree (package_id);
+CREATE INDEX IF NOT EXISTS store_package_assignments_is_active_idx ON public.store_package_assignments USING btree (is_active);
+
+**الغرض**: ربط المتاجر بخطط الاشتراك وتمكين التخصيص الفردي لكل متجر
+
+---
+
+### 8. جدول `inventory_movements` - حركات المخزون
+```sql
+CREATE TABLE public.inventory_movements (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL,
+  "productId" UUID NOT NULL,
+  store_id UUID NOT NULL,
+  "storeId" UUID NOT NULL,
+  quantity_change INTEGER NOT NULL,
+  "quantityChange" INTEGER NOT NULL,
+  created_by UUID NULL,
+  "createdBy" UUID NULL,
+  reason TEXT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+  "createdAt" TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+
+  CONSTRAINT inventory_movements_pkey PRIMARY KEY (id),
+  CONSTRAINT inventory_movements_productId_fkey FOREIGN KEY ("productId") REFERENCES products (id) ON DELETE CASCADE,
+  CONSTRAINT inventory_movements_product_id_fkey FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+  CONSTRAINT inventory_movements_storeId_fkey FOREIGN KEY ("storeId") REFERENCES stores (id) ON DELETE CASCADE,
+  CONSTRAINT inventory_movements_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE,
+  CONSTRAINT inventory_movements_createdBy_fkey FOREIGN KEY ("createdBy") REFERENCES auth.users (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS inventory_movements_product_id_idx ON public.inventory_movements USING btree (product_id);
+CREATE INDEX IF NOT EXISTS inventory_movements_store_id_idx ON public.inventory_movements USING btree (store_id);
+CREATE INDEX IF NOT EXISTS inventory_movements_created_by_idx ON public.inventory_movements USING btree (created_by);
+
+**الغرض**: تسجيل تغييرات المخزون لكل منتج ومتجر مع تتبع المسؤول عن التغيير
+
+---
+
+### 9. جدول `stores` - المتاجر
 ```sql
 CREATE TABLE public.stores (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -162,6 +292,8 @@ CREATE TABLE public.stores (
   password TEXT NULL,
   payment_proof_url TEXT NULL,                -- رابط إثبات الدفع في Supabase Storage
   "paymentProofUrl" TEXT NULL,
+  package_id UUID NULL,
+  "packageId" UUID NULL,
   package_name CHARACTER VARYING(50) NULL,
   "packageName" CHARACTER VARYING(50) NULL,
   registered_by_agent_id UUID NULL,
@@ -174,12 +306,14 @@ CREATE TABLE public.stores (
   CONSTRAINT stores_pkey PRIMARY KEY (id),
   CONSTRAINT stores_ownerId_fkey FOREIGN KEY ("ownerId") REFERENCES auth.users (id) ON DELETE SET NULL,
   CONSTRAINT stores_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users (id) ON DELETE SET NULL,
+  CONSTRAINT stores_packageId_fkey FOREIGN KEY ("packageId") REFERENCES store_packages (id) ON DELETE SET NULL,
   CONSTRAINT stores_registeredByAgentId_fkey FOREIGN KEY ("registeredByAgentId") REFERENCES auth.users (id) ON DELETE SET NULL,
   CONSTRAINT stores_registered_by_agent_id_fkey FOREIGN KEY (registered_by_agent_id) REFERENCES auth.users (id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS stores_market_type_idx ON public.stores USING btree (market_type);
 CREATE INDEX IF NOT EXISTS stores_owner_id_idx ON public.stores USING btree (owner_id);
+CREATE INDEX IF NOT EXISTS stores_package_id_idx ON public.stores USING btree (package_id);
 CREATE INDEX IF NOT EXISTS stores_registered_by_agent_id_idx ON public.stores USING btree (registered_by_agent_id);
 CREATE INDEX IF NOT EXISTS stores_is_active_idx ON public.stores USING btree (is_active);
 ```
@@ -188,7 +322,7 @@ CREATE INDEX IF NOT EXISTS stores_is_active_idx ON public.stores USING btree (is
 
 ---
 
-### 6. جدول `users` - المستخدمون
+### 10. جدول `users` - المستخدمون
 ```sql
 CREATE TABLE public.users (
   id UUID NOT NULL,
@@ -267,7 +401,18 @@ stores
     ↓
     ├── products.storeId → stores.id
     ├── orders.storeId → stores.id
-    └── hero_carousel_items.storeId → stores.id
+    ├── hero_carousel_items.storeId → stores.id
+    ├── store_sections.storeId → stores.id
+    ├── store_package_assignments.storeId → stores.id
+    ├── inventory_movements.storeId → stores.id
+
+products
+    ↓
+    └── inventory_movements.productId → products.id
+
+store_packages
+    ↓
+    └── store_package_assignments.packageId → store_packages.id
 
 categories
     └── products.categoryId → categories.id

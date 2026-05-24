@@ -176,7 +176,7 @@ function RepresentativeDashboard() {
                     </Button>
                 </header>
 
-                <Tabs value={activeSection} onValueChange={setActiveSection}>
+                <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as 'stores' | 'overview')}>
                   <TabsList className="mb-6 rounded-3xl bg-white/80 p-1 shadow-sm border border-border/80">
                     <TabsTrigger value="overview">الملخص</TabsTrigger>
                     <TabsTrigger value="stores">المتاجر</TabsTrigger>

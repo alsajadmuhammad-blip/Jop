@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import type { User } from '@/lib/types';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
@@ -27,9 +27,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const redirectRef = useRef(false);
+  const authInitializedRef = useRef(false);
+
   const handleRedirect = useCallback((role: string, appUser: User) => {
     const isAuthPage = pathname === '/login' || pathname === '/register';
-    if (!isAuthPage) return;
+    if (!isAuthPage || redirectRef.current) return;
+
+    redirectRef.current = true;
     const redirectPath = role === 'admin' ? '/admin' : role === 'store' ? '/dashboard/store' : role === 'representative' ? '/dashboard/representative' : '/';
     const toastTitle = role === 'admin' ? 'مرحباً أيها المشرف' : 'مرحباً بك';
     const toastDescription = role === 'admin' ? 'تم تسجيل دخولك كمشرف.' : 'تم تسجيل الدخول بنجاح.';
@@ -183,7 +188,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setUserRole(prevRole => prevRole === appUser.role ? prevRole : appUser.role);
 
-      if (isLoginEvent) handleRedirect(appUser.role, appUser);
+      if (isLoginEvent || pathname === '/login' || pathname === '/register') {
+        handleRedirect(appUser.role, appUser);
+      }
       return true;
     } catch (error: any) {
       console.error('Error fetching auth user:', error);
@@ -202,6 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setUserRole(null);
         setLoading(false);
+        authInitializedRef.current = true;
         return;
       }
 
@@ -217,11 +225,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUserRole(null);
         setLoading(false);
       }
+      authInitializedRef.current = true;
     };
 
-    initAuth();
-
     const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      if (!authInitializedRef.current && event === 'SIGNED_IN') {
+        return;
+      }
+
       const isLoginEvent = event === 'SIGNED_IN';
       if (session?.user) {
         fetchAndSetUser(session.user, isLoginEvent);
@@ -231,6 +242,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     });
+
+    initAuth();
 
     return () => listener?.subscription.unsubscribe();
   }, [fetchAndSetUser]);
@@ -245,8 +258,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
+        const errorMessage = String(error.message || 'فشل تسجيل الدخول');
+        if (errorMessage.includes('Invalid API key')) {
+          setLoading(false);
+          return {
+            success: false,
+            message: 'مفتاح Supabase العام غير صالح. تحقق من NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local.',
+          };
+        }
+
         setLoading(false);
-        return { success: false, message: error.message || 'فشل تسجيل الدخول' };
+        return { success: false, message: errorMessage };
       }
 
       let authUser = data?.user || data?.session?.user;

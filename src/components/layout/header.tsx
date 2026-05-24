@@ -94,61 +94,71 @@ export function Header() {
   const isStore = userRole === 'store';
   const isRepresentative = userRole === 'representative';
 
+  const isGuest = !user;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-md transition-all duration-200">
       <div className="container mx-auto flex h-14 items-center justify-between gap-4 px-4 md:px-6">
-        {/* Logo - Simplified */}
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0 group hover:opacity-80 transition-opacity">
-          <Image
-            src="/icons/icon-192x192.png"
-            alt="مركزي"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="hidden sm:inline font-bold text-lg font-headline text-primary">مركزي</span>
-        </Link>
+        {!isGuest ? (
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 group hover:opacity-80 transition-opacity">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="مركزي"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
+            <span className="hidden sm:inline font-bold text-lg font-headline text-primary">مركزي</span>
+          </Link>
+        ) : (
+          <div className="min-w-[2.5rem]" />
+        )}
 
-        {/* Desktop Navigation - Optimized */}
-        <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
-          {navLinks
-            .filter((link) => !userRole || link.roles.includes(userRole))
-            .map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-3 py-2 rounded-lg transition-all duration-150 ${
-                  pathname === link.href
-                    ? 'text-primary bg-primary/10'
-                    : 'text-foreground/70 hover:text-primary hover:bg-primary/5'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+        {!isGuest && (
+          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+            {navLinks
+              .filter((link) => userRole && link.roles.includes(userRole))
+              .map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3 py-2 rounded-lg transition-all duration-150 ${
+                    pathname === link.href
+                      ? 'text-primary bg-primary/10'
+                      : 'text-foreground/70 hover:text-primary hover:bg-primary/5'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
           </nav>
+        )}
 
-        {/* Right Side - Streamlined */}
         <div className="flex items-center gap-1 md:gap-2">
-          {/* Search - Desktop only */}
-          {userRole !== 'admin' && (
+          <ThemeToggle />
+
+          {!isGuest && userRole !== 'admin' && (
             <div className="hidden lg:block">
               <SearchBar />
             </div>
           )}
 
-          {/* Theme Toggle */}
-          <ThemeToggle />
+          {!isGuest && userRole === 'customer' && (
+            <CartSheet>
+              <Button variant="ghost" size="sm" className="rounded-lg gap-2 px-3">
+                <ShoppingCart className="h-4 w-4" />
+              </Button>
+            </CartSheet>
+          )}
 
-          {/* Cart */}
-          <CartSheet>
-            <Button variant="ghost" size="sm" className="rounded-lg gap-2 px-3">
-              <ShoppingCart className="h-4 w-4" />
+          {isGuest ? (
+            <Button asChild size="sm" className="rounded-lg gap-2">
+              <Link href="/login">
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">دخول</span>
+              </Link>
             </Button>
-          </CartSheet>
-
-          {/* User Menu */}
-          {userRole ? (
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="rounded-lg gap-2">
@@ -190,102 +200,86 @@ export function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button asChild size="sm" className="rounded-lg gap-2">
-              <Link href="/login">
-                <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">دخول</span>
-              </Link>
-            </Button>
           )}
 
-          {/* Mobile Menu */}
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="md:hidden rounded-lg">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72 p-0">
-              <SheetHeader className="border-b px-4 py-3">
-                <SheetTitle className="text-right">القائمة</SheetTitle>
-              </SheetHeader>
-              <div className="flex flex-col gap-3 p-4">
-                {/* Mobile Search */}
-                {userRole !== 'admin' && <SearchBar />}
+          {!isGuest && (
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden rounded-lg">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 p-0">
+                <SheetHeader className="border-b px-4 py-3">
+                  <SheetTitle className="text-right">القائمة</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-3 p-4">
+                  {userRole !== 'admin' && <SearchBar />}
+                  <nav className="space-y-1">
+                    {navLinks
+                    .filter((link) => userRole && link.roles.includes(userRole))
+                    .map((link) => (
+                      <SheetClose asChild key={link.href}>
+                        <Link
+                          href={link.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                            pathname === link.href
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-foreground/70 hover:bg-primary/5'
+                          }`}
+                        >
+                          <link.icon className="h-4 w-4" />
+                          <span className="text-sm">{link.label}</span>
+                        </Link>
+                      </SheetClose>
+                    ))}
+                  </nav>
 
-                {/* Mobile Navigation */}
-                <nav className="space-y-1">
-                  {navLinks
-                  .filter((link) => !userRole || link.roles.includes(userRole))
-                  .map((link) => (
-                    <SheetClose asChild key={link.href}>
-                      <Link
-                        href={link.href}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                          pathname === link.href
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-foreground/70 hover:bg-primary/5'
-                        }`}
+                  {userRole ? (
+                    <div className="border-t pt-3 space-y-2">
+                      <div className="px-3 py-2">
+                        <p className="text-xs font-medium">{user?.name}</p>
+                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                      </div>
+                      {isStore && (
+                        <SheetClose asChild>
+                          <Link href="/dashboard/store" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
+                            <LayoutDashboard className="h-4 w-4" />
+                            لوحة المتجر
+                          </Link>
+                        </SheetClose>
+                      )}
+                      {isRepresentative && (
+                        <SheetClose asChild>
+                          <Link href="/dashboard/representative" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
+                            <Users className="h-4 w-4" />
+                            لوحة التسويق
+                          </Link>
+                        </SheetClose>
+                      )}
+                      {isAdmin && (
+                        <SheetClose asChild>
+                          <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
+                            <Shield className="h-4 w-4" />
+                            الإدارة
+                          </Link>
+                        </SheetClose>
+                      )}
+                      <Button 
+                        onClick={handleLogout} 
+                        variant="ghost" 
+                        size="sm"
+                        className="w-full justify-start text-destructive text-xs"
                       >
-                        <link.icon className="h-4 w-4" />
-                        <span className="text-sm">{link.label}</span>
-                      </Link>
-                    </SheetClose>
-                  ))}
-                </nav>
-
-                {userRole ? (
-                  <div className="border-t pt-3 space-y-2">
-                    <div className="px-3 py-2">
-                      <p className="text-xs font-medium">{user?.name}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        <LogOut className="ml-2 h-4 w-4" />
+                        خروج
+                      </Button>
                     </div>
-                    {isStore && (
-                      <SheetClose asChild>
-                        <Link href="/dashboard/store" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
-                          <LayoutDashboard className="h-4 w-4" />
-                          لوحة المتجر
-                        </Link>
-                      </SheetClose>
-                    )}
-                    {isRepresentative && (
-                      <SheetClose asChild>
-                        <Link href="/dashboard/representative" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
-                          <Users className="h-4 w-4" />
-                          لوحة التسويق
-                        </Link>
-                      </SheetClose>
-                    )}
-                    {isAdmin && (
-                      <SheetClose asChild>
-                        <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
-                          <Shield className="h-4 w-4" />
-                          الإدارة
-                        </Link>
-                      </SheetClose>
-                    )}
-                    <Button 
-                      onClick={handleLogout} 
-                      variant="ghost" 
-                      size="sm"
-                      className="w-full justify-start text-destructive text-xs"
-                    >
-                      <LogOut className="ml-2 h-4 w-4" />
-                      خروج
-                    </Button>
-                  </div>
-                ) : (
-                  <Button asChild size="sm" className="w-full">
-                    <Link href="/login">
-                      <LogIn className="ml-2 h-4 w-4" />
-                      دخول
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
+                  ) : null}
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
       </div>
     </header>

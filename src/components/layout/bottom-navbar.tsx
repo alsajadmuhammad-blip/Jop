@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ShoppingCart, Store, User, Search, Shield } from "lucide-react";
+import { Home, ShoppingCart, Store, User, Search, Shield, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,6 +25,7 @@ export function BottomNavbar() {
   const { items } = useCart();
   const { user, userRole } = useAuth();
   const totalCartItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const isGuest = !user;
 
   const getHref = (itemLabel: string) => {
     if (itemLabel === "الحساب") {
@@ -34,83 +35,82 @@ export function BottomNavbar() {
       if (userRole === "representative") return "/dashboard/representative";
       return "/"; // Default for customer or other roles
     }
+
+    if (itemLabel === "الرئيسية" && userRole === "store") {
+      return "/dashboard/store";
+    }
+
     return null;
   };
   
+  const renderCircleButton = (Icon: LucideIcon, label: string, badgeCount?: number) => (
+    <button
+      type="button"
+      aria-label={label}
+      className="relative inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/70"
+    >
+      <Icon className="h-7 w-7 text-white" strokeWidth={2} />
+      {badgeCount && badgeCount > 0 ? (
+        <Badge
+          variant="destructive"
+          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+        >
+          {badgeCount}
+        </Badge>
+      ) : null}
+    </button>
+  );
+
   const renderNavItem = (item: (typeof navItems)[0]) => {
     const customHref = getHref(item.label);
     const href = customHref || item.href;
     const isActive = pathname === href && !item.isCenter;
     const Icon = item.icon;
 
+    if (item.label === 'السلة') {
+      return (
+        <CartSheet key="cart-sheet">
+          {renderCircleButton(ShoppingCart, 'السلة', totalCartItems)}
+        </CartSheet>
+      );
+    }
+
     if (item.isCenter) {
       return (
-        <Link href={href} key={item.href} className="-mt-7 z-10">
-          <Button
-            size="lg"
-            className="rounded-full h-16 w-16 bg-primary shadow-lg text-primary-foreground flex items-center justify-center flex-col gap-1 transition-transform duration-300 hover:scale-110"
-          >
-            <Icon className="h-7 w-7" />
-          </Button>
+        <Link href={href} key={item.href} className="-mt-7 z-20 inline-flex">
+          {renderCircleButton(Icon, item.label)}
         </Link>
       );
     }
-    
-    const content = (
-       <Link
-          href={href}
-          className={cn(
-            "relative flex flex-col items-center gap-1 p-2 rounded-lg transition-colors duration-200 text-muted-foreground",
-            isActive && "text-primary"
-          )}
-        >
-          <Icon className="h-6 w-6" />
-          <span className="text-xs font-medium">{item.label}</span>
-          {item.label === "السلة" && totalCartItems > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute top-0 right-0 h-4 w-4 justify-center p-0 text-xs"
-            >
-              {totalCartItems}
-            </Badge>
-          )}
-        </Link>
+
+    return (
+      <Link
+        key={item.href}
+        href={href}
+        className={cn(
+          "relative flex flex-col items-center gap-1 p-2 rounded-lg transition-colors duration-200 text-muted-foreground",
+          isActive && "text-primary"
+        )}
+      >
+        <Icon className="h-6 w-6" strokeWidth={2} />
+        <span className="text-xs font-medium">{item.label}</span>
+      </Link>
     );
-
-    if (item.label === 'السلة') {
-        return (
-            <CartSheet key="cart-sheet">
-                 <div
-                  className={cn(
-                    "relative flex flex-col items-center gap-1 p-2 rounded-lg transition-colors duration-200 text-muted-foreground",
-                  )}
-                >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs font-medium">{item.label}</span>
-                  {totalCartItems > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute top-0 right-0 h-4 w-4 justify-center p-0 text-xs"
-                    >
-                      {totalCartItems}
-                    </Badge>
-                  )}
-                </div>
-            </CartSheet>
-        );
-    }
-
-
-    return content;
-
   };
+
+  const navItemsToRender = isGuest
+    ? navItems.filter((item) => item.label === 'السلة')
+    : userRole === 'store'
+      ? navItems.filter((item) => item.label === 'الرئيسية')
+      : navItems.filter((item) => item.roles.includes(userRole || 'customer'));
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-transparent z-50 flex justify-center">
-      <div className="absolute bottom-4 mx-auto w-[calc(100%-2rem)] max-w-sm h-16 bg-card/80 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center justify-around">
-        {navItems
-          .filter((item) => item.roles.includes(userRole || 'customer'))
-          .map(renderNavItem)}
+      <div className={cn(
+        "absolute bottom-4 mx-auto w-[calc(100%-2rem)] max-w-sm h-16 bg-card/80 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center",
+        isGuest ? 'justify-center' : 'justify-around'
+      )}>
+        {navItemsToRender.map(renderNavItem)}
       </div>
     </div>
   );

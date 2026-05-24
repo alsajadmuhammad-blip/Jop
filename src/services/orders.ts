@@ -4,7 +4,56 @@
  */
 
 import { supabase } from './supabase';
+import { updateProduct } from './supabase-db';
 import type { Order, OrderItem, OrderStatus } from '@/lib/types';
+
+/**
+ * Helper function to safely extract a value from either snake_case or camelCase column
+ */
+function getRowValue(row: any, snakeCase: string, camelCase: string, defaultValue: any = null): any {
+  return row[snakeCase] !== undefined && row[snakeCase] !== null 
+    ? row[snakeCase] 
+    : row[camelCase] !== undefined && row[camelCase] !== null
+      ? row[camelCase]
+      : defaultValue;
+}
+
+function buildDualIdCondition(snakeCase: string, camelCase: string, value: string): string {
+  return `${snakeCase}.eq.${value},${camelCase}.eq.${value}`;
+}
+
+function shouldDeductInventory(oldStatus: OrderStatus, newStatus: OrderStatus): boolean {
+  const deductStatuses: OrderStatus[] = ['preparing', 'ready_for_pickup', 'delivering', 'delivered'];
+  return deductStatuses.includes(newStatus) && !deductStatuses.includes(oldStatus) && oldStatus !== 'cancelled';
+}
+
+async function deductInventoryStock(items: OrderItem[]): Promise<void> {
+  for (const item of items) {
+    if (!item.productId) continue;
+
+    try {
+      const { data: product, error } = await supabase
+        .from('products')
+        .select('id,stock')
+        .eq('id', item.productId)
+        .single();
+
+      if (error) {
+        console.error('Failed to fetch product stock for order deduction:', item.productId, error);
+        continue;
+      }
+
+      if (!product || typeof product.stock !== 'number') {
+        continue;
+      }
+
+      const newStock = Math.max(0, product.stock - item.quantity);
+      await updateProduct(item.productId, { stock: newStock });
+    } catch (error) {
+      console.error('Unexpected error deducting inventory for item:', item.productId, error);
+    }
+  }
+}
 
 /**
  * Create a new order in Supabase
@@ -12,17 +61,17 @@ import type { Order, OrderItem, OrderStatus } from '@/lib/types';
 export async function createOrder(
   storeId: string,
   storeName: string,
-  customerId: string,
+  customerId: string | null,
   customerName: string | undefined,
   customerPhone: string | undefined,
   items: OrderItem[],
   totalAmount: number,
-  notes?: string
+  notes?: string,
+  paymentMethod: 'whatsapp' | 'cash' | 'transfer' = 'whatsapp'
 ): Promise<Order | null> {
   try {
     // Basic validation
     if (!storeId) throw new Error('storeId is required.');
-    if (!customerId) throw new Error('customerId is required.');
     if (!Array.isArray(items) || items.length === 0) throw new Error('items must be a non-empty array.');
     if (typeof totalAmount !== 'number' || Number.isNaN(totalAmount) || totalAmount <= 0) throw new Error('totalAmount must be a positive number.');
 
@@ -37,24 +86,37 @@ export async function createOrder(
       totalPrice: Number(it.totalPrice) || 0,
     }));
 
+    // Dual-write pattern: save to both snake_case and camelCase columns
+    const orderData: any = {
+      store_id: storeId,
+      storeId: storeId,
+      store_name: storeName,
+      storeName: storeName,
+      customer_name: customerName?.trim() || null,
+      customerName: customerName?.trim() || null,
+      customer_phone: customerPhone?.trim() || null,
+      customerPhone: customerPhone?.trim() || null,
+      items: safeItems,
+      total_amount: totalAmount,
+      totalAmount: totalAmount,
+      status: 'pending',
+      notes: notes?.trim() || null,
+      payment_method: paymentMethod,
+      paymentMethod: paymentMethod,
+      created_at: now,
+      createdAt: now,
+      updated_at: now,
+      updatedAt: now,
+    };
+
+    if (customerId) {
+      orderData.customer_id = customerId.trim();
+      orderData.customerId = customerId.trim();
+    }
+
     const { data, error } = await supabase
       .from('orders')
-      .insert([
-        {
-          store_id: storeId,
-          store_name: storeName,
-          customer_id: customerId,
-          customer_name: customerName || null,
-          customer_phone: customerPhone || null,
-          items: safeItems,
-          total_amount: totalAmount,
-          status: 'pending',
-          notes: notes || null,
-          payment_method: 'whatsapp',
-          created_at: now,
-          updated_at: now,
-        }
-      ])
+      .insert([orderData])
       .select()
       .single();
 
@@ -79,7 +141,7 @@ export async function fetchStoreOrders(storeId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('store_id', storeId)
+      .or(buildDualIdCondition('store_id', 'storeId', storeId))
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -102,7 +164,7 @@ export async function fetchCustomerOrders(customerId: string): Promise<Order[]> 
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('customer_id', customerId)
+      .or(buildDualIdCondition('customer_id', 'customerId', customerId))
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -122,11 +184,28 @@ export async function fetchCustomerOrders(customerId: string): Promise<Order[]> 
  */
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | null> {
   try {
+    const existingOrder = await fetchOrderById(orderId);
+    if (!existingOrder) {
+      console.error('Order not found for status update:', orderId);
+      return null;
+    }
+
+    if (shouldDeductInventory(existingOrder.status, status)) {
+      await deductInventoryStock(existingOrder.items);
+    }
+
     const now = new Date().toISOString();
+    
+    // Dual-write pattern for timestamps
+    const updateData = {
+      status: status,
+      updated_at: now,
+      updatedAt: now,
+    };
     
     const { data, error } = await supabase
       .from('orders')
-      .update({ status, updated_at: now })
+      .update(updateData)
       .eq('id', orderId)
       .select()
       .single();
@@ -168,21 +247,37 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
 
 /**
  * Helper function to map database record to Order type
+ * Handles both snake_case and camelCase column naming conventions
  */
 function mapOrderFromDB(data: any): Order {
+  const rawItems = data?.items;
+  let items: OrderItem[] = [];
+
+  if (Array.isArray(rawItems)) {
+    items = rawItems;
+  } else if (typeof rawItems === 'string') {
+    try {
+      items = JSON.parse(rawItems);
+    } catch (_error) {
+      items = [];
+    }
+  }
+
+  const totalAmount = getRowValue(data, 'total_amount', 'totalAmount', 0);
+
   return {
     id: data.id,
-    storeId: data.store_id,
-    storeName: data.store_name,
-    customerId: data.customer_id,
-    customerName: data.customer_name,
-    customerPhone: data.customer_phone,
-    items: data.items || [],
-    totalAmount: data.total_amount,
-    status: data.status,
-    notes: data.notes,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    paymentMethod: data.payment_method,
+    storeId: getRowValue(data, 'store_id', 'storeId'),
+    storeName: getRowValue(data, 'store_name', 'storeName'),
+    customerId: getRowValue(data, 'customer_id', 'customerId'),
+    customerName: getRowValue(data, 'customer_name', 'customerName'),
+    customerPhone: getRowValue(data, 'customer_phone', 'customerPhone'),
+    items,
+    totalAmount: typeof totalAmount === 'string' ? Number(totalAmount) : totalAmount,
+    status: data.status ?? 'pending',
+    notes: data.notes ?? null,
+    createdAt: getRowValue(data, 'created_at', 'createdAt'),
+    updatedAt: getRowValue(data, 'updated_at', 'updatedAt'),
+    paymentMethod: getRowValue(data, 'payment_method', 'paymentMethod') || 'whatsapp',
   };
 }

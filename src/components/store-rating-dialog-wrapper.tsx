@@ -16,9 +16,10 @@ interface StoreRatingDialogWrapperProps {
   storeId: string;
   storeName: string;
   ownerId: string | null;
+  buttonClassName?: string;
 }
 
-export function StoreRatingDialogWrapper({ storeId, storeName, ownerId }: StoreRatingDialogWrapperProps) {
+export function StoreRatingDialogWrapper({ storeId, storeName, ownerId, buttonClassName }: StoreRatingDialogWrapperProps) {
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -48,6 +49,10 @@ export function StoreRatingDialogWrapper({ storeId, storeName, ownerId }: StoreR
     }
     setIsRatingDialogOpen(true);
   };
+
+  if (isOwner) {
+    return null;
+  }
 
   const handleRatingSubmit = async (rating: number) => {
     try {
@@ -109,11 +114,12 @@ export function StoreRatingDialogWrapper({ storeId, storeName, ownerId }: StoreR
     }
   };
 
-  const isDisabled = isOwner || isAdmin;
+  const isDisabled = isAdmin;
+  const buttonClasses = `${buttonClassName || ''} ${!isDisabled ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}`.trim();
 
   return (
     <>
-      <Button onClick={handleOpenDialog} size="lg" variant={isDisabled ? "secondary" : "default"} className={!isDisabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""} disabled={isDisabled}>
+      <Button onClick={handleOpenDialog} size="lg" variant={isDisabled ? "secondary" : "default"} className={buttonClasses} disabled={isDisabled}>
         <MessageSquarePlus className="ml-2 h-4 w-4" />
         قيّم هذا المتجر
       </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, UploadCloud } from "lucide-react";
 import { supabase } from "@/services/supabase";
 
-const SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL = process.env.NEXT_PUBLIC_SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL;
+const SUPABASE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+function buildSupabaseFunctionUrl(path: string): string | undefined {
+  if (!SUPABASE_BASE_URL) return undefined;
+  return `${SUPABASE_BASE_URL.replace(/\/$/, '')}/${path}`;
+}
+
+const SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL ??
+  buildSupabaseFunctionUrl('functions/v1/create-store-owner');
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 async function fetchSupabaseFunction(url: string | undefined, payload: unknown) {
@@ -79,23 +88,48 @@ async function createStoreOwner(payload: {
 export default function AddStoreByRepresentative() {
   const { user, userRole } = useAuth();
   const router = useRouter();
+  const [marketTypeOptions, setMarketTypeOptions] = useState<string[]>([]);
+  const [newMarketType, setNewMarketType] = useState("");
   const [form, setForm] = useState({
     name: "",
     ownerName: "",
     ownerEmail: "",
     password: "",
     whatsappNumber: "",
-    marketType: "phones",
+    marketType: "",
     packageName: "basic",
     paymentProof: null as File | null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [loadingTypes, setLoadingTypes] = useState(true);
   const [error, setError] = useState("");
 
   if (!user || userRole !== "representative") {
     if (typeof window !== "undefined") router.replace("/login");
     return null;
   }
+
+  useEffect(() => {
+    async function loadMarketTypes() {
+      const { data, error } = await supabase.from("stores").select("market_type");
+      if (!error && data) {
+        const persistedTypes = Array.from(
+          new Set(
+            data
+              .map((row: any) => row.market_type || row.marketType)
+              .filter((type: unknown): type is string => typeof type === "string" && type.trim().length > 0)
+          )
+        );
+
+        setMarketTypeOptions((current) =>
+          Array.from(new Set([...current, ...persistedTypes])) as string[]
+        );
+      }
+      setLoadingTypes(false);
+    }
+
+    loadMarketTypes();
+  }, []);
 
   const handleChange = (e: any) => {
     const { name, value, files } = e.target;
@@ -104,6 +138,17 @@ export default function AddStoreByRepresentative() {
     } else {
       setForm((f) => ({ ...f, [name]: value }));
     }
+  };
+
+  const handleAddMarketType = () => {
+    const trimmedType = newMarketType.trim();
+    if (!trimmedType) return;
+
+    setMarketTypeOptions((current) =>
+      Array.from(new Set([...current, trimmedType]))
+    );
+    setForm((f) => ({ ...f, marketType: trimmedType }));
+    setNewMarketType("");
   };
 
   const handleSubmit = async (e: any) => {
@@ -190,16 +235,40 @@ export default function AddStoreByRepresentative() {
                   <SelectValue placeholder="اختر نوع السوق" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="phones">محلات هواتف</SelectItem>
-                  <SelectItem value="spare-parts">مراكز قطع غيار</SelectItem>
-                  <SelectItem value="clothes">ملابس</SelectItem>
-                  <SelectItem value="accessories">اكسسوارات</SelectItem>
-                  <SelectItem value="perfumes">عطور</SelectItem>
-                  <SelectItem value="shoes">أحذية</SelectItem>
-                  <SelectItem value="grocery">مواد غذائية</SelectItem>
-                  <SelectItem value="other">أخرى</SelectItem>
+                  {marketTypeOptions.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <div className="mt-3 space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    id="newMarketType"
+                    value={newMarketType}
+                    onChange={(e) => setNewMarketType(e.target.value)}
+                    placeholder="أضف نوعاً جديداً"
+                    className="bg-background/50"
+                  />
+                  <Button type="button" onClick={handleAddMarketType} disabled={!newMarketType.trim()}>
+                    إضافة
+                  </Button>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {loadingTypes ? "جارٍ تحميل الفئات..." : "اختر من الفئات الحالية أو أضف فئة جديدة"}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {marketTypeOptions.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`rounded-full border px-3 py-1 text-sm transition ${form.marketType === type ? 'border-primary bg-primary text-white' : 'border-secondary bg-secondary/10 text-secondary'}`}
+                      onClick={() => setForm((f) => ({ ...f, marketType: type }))}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <div>
               <Label htmlFor="packageName">الباقة</Label>

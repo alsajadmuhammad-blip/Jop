@@ -3,10 +3,12 @@ self.__SERVER_FILES_MANIFEST={
   "config": {
     "env": {
       "NEXT_PUBLIC_SUPABASE_URL": "https://tjfogjumpyygftwwbmxb.supabase.co",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZm9nanVtcHl5Z2Z0d3dibXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MzcwNjAsImV4cCI6MjA4NTUxMzA2MH0._Y-3DIx-VtPlGlRwUG-YdXPm2SQp1N7W7P2w0LubctM"
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZm9nanVtcHl5Z2Z0d3dibXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MzcwNjAsImV4cCI6MjA4NTUxMzA2MH0._Y-3DIx-VtPlGlRwUG-YdXPm2SQp1N7W7P2w0LubctM",
+      "NEXT_PUBLIC_SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL": "https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-store-owner",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "markazi-iq"
     },
     "typescript": {
-      "ignoreBuildErrors": true
+      "ignoreBuildErrors": false
     },
     "typedRoutes": false,
     "distDir": ".next",

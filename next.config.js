@@ -6,11 +6,8 @@ const nextConfig = {
   /* config options here */
   reactStrictMode: true,
   poweredByHeader: false,
-  
-  // تسريع البناء عبر تجاهل الأخطاء غير الحرجة وقت الـ Build
-  typescript: { ignoreBuildErrors: true },
-  
-  // تحسين استهلاك الذاكرة
+
+  // تأكد من ظهور أخطاء TypeScript أثناء البناء لتجنب المشاكل في الإنتاج.
   productionBrowserSourceMaps: false,
   turbopack: {},
   
@@ -50,6 +47,11 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_CREATE_PRODUCT_FUNCTION_URL: process.env.NEXT_PUBLIC_SUPABASE_CREATE_PRODUCT_FUNCTION_URL,
+    NEXT_PUBLIC_SUPABASE_CREATE_SECTION_FUNCTION_URL: process.env.NEXT_PUBLIC_SUPABASE_CREATE_SECTION_FUNCTION_URL,
+    NEXT_PUBLIC_SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL: process.env.NEXT_PUBLIC_SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL,
+    NEXT_PUBLIC_SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL: process.env.NEXT_PUBLIC_SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   },
   output: 'export',
 };

@@ -132,14 +132,6 @@ export default function LoginPage() {
   };
 
   // This effect will redirect the user if they are already logged in and visit the login page.
-  useEffect(() => {
-    if (!loading && user && userRole) {
-      if (userRole === 'admin') router.push('/admin');
-      else if (userRole === 'store') router.push('/dashboard/store');
-      else if (userRole === 'representative') router.push('/dashboard/representative');
-      else router.push('/');
-    }
-  }, [user, userRole, router, loading]);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

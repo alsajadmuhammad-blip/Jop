@@ -1,4 +1,5 @@
 {
+  "/(pages)/admin/add-store/page": "app/(pages)/admin/add-store/page.js",
   "/(pages)/admin/page": "app/(pages)/admin/page.js",
   "/(pages)/cart/page": "app/(pages)/cart/page.js",
   "/(pages)/category/[id]/page": "app/(pages)/category/[id]/page.js",

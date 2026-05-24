@@ -4,15 +4,35 @@
  */
 
 import { supabase } from './supabase';
-import type { Product, Store, Section, Category, User, CartItem } from '@/lib/types';
+import type { Product, Store, Section, Category, User, CartItem, StorePackage } from '@/lib/types';
+
+const SUPABASE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+function buildSupabaseFunctionUrl(path: string): string | undefined {
+  if (!SUPABASE_BASE_URL) return undefined;
+  return `${SUPABASE_BASE_URL.replace(/\/$/, '')}/${path}`;
+}
 
 const SUPABASE_CREATE_PRODUCT_FUNCTION_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_CREATE_PRODUCT_FUNCTION_URL ||
-  'https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-product';
+  process.env.NEXT_PUBLIC_SUPABASE_CREATE_PRODUCT_FUNCTION_URL ??
+  buildSupabaseFunctionUrl('functions/v1/create-product');
 
 const SUPABASE_CREATE_SECTION_FUNCTION_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_CREATE_SECTION_FUNCTION_URL ||
-  'https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-section';
+  process.env.NEXT_PUBLIC_SUPABASE_CREATE_SECTION_FUNCTION_URL ??
+  buildSupabaseFunctionUrl('functions/v1/create-section');
+
+function getRowValue<T>(row: any, snakeCase: string, camelCase?: string): T | undefined {
+  if (!row) return undefined;
+  if (camelCase && row[camelCase] !== undefined) return row[camelCase] as T;
+  if (row[snakeCase] !== undefined) return row[snakeCase] as T;
+  return undefined;
+}
+
+function buildDualIdCondition(columnBase: string, value: string): string {
+  const snake = `${columnBase}_id`;
+  const camel = `"${columnBase[0].toUpperCase()}${columnBase.slice(1)}Id"`;
+  return `${snake}.eq.${value},${camel}.eq.${value}`;
+}
 
 // ============================================================================
 // STORES
@@ -48,10 +68,12 @@ export async function fetchStoreById(storeId: string): Promise<Store | null> {
 }
 
 export async function fetchStoresByMarketType(marketType: string): Promise<Store[]> {
+  if (!marketType) return [];
+  
   const { data, error } = await supabase
     .from('stores')
     .select('*')
-    .eq('market_type', marketType)
+    .or(`market_type.eq.${marketType},marketType.eq.${marketType}`)
     .order('rating', { ascending: false });
 
   if (error) {
@@ -94,31 +116,26 @@ export async function fetchStoresByLocation(latitude: number, longitude: number,
 // ============================================================================
 
 export async function fetchProductsByStore(storeId: string): Promise<Product[]> {
+  if (!storeId) return [];
+  
+  // Try with snake_case first (most common)
   const { data, error } = await supabase
     .from('products')
-    .select('*, store_sections(id, name)')
+    .select('*')
     .eq('store_id', storeId)
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching products:', error.message);
+    console.error('Error fetching products for store:', error.message);
     return [];
   }
 
-  return (data || []).map((row: any) => {
-    const relation = row.store_sections || row.store_section;
-    if (Array.isArray(relation) && relation.length > 0) {
-      row.section_id = row.section_id || relation[0]?.id || row.sectionId;
-      row.section_name = row.section_name || relation[0]?.name || row.sectionName;
-    } else if (relation && typeof relation === 'object') {
-      row.section_id = row.section_id || relation.id || row.sectionId;
-      row.section_name = row.section_name || relation.name || row.sectionName;
-    }
-    return mapProductRow(row);
-  });
+  return (data || []).map(mapProductRow);
 }
 
 export async function fetchStoreSections(storeId: string): Promise<Section[]> {
+  if (!storeId) return [];
+  
   const { data, error } = await supabase
     .from('store_sections')
     .select('*')
@@ -133,8 +150,8 @@ export async function fetchStoreSections(storeId: string): Promise<Section[]> {
   return (data || []).map((row: any) => ({
     id: row.id,
     name: row.name,
-    storeId: row.store_id,
-    createdAt: row.created_at || row.createdAt,
+    storeId: getRowValue<string>(row, 'store_id', 'storeId') || storeId,
+    createdAt: getRowValue<any>(row, 'created_at', 'createdAt'),
   }));
 }
 
@@ -181,7 +198,7 @@ export async function createStoreSection(storeId: string, name: string): Promise
 
   const { data, error } = await supabase
     .from('store_sections')
-    .insert({ store_id: storeId, name })
+    .insert({ store_id: storeId, storeId: storeId, name })
     .select('*')
     .single();
 
@@ -234,12 +251,12 @@ export async function deleteStoreSection(sectionId: string): Promise<boolean> {
 }
 
 export async function fetchProductsByCategory(categoryId: string): Promise<Product[]> {
-  // Some schemas use camelCase quoted column names (e.g. "categoryId").
-  // Query both common variants to be tolerant and align with the authoritative schema.
+  if (!categoryId) return [];
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .or(`category_id.eq.${categoryId},\"categoryId\".eq.${categoryId}`)
+    .or(`category_id.eq.${categoryId},categoryId.eq.${categoryId}`)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -255,10 +272,12 @@ export async function fetchProductsByCategory(categoryId: string): Promise<Produ
 // ---------------------------------------------------------------------------
 
 export async function fetchStoresByRepresentative(repId: string): Promise<Store[]> {
+  if (!repId) return [];
+  
   const { data, error } = await supabase
     .from('stores')
     .select('*')
-    .eq('registered_by_agent_id', repId)
+    .or(`registered_by_agent_id.eq.${repId},registeredByAgentId.eq.${repId}`)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -303,6 +322,10 @@ async function invokeSupabaseFunction(functionName: string, payload: any) {
         functionName === 'create-product'
           ? SUPABASE_CREATE_PRODUCT_FUNCTION_URL
           : SUPABASE_CREATE_SECTION_FUNCTION_URL;
+
+      if (!functionUrl) {
+        return { data: null, error: new Error('Missing Supabase Edge Function URL for ' + functionName) };
+      }
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -446,10 +469,16 @@ export async function updateProduct(productId: string, updates: Partial<Product>
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.description !== undefined) payload.description = updates.description;
   if (updates.price !== undefined) payload.price = updates.price;
-  if (updates.sectionId !== undefined) payload.section_id = updates.sectionId;
+  if (updates.sectionId !== undefined) {
+    payload.section_id = updates.sectionId;
+    payload.sectionId = updates.sectionId;
+  }
   if (updates.sku !== undefined) payload.sku = updates.sku;
   if (updates.stock !== undefined) payload.stock = updates.stock;
-  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
+  if (updates.imageUrl !== undefined) {
+    payload.image_url = updates.imageUrl;
+    payload.imageUrl = updates.imageUrl;
+  }
 
   const { data, error } = await supabase
     .from('products')
@@ -467,11 +496,12 @@ export async function updateProduct(productId: string, updates: Partial<Product>
 }
 
 export async function deleteProduct(productId: string, storeId: string): Promise<boolean> {
+  if (!productId) return false;
+  
   const { error } = await supabase
     .from('products')
     .delete()
-    .eq('id', productId)
-    .eq('store_id', storeId);
+    .eq('id', productId);
 
   if (error) {
     console.error('Error deleting product:', error.message);
@@ -547,16 +577,37 @@ export async function fetchUserProfile(userId: string): Promise<User | null> {
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<boolean> {
   const dbData: any = {};
   
-  // Convert camelCase to snake_case
+  // Convert camelCase to snake_case and also update camelCase columns
   if (updates.name !== undefined) dbData.name = updates.name;
-  if (updates.storeId !== undefined) dbData.store_id = updates.storeId;
+  if (updates.storeId !== undefined) {
+    dbData.store_id = updates.storeId;
+    dbData.storeId = updates.storeId;
+  }
   if (updates.role !== undefined) dbData.role = updates.role;
-  if (updates.paymentSystem !== undefined) dbData.payment_system = updates.paymentSystem;
-  if (updates.totalEarnings !== undefined) dbData.total_earnings = updates.totalEarnings;
-  if (updates.monthlySalary !== undefined) dbData.monthly_salary = updates.monthlySalary;
-  if (updates.requiredStoresCount !== undefined) dbData.required_stores_count = updates.requiredStoresCount;
-  if (updates.monthlyActivations !== undefined) dbData.monthly_activations = updates.monthlyActivations;
-  if (updates.lastResetDate !== undefined) dbData.last_reset_date = updates.lastResetDate;
+  if (updates.paymentSystem !== undefined) {
+    dbData.payment_system = updates.paymentSystem;
+    dbData.paymentSystem = updates.paymentSystem;
+  }
+  if (updates.totalEarnings !== undefined) {
+    dbData.total_earnings = updates.totalEarnings;
+    dbData.totalEarnings = updates.totalEarnings;
+  }
+  if (updates.monthlySalary !== undefined) {
+    dbData.monthly_salary = updates.monthlySalary;
+    dbData.monthlySalary = updates.monthlySalary;
+  }
+  if (updates.requiredStoresCount !== undefined) {
+    dbData.required_stores_count = updates.requiredStoresCount;
+    dbData.requiredStoresCount = updates.requiredStoresCount;
+  }
+  if (updates.monthlyActivations !== undefined) {
+    dbData.monthly_activations = updates.monthlyActivations;
+    dbData.monthlyActivations = updates.monthlyActivations;
+  }
+  if (updates.lastResetDate !== undefined) {
+    dbData.last_reset_date = updates.lastResetDate;
+    dbData.lastResetDate = updates.lastResetDate;
+  }
 
   const { error } = await supabase
     .from('users')
@@ -581,10 +632,15 @@ export async function createUser(user: User): Promise<boolean> {
         name: user.name,
         role: user.role,
         store_id: user.storeId,
+        storeId: user.storeId,
         payment_system: user.paymentSystem,
+        paymentSystem: user.paymentSystem,
         total_earnings: user.totalEarnings,
+        totalEarnings: user.totalEarnings,
         monthly_salary: user.monthlySalary,
+        monthlySalary: user.monthlySalary,
         required_stores_count: user.requiredStoresCount,
+        requiredStoresCount: user.requiredStoresCount,
       }
     ]);
 
@@ -601,10 +657,12 @@ export async function createUser(user: User): Promise<boolean> {
 // ============================================================================
 
 export async function fetchUserOrders(userId: string): Promise<any[]> {
+  if (!userId) return [];
+  
   const { data, error } = await supabase
     .from('orders')
     .select('*')
-    .eq('customer_id', userId)
+    .or(`customer_id.eq.${userId},customerId.eq.${userId}`)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -616,18 +674,25 @@ export async function fetchUserOrders(userId: string): Promise<any[]> {
 }
 
 export async function createOrder(order: any): Promise<string | null> {
-  // Ensure all fields use snake_case for database
+  // Ensure all fields with dual naming are saved in both formats
   const dbOrder: any = {
     store_id: order.storeId || order.store_id,
+    storeId: order.storeId || order.store_id,
     store_name: order.storeName || order.store_name,
+    storeName: order.storeName || order.store_name,
     customer_id: order.customerId || order.customer_id,
+    customerId: order.customerId || order.customer_id,
     customer_name: order.customerName || order.customer_name,
+    customerName: order.customerName || order.customer_name,
     customer_phone: order.customerPhone || order.customer_phone,
+    customerPhone: order.customerPhone || order.customer_phone,
     items: order.items,
     total_amount: order.totalAmount || order.total_amount,
+    totalAmount: order.totalAmount || order.total_amount,
     status: order.status || 'pending',
     notes: order.notes,
     payment_method: order.paymentMethod || order.payment_method || 'whatsapp',
+    paymentMethod: order.paymentMethod || order.payment_method || 'whatsapp',
   };
 
   const { data, error } = await supabase
@@ -663,29 +728,35 @@ export function mapStoreRow(row: any): Store {
     id: row.id,
     name: row.name,
     description: row.description,
-    logoUrl: row.logo_url || row.logoUrl,
-    coverImageUrl: row.cover_image_url || row.coverImageUrl,
+    logoUrl: getRowValue<string>(row, 'logo_url', 'logoUrl'),
+    coverImageUrl: getRowValue<string>(row, 'cover_image_url', 'coverImageUrl'),
     rating: row.rating || 0,
     reviews: row.reviews || 0,
     location: row.location || '',
-    latitude: row.latitude,
-    longitude: row.longitude,
+    latitude: getRowValue<number>(row, 'latitude', 'latitude'),
+    longitude: getRowValue<number>(row, 'longitude', 'longitude'),
     type: row.type || 'إلكتروني',
-    marketType: row.market_type || row.marketType || '',
-    businessHours: row.business_hours || row.businessHours,
+    marketType: getRowValue<string>(row, 'market_type', 'marketType') || '',
+    businessHours: getRowValue<any>(row, 'business_hours', 'businessHours'),
     products: [],
-    whatsappNumber: row.whatsapp_number || row.whatsappNumber,
-    hasDelivery: parseBoolean(row.has_delivery ?? row.hasDelivery),
-    isActive: parseBoolean(row.is_active ?? row.isActive),
-    productLimit: typeof row.product_limit === 'number' ? row.product_limit : row.productLimit ?? Number.MAX_SAFE_INTEGER,
-    subscriptionDuration: typeof row.subscription_duration === 'number' ? row.subscription_duration : row.subscriptionDuration ?? 0,
-    activationDate: row.activation_date || row.activationDate || null,
-    ownerId: row.owner_id || row.ownerId || null,
-    ownerEmail: row.owner_email || row.ownerEmail,
-    packageName: row.package_name || row.packageName,
-    paymentProofUrl: row.payment_proof_url || row.paymentProofUrl,
-    createdAt: row.created_at || row.createdAt || null,
-    registeredByAgentId: row.registered_by_agent_id || row.registeredByAgentId || null,
+    whatsappNumber: getRowValue<string>(row, 'whatsapp_number', 'whatsappNumber'),
+    hasDelivery: parseBoolean(getRowValue<any>(row, 'has_delivery', 'hasDelivery')),
+    isActive: parseBoolean(getRowValue<any>(row, 'is_active', 'isActive')),
+    productLimit:
+      typeof getRowValue<number>(row, 'product_limit', 'productLimit') === 'number'
+        ? getRowValue<number>(row, 'product_limit', 'productLimit')!
+        : Number(getRowValue<number>(row, 'productLimit', 'productLimit') ?? Number.MAX_SAFE_INTEGER),
+    subscriptionDuration:
+      typeof getRowValue<number>(row, 'subscription_duration', 'subscriptionDuration') === 'number'
+        ? getRowValue<number>(row, 'subscription_duration', 'subscriptionDuration')!
+        : Number(getRowValue<number>(row, 'subscriptionDuration', 'subscriptionDuration') ?? 0),
+    activationDate: getRowValue<any>(row, 'activation_date', 'activationDate') || null,
+    ownerId: getRowValue<string>(row, 'owner_id', 'ownerId') || null,
+    ownerEmail: getRowValue<string>(row, 'owner_email', 'ownerEmail'),
+    packageName: getRowValue<string>(row, 'package_name', 'packageName'),
+    paymentProofUrl: getRowValue<string>(row, 'payment_proof_url', 'paymentProofUrl'),
+    createdAt: getRowValue<any>(row, 'created_at', 'createdAt') || null,
+    registeredByAgentId: getRowValue<string>(row, 'registered_by_agent_id', 'registeredByAgentId') || null,
   };
 }
 
@@ -695,11 +766,11 @@ export function mapProductRow(row: any): Product {
     name: row.name,
     description: row.description || '',
     price: row.price,
-    imageUrl: row.image_url || row.imageUrl,
-    storeId: row.store_id || row.storeId,
-    categoryId: row.category_id || row.categoryId,
-    sectionId: row.section_id || row.sectionId,
-    sectionName: row.section_name || row.sectionName,
+    imageUrl: getRowValue<string>(row, 'image_url', 'imageUrl'),
+    storeId: getRowValue<string>(row, 'store_id', 'storeId') || '',
+    categoryId: getRowValue<string>(row, 'category_id', 'categoryId'),
+    sectionId: getRowValue<string>(row, 'section_id', 'sectionId'),
+    sectionName: getRowValue<string>(row, 'section_name', 'sectionName'),
     sku: row.sku || row.product_sku || undefined,
     stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
   };
@@ -710,20 +781,113 @@ function mapUserRow(row: any): User {
     id: row.id,
     name: row.name,
     email: row.email,
-    storeId: row.store_id,
+    storeId: getRowValue<string>(row, 'store_id', 'storeId') || null,
     role: row.role,
-    paymentSystem: row.payment_system,
-    totalEarnings: row.total_earnings,
-    monthlySalary: row.monthly_salary,
-    requiredStoresCount: row.required_stores_count,
-    monthlyActivations: row.monthly_activations,
-    lastResetDate: row.last_reset_date,
+    paymentSystem: getRowValue<string>(row, 'payment_system', 'paymentSystem') as 'salary' | 'commission' | undefined,
+    totalEarnings: getRowValue<number>(row, 'total_earnings', 'totalEarnings'),
+    monthlySalary: getRowValue<number>(row, 'monthly_salary', 'monthlySalary'),
+    requiredStoresCount: getRowValue<number>(row, 'required_stores_count', 'requiredStoresCount'),
+    monthlyActivations: getRowValue<number>(row, 'monthly_activations', 'monthlyActivations'),
+    lastResetDate: getRowValue<any>(row, 'last_reset_date', 'lastResetDate'),
   };
 }
 
 // ============================================================================
 // PACKAGES/SUBSCRIPTIONS
 // ============================================================================
+
+export async function fetchStorePackages(): Promise<StorePackage[]> {
+  const { data, error } = await supabase
+    .from('store_packages')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching store packages:', error.message);
+    return [];
+  }
+
+  return (data || []).map(mapStorePackageRow);
+}
+
+export async function createStorePackage(pkg: Omit<StorePackage, 'id' | 'createdAt' | 'updatedAt'>): Promise<StorePackage | null> {
+  const { data, error } = await supabase
+    .from('store_packages')
+    .insert([
+      {
+        name: pkg.name,
+        slug: pkg.slug,
+        description: pkg.description ?? null,
+        price: Number(pkg.price),
+        product_limit: pkg.productLimit,
+        productLimit: pkg.productLimit,
+        subscription_duration: pkg.subscriptionDuration,
+        subscriptionDuration: pkg.subscriptionDuration,
+        is_active: pkg.isActive,
+        isActive: pkg.isActive,
+        metadata: pkg.metadata ?? null,
+      },
+    ])
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error creating store package:', error.message);
+    return null;
+  }
+
+  return mapStorePackageRow(data);
+}
+
+export async function updateStorePackage(packageId: string, updates: Partial<StorePackage>): Promise<StorePackage | null> {
+  const payload: any = {};
+
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.slug !== undefined) payload.slug = updates.slug;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.price !== undefined) payload.price = Number(updates.price);
+  if (updates.productLimit !== undefined) {
+    payload.product_limit = updates.productLimit;
+    payload.productLimit = updates.productLimit;
+  }
+  if (updates.subscriptionDuration !== undefined) {
+    payload.subscription_duration = updates.subscriptionDuration;
+    payload.subscriptionDuration = updates.subscriptionDuration;
+  }
+  if (updates.isActive !== undefined) {
+    payload.is_active = updates.isActive;
+    payload.isActive = updates.isActive;
+  }
+  if (updates.metadata !== undefined) payload.metadata = updates.metadata;
+
+  const { data, error } = await supabase
+    .from('store_packages')
+    .update(payload)
+    .eq('id', packageId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating store package:', error.message);
+    return null;
+  }
+
+  return mapStorePackageRow(data);
+}
+
+export async function deleteStorePackage(packageId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('store_packages')
+    .delete()
+    .eq('id', packageId);
+
+  if (error) {
+    console.error('Error deleting store package:', error.message);
+    return false;
+  }
+
+  return true;
+}
 
 export async function fetchSubscriptionPackages(): Promise<{
   name: string;
@@ -732,57 +896,30 @@ export async function fetchSubscriptionPackages(): Promise<{
   duration: number;
   description?: string;
 }[]> {
-  // Get all stores and extract unique packages based on their configuration
-  const { data, error } = await supabase
-    .from('stores')
-    .select('package_name, product_limit, subscription_duration')
-    .not('package_name', 'is', null);
-
-  if (error) {
-    console.error('Error fetching packages:', error.message);
-    // Return default packages as fallback
-    return [
-      { name: 'الباقة الأساسية', price: 0, limit: 50, duration: 30 },
-      { name: 'باقة متقدمة', price: 10000, limit: 150, duration: 90 },
-      { name: 'باقة غير محدودة', price: 25000, limit: 999999, duration: 365 },
-    ];
-  }
-
-  // Create a map of unique packages
-  const packageMap = new Map<string, { price: number; limit: number; duration: number }>();
-  
-  const packageNames: { [key: string]: { price: number; description: string } } = {
-    'basic': { price: 0, description: 'الباقة الأساسية' },
-    'advanced': { price: 10000, description: 'باقة متقدمة' },
-    'unlimited': { price: 25000, description: 'باقة غير محدودة' },
-  };
-
-  (data || []).forEach((row: any) => {
-    const packageName = row.package_name || 'basic';
-    if (!packageMap.has(packageName)) {
-      const packageConfig = packageNames[packageName] || { price: 0, description: packageName };
-      packageMap.set(packageName, {
-        price: packageConfig.price,
-        limit: row.product_limit || 50,
-        duration: row.subscription_duration || 30,
-      });
-    }
-  });
-
-  // Convert to array
-  const packages = Array.from(packageMap.entries()).map(([key, value]) => ({
-    name: packageNames[key]?.description || key,
-    price: value.price,
-    limit: value.limit,
-    duration: value.duration,
+  const packages = await fetchStorePackages();
+  return packages.map((pkg) => ({
+    name: pkg.name,
+    price: pkg.price,
+    limit: pkg.productLimit,
+    duration: pkg.subscriptionDuration,
+    description: pkg.description,
   }));
+}
 
-  // If no packages found, return defaults
-  return packages.length > 0 ? packages : [
-    { name: 'الباقة الأساسية', price: 0, limit: 50, duration: 30 },
-    { name: 'باقة متقدمة', price: 10000, limit: 150, duration: 90 },
-    { name: 'باقة غير محدودة', price: 25000, limit: 999999, duration: 365 },
-  ];
+function mapStorePackageRow(row: any): StorePackage {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description || '',
+    price: typeof row.price === 'number' ? row.price : Number(row.price ?? 0),
+    productLimit: typeof row.product_limit === 'number' ? row.product_limit : Number(row.productLimit ?? 0),
+    subscriptionDuration: typeof row.subscription_duration === 'number' ? row.subscription_duration : Number(row.subscriptionDuration ?? 0),
+    isActive: parseBoolean(row.is_active ?? row.isActive),
+    metadata: row.metadata ?? null,
+    createdAt: row.created_at || row.createdAt || null,
+    updatedAt: row.updated_at || row.updatedAt || null,
+  };
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

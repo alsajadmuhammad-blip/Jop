@@ -1,4 +1,5 @@
 {
+  "/(pages)/admin/add-store/page": "/admin/add-store",
   "/(pages)/admin/page": "/admin",
   "/(pages)/cart/page": "/cart",
   "/(pages)/category/[id]/page": "/category/[id]",

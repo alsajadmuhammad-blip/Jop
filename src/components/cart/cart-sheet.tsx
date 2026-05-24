@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +24,7 @@ import { Trash2, ShoppingCart, Minus, Plus, Image as ImageIcon, Loader2 } from "
 import { useToast } from "@/hooks/use-toast";
 import type { CartItem, OrderItem } from "@/lib/types";
 import { createOrder } from "@/services/orders";
+import { fetchStoreById } from "@/services/supabase-db";
 import {
   Dialog,
   DialogContent,
@@ -53,9 +54,16 @@ export function CartSheet({ children }: { children: ReactNode }) {
     storeItems: CartItem[];
   } | null>(null);
   
+  const [customerName, setCustomerName] = useState(user?.name || "");
   const [customerPhone, setCustomerPhone] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) {
+      setCustomerName(user.name);
+    }
+  }, [user?.name]);
 
   const handleCheckoutClick = (storeId: string, storeName: string, whatsappNumber: string, storeItems: CartItem[]) => {
     if (storeItems.length === 0) {
@@ -67,21 +75,12 @@ export function CartSheet({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "يجب تسجيل الدخول",
-        description: "الرجاء تسجيل الدخول أولاً للمتابعة.",
-      });
-      return;
-    }
-
     setCheckoutData({ storeId, storeName, whatsappNumber, storeItems });
     setIsCheckoutDialogOpen(true);
   };
 
   const handleSubmitOrder = async () => {
-    if (!checkoutData || !user) return;
+    if (!checkoutData) return;
 
     if (!customerPhone.trim()) {
       toast({
@@ -89,6 +88,36 @@ export function CartSheet({ children }: { children: ReactNode }) {
         title: "خطأ",
         description: "الرجاء إدخال رقم الهاتف.",
       });
+      return;
+    }
+
+    if (!user && !customerName.trim()) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "الرجاء إدخال اسمك لإكمال الطلب.",
+      });
+      return;
+    }
+
+    // Ensure we have a WhatsApp number: if not present in checkoutData, try fetching the store record
+    let whatsappNumberForStore = checkoutData.whatsappNumber?.trim() || "";
+    if (!whatsappNumberForStore) {
+      try {
+        const store = await fetchStoreById(checkoutData.storeId);
+        whatsappNumberForStore = store?.whatsappNumber?.trim() || "";
+      } catch (err) {
+        console.warn('Failed to fetch store for whatsapp fallback', err);
+      }
+    }
+
+    if (!whatsappNumberForStore) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "رقم واتساب المتجر غير متوفر.",
+      });
+      setIsSubmitting(false);
       return;
     }
 
@@ -111,12 +140,13 @@ export function CartSheet({ children }: { children: ReactNode }) {
       const order = await createOrder(
         checkoutData.storeId,
         checkoutData.storeName,
-        user.id,
-        user.name,
-        customerPhone,
+        user?.id ?? null,
+        customerName.trim() || user?.name || 'عميل',
+        customerPhone.trim(),
         orderItems,
         storeTotalPrice,
-        orderNotes
+        orderNotes,
+        'whatsapp'
       );
 
       if (!order) {
@@ -132,7 +162,7 @@ export function CartSheet({ children }: { children: ReactNode }) {
       // Build WhatsApp message
       let message = `*طلب جديد من منصة مركزي*\n\n`;
       message += `*رقم الطلب:* ${order.id}\n`;
-      message += `*اسم العميل:* ${user.name || "عميل"}\n`;
+      message += `*اسم العميل:* ${customerName.trim() || user?.name || "عميل"}\n`;
       message += `*رقم الهاتف:* ${customerPhone}\n`;
       message += `*التاريخ:* ${new Date(order.createdAt).toLocaleString("ar-EG")}\n\n`;
       
@@ -151,7 +181,8 @@ export function CartSheet({ children }: { children: ReactNode }) {
       message += `\n📱 تابع الطلب عبر التطبيق: مركزي`;
 
       // Open WhatsApp
-      const whatsappUrl = `https://wa.me/${checkoutData.whatsappNumber}?text=${encodeURIComponent(message)}`;
+      const whatsappNumber = whatsappNumberForStore.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
 
       // Remove items from cart
@@ -164,7 +195,7 @@ export function CartSheet({ children }: { children: ReactNode }) {
 
       toast({
         title: "تم إنشاء الطلب بنجاح ✓",
-        description: `سيتم توجيهك إلى واتساب ${checkoutData.storeName}. يمكنك تتبع الطلب من صفحة "طلباتي".`,
+        description: `سيتم توجيهك مباشرة إلى واتساب صاحب المتجر ${checkoutData.storeName}. يمكنك تتبع الطلب من صفحة "طلباتي".`,
       });
     } catch (error) {
         console.error("Error submitting order:", error);
@@ -300,6 +331,11 @@ export function CartSheet({ children }: { children: ReactNode }) {
             <DialogDescription>
               الرجاء إدخال بياناتك لاستكمال الطلب
             </DialogDescription>
+            {!user && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                يمكنك إتمام الطلب كضيف بدون تسجيل الدخول.
+              </p>
+            )}
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -322,6 +358,19 @@ export function CartSheet({ children }: { children: ReactNode }) {
                     </div>
                   </div>
                 </div>
+
+                {!user && (
+                  <div>
+                    <Label htmlFor="name">الاسم *</Label>
+                    <Input
+                      id="name"
+                      placeholder="مثال: أحمد"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="phone">رقم الهاتف *</Label>

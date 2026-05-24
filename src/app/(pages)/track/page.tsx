@@ -12,8 +12,10 @@ const statusLabels: Record<string, string> = {
   pending: "في الانتظار",
   accepted: "تم القبول",
   preparing: "قيد التجهيز",
+  ready_for_pickup: "جاهز للاستلام",
   delivering: "قيد التوصيل",
-  received: "تم الاستلام"
+  delivered: "تم التسليم",
+  cancelled: "ملغى",
 };
 
 export default function TrackOrderPage() {
@@ -72,11 +74,11 @@ export default function TrackOrderPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-2">المجموع: <span className="font-bold">{order.total} ر.س</span></div>
+            <div className="mb-2">الإجمالي: <span className="font-bold">{order.totalAmount.toLocaleString()} د.ع</span></div>
             <div className="mb-2">المنتجات:
               <ul className="list-disc pr-6">
                 {order.items.map((item: any, idx: number) => (
-                  <li key={idx}>{item.name} × {item.quantity}</li>
+                  <li key={idx}>{item.productName} × {item.quantity}</li>
                 ))}
               </ul>
             </div>

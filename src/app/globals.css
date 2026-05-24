@@ -6,6 +6,10 @@
 @tailwind utilities;
 
 @layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   :root {
     --background: 220 20% 99%;
     --foreground: 229 82% 25%;
@@ -91,6 +95,21 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Almarai', sans-serif;
+    min-width: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  html {
+    min-width: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+  }
+  input, textarea, select, button {
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, h5, h6, .font-headline {
