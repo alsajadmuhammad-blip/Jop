@@ -496,12 +496,13 @@ export async function updateProduct(productId: string, updates: Partial<Product>
 }
 
 export async function deleteProduct(productId: string, storeId: string): Promise<boolean> {
-  if (!productId) return false;
+  if (!productId || !storeId) return false;
   
   const { error } = await supabase
     .from('products')
     .delete()
-    .eq('id', productId);
+    .eq('id', productId)
+    .eq('store_id', storeId);
 
   if (error) {
     console.error('Error deleting product:', error.message);

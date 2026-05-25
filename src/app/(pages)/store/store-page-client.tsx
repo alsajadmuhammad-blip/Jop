@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
-import { BackButton } from "@/components/layout/back-button";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Globe } from "lucide-react";
@@ -65,39 +63,22 @@ export default function StorePageClient() {
   }, [storeId]);
 
   if (!storeId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center p-4">
-        <BackButton href="/stores" className="mb-6" />
-        <Card className="max-w-md w-full text-center shadow-2xl border-0">
-          <CardContent className="p-8">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">صفحة المتجر</h1>
-            <p className="text-slate-600 mb-6">اختر متجرًا من القائمة لعرض تفاصيله</p>
-            <Button asChild className="w-full">
-              <a href="/stores">تصفح المتاجر</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <div className="min-h-screen bg-slate-50" />;
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
         <div className="container mx-auto px-4 py-8">
-          <BackButton href="/stores" className="mb-8" />
-          <Skeleton className="h-12 w-32 mb-8" />
+          <Skeleton className="h-12 w-36 mb-8" />
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-96 rounded-2xl" />
-              <Skeleton className="h-64 rounded-2xl" />
+              <Skeleton className="h-96 rounded-[2rem]" />
+              <Skeleton className="h-64 rounded-[2rem]" />
             </div>
             <div className="space-y-6">
-              <Skeleton className="h-48 rounded-2xl" />
-              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-48 rounded-[2rem]" />
+              <Skeleton className="h-32 rounded-[2rem]" />
             </div>
           </div>
         </div>
@@ -107,18 +88,14 @@ export default function StorePageClient() {
 
   if (errorMessage) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <BackButton href="/stores" className="mb-6" />
-        <Card className="max-w-md w-full text-center shadow-2xl border-0">
-          <CardContent className="p-8">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="w-8 h-8 bg-red-500 rounded-full" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Card className="border-red-200 bg-red-50 max-w-md">
+          <CardContent className="pt-8 pb-8 px-8 text-center space-y-4">
+            <div className="h-16 w-16 rounded-full bg-red-200 mx-auto flex items-center justify-center">
+              <span className="text-2xl">⚠️</span>
             </div>
-            <h1 className="text-xl font-bold text-slate-900 mb-2">خطأ في تحميل المتجر</h1>
-            <p className="text-slate-600 mb-6">{errorMessage}</p>
-            <Button asChild variant="outline" className="w-full">
-              <a href="/stores">العودة للمتاجر</a>
-            </Button>
+            <h2 className="text-xl font-bold text-red-900">خطأ</h2>
+            <p className="text-red-700 font-semibold">{errorMessage}</p>
           </CardContent>
         </Card>
       </div>
@@ -130,16 +107,12 @@ export default function StorePageClient() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-        {/* Hero Section */}
         <StoreHero store={store} />
 
         <div className="grid gap-8 lg:grid-cols-[1.7fr_0.95fr]">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             <StoreProductsSection products={products} sections={sections} store={store} />
           </div>
-
-          {/* Sidebar */}
           <div className="space-y-6">
             <StoreInfoSidebar store={store} />
             <StoreContactSidebar store={store} />

@@ -24,9 +24,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         >
             <AuthProvider>
               <CartProvider>
-                <div className="flex min-h-screen flex-col bg-background text-foreground overflow-x-hidden">
+                <div className="flex min-h-screen flex-col bg-background text-foreground">
                   <Header />
-                  <main className="flex-1 overflow-x-hidden">
+                  <main className="flex-1">
                     {children}
                   </main>
                   <BottomNavbar />

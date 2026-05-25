@@ -119,9 +119,9 @@ export function StoreRatingDialogWrapper({ storeId, storeName, ownerId, buttonCl
 
   return (
     <>
-      <Button onClick={handleOpenDialog} size="lg" variant={isDisabled ? "secondary" : "default"} className={buttonClasses} disabled={isDisabled}>
-        <MessageSquarePlus className="ml-2 h-4 w-4" />
-        قيّم هذا المتجر
+      <Button onClick={handleOpenDialog} size="lg" variant={isDisabled ? "secondary" : "default"} className={`${buttonClasses} font-semibold flex items-center justify-center gap-2`} disabled={isDisabled} aria-label="تقييم المتجر">
+        <MessageSquarePlus className="h-5 w-5" />
+        <span>تقييم</span>
       </Button>
       <StoreRatingDialog
           isOpen={isRatingDialogOpen}

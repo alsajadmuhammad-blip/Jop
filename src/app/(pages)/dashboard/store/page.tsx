@@ -598,7 +598,10 @@ export default function StoreDashboardPage() {
 
   const handleDeleteProduct = async (productId: string) => {
     const storeId = store?.id || user?.storeId;
-    if (!storeId) return;
+    if (!storeId) {
+      toast({ title: "فشل حذف المنتج", description: "لم يتم العثور على المتجر المرتبط بحسابك.", variant: "destructive" });
+      return;
+    }
 
     try {
       const success = await deleteProduct(productId, storeId);
