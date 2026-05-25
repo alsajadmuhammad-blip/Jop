@@ -50,9 +50,9 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   }
 
   return (
-    <div onClick={handleCardClick} className="group cursor-pointer">
-      <div className="h-full overflow-hidden rounded-lg border border-border/30 bg-card/50 transition-all duration-200 hover:shadow-sm hover:border-primary/40 hover:bg-card">
-        <div className="relative h-32 md:h-40 w-full overflow-hidden bg-muted/20 flex items-center justify-center">
+    <div onClick={handleCardClick} className="group cursor-pointer min-w-0">
+      <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-border/30 bg-card/50 transition-all duration-200 hover:shadow-sm hover:border-primary/40 hover:bg-card">
+        <div className="relative h-32 md:h-40 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center">
           {product.imageUrl ? (
             product.imageUrl.startsWith('data:') ? (
               <img

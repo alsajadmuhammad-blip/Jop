@@ -160,7 +160,7 @@ function HomePageContent() {
 
       {/* CTA Section - Explore All Stores */}
       <motion.section 
-        className="py-16 bg-gradient-to-r from-primary via-blue-600 to-purple-600 text-white relative overflow-hidden"
+        className="py-16 bg-gradient-to-r from-primary via-primary-light to-primary-dark text-white relative overflow-hidden"
         initial={{ opacity: 0, scale: 0.95 }}
         whileInView={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8 }}
@@ -198,7 +198,7 @@ function HomePageContent() {
               asChild 
               size="lg" 
               variant="secondary"
-              className="group rounded-full shadow-2xl transition-all duration-300 hover:shadow-3xl hover:scale-110 font-semibold text-lg px-8 py-4 bg-white text-primary hover:bg-gray-50"
+              className="group rounded-full shadow-2xl transition-all duration-300 hover:shadow-3xl hover:scale-110 font-semibold text-lg px-8 py-4 bg-primary text-white hover:bg-primary/90"
             >
               <Link href="/stores" className="flex items-center gap-3">
                 استكشف المتاجر
@@ -226,7 +226,7 @@ function HomePageContent() {
               viewport={{ once: true }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-8 bg-gradient-to-b from-primary to-blue-600 rounded-full"></div>
+                <div className="w-2 h-8 bg-gradient-to-b from-primary to-primary-dark rounded-full"></div>
                 <span className="text-sm font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">🎯 المنتجات المميزة</span>
               </div>
               <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">المنتجات المميزة</h2>

@@ -39,7 +39,7 @@ export default function RootLayout({
       </Head>
       <body
         className={cn(
-          "font-body antialiased"
+          "font-body antialiased overflow-x-hidden"
         )}
       >
         <AppProviders>

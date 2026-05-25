@@ -117,12 +117,13 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave
     onLogoSave: (newLogoUrl: string) => Promise<void>;
     onCoverImageSave: (newCoverUrl: string) => Promise<void>;
 }) {
-    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const getBusinessHourValue = (hour: number) => `${hour.toString().padStart(2, '0')}:00`;
+    const businessHours = store.businessHours ?? { open: 9, close: 23 };
 
     const handleBusinessHoursChange = (part: "open" | "close", value: string) => {
-        if (!store.businessHours) return;
-        const hour = parseInt(value, 10);
-        const newHours = { ...store.businessHours, [part]: hour };
+        const hour = parseInt(value.split(":")[0] ?? "0", 10);
+        if (Number.isNaN(hour)) return;
+        const newHours = { ...businessHours, [part]: hour };
         onSettingChange("businessHours", newHours);
     };
 
@@ -187,16 +188,31 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave
                 <div className="grid md:grid-cols-2 gap-6">
                     <div>
                         <Label>أوقات الدوام</Label>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Select value={store.businessHours?.open?.toString() ?? "9"} onValueChange={(value) => handleBusinessHoursChange("open", value)}>
-                                <SelectTrigger className="w-28"><SelectValue placeholder="فتح" /></SelectTrigger>
-                                <SelectContent>{hours.map((h) => <SelectItem key={`open-${h}`} value={h.toString()}>{h}:00</SelectItem>)}</SelectContent>
-                            </Select>
-                            <span className="text-sm text-muted-foreground">إلى</span>
-                            <Select value={store.businessHours?.close?.toString() ?? "23"} onValueChange={(value) => handleBusinessHoursChange("close", value)}>
-                                <SelectTrigger className="w-28"><SelectValue placeholder="إغلاق" /></SelectTrigger>
-                                <SelectContent>{hours.map((h) => <SelectItem key={`close-${h}`} value={h.toString()}>{h}:00</SelectItem>)}</SelectContent>
-                            </Select>
+                        <div className="grid gap-3 mt-2 sm:grid-cols-[1fr_auto]">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs text-slate-500">من</span>
+                                <input
+                                    type="time"
+                                    step={3600}
+                                    min="00:00"
+                                    max="23:00"
+                                    value={getBusinessHourValue(businessHours.open)}
+                                    onChange={(event) => handleBusinessHoursChange("open", event.target.value)}
+                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition-colors duration-150 focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs text-slate-500">إلى</span>
+                                <input
+                                    type="time"
+                                    step={3600}
+                                    min="00:00"
+                                    max="23:00"
+                                    value={getBusinessHourValue(businessHours.close)}
+                                    onChange={(event) => handleBusinessHoursChange("close", event.target.value)}
+                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition-colors duration-150 focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -794,7 +810,7 @@ export default function StoreDashboardPage() {
                 </div>
 
                 {isPendingReview && (
-                      <Alert className="bg-blue-50 border-blue-200 text-blue-900">
+                      <Alert className="bg-primary/10 border-primary/20 text-primary">
                         <Info className="h-4 w-4 flex-shrink-0" />
                         <AlertTitle>جاري المراجعة</AlertTitle>
                         <AlertDescription className="text-sm mt-1">

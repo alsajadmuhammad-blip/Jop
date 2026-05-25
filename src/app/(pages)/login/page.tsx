@@ -134,14 +134,14 @@ export default function LoginPage() {
   // This effect will redirect the user if they are already logged in and visit the login page.
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
 
       {/* Floating Elements */}
       <div className="absolute top-20 left-20 w-20 h-20 bg-primary/10 rounded-full blur-xl"></div>
-      <div className="absolute bottom-20 right-20 w-32 h-32 bg-blue-500/10 rounded-full blur-xl"></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-purple-500/5 rounded-full blur-2xl"></div>
+      <div className="absolute bottom-20 right-20 w-32 h-32 bg-primary/10 rounded-full blur-xl"></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-primary/5 rounded-full blur-2xl"></div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -149,17 +149,17 @@ export default function LoginPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative z-10 w-full max-w-md px-4"
       >
-        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-0 shadow-2xl shadow-primary/10">
+        <Card className="bg-white/80 dark:bg-card/85 backdrop-blur-xl border-0 shadow-2xl shadow-primary/10">
           <CardHeader className="text-center pb-2">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="mx-auto mb-4 w-16 h-16 bg-gradient-to-r from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg"
+              className="mx-auto mb-4 w-16 h-16 bg-gradient-to-r from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg"
             >
               <Shield className="h-8 w-8 text-white" />
             </motion.div>
-            <CardTitle className="text-2xl font-bold font-headline bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold font-headline bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
               مرحباً بك في مركزي
             </CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -294,7 +294,7 @@ export default function LoginPage() {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 group"
+                  className="w-full h-12 bg-gradient-to-r from-primary to-primary-dark hover:from-primary/90 hover:to-primary-dark/90 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 group"
                   disabled={isLoading}
                 >
                   {isLoading ? (

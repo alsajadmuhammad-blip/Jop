@@ -72,7 +72,7 @@ export function StoreHero({ store }: StoreHeroProps) {
             </div>
 
             <div className="grid gap-2">
-              <Button asChild size="lg" className="w-full bg-white text-slate-950 hover:bg-white/90 font-bold flex items-center justify-center gap-2 h-12">
+              <Button asChild size="lg" className="w-full bg-primary text-white hover:bg-primary/90 font-bold flex items-center justify-center gap-2 h-12">
                 <a href="#store-products" aria-label="ابدأ التسوق">
                   <ShoppingCart className="w-5 h-5" />
                   <span>ابدأ التسوق</span>
@@ -81,21 +81,21 @@ export function StoreHero({ store }: StoreHeroProps) {
               <div className={isPhysicalStore ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
                 {isPhysicalStore && (
                   hasLocation ? (
-                    <Button asChild size="lg" className="w-full rounded-full bg-white text-slate-950 hover:bg-white/95 font-semibold flex items-center justify-center gap-2 h-12">
+                    <Button asChild size="lg" className="w-full rounded-full bg-primary text-white hover:bg-primary/90 font-semibold flex items-center justify-center gap-2 h-12">
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer" aria-label="الموقع على الخريطة">
                         <Map className="w-4 h-4 text-slate-950" />
                         <span className="text-sm">الخريطة</span>
                       </a>
                     </Button>
                   ) : (
-                    <Button size="lg" className="w-full rounded-full bg-white/10 text-white/70 border border-white/20 font-semibold flex items-center justify-center gap-2 h-12" disabled>
+                    <Button size="lg" className="w-full rounded-full bg-primary/10 text-white/70 border border-primary/20 font-semibold flex items-center justify-center gap-2 h-12" disabled>
                       <Map className="w-4 h-4" />
                       <span className="text-sm">الخريطة</span>
                     </Button>
                   )
                 )}
                 {whatsappHref ? (
-                  <Button asChild size="lg" className="w-full rounded-full bg-emerald-500 text-white hover:bg-emerald-600 font-semibold flex items-center justify-center gap-2 h-12">
+                  <Button asChild size="lg" className="w-full rounded-full bg-primary text-white hover:bg-primary/90 font-semibold flex items-center justify-center gap-2 h-12">
                     <a href={whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="واتساب">
                       <MessageSquare className="w-4 h-4" />
                       <span className="text-sm">واتساب</span>

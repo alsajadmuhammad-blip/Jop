@@ -204,7 +204,7 @@ const RepresentativeDialog = React.memo(function RepresentativeDialog({
           )}
 
           {formData.paymentSystem === 'commission' && (
-            <Alert className="bg-blue-50 border-blue-200">
+            <Alert className="bg-primary/10 border-primary/20">
               <AlertTitle>نظام العمولات</AlertTitle>
               <AlertDescription>سيتم حساب العمولة تلقائياً وفقاً لسياسات المنصة</AlertDescription>
             </Alert>

@@ -27,7 +27,7 @@ const statusLabels: Record<OrderStatus, string> = {
 
 const statusColors: Record<OrderStatus, string> = {
   "pending": "bg-yellow-100 text-yellow-800",
-  "accepted": "bg-blue-100 text-blue-800",
+  "accepted": "bg-primary/10 text-primary",
   "preparing": "bg-purple-100 text-purple-800",
   "ready_for_pickup": "bg-orange-100 text-orange-800",
   "delivering": "bg-cyan-100 text-cyan-800",

@@ -33,8 +33,9 @@ export function AddStoreDialog({
     storeType: 'فعلي' as 'فعلي' | 'إلكتروني',
     marketType: '',
     packageName: packages?.find((pkg) => pkg.isActive)?.slug || 'basic',
-    province: '',
-    city: '',
+    location: '',
+    latitude: '',
+    longitude: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingTypes, setLoadingTypes] = useState(true);
@@ -51,19 +52,22 @@ export function AddStoreDialog({
 
   useEffect(() => {
     async function loadMarketTypes() {
-      const { data, error } = await supabase.from('stores').select('market_type');
-      if (!error && data) {
-        const persistedTypes = Array.from(
-          new Set(
+      const { data, error } = await supabase
+        .from('stores')
+        .select('market_type')
+        .not('market_type', 'is', null);
+      
+      if (!error && data && data.length > 0) {
+        const uniqueTypes = Array.from(
+          new Set<string>(
             data
-              .map((row: any) => row.market_type || row.marketType)
-              .filter((type: unknown): type is string => typeof type === 'string' && type.trim().length > 0)
+              .map((row: any) => row.market_type)
+              .filter((type: any): type is string => typeof type === 'string' && type.trim().length > 0)
           )
         );
-        const persistedTypeStrings = persistedTypes as string[];
-        setMarketTypeOptions(persistedTypeStrings);
-        if (persistedTypeStrings.length > 0) {
-          const firstMarketType = persistedTypeStrings[0] ?? "";
+        setMarketTypeOptions(uniqueTypes);
+        if (uniqueTypes.length > 0) {
+          const firstMarketType = uniqueTypes[0] ?? "";
           setFormData((prev) => ({ ...prev, marketType: firstMarketType }));
         }
       }
@@ -82,8 +86,38 @@ export function AddStoreDialog({
   };
 
   const handleSubmit = async () => {
-    if (!formData.storeName || !formData.ownerName || !formData.ownerEmail || !formData.password) {
-      toast({ title: "الرجاء ملء جميع الحقول المطلوبة", variant: "destructive" });
+    // التحقق من الحقول المطلوبة
+    if (!formData.storeName?.trim()) {
+      toast({ title: "اسم المتجر مطلوب", variant: "destructive" });
+      return;
+    }
+    if (!formData.ownerName?.trim()) {
+      toast({ title: "اسم صاحب المتجر مطلوب", variant: "destructive" });
+      return;
+    }
+    if (!formData.ownerEmail?.trim()) {
+      toast({ title: "البريد الإلكتروني مطلوب", variant: "destructive" });
+      return;
+    }
+    if (!formData.password?.trim()) {
+      toast({ title: "كلمة المرور مطلوبة", variant: "destructive" });
+      return;
+    }
+    if (!formData.whatsappNumber?.trim()) {
+      toast({ title: "رقم الواتساب مطلوب", variant: "destructive" });
+      return;
+    }
+
+    // التحقق من صيغة البريد الإلكتروني
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.ownerEmail)) {
+      toast({ title: "صيغة البريد الإلكتروني غير صحيحة", variant: "destructive" });
+      return;
+    }
+
+    // التحقق من أن كلمة المرور أطول من 6 أحرف
+    if (formData.password.length < 6) {
+      toast({ title: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
     }
 
@@ -98,13 +132,21 @@ export function AddStoreDialog({
         marketType: formData.marketType,
         packageName: formData.packageName,
         storeType: formData.storeType,
+        location: formData.location,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
       });
 
-      if (!result.success) {
-        throw new Error(result.error || 'فشل إنشاء المتجر.');
+      if (!result?.success) {
+        throw new Error(result?.error || 'فشل إنشاء المتجر.');
       }
 
-      toast({ title: "تم إضافة المتجر بنجاح" });
+      toast({ 
+        title: "تم إضافة المتجر بنجاح",
+        description: `تم إنشاء متجر ${formData.storeName} بنجاح`
+      });
+
+      // إعادة تعيين الفورم
       setFormData({
         storeName: '',
         ownerName: '',
@@ -114,13 +156,20 @@ export function AddStoreDialog({
         storeType: 'فعلي',
         marketType: '',
         packageName: packages?.find((pkg) => pkg.isActive)?.slug || 'basic',
-        province: '',
-        city: '',
+        location: '',
+        latitude: '',
+        longitude: '',
       });
+
       onOpenChange(false);
       onStoreAdded();
     } catch (error: any) {
-      toast({ title: "فشل في إضافة المتجر", description: error.message, variant: "destructive" });
+      console.error("Error creating store:", error);
+      toast({ 
+        title: "فشل في إضافة المتجر", 
+        description: error?.message || "حدث خطأ غير متوقع", 
+        variant: "destructive" 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -163,7 +212,7 @@ export function AddStoreDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">كلمة المرور الأولية *</Label>
+            <Label htmlFor="password">كلمة المرور الأولية (6 أحرف على الأقل) *</Label>
             <Input
               id="password"
               type="password"
@@ -173,49 +222,81 @@ export function AddStoreDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="whatsapp">رقم الواتساب</Label>
+            <Label htmlFor="whatsapp">رقم الواتساب *</Label>
             <Input
               id="whatsapp"
               value={formData.whatsappNumber}
               onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
-              placeholder="07xxxxxxxxx"
+              placeholder="966501234567"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="store-type">نوع المتجر *</Label>
+            <Select 
+              value={formData.storeType} 
+              onValueChange={(value: string) => setFormData({ ...formData, storeType: value as 'فعلي' | 'إلكتروني' })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر نوع المتجر" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="فعلي">فعلي (محل فعلي)</SelectItem>
+                <SelectItem value="إلكتروني">إلكتروني (متجر أونلاين)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="location">الموقع / المحافظة والمدينة</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="مثال: بغداد - الكرادة"
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="province">المحافظة</Label>
+              <Label htmlFor="latitude">خط العرض (Latitude)</Label>
               <Input
-                id="province"
-                value={formData.province}
-                onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                placeholder="بغداد"
+                id="latitude"
+                type="number"
+                step="0.0001"
+                value={formData.latitude}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                placeholder="33.3128"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">المدينة</Label>
+              <Label htmlFor="longitude">خط الطول (Longitude)</Label>
               <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="الكرادة"
+                id="longitude"
+                type="number"
+                step="0.0001"
+                value={formData.longitude}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                placeholder="44.3615"
               />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="market-type">نوع السوق / النشاط</Label>
             <Select
-              value={formData.marketType}
+              value={formData.marketType || undefined}
               onValueChange={(value: string) => setFormData({ ...formData, marketType: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="اختر نوع السوق" />
               </SelectTrigger>
               <SelectContent>
-                {marketTypeOptions.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
+                {marketTypeOptions.length > 0 ? (
+                  marketTypeOptions.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>لا توجد خيارات</SelectItem>
+                )}
               </SelectContent>
             </Select>
             <div className="mt-3 space-y-3">

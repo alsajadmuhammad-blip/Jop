@@ -1,15 +1,88 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductGrid } from "@/components/product-grid";
-import { StoreSectionsNav } from "./store-sections-nav";
+import { Button } from "@/components/ui/button";
 import type { Product, Section } from "@/lib/types";
 
 interface StoreProductsSectionProps {
   products: Product[];
   sections: Section[];
   store?: { type?: string };
+}
+
+interface StoreSectionsNavProps {
+  sections: Section[];
+  activeSection: string;
+  onSectionChange: (sectionId: string) => void;
+}
+
+function StoreSectionsNav({
+  sections,
+  activeSection,
+  onSectionChange,
+}: StoreSectionsNavProps) {
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+
+    const updateShadows = () => {
+      setShowLeftShadow(el.scrollLeft > 4);
+      setShowRightShadow(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    };
+
+    updateShadows();
+    el.addEventListener("scroll", updateShadows, { passive: true });
+    window.addEventListener("resize", updateShadows);
+
+    return () => {
+      el.removeEventListener("scroll", updateShadows);
+      window.removeEventListener("resize", updateShadows);
+    };
+  }, [sections]);
+
+  return (
+    <div className="mb-6 relative">
+      <nav
+        ref={navRef}
+        className="max-w-full min-w-0 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+        aria-label="تنقل أقسام المتجر"
+      >
+        <div className="inline-flex w-max min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm">
+          <Button
+            variant={activeSection === "all" ? "default" : "outline"}
+            className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs"
+            onClick={() => onSectionChange("all")}
+          >
+            الكل
+          </Button>
+
+          {sections.map((section) => (
+            <Button
+              key={section.id}
+              variant={activeSection === section.id ? "default" : "outline"}
+              className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs"
+              onClick={() => onSectionChange(section.id)}
+            >
+              {section.name}
+            </Button>
+          ))}
+        </div>
+      </nav>
+      {showLeftShadow && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-slate-50 to-transparent" />
+      )}
+      {showRightShadow && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-50 to-transparent" />
+      )}
+    </div>
+  );
 }
 
 export function StoreProductsSection({ products, sections, store }: StoreProductsSectionProps) {
@@ -28,8 +101,8 @@ export function StoreProductsSection({ products, sections, store }: StoreProduct
   }, [sortedProducts, activeSection]);
 
   return (
-    <Card id="store-products" className="border-0 shadow-xl">
-      <CardContent className="p-4 sm:p-6">
+    <Card id="store-products" className="border-0 shadow-xl min-w-0 overflow-hidden">
+      <CardContent className="p-4 sm:p-6 min-w-0">
         <StoreSectionsNav
           sections={sections}
           activeSection={activeSection}

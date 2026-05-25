@@ -42,24 +42,24 @@ export function StoreSectionsNav({
     <div className="mb-6 relative">
       <nav
         ref={navRef}
-        className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-        }}
+        className="w-full min-w-0 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+        aria-label="تنقل أقسام المتجر"
       >
-        <div className="flex w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm">
+        <div className="flex min-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm">
           <Button
             variant={activeSection === "all" ? "default" : "outline"}
-            className="whitespace-nowrap rounded-full px-3 py-1 text-xs shrink-0"
+            className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs"
             onClick={() => onSectionChange("all")}
           >
             الكل
           </Button>
+
           {sections.map((section) => (
             <Button
               key={section.id}
               variant={activeSection === section.id ? "default" : "outline"}
-              className="whitespace-nowrap rounded-full px-3 py-1 text-xs shrink-0"
+              className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs"
               onClick={() => onSectionChange(section.id)}
             >
               {section.name}

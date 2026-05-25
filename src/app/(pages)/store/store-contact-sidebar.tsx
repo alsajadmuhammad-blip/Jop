@@ -51,13 +51,13 @@ export function StoreContactSidebar({ store }: StoreContactSidebarProps) {
         )}
 
         {(store.marketType || store.type) && (
-          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-200">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-200 flex-shrink-0">
-              <Globe className="w-5 h-5 text-blue-700" />
+          <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl border border-primary/20">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 flex-shrink-0">
+              <Globe className="w-5 h-5 text-primary" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs text-blue-700 font-semibold uppercase">نوع المتجر</span>
-              <span className="font-bold text-blue-900 text-sm mt-0.5">{store.marketType || store.type || "-"}</span>
+              <span className="text-xs text-primary font-semibold uppercase">نوع المتجر</span>
+              <span className="font-bold text-primary text-sm mt-0.5">{store.marketType || store.type || "-"}</span>
             </div>
           </div>
         )}

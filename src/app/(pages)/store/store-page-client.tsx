@@ -106,14 +106,14 @@ export default function StorePageClient() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 min-w-0">
         <StoreHero store={store} />
 
-        <div className="grid gap-8 lg:grid-cols-[1.7fr_0.95fr]">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid gap-8 lg:grid-cols-[1.7fr_0.95fr] min-w-0 overflow-hidden">
+          <div className="lg:col-span-2 space-y-8 min-w-0 overflow-hidden">
             <StoreProductsSection products={products} sections={sections} store={store} />
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0 overflow-hidden">
             <StoreInfoSidebar store={store} />
             <StoreContactSidebar store={store} />
           </div>

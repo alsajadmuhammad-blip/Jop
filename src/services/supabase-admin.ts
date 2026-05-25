@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 const SUPABASE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 function buildSupabaseFunctionUrl(path: string): string | undefined {
@@ -7,7 +9,7 @@ function buildSupabaseFunctionUrl(path: string): string | undefined {
 
 const SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL =
   process.env.NEXT_PUBLIC_SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL ??
-  buildSupabaseFunctionUrl('functions/v1/create-store-owner');
+  'https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-store';
 const SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL =
   process.env.NEXT_PUBLIC_SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL ??
   buildSupabaseFunctionUrl('functions/v1/create-representative');
@@ -23,9 +25,27 @@ async function fetchSupabaseFunction(url: string | undefined, payload: unknown) 
     Accept: 'application/json',
   };
 
-  if (SUPABASE_ANON_KEY) {
-    headers.apikey = SUPABASE_ANON_KEY;
-    headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+  try {
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken =
+      sessionResult?.data?.session?.access_token ||
+      sessionResult?.data?.access_token ||
+      null;
+
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+      if (SUPABASE_ANON_KEY) {
+        headers.apikey = SUPABASE_ANON_KEY;
+      }
+    } else if (SUPABASE_ANON_KEY) {
+      headers.apikey = SUPABASE_ANON_KEY;
+      headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+    }
+  } catch {
+    if (SUPABASE_ANON_KEY) {
+      headers.apikey = SUPABASE_ANON_KEY;
+      headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+    }
   }
 
   const response = await fetch(url, {
@@ -69,28 +89,11 @@ export async function createRepresentative(payload: {
   });
 }
 
-export async function createStoreOwner(payload: {
-  ownerEmail: string;
-  ownerName: string;
-  ownerPassword: string;
-  storeName: string;
-  whatsappNumber: string;
-  marketType?: string;
-  packageName?: string;
-  storeType?: string;
-  registeredByAgentId?: string;
-  paymentProofUrl?: string | null;
-}) {
-  return fetchSupabaseFunction(SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL, {
-    owner_email: payload.ownerEmail,
-    owner_name: payload.ownerName,
-    owner_password: payload.ownerPassword,
-    store_name: payload.storeName,
-    whatsapp_number: payload.whatsappNumber,
-    market_type: payload.marketType,
-    package_name: payload.packageName,
-    store_type: payload.storeType,
-    registered_by_agent_id: payload.registeredByAgentId,
-    payment_proof_url: payload.paymentProofUrl,
-  });
+export async function createStoreOwner(payload: any) {
+  try {
+    return await fetchSupabaseFunction(SUPABASE_CREATE_STORE_OWNER_FUNCTION_URL, payload);
+  } catch (error: any) {
+    console.error("Error creating store:", error);
+    throw new Error(error?.message || "حدث خطأ أثناء إنشاء المتجر");
+  }
 }
