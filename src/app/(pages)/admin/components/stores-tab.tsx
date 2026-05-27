@@ -138,7 +138,7 @@ export function StoresTab({
           <CardDescription>تحكم في حالة وباقات واشتراكات المتاجر المسجلة.</CardDescription>
         </div>
         <Button asChild>
-          <Link href="/admin/add-store">
+          <Link href="/admin/stores">
             <PlusCircle className="ml-2 h-4 w-4" />
             إضافة متجر جديد
           </Link>

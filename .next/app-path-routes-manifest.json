@@ -1,6 +1,6 @@
 {
-  "/(pages)/admin/add-store/page": "/admin/add-store",
   "/(pages)/admin/page": "/admin",
+  "/(pages)/admin/stores/page": "/admin/stores",
   "/(pages)/cart/page": "/cart",
   "/(pages)/category/[id]/page": "/category/[id]",
   "/(pages)/contact/page": "/contact",
@@ -10,7 +10,6 @@
   "/(pages)/login/page": "/login",
   "/(pages)/orders/page": "/orders",
   "/(pages)/register/page": "/register",
-  "/(pages)/representative/add-store/page": "/representative/add-store",
   "/(pages)/representative/page": "/representative",
   "/(pages)/search/page": "/search",
   "/(pages)/store/page": "/store",
@@ -18,6 +17,7 @@
   "/(pages)/track/page": "/track",
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/admin/create-store/route": "/api/admin/create-store",
   "/favicon.ico/route": "/favicon.ico",
   "/page": "/"
 }

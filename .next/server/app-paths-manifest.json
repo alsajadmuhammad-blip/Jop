@@ -1,6 +1,6 @@
 {
-  "/(pages)/admin/add-store/page": "app/(pages)/admin/add-store/page.js",
   "/(pages)/admin/page": "app/(pages)/admin/page.js",
+  "/(pages)/admin/stores/page": "app/(pages)/admin/stores/page.js",
   "/(pages)/cart/page": "app/(pages)/cart/page.js",
   "/(pages)/category/[id]/page": "app/(pages)/category/[id]/page.js",
   "/(pages)/contact/page": "app/(pages)/contact/page.js",
@@ -10,7 +10,6 @@
   "/(pages)/login/page": "app/(pages)/login/page.js",
   "/(pages)/orders/page": "app/(pages)/orders/page.js",
   "/(pages)/register/page": "app/(pages)/register/page.js",
-  "/(pages)/representative/add-store/page": "app/(pages)/representative/add-store/page.js",
   "/(pages)/representative/page": "app/(pages)/representative/page.js",
   "/(pages)/search/page": "app/(pages)/search/page.js",
   "/(pages)/store/page": "app/(pages)/store/page.js",
@@ -18,6 +17,7 @@
   "/(pages)/track/page": "app/(pages)/track/page.js",
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/create-store/route": "app/api/admin/create-store/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js"
 }

@@ -1,3 +1,4 @@
 {
-    "files.autoGuessEncoding": true
+    "files.autoGuessEncoding": true,
+    "chat.planAgent.defaultModel": "Claude Haiku 4.5 (copilot)"
 }

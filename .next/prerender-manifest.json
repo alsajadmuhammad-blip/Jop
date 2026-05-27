@@ -50,30 +50,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/admin/add-store": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "next-action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/admin/add-store",
-      "dataRoute": "/admin/add-store.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/admin": {
       "experimentalBypassFor": [
         {
@@ -89,6 +65,30 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/admin",
       "dataRoute": "/admin.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/admin/stores": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/admin/stores",
+      "dataRoute": "/admin/stores.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -386,30 +386,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/representative/add-store": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "next-action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/representative/add-store",
-      "dataRoute": "/representative/add-store.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/representative": {
       "experimentalBypassFor": [
         {
@@ -615,8 +591,8 @@
   },
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "deebb4847efcde0cd8f936ade6158922",
-    "previewModeSigningKey": "a4867c06c4f763a28e0601b019175aa393aeb6c95fd9dbfe5f8ff063ee6deb4b",
-    "previewModeEncryptionKey": "440eeff7be005f0f19e442ce0f92ca1cb91bc8a6cf5fa66b34c6a93cc6aa1cc6"
+    "previewModeId": "b18ae6640fb4c56352f5bc124dbc14ea",
+    "previewModeSigningKey": "04d6a7c3602b34bb30a9025a421944fdcf63cc207d1212cf814d5189fc50807e",
+    "previewModeEncryptionKey": "b22f3a3d4ede7acfb75af0c1dfd8bc3bcf3a874ae5b85a404be285c43e58e0c8"
   }
 }

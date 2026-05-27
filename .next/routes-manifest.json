@@ -56,10 +56,16 @@
       "namedRegex": "^/admin(?:/)?$"
     },
     {
-      "page": "/admin/add-store",
-      "regex": "^/admin/add\\-store(?:/)?$",
+      "page": "/admin/stores",
+      "regex": "^/admin/stores(?:/)?$",
       "routeKeys": {},
-      "namedRegex": "^/admin/add\\-store(?:/)?$"
+      "namedRegex": "^/admin/stores(?:/)?$"
+    },
+    {
+      "page": "/api/admin/create-store",
+      "regex": "^/api/admin/create\\-store(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/create\\-store(?:/)?$"
     },
     {
       "page": "/cart",
@@ -120,12 +126,6 @@
       "regex": "^/representative(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/representative(?:/)?$"
-    },
-    {
-      "page": "/representative/add-store",
-      "regex": "^/representative/add\\-store(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/representative/add\\-store(?:/)?$"
     },
     {
       "page": "/search",
