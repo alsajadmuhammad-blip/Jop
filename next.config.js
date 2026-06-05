@@ -1,6 +1,8 @@
 
 /** @type {import('next').NextConfig} */
-const withPWA = require('next-pwa')();
+// const withPWA = require('next-pwa')({
+//   disable: process.env.NODE_ENV === 'development',
+// });
 
 const nextConfig = {
   /* config options here */
@@ -56,4 +58,4 @@ const nextConfig = {
   output: 'export',
 };
 
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig;

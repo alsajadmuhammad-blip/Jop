@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, memo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductGrid } from "@/components/product-grid";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ interface StoreSectionsNavProps {
   onSectionChange: (sectionId: string) => void;
 }
 
-function StoreSectionsNav({
+const StoreSectionsNav = memo(function StoreSectionsNav({
   sections,
   activeSection,
   onSectionChange,
@@ -83,9 +83,9 @@ function StoreSectionsNav({
       )}
     </div>
   );
-}
+});
 
-export function StoreProductsSection({ products, sections, store }: StoreProductsSectionProps) {
+function StoreProductsSectionContent({ products, sections, store }: StoreProductsSectionProps) {
   const [activeSection, setActiveSection] = useState<string>("all");
 
   const sortedProducts = useMemo(() => {
@@ -100,13 +100,17 @@ export function StoreProductsSection({ products, sections, store }: StoreProduct
     return sortedProducts.filter((product) => product.sectionId === activeSection);
   }, [sortedProducts, activeSection]);
 
+  const handleSectionChange = useCallback((sectionId: string) => {
+    setActiveSection(sectionId);
+  }, []);
+
   return (
     <Card id="store-products" className="border-0 shadow-xl min-w-0 overflow-hidden">
       <CardContent className="p-4 sm:p-6 min-w-0">
         <StoreSectionsNav
           sections={sections}
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
         />
 
         {filteredProducts.length === 0 ? (
@@ -120,3 +124,5 @@ export function StoreProductsSection({ products, sections, store }: StoreProduct
     </Card>
   );
 }
+
+export const StoreProductsSection = memo(StoreProductsSectionContent);

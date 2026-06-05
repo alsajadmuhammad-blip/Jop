@@ -29,16 +29,6 @@ export function StoreRatingDialogWrapper({ storeId, storeName, ownerId, buttonCl
   const isAdmin = userRole === 'admin';
 
   const handleOpenDialog = () => {
-    if (!user) {
-        toast({
-            variant: "destructive",
-            title: "يرجى تسجيل الدخول",
-            description: "يجب عليك تسجيل الدخول أولاً لتقييم المتجر.",
-        });
-        router.push('/login');
-        return;
-    }
-
     if (isOwner || isAdmin) {
        toast({
         variant: "destructive",
@@ -53,6 +43,7 @@ export function StoreRatingDialogWrapper({ storeId, storeName, ownerId, buttonCl
   if (isOwner) {
     return null;
   }
+
 
   const handleRatingSubmit = async (rating: number) => {
     try {
@@ -101,7 +92,7 @@ export function StoreRatingDialogWrapper({ storeId, storeName, ownerId, buttonCl
         });
         errorEmitter.emit('permission-error', permissionError);
 
-        let errorMessage = "فشل إرسال التقييم. ليس لديك صلاحية أو حدث خطأ ما.";
+        let errorMessage = "فشل إرسال التقييم. حدث خطأ ما.";
         if (error && error.message && !error.message.toLowerCase().includes("permission-denied")) {
              errorMessage = error.message;
         }

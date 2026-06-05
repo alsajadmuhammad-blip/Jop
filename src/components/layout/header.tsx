@@ -102,16 +102,27 @@ export function Header() {
         {!isGuest ? (
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group hover:opacity-80 transition-opacity">
             <Image
-              src="/icons/icon-192x192.png"
+              src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
               alt="مركزي"
-              width={32}
-              height={32}
-              className="rounded-lg"
+              width={40}
+              height={40}
+              className="object-contain"
+              priority
             />
             <span className="hidden sm:inline font-bold text-lg font-headline text-primary">مركزي</span>
           </Link>
         ) : (
-          <div className="min-w-[2.5rem]" />
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 group hover:opacity-80 transition-opacity">
+            <Image
+              src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
+              alt="مركزي"
+              width={40}
+              height={40}
+              className="object-contain"
+              priority
+            />
+            <span className="hidden sm:inline font-bold text-lg font-headline text-primary">مركزي</span>
+          </Link>
         )}
 
         {!isGuest && (

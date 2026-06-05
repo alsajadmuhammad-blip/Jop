@@ -59,6 +59,12 @@ export default function ChangePasswordPage() {
 
       if (dbError) throw dbError;
 
+      // إعادة تحميل بيانات المستخدم من قاعدة البيانات
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard/store';
+        return;
+      }
+
       toast({
         title: "تم تغيير كلمة المرور بنجاح",
         description: "سيتم توجيهك إلى لوحة التحكم الخاصة بمتجرك.",

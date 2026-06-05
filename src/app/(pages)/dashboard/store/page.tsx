@@ -436,10 +436,7 @@ export default function StoreDashboardPage() {
       return;
     }
 
-    if (user.firstLogin && pathname !== '/dashboard/store/change-password') {
-      router.push('/dashboard/store/change-password');
-      return;
-    }
+    // لم يعد تغيير كلمة السر إجبارياً
 
     const isSameUser = user.id === storeLoadUserId;
     if (store !== null || (storeLoadAttempted && isSameUser)) {

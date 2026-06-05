@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Image from "next/image";
 import { ShoppingCart, Check, ImageIcon } from "lucide-react";
 
@@ -17,7 +17,7 @@ interface ProductCardProps {
   onQuickView: (product: Product) => void;
 }
 
-export function ProductCard({ product, onQuickView }: ProductCardProps) {
+function ProductCardContent({ product, onQuickView }: ProductCardProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
   const [isAdded, setIsAdded] = useState(false);
@@ -50,54 +50,60 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   }
 
   return (
-    <div onClick={handleCardClick} className="group cursor-pointer min-w-0">
-      <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-border/30 bg-card/50 transition-all duration-200 hover:shadow-sm hover:border-primary/40 hover:bg-card">
-        <div className="relative h-32 md:h-40 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center">
+    <div onClick={handleCardClick} className="group cursor-pointer h-full min-w-0 will-change-transform">
+      <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border-2 border-blue-200 bg-card shadow-lg transition-all duration-300 hover:shadow-2xl hover:border-blue-400 hover:bg-card/98 active:shadow-lg" style={{ boxShadow: '0 0 20px rgba(59, 130, 246, 0.1)' }}>
+        <div className="relative h-48 md:h-56 lg:h-64 w-full min-w-0 overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center">
           {product.imageUrl ? (
             product.imageUrl.startsWith('data:') ? (
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="object-cover transition-transform duration-200 group-hover:scale-105 w-full h-full"
+                className="object-cover transition-transform duration-300 group-hover:scale-110 w-full h-full will-change-transform"
+                loading="lazy"
               />
             ) : (
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                className="object-cover transition-transform duration-200 group-hover:scale-105"
-                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-110 will-change-transform"
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                loading="lazy"
               />
             )
           ) : (
-            <ImageIcon className="size-6 text-muted-foreground/20" />
+            <ImageIcon className="size-10 text-muted-foreground/30" />
           )}
-          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          <div className="absolute inset-0 bg-black/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
         
-        <div className="p-2 md:p-3 space-y-1.5">
-          <h3 className="line-clamp-2 text-xs md:text-sm font-semibold text-foreground">{product.name}</h3>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs md:text-sm font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
-              <Button
-                size="sm"
-                className={cn(
-                  "size-7 md:size-8 rounded-md p-0 transition-all duration-150 shrink-0 text-xs",
-                  isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
-                )}
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-              >
-                {isAdded ? <Check className="h-3 w-3 md:h-4 md:w-4" /> : <ShoppingCart className="h-3 w-3 md:h-4 md:w-4" />}
-              </Button>
+        <div className="flex-1 p-3 md:p-4 space-y-2 flex flex-col">
+          <h3 className="line-clamp-2 text-sm md:text-base font-bold text-foreground leading-tight">{product.name}</h3>
+          <div className="flex-1 space-y-3 flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm md:text-base font-extrabold text-primary">{product.price.toLocaleString()} د.ع</p>
+                <Button
+                  size="sm"
+                  className={cn(
+                    "size-8 md:size-9 rounded-lg p-0 transition-all duration-150 shrink-0 text-xs font-semibold shadow-md hover:shadow-lg",
+                    isAdded ? "bg-green-500 hover:bg-green-600 active:scale-95" : "bg-primary hover:bg-primary/90 active:scale-95"
+                  )}
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                >
+                  {isAdded ? <Check className="h-4 w-4 md:h-5 md:w-5" /> : <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />}
+                </Button>
+              </div>
+              <p className={cn("text-xs md:text-sm font-semibold", product.stock > 0 ? "text-emerald-600" : "text-destructive")}> 
+                {product.stock > 0 ? `متوفر: ${product.stock}` : "نفد المخزون"}
+              </p>
             </div>
-            <p className={cn("text-[11px] md:text-xs font-medium", product.stock > 0 ? "text-success" : "text-destructive")}> 
-              {product.stock > 0 ? `متوفر: ${product.stock}` : "نفد المخزون"}
-            </p>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+export const ProductCard = memo(ProductCardContent);
