@@ -52,27 +52,13 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
   return (
     <div 
       onClick={handleCardClick} 
-      className="group cursor-pointer h-full min-w-0" 
-      style={{ 
-        contain: 'layout style paint',
-        willChange: 'transform',
-        transform: 'translateZ(0)',
-      }}
+      className="group cursor-pointer h-full min-w-0"
     >
       <div 
-        className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border-2 border-blue-200 bg-card shadow-lg transition-shadow duration-200 hover:shadow-xl active:shadow-lg" 
-        style={{ 
-          boxShadow: '0 0 20px rgba(59, 130, 246, 0.1)',
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-        }}
+        className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-card shadow hover:shadow-md transition-shadow duration-150"
       >
         <div 
-          className="relative h-48 md:h-56 lg:h-64 w-full min-w-0 overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center" 
-          style={{ 
-            contain: 'strict',
-            contentVisibility: 'auto',
-          }}
+          className="relative h-48 md:h-56 lg:h-64 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center"
         >
           {product.imageUrl ? (
             product.imageUrl.startsWith('data:') ? (
@@ -108,12 +94,11 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
                 <Button
                   size="sm"
                   className={cn(
-                    "size-8 md:size-9 rounded-lg p-0 transition-all duration-150 shrink-0 text-xs font-semibold shadow-md hover:shadow-lg active:scale-95",
+                    "size-8 md:size-9 rounded-lg p-0 transition-colors duration-150 text-xs font-semibold shadow-sm hover:shadow active:scale-95",
                     isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
                   )}
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
-                  style={{ transform: 'translateZ(0)' }}
                 >
                   {isAdded ? <Check className="h-4 w-4 md:h-5 md:w-5" /> : <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />}
                 </Button>
