@@ -5,6 +5,7 @@
   "/(pages)/category/[id]/page": "app/(pages)/category/[id]/page.js",
   "/(pages)/contact/page": "app/(pages)/contact/page.js",
   "/(pages)/dashboard/representative/page": "app/(pages)/dashboard/representative/page.js",
+  "/(pages)/dashboard/store/add-product/page": "app/(pages)/dashboard/store/add-product/page.js",
   "/(pages)/dashboard/store/change-password/page": "app/(pages)/dashboard/store/change-password/page.js",
   "/(pages)/dashboard/store/page": "app/(pages)/dashboard/store/page.js",
   "/(pages)/login/page": "app/(pages)/login/page.js",

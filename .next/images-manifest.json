@@ -12,6 +12,7 @@
       3840
     ],
     "imageSizes": [
+      16,
       32,
       48,
       64,
@@ -33,8 +34,8 @@
     "maximumRedirects": 3,
     "maximumResponseBody": 50000000,
     "dangerouslyAllowLocalIP": false,
-    "dangerouslyAllowSVG": false,
-    "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
+    "dangerouslyAllowSVG": true,
+    "contentSecurityPolicy": "default-src 'self'; script-src 'none'; sandbox;",
     "contentDispositionType": "attachment",
     "localPatterns": [
       {
@@ -81,6 +82,7 @@
       1920,
       2048,
       3840,
+      16,
       32,
       48,
       64,

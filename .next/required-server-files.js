@@ -6,7 +6,6 @@ self.__SERVER_FILES_MANIFEST={
       "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZm9nanVtcHl5Z2Z0d3dibXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MzcwNjAsImV4cCI6MjA4NTUxMzA2MH0._Y-3DIx-VtPlGlRwUG-YdXPm2SQp1N7W7P2w0LubctM",
       "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "markazi-iq"
     },
-    "webpack": null,
     "typescript": {
       "ignoreBuildErrors": false
     },
@@ -38,6 +37,7 @@ self.__SERVER_FILES_MANIFEST={
         3840
       ],
       "imageSizes": [
+        16,
         32,
         48,
         64,
@@ -59,8 +59,8 @@ self.__SERVER_FILES_MANIFEST={
       "maximumRedirects": 3,
       "maximumResponseBody": 50000000,
       "dangerouslyAllowLocalIP": false,
-      "dangerouslyAllowSVG": false,
-      "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
+      "dangerouslyAllowSVG": true,
+      "contentSecurityPolicy": "default-src 'self'; script-src 'none'; sandbox;",
       "contentDispositionType": "attachment",
       "localPatterns": [
         {
@@ -131,7 +131,7 @@ self.__SERVER_FILES_MANIFEST={
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/workspaces/markazi",
+    "outputFileTracingRoot": "/workspaces/Same-",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -242,6 +242,7 @@ self.__SERVER_FILES_MANIFEST={
       "turbopackInferModuleSideEffects": false,
       "optimizePackageImports": [
         "lucide-react",
+        "@radix-ui/react-*",
         "date-fns",
         "lodash-es",
         "ramda",
@@ -324,11 +325,11 @@ self.__SERVER_FILES_MANIFEST={
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.js",
     "turbopack": {
-      "root": "/workspaces/markazi"
+      "root": "/workspaces/Same-"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "/workspaces/markazi",
+  "appDir": "/workspaces/Same-",
   "relativeAppDir": "",
   "files": [
     ".next/routes-manifest.json",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, memo, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, memo, useCallback, useTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductGrid } from "@/components/product-grid";
 import { Button } from "@/components/ui/button";
@@ -26,38 +26,66 @@ const StoreSectionsNav = memo(function StoreSectionsNav({
   const navRef = useRef<HTMLDivElement | null>(null);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
+  const shadowCheckTimeoutRef = useRef<NodeJS.Timeout>();
+  const rafRef = useRef<number>();
+
+  const updateShadows = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+
+    setShowLeftShadow(el.scrollLeft > 4);
+    setShowRightShadow(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
 
   useEffect(() => {
     const el = navRef.current;
     if (!el) return;
 
-    const updateShadows = () => {
-      setShowLeftShadow(el.scrollLeft > 4);
-      setShowRightShadow(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    updateShadows();
+
+    const handleScroll = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (shadowCheckTimeoutRef.current) clearTimeout(shadowCheckTimeoutRef.current);
+      
+      rafRef.current = requestAnimationFrame(() => {
+        shadowCheckTimeoutRef.current = setTimeout(updateShadows, 50);
+      });
     };
 
-    updateShadows();
-    el.addEventListener("scroll", updateShadows, { passive: true });
-    window.addEventListener("resize", updateShadows);
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    
+    const observer = new ResizeObserver(() => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(updateShadows);
+    });
+    observer.observe(el);
 
     return () => {
-      el.removeEventListener("scroll", updateShadows);
-      window.removeEventListener("resize", updateShadows);
+      el.removeEventListener("scroll", handleScroll);
+      observer.disconnect();
+      if (shadowCheckTimeoutRef.current) clearTimeout(shadowCheckTimeoutRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [sections]);
+  }, [updateShadows]);
 
   return (
     <div className="mb-6 relative">
       <nav
         ref={navRef}
         className="max-w-full min-w-0 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          contain: 'layout style paint',
+        }}
         aria-label="تنقل أقسام المتجر"
       >
-        <div className="inline-flex w-max min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm">
+        <div 
+          className="inline-flex w-max min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm"
+          style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+        >
           <Button
             variant={activeSection === "all" ? "default" : "outline"}
-            className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs"
+            className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs transition-colors duration-150"
             onClick={() => onSectionChange("all")}
           >
             الكل
@@ -67,7 +95,7 @@ const StoreSectionsNav = memo(function StoreSectionsNav({
             <Button
               key={section.id}
               variant={activeSection === section.id ? "default" : "outline"}
-              className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs"
+              className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs transition-colors duration-150"
               onClick={() => onSectionChange(section.id)}
             >
               {section.name}
@@ -76,10 +104,16 @@ const StoreSectionsNav = memo(function StoreSectionsNav({
         </div>
       </nav>
       {showLeftShadow && (
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-slate-50 to-transparent" />
+        <div 
+          className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-slate-50 to-transparent" 
+          style={{ contain: 'strict' }}
+        />
       )}
       {showRightShadow && (
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-50 to-transparent" />
+        <div 
+          className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-50 to-transparent" 
+          style={{ contain: 'strict' }}
+        />
       )}
     </div>
   );
@@ -87,6 +121,7 @@ const StoreSectionsNav = memo(function StoreSectionsNav({
 
 function StoreProductsSectionContent({ products, sections, store }: StoreProductsSectionProps) {
   const [activeSection, setActiveSection] = useState<string>("all");
+  const [, startTransition] = useTransition();
 
   const sortedProducts = useMemo(() => {
     return [...products].sort((a, b) => {
@@ -101,11 +136,17 @@ function StoreProductsSectionContent({ products, sections, store }: StoreProduct
   }, [sortedProducts, activeSection]);
 
   const handleSectionChange = useCallback((sectionId: string) => {
-    setActiveSection(sectionId);
+    startTransition(() => {
+      setActiveSection(sectionId);
+    });
   }, []);
 
   return (
-    <Card id="store-products" className="border-0 shadow-xl min-w-0 overflow-hidden">
+    <Card 
+      id="store-products" 
+      className="border-0 shadow-xl min-w-0 overflow-hidden"
+      style={{ contain: 'layout style paint' }}
+    >
       <CardContent className="p-4 sm:p-6 min-w-0">
         <StoreSectionsNav
           sections={sections}

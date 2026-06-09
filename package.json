@@ -12,7 +12,8 @@
     "build:analyze": "ANALYZE=true next build",
     "export": "next build",
     "deploy:firebase": "npm run build && firebase deploy --only hosting",
-    "deploy:vercel": "vercel deploy --prod"
+    "deploy:vercel": "vercel deploy --prod",
+    "build:prod": "npm run typecheck && npm run lint && next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

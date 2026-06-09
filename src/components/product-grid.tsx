@@ -36,7 +36,7 @@ function ProductGridContent({ products }: ProductGridProps) {
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 lg:gap-6 auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 lg:gap-6 auto-rows-fr" style={{ contain: 'layout style paint' }}>
                 {productCards}
             </div>
             <ProductQuickView

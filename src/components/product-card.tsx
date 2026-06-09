@@ -50,31 +50,53 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
   }
 
   return (
-    <div onClick={handleCardClick} className="group cursor-pointer h-full min-w-0 will-change-transform">
-      <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border-2 border-blue-200 bg-card shadow-lg transition-all duration-300 hover:shadow-2xl hover:border-blue-400 hover:bg-card/98 active:shadow-lg" style={{ boxShadow: '0 0 20px rgba(59, 130, 246, 0.1)' }}>
-        <div className="relative h-48 md:h-56 lg:h-64 w-full min-w-0 overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center">
+    <div 
+      onClick={handleCardClick} 
+      className="group cursor-pointer h-full min-w-0" 
+      style={{ 
+        contain: 'layout style paint',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
+      }}
+    >
+      <div 
+        className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border-2 border-blue-200 bg-card shadow-lg transition-shadow duration-200 hover:shadow-xl active:shadow-lg" 
+        style={{ 
+          boxShadow: '0 0 20px rgba(59, 130, 246, 0.1)',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+        }}
+      >
+        <div 
+          className="relative h-48 md:h-56 lg:h-64 w-full min-w-0 overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center" 
+          style={{ 
+            contain: 'strict',
+            contentVisibility: 'auto',
+          }}
+        >
           {product.imageUrl ? (
             product.imageUrl.startsWith('data:') ? (
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="object-cover transition-transform duration-300 group-hover:scale-110 w-full h-full will-change-transform"
+                className="object-cover w-full h-full"
                 loading="lazy"
+                decoding="async"
               />
             ) : (
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                className="object-cover transition-transform duration-300 group-hover:scale-110 will-change-transform"
+                className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                 loading="lazy"
+                decoding="async"
               />
             )
           ) : (
             <ImageIcon className="size-10 text-muted-foreground/30" />
           )}
-          <div className="absolute inset-0 bg-black/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
         
         <div className="flex-1 p-3 md:p-4 space-y-2 flex flex-col">
@@ -86,11 +108,12 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
                 <Button
                   size="sm"
                   className={cn(
-                    "size-8 md:size-9 rounded-lg p-0 transition-all duration-150 shrink-0 text-xs font-semibold shadow-md hover:shadow-lg",
-                    isAdded ? "bg-green-500 hover:bg-green-600 active:scale-95" : "bg-primary hover:bg-primary/90 active:scale-95"
+                    "size-8 md:size-9 rounded-lg p-0 transition-all duration-150 shrink-0 text-xs font-semibold shadow-md hover:shadow-lg active:scale-95",
+                    isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
                   )}
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
+                  style={{ transform: 'translateZ(0)' }}
                 >
                   {isAdded ? <Check className="h-4 w-4 md:h-5 md:w-5" /> : <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />}
                 </Button>

@@ -12,11 +12,10 @@ import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ProductFormDialog } from "@/components/dashboard/product-form-dialog";
+// Removed ProductFormDialog - now using separate page
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { createProduct, deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, mapProductRow, mapStoreRow, updateProduct, createStoreSection, updateStoreSection, deleteStoreSection } from "@/services/supabase-db";
-import { uploadProductImageForStore } from "@/services/supabase-storage";
+import { deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, createStoreSection, updateStoreSection, deleteStoreSection } from "@/services/supabase-db";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
 import {
@@ -317,8 +316,6 @@ export default function StoreDashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [newSectionName, setNewSectionName] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
   const [isStoreActive, setIsStoreActive] = useState(false);
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
@@ -600,13 +597,11 @@ export default function StoreDashboardPage() {
         });
         return;
     }
-    setEditingProduct(undefined);
-    setIsDialogOpen(true);
+    router.push('/dashboard/store/add-product');
   };
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setIsDialogOpen(true);
+    router.push(`/dashboard/store/add-product?id=${product.id}`);
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -658,66 +653,7 @@ export default function StoreDashboardPage() {
     }
   };
 
-  const handleSaveProduct = async (productData: Omit<Product, "id" | "storeId"> & { imageFile?: File | null }) => {
-    const storeId = user?.storeId || store?.id;
-    if (!storeId) {
-      toast({ title: "فشل حفظ المنتج", description: "لم يتم العثور على هوية المتجر.", variant: "destructive" });
-      return;
-    }
-
-    const finalProductData = { ...productData };
-
-    try {
-      if (productData.imageFile) {
-        const uploadResult = await uploadProductImageForStore(productData.imageFile, storeId);
-        if (!uploadResult.success) {
-          throw new Error(uploadResult.error || 'فشل رفع صورة المنتج.');
-        }
-        finalProductData.imageUrl = uploadResult.url || finalProductData.imageUrl || undefined;
-      }
-
-      if (editingProduct) {
-        if (!finalProductData.imageUrl) finalProductData.imageUrl = editingProduct.imageUrl;
-        const updated = await updateProduct(editingProduct.id, {
-          name: finalProductData.name,
-          description: finalProductData.description,
-          price: finalProductData.price,
-          imageUrl: finalProductData.imageUrl,
-          sectionId: finalProductData.sectionId,
-          sku: finalProductData.sku,
-          stock: finalProductData.stock,
-        });
-        if (!updated) throw new Error('فشل تحديث المنتج.');
-        toast({ title: "تم تحديث المنتج بنجاح." });
-      } else {
-        if (isProductLimitReached) {
-          toast({ variant: 'destructive', title: 'تم الوصول للحد الأقصى', description: 'لا يمكنك إضافة المزيد من المنتجات.' });
-          return;
-        }
-        const created = await createProduct({
-          name: finalProductData.name,
-          description: finalProductData.description,
-          price: finalProductData.price,
-          sectionId: finalProductData.sectionId,
-          sku: finalProductData.sku,
-          stock: finalProductData.stock,
-          imageUrl: finalProductData.imageUrl || undefined,
-          storeId,
-        });
-        if (!created) throw new Error('فشل إضافة المنتج.');
-        toast({ title: "تمت إضافة المنتج بنجاح." });
-      }
-
-      const productsRows = await fetchProductsByStore(storeId);
-      setProducts(productsRows);
-
-      setIsDialogOpen(false);
-      setEditingProduct(undefined);
-    } catch (error) {
-      console.error("Failed to save product:", error);
-      toast({ title: "فشل حفظ المنتج", description: error instanceof Error ? error.message : undefined, variant: "destructive" });
-    }
-  };
+  // Product saving is now handled in the add-product page
   
   if (loading || authLoading) {
     return <div className="flex items-center justify-center h-screen bg-muted/40"><p>جاري تحميل بيانات المتجر...</p></div>;
@@ -906,13 +842,7 @@ export default function StoreDashboardPage() {
                 </main>
              </div>
 
-      <ProductFormDialog
-            isOpen={isDialogOpen}
-            onClose={() => setIsDialogOpen(false)}
-            onSave={handleSaveProduct}
-            product={editingProduct}
-            sections={sections}
-        />
+      {/* Product form moved to separate page at /dashboard/store/add-product */}
     </>
     );
 }

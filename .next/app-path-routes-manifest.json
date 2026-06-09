@@ -5,6 +5,7 @@
   "/(pages)/category/[id]/page": "/category/[id]",
   "/(pages)/contact/page": "/contact",
   "/(pages)/dashboard/representative/page": "/dashboard/representative",
+  "/(pages)/dashboard/store/add-product/page": "/dashboard/store/add-product",
   "/(pages)/dashboard/store/change-password/page": "/dashboard/store/change-password",
   "/(pages)/dashboard/store/page": "/dashboard/store",
   "/(pages)/login/page": "/login",

@@ -20,10 +20,10 @@ function StoreContactSidebarContent({ store }: StoreContactSidebarProps) {
   if (!hasContact) return null;
 
   return (
-    <Card className="border-0 shadow-xl">
+    <Card className="border-0 shadow-xl" style={{ contain: 'layout style paint' }}>
       <CardContent className="space-y-3 p-5">
         {store.whatsappNumber && (
-          <Button asChild className="w-full h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold flex items-center justify-center gap-2 hover:from-green-600 hover:to-emerald-600 text-sm shadow-lg hover:shadow-xl transition-all duration-300">
+          <Button asChild className="w-full h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold flex items-center justify-center gap-2 hover:from-green-600 hover:to-emerald-600 text-sm shadow-lg hover:shadow-xl">
             <a href={`https://wa.me/${store.whatsappNumber.replace(/[^0-9+]/g, "")}`} target="_blank" rel="noopener noreferrer">
               <Phone className="w-5 h-5" />
               <span>تواصل عبر واتساب</span>
@@ -32,7 +32,7 @@ function StoreContactSidebarContent({ store }: StoreContactSidebarProps) {
         )}
 
         {hasLocation && mapsUrl && (
-          <Button asChild className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold flex items-center justify-center gap-2 hover:from-amber-600 hover:to-orange-600 text-sm shadow-lg hover:shadow-xl transition-all duration-300">
+          <Button asChild className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold flex items-center justify-center gap-2 hover:from-amber-600 hover:to-orange-600 text-sm shadow-lg hover:shadow-xl">
             <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
               <MapPin className="w-5 h-5" />
               <span>موقعنا على الخريطة</span>

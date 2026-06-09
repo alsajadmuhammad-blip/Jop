@@ -92,6 +92,12 @@
       "namedRegex": "^/dashboard/store(?:/)?$"
     },
     {
+      "page": "/dashboard/store/add-product",
+      "regex": "^/dashboard/store/add\\-product(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/store/add\\-product(?:/)?$"
+    },
+    {
       "page": "/dashboard/store/change-password",
       "regex": "^/dashboard/store/change\\-password(?:/)?$",
       "routeKeys": {},

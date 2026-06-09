@@ -11,7 +11,12 @@ const nextConfig = {
 
   // تأكد من ظهور أخطاء TypeScript أثناء البناء لتجنب المشاكل في الإنتاج.
   productionBrowserSourceMaps: false,
+  
+  // Turbopack config for faster builds
   turbopack: {},
+  
+  // Compression and optimization
+  compress: true,
   
   // Images optimization
   images: {
@@ -43,8 +48,46 @@ const nextConfig = {
       }
     ],
     formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  
+
+  // Webpack optimization
+  webpack: (config, { isServer }) => {
+    config.optimization = {
+      ...config.optimization,
+      minimize: true,
+      usedExports: true,
+      sideEffects: false,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          // Vendor chunk for external dependencies
+          vendor: {
+            filename: 'chunks/vendor.js',
+            test: /node_modules/,
+            name: 'vendor',
+            priority: 10,
+            reuseExistingChunk: true,
+            enforce: true,
+          },
+          // Common chunk for shared code
+          common: {
+            minChunks: 2,
+            priority: 5,
+            reuseExistingChunk: true,
+            name: 'common',
+          },
+        },
+      },
+    };
+    return config;
+  },
+
   // Environment variables
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -55,7 +98,13 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL: process.env.NEXT_PUBLIC_SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL,
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   },
+
   output: 'export',
+
+  // Export tracing for smaller builds
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-*'],
+  },
 };
 
 module.exports = nextConfig;

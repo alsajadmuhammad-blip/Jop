@@ -16,10 +16,10 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="border-0 shadow-xl">
+      <Card className="border-0 shadow-xl" style={{ contain: 'layout style paint' }}>
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-4">
-            <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 border-2 border-blue-200">
+            <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 border-2 border-blue-200" style={{ contain: 'strict' }}>
               {store.logoUrl ? <Image src={store.logoUrl} alt={store.name} fill className="object-cover" /> : null}
             </div>
             <div className="flex-1 min-w-0">
@@ -30,11 +30,11 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg" style={{ contain: 'layout style paint' }}>
         <CardContent className="p-0">
           <Accordion type="multiple" className="w-full">
             <AccordionItem value="rating" className="border-b border-slate-200 last:border-0">
-              <AccordionTrigger className="px-5 py-4 hover:bg-slate-50 transition-colors">
+              <AccordionTrigger className="px-5 py-4 hover:bg-slate-50">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-100">
                     <Star className="w-5 h-5 text-blue-600" />
@@ -51,7 +51,7 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
             </AccordionItem>
 
             <AccordionItem value="status" className="border-b border-slate-200 last:border-0">
-              <AccordionTrigger className="px-5 py-4 hover:bg-slate-50 transition-colors">
+              <AccordionTrigger className="px-5 py-4 hover:bg-slate-50">
                 <div className="flex items-center gap-3">
                   <div className={`flex items-center justify-center w-9 h-9 rounded-full ${store.isActive ? "bg-green-100" : "bg-red-100"}`}>
                     {store.isActive ? (
@@ -74,7 +74,7 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
 
             {hasDelivery && (
               <AccordionItem value="delivery" className="border-b border-slate-200 last:border-0">
-                <AccordionTrigger className="px-5 py-4 hover:bg-slate-50 transition-colors">
+                <AccordionTrigger className="px-5 py-4 hover:bg-slate-50">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-100">
                       <Truck className="w-5 h-5 text-blue-600" />
@@ -91,7 +91,7 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
             )}
 
             <AccordionItem value="hours" className="border-b border-slate-200 last:border-0">
-              <AccordionTrigger className="px-5 py-4 hover:bg-slate-50 transition-colors">
+              <AccordionTrigger className="px-5 py-4 hover:bg-slate-50">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-200">
                     <Clock className="w-5 h-5 text-slate-700" />
@@ -110,7 +110,7 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
 
             {store.location && (
               <AccordionItem value="location" className="border-b border-slate-200 last:border-0">
-                <AccordionTrigger className="px-5 py-4 hover:bg-slate-50 transition-colors">
+                <AccordionTrigger className="px-5 py-4 hover:bg-slate-50">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-9 h-9 rounded-full bg-red-100">
                       <MapPin className="w-5 h-5 text-red-600" />

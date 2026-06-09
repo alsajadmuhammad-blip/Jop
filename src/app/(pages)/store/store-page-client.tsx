@@ -1,16 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Globe } from "lucide-react";
 import { StoreHero } from "./store-hero";
-import { StoreProductsSection } from "./store-products-section";
-import { StoreInfoSidebar } from "./store-info-sidebar";
-import { StoreContactSidebar } from "./store-contact-sidebar";
 import type { Product, Store, Section } from "@/lib/types";
+
+// Dynamic imports with loading fallbacks for better performance
+const StoreProductsSection = dynamic(
+  () => import("./store-products-section").then(mod => ({ default: mod.StoreProductsSection })),
+  { 
+    loading: () => <Skeleton className="h-64 rounded-[2rem]" />,
+    ssr: true 
+  }
+);
+
+const StoreInfoSidebar = dynamic(
+  () => import("./store-info-sidebar").then(mod => ({ default: mod.StoreInfoSidebar })),
+  { 
+    loading: () => <Skeleton className="h-48 rounded-[2rem]" />,
+    ssr: true 
+  }
+);
+
+const StoreContactSidebar = dynamic(
+  () => import("./store-contact-sidebar").then(mod => ({ default: mod.StoreContactSidebar })),
+  { 
+    loading: () => <Skeleton className="h-32 rounded-[2rem]" />,
+    ssr: true 
+  }
+);
 
 export default function StorePageClient() {
   const searchParams = useSearchParams();
@@ -44,8 +67,11 @@ export default function StorePageClient() {
           throw new Error("هذا المتجر غير متاح حالياً.");
         }
 
-        const productsData = await fetchProductsByStore(storeId);
-        const sectionsData = await fetchStoreSections(storeId);
+        // Parallel loading for better performance
+        const [productsData, sectionsData] = await Promise.all([
+          fetchProductsByStore(storeId),
+          fetchStoreSections(storeId),
+        ]);
 
         setStore(fetchedStore);
         setProducts(productsData);
@@ -105,15 +131,15 @@ export default function StorePageClient() {
   if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50" style={{ contain: 'layout' }}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 min-w-0">
         <StoreHero store={store} />
 
         <div className="grid gap-8 lg:grid-cols-[1.7fr_0.95fr] min-w-0 overflow-hidden">
-          <div className="lg:col-span-2 space-y-8 min-w-0 overflow-hidden">
+          <div className="lg:col-span-2 space-y-8 min-w-0 overflow-hidden" style={{ contain: 'layout style paint' }}>
             <StoreProductsSection products={products} sections={sections} store={store} />
           </div>
-          <div className="space-y-6 min-w-0 overflow-hidden">
+          <div className="space-y-6 min-w-0 overflow-hidden" style={{ contain: 'layout style paint' }}>
             <StoreInfoSidebar store={store} />
             <StoreContactSidebar store={store} />
           </div>
@@ -122,4 +148,3 @@ export default function StorePageClient() {
     </div>
   );
 }
-
