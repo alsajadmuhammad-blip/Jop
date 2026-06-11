@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, UserPlus } from "lucide-react";
+import { Users, UserPlus, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Store, User } from "@/lib/types";
 import { createRepresentative } from "@/services/supabase-admin";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const RepresentativeDialog = React.memo(function RepresentativeDialog({
   isOpen,
@@ -226,16 +227,193 @@ const RepresentativeDialog = React.memo(function RepresentativeDialog({
 
 RepresentativeDialog.displayName = 'RepresentativeDialog';
 
+const EditRepresentativeDialog = React.memo(function EditRepresentativeDialog({
+  isOpen,
+  onOpenChange,
+  representative,
+  onRepresentativeUpdated,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  representative: User | null;
+  onRepresentativeUpdated?: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: representative?.name || '',
+    paymentSystem: (representative?.paymentSystem || 'salary') as 'salary' | 'commission',
+    monthlySalary: representative?.monthlySalary?.toString() || '',
+    requiredStoresCount: representative?.requiredStoresCount?.toString() || '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (representative) {
+      setFormData({
+        name: representative.name || '',
+        paymentSystem: (representative.paymentSystem || 'salary') as 'salary' | 'commission',
+        monthlySalary: representative.monthlySalary?.toString() || '',
+        requiredStoresCount: representative.requiredStoresCount?.toString() || '',
+      });
+    }
+  }, [representative]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!representative?.id) return;
+
+    if (!formData.name.trim()) {
+      toast({
+        title: "خطأ في التحقق",
+        description: "الرجاء إدخال اسم المندوب",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.paymentSystem === 'salary') {
+      if (!formData.monthlySalary || !formData.requiredStoresCount) {
+        toast({
+          title: "خطأ في التحقق",
+          description: "الرجاء إدخال الراتب الشهري وعدد المتاجر المطلوبة",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Call parent handler to update
+      onRepresentativeUpdated?.();
+      toast({
+        title: "✅ تم بنجاح",
+        description: "تم تحديث بيانات المندوب بنجاح",
+        variant: "default",
+      });
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error updating representative:', error);
+      toast({
+        title: "❌ فشل التحديث",
+        description: error?.message || "حدث خطأ في تحديث بيانات المندوب",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full max-w-full sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>تعديل بيانات المندوب</DialogTitle>
+          <DialogDescription>قم بتعديل معلومات المندوب</DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">اسم المندوب الكامل *</Label>
+            <Input
+              id="edit-name"
+              type="text"
+              placeholder="مثال: علي حسن"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-paymentSystem">نظام الدفع *</Label>
+            <Select
+              value={formData.paymentSystem}
+              onValueChange={(value) => handleInputChange('paymentSystem', value)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="edit-paymentSystem">
+                <SelectValue placeholder="اختر نظام الدفع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="salary">نظام الراتب الشهري</SelectItem>
+                <SelectItem value="commission">نظام العمولات</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.paymentSystem === 'salary' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="edit-monthlySalary">الراتب الشهري (د.ع) *</Label>
+                <Input
+                  id="edit-monthlySalary"
+                  type="number"
+                  placeholder="500"
+                  value={formData.monthlySalary}
+                  onChange={(e) => handleInputChange('monthlySalary', e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-requiredStoresCount">عدد المتاجر المطلوبة *</Label>
+                <Input
+                  id="edit-requiredStoresCount"
+                  type="number"
+                  placeholder="10"
+                  value={formData.requiredStoresCount}
+                  onChange={(e) => handleInputChange('requiredStoresCount', e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </>
+          )}
+
+          {formData.paymentSystem === 'commission' && (
+            <Alert className="bg-primary/10 border-primary/20">
+              <AlertTitle>نظام العمولات</AlertTitle>
+              <AlertDescription>سيتم حساب العمولة تلقائياً وفقاً لسياسات المنصة</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter className="gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+              إلغاء
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '⏳ جاري التحديث...' : '✅ حفظ التغييرات'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
+EditRepresentativeDialog.displayName = 'EditRepresentativeDialog';
+
 export function RepresentativesTab({
   representatives,
   stores,
   onRepresentativeAdded,
+  onRepresentativeDeleted,
+  onRepresentativeUpdated,
 }: {
   representatives: User[];
   stores: Store[];
   onRepresentativeAdded?: () => void;
+  onRepresentativeDeleted?: (repId: string) => void;
+  onRepresentativeUpdated?: (repId: string, updates: Partial<User>) => void;
 }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRepresentative, setEditingRepresentative] = useState<User | null>(null);
   const { toast } = useToast();
 
   const getStoreCountForRep = (repId: string) => stores.filter((store) => store.registeredByAgentId === repId).length;
@@ -247,6 +425,31 @@ export function RepresentativesTab({
   const handleRepresentativeAdded = () => {
     setIsDialogOpen(false);
     onRepresentativeAdded?.();
+  };
+
+  const handleEditClick = (rep: User) => {
+    setEditingRepresentative(rep);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleRepresentativeUpdated = () => {
+    setIsEditDialogOpen(false);
+    setEditingRepresentative(null);
+    onRepresentativeUpdated?.(editingRepresentative?.id || '', {});
+  };
+
+  const handleDeleteClick = async (repId: string, repName: string) => {
+    const storeCount = stores.filter((store) => store.registeredByAgentId === repId).length;
+    if (storeCount > 0) {
+      toast({
+        title: "❌ لا يمكن الحذف",
+        description: `هذا المندوب لديه ${storeCount} متجر(متاجر). يجب نقل المتاجر إلى مندوب آخر أولاً.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onRepresentativeDeleted?.(repId);
   };
 
   return (
@@ -307,6 +510,32 @@ export function RepresentativesTab({
                         <p className="mt-1 font-semibold text-green-600">{(rep.totalEarnings || 0).toLocaleString()} د.ع</p>
                       </div>
                     </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEditClick(rep)} className="flex-1">
+                        <Edit className="h-3 w-3 ml-1" />
+                        تعديل
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive" className="flex-1">
+                            <Trash2 className="h-3 w-3 ml-1" />
+                            حذف
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                          </AlertDialogHeader>
+                          <AlertDialogDescription>سيتم حذف حساب {rep.name} نهائياً.</AlertDialogDescription>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteClick(rep.id, rep.name || '')} className="bg-destructive text-destructive-foreground">
+                              نعم، حذف
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 );
               })}
@@ -323,6 +552,7 @@ export function RepresentativesTab({
                     <th className="px-4 py-3 text-left text-sm font-semibold">المتاجر المطلوبة</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold">المتاجر المسجلة</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold">إجمالي المستحقات</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -349,6 +579,32 @@ export function RepresentativesTab({
                           <span className="inline-flex items-center rounded-full border border-border px-2 py-1 text-xs font-semibold">{storeCount}</span>
                         </td>
                         <td className="px-4 py-3 font-bold text-green-600">{(rep.totalEarnings || 0).toLocaleString()} د.ع</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditClick(rep)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive" className="h-8 w-8 p-0">
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                </AlertDialogHeader>
+                                <AlertDialogDescription>سيتم حذف حساب {rep.name} نهائياً.</AlertDialogDescription>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteClick(rep.id, rep.name || '')} className="bg-destructive text-destructive-foreground">
+                                    نعم، حذف
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -360,6 +616,7 @@ export function RepresentativesTab({
       </CardContent>
 
       <RepresentativeDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} onRepresentativeAdded={handleRepresentativeAdded} />
+      <EditRepresentativeDialog isOpen={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} representative={editingRepresentative} onRepresentativeUpdated={handleRepresentativeUpdated} />
     </Card>
   );
 }

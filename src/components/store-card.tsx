@@ -16,7 +16,23 @@ export function StoreCard({ store, distance }: { store: Store; distance?: number
     <Link href={`/store?id=${store.id}`} className="group">
       <div className="bg-white/90 dark:bg-slate-900/90 rounded-3xl overflow-hidden shadow-lg shadow-slate-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-2xl border border-slate-200/80 dark:border-slate-700/80 h-full flex flex-col">
         <div className="relative h-36 md:h-44 w-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
-          {store.coverImageUrl ? (
+          {store.logoUrl ? (
+            store.logoUrl.startsWith('data:') ? (
+              <img
+                src={store.logoUrl}
+                alt={`${store.name}`}
+                className="object-contain w-full h-full p-2"
+              />
+            ) : (
+              <Image
+                src={store.logoUrl}
+                alt={`${store.name}`}
+                fill
+                className="object-contain group-hover:scale-105 transition-transform duration-300 p-2"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            )
+          ) : store.coverImageUrl ? (
             store.coverImageUrl.startsWith('data:') ? (
               <img
                 src={store.coverImageUrl}
@@ -29,22 +45,6 @@ export function StoreCard({ store, distance }: { store: Store; distance?: number
                 alt={`${store.name}`}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              />
-            )
-          ) : store.logoUrl ? (
-            store.logoUrl.startsWith('data:') ? (
-              <img
-                src={store.logoUrl}
-                alt={`${store.name}`}
-                className="object-contain w-full h-full"
-              />
-            ) : (
-              <Image
-                src={store.logoUrl}
-                alt={`${store.name}`}
-                fill
-                className="object-contain group-hover:scale-105 transition-transform duration-300"
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
             )
@@ -71,7 +71,7 @@ export function StoreCard({ store, distance }: { store: Store; distance?: number
               {store.name}
             </h3>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
-              {store.description || store.marketType || 'متجر موثوق يقدم أفضل المنتجات'}
+              {store.marketType || 'متجر'}
             </p>
           </div>
 
@@ -82,7 +82,7 @@ export function StoreCard({ store, distance }: { store: Store; distance?: number
             </div>
             <div className="rounded-2xl bg-slate-100 dark:bg-slate-800 px-3 py-2">
               <span className="font-semibold text-slate-900 dark:text-slate-100">{store.type}</span>
-              <span className="block text-slate-500 dark:text-slate-400">النوع</span>
+              <span className="block text-slate-500 dark:text-slate-400">نوع المتجر</span>
             </div>
           </div>
 

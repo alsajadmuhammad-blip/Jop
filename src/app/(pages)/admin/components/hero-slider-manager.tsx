@@ -75,38 +75,48 @@ export const HeroSliderManager = React.memo(function HeroSliderManager({ stores 
     }
 
     try {
+      // Validate required fields
+      if (!editingAd.src || !editingAd.src.trim()) {
+        toast({ title: "خطأ", description: "يجب اختيار صورة للإعلان", variant: "destructive" });
+        return;
+      }
+
       const adDataToSave: any = {
-        src: editingAd.src || '',
+        src: editingAd.src,
         text: editingAd.text || '',
         hint: editingAd.hint || '',
+        storeId: editingAd.storeId || null,
         store_id: editingAd.storeId || null,
       };
 
       if (isNewAd) {
-        const { error } = await supabase.from('hero_carousel_items').insert([adDataToSave]);
+        const { data, error } = await supabase.from('hero_carousel_items').insert([adDataToSave]).select('*').single();
         if (error) throw error;
-        toast({ title: "تم إضافة الإعلان" });
+        toast({ title: "✅ تم إضافة الإعلان" });
       } else if (editingAd.id) {
-        const { error } = await supabase.from('hero_carousel_items').update(adDataToSave).eq('id', editingAd.id);
+        const { data, error } = await supabase.from('hero_carousel_items').update(adDataToSave).eq('id', editingAd.id).select('*').single();
         if (error) throw error;
-        toast({ title: "تم تحديث الإعلان" });
+        toast({ title: "✅ تم تحديث الإعلان" });
+      }
+
+      // Refresh ads list
+      const { data } = await supabase.from('hero_carousel_items').select('*');
+      if (data) {
+        setAds((data || []).map((row: any) => ({
+          id: String(row.id),
+          src: row.src,
+          text: row.text,
+          hint: row.hint,
+          storeId: row.storeId || row.store_id || null,
+        })));
       }
 
       setIsDialogOpen(false);
       setEditingAd(null);
       setImagePreview(null);
-
-      const { data } = await supabase.from('hero_carousel_items').select('*');
-      setAds((data || []).map((row: any) => ({
-        id: String(row.id),
-        src: row.src,
-        text: row.text,
-        hint: row.hint,
-        storeId: row.store_id || null,
-      })));
     } catch (error: any) {
       console.error('Supabase error saving ad:', error);
-      toast({ title: "حدث خطأ", description: error.message || "فشل حفظ الإعلان.", variant: "destructive" });
+      toast({ title: "❌ حدث خطأ", description: error.message || "فشل حفظ الإعلان.", variant: "destructive" });
     }
   };
 
@@ -114,18 +124,22 @@ export const HeroSliderManager = React.memo(function HeroSliderManager({ stores 
     try {
       const { error } = await supabase.from('hero_carousel_items').delete().eq('id', adId);
       if (error) throw error;
-      toast({ title: "تم حذف الإعلان", variant: "destructive" });
+      toast({ title: "✅ تم حذف الإعلان بنجاح" });
+      
+      // Refresh ads list
       const { data } = await supabase.from('hero_carousel_items').select('*');
-      setAds((data || []).map((row: any) => ({
-        id: String(row.id),
-        src: row.src,
-        text: row.text,
-        hint: row.hint,
-        storeId: row.store_id || null,
-      })));
+      if (data) {
+        setAds((data || []).map((row: any) => ({
+          id: String(row.id),
+          src: row.src,
+          text: row.text,
+          hint: row.hint,
+          storeId: row.storeId || row.store_id || null,
+        })));
+      }
     } catch (error: any) {
       console.error('Supabase error deleting ad:', error);
-      toast({ title: "فشل حذف الإعلان", description: error.message || String(error), variant: "destructive" });
+      toast({ title: "❌ فشل حذف الإعلان", description: error.message || String(error), variant: "destructive" });
     }
   };
 

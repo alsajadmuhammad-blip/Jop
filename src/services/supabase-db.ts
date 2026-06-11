@@ -288,6 +288,96 @@ export async function fetchStoresByRepresentative(repId: string): Promise<Store[
   return (data || []).map(mapStoreRow);
 }
 
+export async function updateRepresentative(
+  userId: string,
+  updates: Partial<User>
+): Promise<User | null> {
+  const payload: any = {};
+
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.paymentSystem !== undefined) {
+    payload.payment_system = updates.paymentSystem;
+    payload.paymentSystem = updates.paymentSystem;
+  }
+  if (updates.monthlySalary !== undefined) {
+    payload.monthly_salary = updates.monthlySalary;
+    payload.monthlySalary = updates.monthlySalary;
+  }
+  if (updates.requiredStoresCount !== undefined) {
+    payload.required_stores_count = updates.requiredStoresCount;
+    payload.requiredStoresCount = updates.requiredStoresCount;
+  }
+  if (updates.monthlyActivations !== undefined) {
+    payload.monthly_activations = updates.monthlyActivations;
+    payload.monthlyActivations = updates.monthlyActivations;
+  }
+  if (updates.lastResetDate !== undefined) {
+    payload.last_reset_date = updates.lastResetDate;
+    payload.lastResetDate = updates.lastResetDate;
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .update(payload)
+    .eq('id', userId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating representative:', error.message);
+    return null;
+  }
+
+  return {
+    id: String(data.id),
+    name: data.name,
+    email: data.email,
+    role: data.role,
+    storeId: data.store_id || data.storeId || null,
+    paymentSystem: data.payment_system || data.paymentSystem,
+    totalEarnings: data.total_earnings || data.totalEarnings,
+    monthlySalary: data.monthly_salary || data.monthlySalary,
+    requiredStoresCount: data.required_stores_count || data.requiredStoresCount,
+    monthlyActivations: data.monthly_activations || data.monthlyActivations,
+    lastResetDate: data.last_reset_date || data.lastResetDate,
+  } as User;
+}
+
+export async function deleteRepresentative(userId: string): Promise<boolean> {
+  try {
+    // First, update stores to remove the representative assignment
+    const { error: updateError } = await supabase
+      .from('stores')
+      .update({
+        registered_by_agent_id: null,
+        registeredByAgentId: null,
+      })
+      .eq('registered_by_agent_id', userId)
+      .or(`registeredByAgentId.eq.${userId}`);
+
+    if (updateError && updateError.code !== 'PGRST116') {
+      console.error('Error updating stores before deleting representative:', updateError.message);
+      return false;
+    }
+
+    // Delete the user from the users table (auth.users will be handled by Supabase's cascade delete)
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error deleting representative:', error.message);
+      return false;
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error('Error in deleteRepresentative:', error.message);
+    return false;
+  }
+}
+
 export async function fetchProductById(productId: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from('products')

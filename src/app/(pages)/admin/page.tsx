@@ -103,20 +103,28 @@ function AdminDashboard() {
   const handleStatusToggle = async (storeId: string, newIsActive: boolean, storeData: Store) => {
     try {
       if (!newIsActive) {
-        const { error } = await supabase.from('stores').update({ is_active: false }).eq('id', storeId);
+        const { error } = await supabase.from('stores').update({ 
+          is_active: false,
+          isActive: false 
+        }).eq('id', storeId);
         if (error) throw error;
         setStores((current) =>
           current.map((store) =>
             store.id === storeId ? { ...store, isActive: false } : store
           )
         );
-        toast({ title: "تم إيقاف المتجر" });
+        toast({ title: "✅ تم إيقاف المتجر" });
         return;
       }
 
-      // Basic activation: mark active and set activation date. Complex business logic (commission calculation) should be implemented server-side (Edge Function / RPC).
+      // Basic activation: mark active and set activation date
       const activationDate = new Date().toISOString();
-      const updatePayload: any = { is_active: true, activation_date: activationDate };
+      const updatePayload: any = { 
+        is_active: true, 
+        isActive: true,
+        activation_date: activationDate,
+        activationDate: activationDate
+      };
       const { error } = await supabase.from('stores').update(updatePayload).eq('id', storeId);
       if (error) throw error;
 
@@ -124,7 +132,7 @@ function AdminDashboard() {
       if (storeData.ownerEmail) {
         const { error: userError } = await supabase
           .from('users')
-          .update({ store_id: storeId, role: 'store' })
+          .update({ store_id: storeId, storeId: storeId, role: 'store' })
           .eq('email', storeData.ownerEmail);
         if (userError) {
           console.error('Failed to link store to user:', userError);
@@ -139,10 +147,10 @@ function AdminDashboard() {
             : store
         )
       );
-      toast({ title: "تم تفعيل المتجر" });
+      toast({ title: "✅ تم تفعيل المتجر بنجاح" });
     } catch (error: any) {
       console.error('Supabase error toggling store status:', error);
-      toast({ title: "فشل تحديث حالة المتجر", description: error.message || String(error), variant: "destructive" });
+      toast({ title: "❌ فشل تحديث حالة المتجر", description: error.message || String(error), variant: "destructive" });
     }
   };
 
@@ -151,29 +159,71 @@ function AdminDashboard() {
     try {
       const updateData: any = {};
       
-      // Convert camelCase to snake_case for database
+      // Convert camelCase to snake_case for database AND set both variants
       if (data.name !== undefined) updateData.name = data.name;
       if (data.description !== undefined) updateData.description = data.description;
-      if (data.logoUrl !== undefined) updateData.logo_url = data.logoUrl;
-      if (data.coverImageUrl !== undefined) updateData.cover_image_url = data.coverImageUrl;
+      if (data.logoUrl !== undefined) {
+        updateData.logo_url = data.logoUrl;
+        updateData.logoUrl = data.logoUrl;
+      }
+      if (data.coverImageUrl !== undefined) {
+        updateData.cover_image_url = data.coverImageUrl;
+        updateData.coverImageUrl = data.coverImageUrl;
+      }
       if (data.rating !== undefined) updateData.rating = data.rating;
       if (data.reviews !== undefined) updateData.reviews = data.reviews;
       if (data.location !== undefined) updateData.location = data.location;
       if (data.latitude !== undefined) updateData.latitude = data.latitude;
       if (data.longitude !== undefined) updateData.longitude = data.longitude;
       if (data.type !== undefined) updateData.type = data.type;
-      if (data.marketType !== undefined) updateData.market_type = data.marketType;
-      if (data.businessHours !== undefined) updateData.business_hours = data.businessHours;
-      if (data.whatsappNumber !== undefined) updateData.whatsapp_number = data.whatsappNumber;
-      if (data.hasDelivery !== undefined) updateData.has_delivery = data.hasDelivery;
-      if (data.isActive !== undefined) updateData.is_active = data.isActive;
-      if (data.productLimit !== undefined) updateData.product_limit = data.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : data.productLimit;
-      if (data.subscriptionDuration !== undefined) updateData.subscription_duration = data.subscriptionDuration;
-      if (data.activationDate !== undefined) updateData.activation_date = data.activationDate;
-      if (data.ownerId !== undefined) updateData.owner_id = data.ownerId;
-      if (data.ownerEmail !== undefined) updateData.owner_email = data.ownerEmail;
-      if (data.registeredByAgentId !== undefined) updateData.registered_by_agent_id = data.registeredByAgentId;
-      if (data.packageName !== undefined) updateData.package_name = data.packageName;
+      if (data.marketType !== undefined) {
+        updateData.market_type = data.marketType;
+        updateData.marketType = data.marketType;
+      }
+      if (data.businessHours !== undefined) {
+        updateData.business_hours = data.businessHours;
+        updateData.businessHours = data.businessHours;
+      }
+      if (data.whatsappNumber !== undefined) {
+        updateData.whatsapp_number = data.whatsappNumber;
+        updateData.whatsappNumber = data.whatsappNumber;
+      }
+      if (data.hasDelivery !== undefined) {
+        updateData.has_delivery = data.hasDelivery;
+        updateData.hasDelivery = data.hasDelivery;
+      }
+      if (data.isActive !== undefined) {
+        updateData.is_active = data.isActive;
+        updateData.isActive = data.isActive;
+      }
+      if (data.productLimit !== undefined) {
+        updateData.product_limit = data.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : data.productLimit;
+        updateData.productLimit = data.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : data.productLimit;
+      }
+      if (data.subscriptionDuration !== undefined) {
+        updateData.subscription_duration = data.subscriptionDuration;
+        updateData.subscriptionDuration = data.subscriptionDuration;
+      }
+      if (data.activationDate !== undefined) {
+        updateData.activation_date = data.activationDate;
+        updateData.activationDate = data.activationDate;
+      }
+      if (data.ownerId !== undefined) {
+        updateData.owner_id = data.ownerId;
+        updateData.ownerId = data.ownerId;
+      }
+      if (data.ownerEmail !== undefined) {
+        updateData.owner_email = data.ownerEmail;
+        updateData.ownerEmail = data.ownerEmail;
+      }
+      if (data.registeredByAgentId !== undefined) {
+        updateData.registered_by_agent_id = data.registeredByAgentId;
+        updateData.registeredByAgentId = data.registeredByAgentId;
+      }
+      if (data.packageName !== undefined) {
+        updateData.package_name = data.packageName;
+        updateData.packageName = data.packageName;
+      }
 
       const { error } = await supabase.from('stores').update(updateData).eq('id', storeId);
       if (error) throw error;
@@ -182,25 +232,28 @@ function AdminDashboard() {
           store.id === storeId ? { ...store, ...data } : store
         )
       );
-      toast({ title: "تم تحديث بيانات المتجر" });
+      toast({ title: "✅ تم تحديث بيانات المتجر بنجاح" });
     } catch (error: any) {
       console.error('Supabase error updating store:', error);
-      toast({ title: "فشل تحديث بيانات المتجر", description: error.message || String(error), variant: "destructive" });
+      toast({ title: "❌ فشل تحديث بيانات المتجر", description: error.message || String(error), variant: "destructive" });
     }
   };
 
   const handleStorePackageAssignment = async (storeId: string, packageSlug: string) => {
     const pkg = packages.find((item) => item.slug === packageSlug);
     if (!pkg) {
-      toast({ title: 'الباقة غير موجودة', variant: 'destructive' });
+      toast({ title: '❌ الباقة غير موجودة', variant: 'destructive' });
       return;
     }
 
     try {
       const { error } = await supabase.from('stores').update({
         package_name: pkg.slug,
+        packageName: pkg.slug,
         product_limit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
+        productLimit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
         subscription_duration: pkg.subscriptionDuration,
+        subscriptionDuration: pkg.subscriptionDuration,
       }).eq('id', storeId);
 
       if (error) throw error;
@@ -212,9 +265,10 @@ function AdminDashboard() {
             : store
         )
       );
+      toast({ title: '✅ تم تعيين الباقة بنجاح' });
     } catch (error: any) {
       console.error('Supabase error assigning package:', error);
-      toast({ title: 'فشل تعيين الباقة للمتجر', description: error.message || String(error), variant: 'destructive' });
+      toast({ title: '❌ فشل تعيين الباقة للمتجر', description: error.message || String(error), variant: 'destructive' });
       throw error;
     }
   };
@@ -225,10 +279,60 @@ function AdminDashboard() {
       const { error } = await supabase.from('stores').delete().eq('id', storeId);
       if (error) throw error;
       setStores((current) => current.filter((store) => store.id !== storeId));
-      toast({ title: "تم حذف المتجر", variant: "destructive" });
+      toast({ title: "✅ تم حذف المتجر بنجاح", variant: "default" });
     } catch (error: any) {
       console.error('Supabase error deleting store:', error);
-      toast({ title: "فشل حذف المتجر", description: error.message || String(error), variant: "destructive" });
+      toast({ title: "❌ فشل حذف المتجر", description: error.message || String(error), variant: "destructive" });
+    }
+  };
+
+  const handleDeleteRepresentative = async (repId: string) => {
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', repId);
+      if (error) throw error;
+      setRepresentatives((current) => current.filter((rep) => rep.id !== repId));
+      toast({ title: "✅ تم حذف المندوب بنجاح", variant: "default" });
+    } catch (error: any) {
+      console.error('Supabase error deleting representative:', error);
+      toast({ title: "❌ فشل حذف المندوب", description: error.message || String(error), variant: "destructive" });
+    }
+  };
+
+  const handleUpdateRepresentative = async (repId: string, updates: Partial<User>) => {
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.paymentSystem !== undefined) {
+        payload.payment_system = updates.paymentSystem;
+        payload.paymentSystem = updates.paymentSystem;
+      }
+      if (updates.monthlySalary !== undefined) {
+        payload.monthly_salary = updates.monthlySalary;
+        payload.monthlySalary = updates.monthlySalary;
+      }
+      if (updates.requiredStoresCount !== undefined) {
+        payload.required_stores_count = updates.requiredStoresCount;
+        payload.requiredStoresCount = updates.requiredStoresCount;
+      }
+      if (updates.monthlyActivations !== undefined) {
+        payload.monthly_activations = updates.monthlyActivations;
+        payload.monthlyActivations = updates.monthlyActivations;
+      }
+      if (updates.lastResetDate !== undefined) {
+        payload.last_reset_date = updates.lastResetDate;
+        payload.lastResetDate = updates.lastResetDate;
+      }
+
+      const { error } = await supabase.from('users').update(payload).eq('id', repId);
+      if (error) throw error;
+
+      setRepresentatives((current) =>
+        current.map((rep) => (rep.id === repId ? { ...rep, ...updates } : rep))
+      );
+      toast({ title: "✅ تم تحديث بيانات المندوب بنجاح" });
+    } catch (error: any) {
+      console.error('Supabase error updating representative:', error);
+      toast({ title: "❌ فشل تحديث بيانات المندوب", description: error.message || String(error), variant: "destructive" });
     }
   };
 
@@ -314,7 +418,13 @@ function AdminDashboard() {
             />
           )}
           {activeView === 'reps' && (
-            <RepresentativesTab representatives={representatives} stores={stores} onRepresentativeAdded={handleRepresentativeAdded} />
+            <RepresentativesTab 
+              representatives={representatives} 
+              stores={stores} 
+              onRepresentativeAdded={handleRepresentativeAdded}
+              onRepresentativeDeleted={handleDeleteRepresentative}
+              onRepresentativeUpdated={handleUpdateRepresentative}
+            />
           )}
           {activeView === 'subscriptions' && (
             <SubscriptionsTab

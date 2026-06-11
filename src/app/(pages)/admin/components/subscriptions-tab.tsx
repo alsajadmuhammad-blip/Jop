@@ -138,11 +138,11 @@ export function SubscriptionsTab({
           metadata,
         });
 
-        if (!updated) {
+        if (updated === null) {
           throw new Error('فشل تحديث الباقة.');
         }
 
-        toast({ title: 'تم تحديث الباقة بنجاح' });
+        toast({ title: '✅ تم تحديث الباقة بنجاح' });
       } else {
         const created = await createStorePackage({
           name: formState.name,
@@ -155,11 +155,11 @@ export function SubscriptionsTab({
           metadata,
         });
 
-        if (!created) {
+        if (created === null) {
           throw new Error('فشل إنشاء الباقة.');
         }
 
-        toast({ title: 'تم إنشاء الباقة بنجاح' });
+        toast({ title: '✅ تم إنشاء الباقة بنجاح' });
       }
 
       await onPackagesChanged();
@@ -181,12 +181,12 @@ export function SubscriptionsTab({
       if (!success) {
         throw new Error('فشل حذف الباقة.');
       }
-      toast({ title: 'تم حذف الباقة' });
+      toast({ title: '✅ تم حذف الباقة بنجاح' });
       setDeletePackage(null);
       await onPackagesChanged();
     } catch (error: any) {
       console.error('Delete package error:', error);
-      toast({ title: 'فشل حذف الباقة', description: error.message || String(error), variant: 'destructive' });
+      toast({ title: '❌ فشل حذف الباقة', description: error.message || String(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -196,12 +196,12 @@ export function SubscriptionsTab({
     setIsSubmitting(true);
     try {
       const updated = await updateStorePackage(pkg.id, { isActive });
-      if (!updated) throw new Error('فشل تغيير حالة الباقة.');
-      toast({ title: isActive ? 'تم تفعيل الباقة' : 'تم إيقاف الباقة' });
+      if (updated === null) throw new Error('فشل تغيير حالة الباقة.');
+      toast({ title: isActive ? '✅ تم تفعيل الباقة' : '✅ تم إيقاف الباقة' });
       await onPackagesChanged();
     } catch (error: any) {
       console.error('Toggle package active error:', error);
-      toast({ title: 'فشل تغيير حالة الباقة', description: error.message || String(error), variant: 'destructive' });
+      toast({ title: '❌ فشل تغيير حالة الباقة', description: error.message || String(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
