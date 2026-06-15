@@ -58,7 +58,7 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
         className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-card shadow hover:shadow-md transition-shadow duration-150"
       >
         <div 
-          className="relative h-48 md:h-56 lg:h-64 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center"
+          className="relative h-40 sm:h-48 md:h-56 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center"
         >
           {product.imageUrl ? (
             product.imageUrl.startsWith('data:') ? (
@@ -85,25 +85,25 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
           )}
         </div>
         
-        <div className="flex-1 p-3 md:p-4 space-y-2 flex flex-col">
-          <h3 className="line-clamp-2 text-sm md:text-base font-bold text-foreground leading-tight">{product.name}</h3>
+        <div className="flex-1 p-2.5 sm:p-3 md:p-4 space-y-1.5 sm:space-y-2 flex flex-col">
+          <h3 className="line-clamp-2 text-xs sm:text-sm md:text-base font-bold text-foreground leading-tight">{product.name}</h3>
           <div className="flex-1 space-y-3 flex flex-col justify-between">
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm md:text-base font-extrabold text-primary">{product.price.toLocaleString()} د.ع</p>
+              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                <p className="text-xs sm:text-sm md:text-base font-extrabold text-primary">{product.price.toLocaleString()} د.ع</p>
                 <Button
                   size="sm"
                   className={cn(
-                    "size-8 md:size-9 rounded-lg p-0 transition-colors duration-150 text-xs font-semibold shadow-sm hover:shadow active:scale-95",
+                    "size-7 sm:size-8 md:size-9 rounded-lg p-0 transition-colors duration-150 text-xs font-semibold shadow-sm hover:shadow active:scale-95",
                     isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
                   )}
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
                 >
-                  {isAdded ? <Check className="h-4 w-4 md:h-5 md:w-5" /> : <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />}
+                  {isAdded ? <Check className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" /> : <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" />}
                 </Button>
               </div>
-              <p className={cn("text-xs md:text-sm font-semibold", product.stock > 0 ? "text-emerald-600" : "text-destructive")}> 
+              <p className={cn("text-xs font-semibold", product.stock > 0 ? "text-emerald-600" : "text-destructive")}> 
                 {product.stock > 0 ? `متوفر: ${product.stock}` : "نفد المخزون"}
               </p>
             </div>

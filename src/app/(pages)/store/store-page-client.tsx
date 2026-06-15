@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
@@ -43,6 +43,42 @@ export default function StorePageClient() {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [scrollOffset, setScrollOffset] = useState(0);
+  
+  const scrollRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      scrollRef.current = window.scrollY;
+      
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      
+      rafRef.current = requestAnimationFrame(() => {
+        const offset = scrollRef.current > 0 ? Math.min(scrollRef.current, 300) : 0;
+        const transform = `translateY(${Math.max(-offset, -300)}px)`;
+        
+        if (containerRef.current) {
+          containerRef.current.style.transform = transform;
+        }
+        if (contentRef.current) {
+          contentRef.current.style.transform = transform;
+        }
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function loadStore() {
@@ -131,10 +167,29 @@ export default function StorePageClient() {
   if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50" style={{ contain: 'layout' }}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 min-w-0">
+    <div className="min-h-screen bg-slate-50" style={{ contain: 'layout style paint' }}>
+      {/* Hero + Card - all moving together with smooth parallax */}
+      <div
+        ref={containerRef}
+        style={{
+          willChange: 'transform',
+          transform: 'translateY(0px)',
+          backfaceVisibility: 'hidden'
+        }}
+      >
         <StoreHero store={store} />
+      </div>
 
+      {/* Content below - moving synchronously with hero */}
+      <div 
+        ref={contentRef}
+        className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 min-w-0"
+        style={{
+          willChange: 'transform',
+          transform: 'translateY(0px)',
+          backfaceVisibility: 'hidden'
+        }}
+      >
         <div className="grid gap-8 lg:grid-cols-[1.7fr_0.95fr] min-w-0 overflow-hidden">
           <div className="lg:col-span-2 space-y-8 min-w-0 overflow-hidden" style={{ contain: 'layout style paint' }}>
             <StoreProductsSection products={products} sections={sections} store={store} />
