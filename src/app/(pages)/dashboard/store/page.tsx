@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { StoreOwnerNavbar } from "./navbar";
-import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon } from "lucide-react";
+import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section } from "@/lib/types";
@@ -44,7 +44,6 @@ import {
 } from "@/components/ui/alert-dialog";
 // ...existing code...
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
-import { CoverImageUploader } from "@/components/dashboard/cover-image-uploader";
 import { BackButton } from "@/components/layout/back-button";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 
@@ -110,11 +109,10 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
 
 
 // ===== Store Settings Tab Content =====
-function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave }: {
+function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
     store: Store;
     onSettingChange: (key: keyof Store, value: any) => void;
     onLogoSave: (newLogoUrl: string) => Promise<void>;
-    onCoverImageSave: (newCoverUrl: string) => Promise<void>;
 }) {
     const getBusinessHourValue = (hour: number) => `${hour.toString().padStart(2, '0')}:00`;
     const businessHours = store.businessHours ?? { open: 9, close: 23 };
@@ -150,34 +148,13 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverImageSave
         <div className="space-y-8">
             <div className="border-b pb-6">
                 <h3 className="text-lg font-semibold mb-2">هوية المتجر</h3>
-                <p className="text-muted-foreground text-sm mb-6">قم بتحديث شعار وصورة الغلاف الخاصة بمتجرك.</p>
+                <p className="text-muted-foreground text-sm mb-6">تحديث شعار متجرك.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <div className="flex flex-col items-center gap-4 border p-4 rounded-lg bg-muted/20">
+                    <div className="flex flex-col gap-4 border p-4 rounded-lg bg-muted/20">
                         <Label className="font-semibold">شعار المتجر</Label>
-                        <div className="relative rounded-xl object-contain border p-2 bg-white w-[90px] h-[90px]">
-                            {store.logoUrl ? (
-                                <Image alt="Store Logo" fill src={store.logoUrl} className="object-contain" />
-                            ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center">
-                                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                </div>
-                            )}
-                        </div>
                         <LogoUploader store={store} onSave={onLogoSave} />
                     </div>
-                    <div className="flex flex-col items-center gap-4 border p-4 rounded-lg bg-muted/20">
-                        <Label className="font-semibold">صورة الغلاف</Label>
-                        <div className="relative rounded-xl object-cover aspect-video w-full border p-1 bg-white">
-                            {store.coverImageUrl ? (
-                                <Image alt="Store Cover" fill src={store.coverImageUrl} className="object-cover rounded-md" />
-                            ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center">
-                                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                </div>
-                            )}
-                        </div>
-                        <CoverImageUploader store={store} onSave={onCoverImageSave} />
-                    </div>
+
                 </div>
             </div>
 
@@ -323,6 +300,7 @@ export default function StoreDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [storeLoadAttempted, setStoreLoadAttempted] = useState(false);
   const [storeLoadUserId, setStoreLoadUserId] = useState<string | null>(null);
+  const [sessionRestored, setSessionRestored] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -393,11 +371,19 @@ export default function StoreDashboardPage() {
 
       const productsRows = await fetchProductsByStore(storeId);
       setProducts(productsRows);
+
+      // حفظ البيانات في sessionStorage للعودة السريعة
+      if (user?.id) {
+        sessionStorage.setItem(`store_${user.id}`, JSON.stringify(storeData));
+        sessionStorage.setItem(`products_${user.id}`, JSON.stringify(productsRows));
+        sessionStorage.setItem(`sections_${user.id}`, JSON.stringify(sectionsRows));
+      }
     } catch (error) {
       console.error('Error fetching store data:', error);
       toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'فشل تحميل بيانات المتجر.' });
     } finally {
       setLoading(false);
+      setSessionRestored(true);
     }
   }, [user, toast]);
 
@@ -425,6 +411,7 @@ export default function StoreDashboardPage() {
       setProducts([]);
       setStoreLoadAttempted(false);
       setStoreLoadUserId(null);
+      setSessionRestored(false);
       return;
     }
 
@@ -433,7 +420,28 @@ export default function StoreDashboardPage() {
       return;
     }
 
-    // لم يعد تغيير كلمة السر إجبارياً
+    // محاولة استعادة الجلسة من sessionStorage
+    if (!sessionRestored && store === null) {
+      const cachedStore = sessionStorage.getItem(`store_${user.id}`);
+      const cachedProducts = sessionStorage.getItem(`products_${user.id}`);
+      const cachedSections = sessionStorage.getItem(`sections_${user.id}`);
+      
+      if (cachedStore && cachedProducts && cachedSections) {
+        try {
+          setStore(JSON.parse(cachedStore));
+          setProducts(JSON.parse(cachedProducts));
+          setSections(JSON.parse(cachedSections));
+          setLoading(false);
+          setSessionRestored(true);
+          return;
+        } catch (e) {
+          console.error('Failed to restore session:', e);
+          sessionStorage.removeItem(`store_${user.id}`);
+          sessionStorage.removeItem(`products_${user.id}`);
+          sessionStorage.removeItem(`sections_${user.id}`);
+        }
+      }
+    }
 
     const isSameUser = user.id === storeLoadUserId;
     if (store !== null || (storeLoadAttempted && isSameUser)) {
@@ -445,7 +453,7 @@ export default function StoreDashboardPage() {
     return () => {
       // Nothing to clean up
     };
-  }, [user, userRole, authLoading, router, pathname, toast, store, storeLoadAttempted, storeLoadUserId, loadStore]);
+  }, [user, userRole, authLoading, router, toast, store, storeLoadAttempted, storeLoadUserId, loadStore, sessionRestored]);
 
   const fullStoreData = useMemo(() => {
     // If the store doc doesn't exist yet (e.g. pending review), create a temporary one for the UI
@@ -552,17 +560,7 @@ export default function StoreDashboardPage() {
     }
   };
   
-  const handleCoverImageSave = async (newCoverUrl: string): Promise<void> => {
-    if (!store) return;
-    try {
-      await updateStore(store.id, { coverImageUrl: newCoverUrl });
-      setStore({ ...store, coverImageUrl: newCoverUrl });
-      toast({ title: "تم تحديث صورة الغلاف بنجاح." });
-    } catch (err) {
-      console.error("Failed to save cover image:", err);
-      toast({ title: "فشل تحديث الصورة", variant: "destructive" });
-    }
-  };
+
 
   const handleStoreSettingChange = async (key: keyof Store, value: any) => {
     if (!store) return;
@@ -679,14 +677,25 @@ export default function StoreDashboardPage() {
     <>
       <div className="min-h-screen bg-background flex flex-col">
                 <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur-sm shadow-sm">
-                    <div className="px-4 md:px-8 py-4 flex items-center justify-between gap-4">
+                    <div className="px-4 md:px-8 py-3 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             <BackButton href="/dashboard/store" />
+                            {fullStoreData?.logoUrl && (
+                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                                <Image
+                                  src={fullStoreData.logoUrl}
+                                  alt={fullStoreData.name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="40px"
+                                />
+                              </div>
+                            )}
                             <div className="min-w-0">
-                                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+                                 <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
                                     {fullStoreData.name}
                                 </h1>
-                                <p className="text-xs md:text-sm text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     لوحة التحكم
                                 </p>
                             </div>
@@ -701,46 +710,96 @@ export default function StoreDashboardPage() {
                   <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
                 </div>
 
-                <main className="flex-1 px-4 md:px-8 py-6 space-y-6">
-                    <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">المنتجات</p>
-                            <p className="mt-3 text-3xl font-semibold text-slate-950">{products.length}</p>
-                            <p className="text-sm text-slate-500 mt-1">إجمالي العناصر في المتجر</p>
-                        </div>
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">الحالة</p>
-                            <p className="mt-3 text-3xl font-semibold text-slate-950">{fullStoreData.isActive ? 'نشط' : 'متوقف'}</p>
-                            <p className="text-sm text-slate-500 mt-1">حالة عرض المتجر</p>
-                        </div>
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">التوصيل</p>
-                            <p className="mt-3 text-3xl font-semibold text-slate-950">{fullStoreData.hasDelivery ? 'متاح' : 'غير متاح'}</p>
-                            <p className="text-sm text-slate-500 mt-1">خيار التوصيل الحالي</p>
-                        </div>
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">الاشتراك</p>
-                            <p className="mt-3 text-3xl font-semibold text-slate-950">{remainingDays !== null ? `${remainingDays} يوم` : 'غير معروف'}</p>
-                            <p className="text-sm text-slate-500 mt-1">باقي من أيام الاشتراك</p>
-                        </div>
+                <main className="flex-1 px-4 md:px-8 py-6 space-y-8">
+                    {/* Quick Stats - Only show on Products page */}
+                    {activeView === 'products' && (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">المنتجات</p>
+                                <p className="mt-2 text-3xl font-bold text-slate-950">{products.length}</p>
+                              </div>
+                              <Package className="h-10 w-10 text-blue-100" strokeWidth={1.5} />
+                            </div>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15 }}
+                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">الحالة</p>
+                                <p className="mt-2 text-3xl font-bold text-slate-950">{fullStoreData.isActive ? '✓ نشط' : '◆ متوقف'}</p>
+                              </div>
+                              <div className={`h-10 w-10 rounded-full ${fullStoreData.isActive ? 'bg-green-100' : 'bg-red-100'}`} />
+                            </div>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">التوصيل</p>
+                                <p className="mt-2 text-3xl font-bold text-slate-950">{fullStoreData.hasDelivery ? '✓ متاح' : '✗ معطل'}</p>
+                              </div>
+                              <Truck className="h-10 w-10 text-amber-100" strokeWidth={1.5} />
+                            </div>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.25 }}
+                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">الاشتراك</p>
+                                <p className="mt-2 text-3xl font-bold text-slate-950">{remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي'}</p>
+                              </div>
+                              <ShoppingCartIcon className="h-10 w-10 text-purple-100" strokeWidth={1.5} />
+                            </div>
+                        </motion.div>
                     </div>
-                    <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-900 p-6 text-white shadow-xl">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-300">نظرة سريعة</p>
-                        <h2 className="mt-3 text-2xl font-semibold">{fullStoreData.name}</h2>
-                        <p className="mt-3 text-sm leading-6 text-slate-300">
-                            {fullStoreData.description || 'لوحة تحكم متجرك منظمة لتسريع إدارة المنتجات والطلبات والإعدادات.'}
-                        </p>
-                        <div className="mt-6 flex flex-wrap gap-3">
-                            <Button asChild size="sm" variant="secondary" className="rounded-full px-4 py-2">
-                                <Link href={`/store?id=${fullStoreData.id}`}>عرض المتجر</Link>
-                            </Button>
-                            <Button size="sm" className="rounded-full px-4 py-2" onClick={() => handleViewChange('settings')}>
-                                تعديل الإعدادات
-                            </Button>
+                    )}
+
+                    {/* Welcome Card */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-lg overflow-hidden relative"
+                    >
+                        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+                        <div className="relative z-10">
+                          <h2 className="text-2xl md:text-3xl font-bold mb-2">{fullStoreData.name}</h2>
+                          <p className="text-sm md:text-base leading-relaxed text-slate-300 mb-6">
+                              {fullStoreData.description || 'إدارة متجرك بسهولة من لوحة التحكم. أضف منتجات، أدر الطلبات، وراقب أداء متجرك في الوقت الفعلي.'}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                              <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
+                                  <Link href={`/store?id=${fullStoreData.id}`}>
+                                    <Globe className="ml-2 h-4 w-4" />
+                                    عرض المتجر
+                                  </Link>
+                              </Button>
+                              <Button size="sm" className="rounded-full px-5 bg-white hover:bg-slate-100 text-slate-900" onClick={() => handleViewChange('settings')}>
+                                <Settings className="ml-2 h-4 w-4" />
+                                الإعدادات
+                              </Button>
+                          </div>
                         </div>
-                    </div>
-                </div>
+                    </motion.div>
 
                 {isPendingReview && (
                       <Alert className="bg-primary/10 border-primary/20 text-primary">
@@ -836,7 +895,6 @@ export default function StoreDashboardPage() {
                             store={fullStoreData}
                             onSettingChange={handleStoreSettingChange}
                             onLogoSave={handleLogoSave}
-                            onCoverImageSave={handleCoverImageSave}
                         />
                     )}
                 </main>

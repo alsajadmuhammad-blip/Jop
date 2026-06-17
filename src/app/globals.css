@@ -199,6 +199,45 @@
       linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
   }
 
+  /* Performance optimizations */
+  img {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Smooth scrolling for better scroll performance */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Optimize scroll event performance */
+  body {
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+  }
+
+  /* Reduce repaints on animations */
+  * {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Transform optimizations */
+  button, a, .transition-all, [class*="transition"] {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Contain layout for large lists */
+  [class*="grid"] {
+    contain: layout style paint;
+  }
+
+  /* Smooth transitions by default */
+  button, a {
+    transition: all 0.15s ease-out;
+  }
+
   /* Smooth scrolling with performance optimization */
   html {
     scroll-behavior: smooth;

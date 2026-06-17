@@ -44,7 +44,7 @@ function StoreHeroContent({ store }: StoreHeroProps) {
             className="object-cover"
             sizes="100vw"
             priority={true}
-            quality={85}
+            quality={75}
             decoding="async"
           />
         ) : (

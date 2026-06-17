@@ -74,7 +74,7 @@ export function HeroCarousel({ heroCarouselItems, options }: HeroCarouselProps) 
                 className={cn("object-cover", item.storeId ? "cursor-pointer" : "")}
                 data-ai-hint={item.hint}
                 priority={index === 0}
-                quality={100}
+                quality={80}
                 sizes="100vw"
               />
             </div>
