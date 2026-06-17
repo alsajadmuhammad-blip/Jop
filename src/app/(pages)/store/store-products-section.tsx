@@ -23,51 +23,32 @@ const StoreSectionsNav = memo(function StoreSectionsNav({
   activeSection,
   onSectionChange,
 }: StoreSectionsNavProps) {
-  // Shadows are now handled via CSS scroll-behavior instead of JavaScript
-
   return (
-    <div className="mb-6 relative">
-      <nav
-        className="max-w-full min-w-0 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide"
-        style={{ 
-          WebkitOverflowScrolling: 'touch',
-          contain: 'layout style paint',
-        }}
-        aria-label="تنقل أقسام المتجر"
+    <nav className="overflow-x-auto pb-2 mb-8" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div 
+        className="inline-flex min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm"
+        style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
       >
-        <div 
-          className="inline-flex w-max min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm"
-          style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
+        <Button
+          variant={activeSection === "all" ? "default" : "outline"}
+          className="min-w-[80px] whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-all duration-200"
+          onClick={() => onSectionChange("all")}
         >
-          <Button
-            variant={activeSection === "all" ? "default" : "outline"}
-            className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs transition-colors duration-150"
-            onClick={() => onSectionChange("all")}
-          >
-            الكل
-          </Button>
+          الكل
+        </Button>
 
-          {sections.map((section) => (
-            <Button
-              key={section.id}
-              variant={activeSection === section.id ? "default" : "outline"}
-              className="flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs transition-colors duration-150"
-              onClick={() => onSectionChange(section.id)}
-            >
-              {section.name}
-            </Button>
-          ))}
-        </div>
-      </nav>
-      <div 
-        className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-slate-50 to-transparent" 
-        style={{ contain: 'strict' }}
-      />
-      <div 
-        className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-50 to-transparent" 
-        style={{ contain: 'strict' }}
-      />
-    </div>
+        {sections.map((section) => (
+          <Button
+            key={section.id}
+            variant={activeSection === section.id ? "default" : "outline"}
+            className="min-w-[80px] whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-all duration-200"
+            onClick={() => onSectionChange(section.id)}
+          >
+            {section.name}
+          </Button>
+        ))}
+      </div>
+    </nav>
   );
 });
 

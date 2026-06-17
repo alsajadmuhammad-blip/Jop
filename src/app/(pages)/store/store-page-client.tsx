@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Globe } from "lucide-react";
 import { StoreHero } from "./store-hero";
 import type { Product, Store, Section } from "@/lib/types";
 
@@ -23,14 +22,6 @@ const StoreInfoSidebar = dynamic(
   () => import("./store-info-sidebar").then(mod => ({ default: mod.StoreInfoSidebar })),
   { 
     loading: () => <Skeleton className="h-48 rounded-[2rem]" />,
-    ssr: true 
-  }
-);
-
-const StoreContactSidebar = dynamic(
-  () => import("./store-contact-sidebar").then(mod => ({ default: mod.StoreContactSidebar })),
-  { 
-    loading: () => <Skeleton className="h-32 rounded-[2rem]" />,
     ssr: true 
   }
 );
@@ -146,7 +137,6 @@ export default function StorePageClient() {
           </div>
           <div className="space-y-6 min-w-0 overflow-hidden" style={{ contain: 'layout style paint' }}>
             <StoreInfoSidebar store={store} />
-            <StoreContactSidebar store={store} />
           </div>
         </div>
       </div>

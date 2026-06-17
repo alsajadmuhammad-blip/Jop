@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/61cc43b3d7ad2990.js"],"ClientPageRoot"]
-3:I[18447,["/_next/static/chunks/dce10d3cf0bb4a8f.js","/_next/static/chunks/bce7c8ee28a04176.js","/_next/static/chunks/4a456fdbdcb588a6.js","/_next/static/chunks/934ecd46ef6b14fe.js","/_next/static/chunks/582dcc0a225f8b8a.js","/_next/static/chunks/b69a3e450d9744f1.js","/_next/static/chunks/2e70c6648062abf4.js","/_next/static/chunks/eeaa4374c120a1fe.js","/_next/static/chunks/8ca0448d163579dd.js","/_next/static/chunks/627b6a0e4e7a0c96.js"],"default"]
+3:I[18447,["/_next/static/chunks/8a023f1caaae735f.js","/_next/static/chunks/bce7c8ee28a04176.js","/_next/static/chunks/b69a3e450d9744f1.js","/_next/static/chunks/4a456fdbdcb588a6.js","/_next/static/chunks/934ecd46ef6b14fe.js","/_next/static/chunks/582dcc0a225f8b8a.js","/_next/static/chunks/2e70c6648062abf4.js","/_next/static/chunks/eeaa4374c120a1fe.js","/_next/static/chunks/69a331bbf2b6816a.js","/_next/static/chunks/627b6a0e4e7a0c96.js"],"default"]
 6:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/61cc43b3d7ad2990.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"5zOxZ-kumfMWaEZiIRX9g","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/627b6a0e4e7a0c96.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"51HduXiLM4ON78-LyCSiW","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/627b6a0e4e7a0c96.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
 8:null
