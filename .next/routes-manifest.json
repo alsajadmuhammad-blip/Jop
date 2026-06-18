@@ -80,6 +80,12 @@
       "namedRegex": "^/contact(?:/)?$"
     },
     {
+      "page": "/create-store",
+      "regex": "^/create\\-store(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/create\\-store(?:/)?$"
+    },
+    {
       "page": "/dashboard/representative",
       "regex": "^/dashboard/representative(?:/)?$",
       "routeKeys": {},
@@ -126,6 +132,12 @@
       "regex": "^/representative(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/representative(?:/)?$"
+    },
+    {
+      "page": "/representative/add-store",
+      "regex": "^/representative/add\\-store(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/representative/add\\-store(?:/)?$"
     },
     {
       "page": "/search",

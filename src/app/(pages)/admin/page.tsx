@@ -247,21 +247,81 @@ function AdminDashboard() {
     }
 
     try {
-      const { error } = await supabase.from('stores').update({
+      const now = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + pkg.subscriptionDuration * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: existingAssignments, error: fetchError } = await supabase
+        .from('store_package_assignments')
+        .select('id')
+        .eq('store_id', storeId)
+        .eq('is_active', true);
+
+      if (fetchError) throw fetchError;
+
+      if (existingAssignments && existingAssignments.length > 0) {
+        const assignmentIds = existingAssignments.map((item: { id: string }) => item.id);
+        const { error: deactivateError } = await supabase
+          .from('store_package_assignments')
+          .update({ is_active: false, updated_at: now })
+          .in('id', assignmentIds);
+
+        if (deactivateError) throw deactivateError;
+      }
+
+      const { error: insertError } = await supabase.from('store_package_assignments').insert({
+        store_id: storeId,
+        storeId,
+        package_id: pkg.id,
+        packageId: pkg.id,
+        assigned_at: now,
+        assignedAt: now,
+        expires_at: expiresAt,
+        expiresAt,
+        is_active: true,
+        isActive: true,
+        custom_product_limit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
+        customProductLimit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
+        custom_subscription_duration: pkg.subscriptionDuration,
+        customSubscriptionDuration: pkg.subscriptionDuration,
+        custom_price: pkg.price,
+        customPrice: pkg.price,
+        notes: 'تم تعيين الباقة من صفحة المشرف',
+        created_at: now,
+        createdAt: now,
+        updated_at: now,
+        updatedAt: now,
+      });
+
+      if (insertError) throw insertError;
+
+      const { error: storeError } = await supabase.from('stores').update({
+        package_id: pkg.id,
+        packageId: pkg.id,
         package_name: pkg.slug,
         packageName: pkg.slug,
         product_limit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
         productLimit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
         subscription_duration: pkg.subscriptionDuration,
         subscriptionDuration: pkg.subscriptionDuration,
+        activation_date: now,
+        activationDate: now,
+        updated_at: now,
+        updatedAt: now,
       }).eq('id', storeId);
 
-      if (error) throw error;
+      if (storeError) throw storeError;
 
       setStores((current) =>
         current.map((store) =>
           store.id === storeId
-            ? { ...store, packageName: pkg.slug, productLimit: pkg.productLimit, subscriptionDuration: pkg.subscriptionDuration }
+            ? {
+                ...store,
+                packageId: pkg.id,
+                packageName: pkg.slug,
+                productLimit: pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 999999 : pkg.productLimit,
+                subscriptionDuration: pkg.subscriptionDuration,
+                activationDate: now,
+              }
             : store
         )
       );

@@ -9,13 +9,13 @@ import { StoreOwnerNavbar } from "./navbar";
 import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
-import type { Product, Store, Section } from "@/lib/types";
+import type { Product, Store, Section, StorePackage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 // Removed ProductFormDialog - now using separate page
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, createStoreSection, updateStoreSection, deleteStoreSection } from "@/services/supabase-db";
+import { deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, createStoreSection, updateStoreSection, deleteStoreSection, fetchStorePackages } from "@/services/supabase-db";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
 import {
@@ -292,6 +292,7 @@ export default function StoreDashboardPage() {
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [packages, setPackages] = useState<StorePackage[]>([]);
   const [newSectionName, setNewSectionName] = useState('');
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
   const [isStoreActive, setIsStoreActive] = useState(false);
@@ -371,6 +372,9 @@ export default function StoreDashboardPage() {
 
       const productsRows = await fetchProductsByStore(storeId);
       setProducts(productsRows);
+
+      const packageRows = await fetchStorePackages();
+      setPackages(packageRows);
 
       // حفظ البيانات في sessionStorage للعودة السريعة
       if (user?.id) {
@@ -585,6 +589,10 @@ export default function StoreDashboardPage() {
   const isUnlimited = (fullStoreData?.productLimit ?? Number.MAX_SAFE_INTEGER) >= Number.MAX_SAFE_INTEGER;
   const showExpirationWarning = remainingDays !== null && remainingDays <= 5 && remainingDays > 0;
   const isPendingReview = userRole === 'store' && (!store || !store.isActive);
+  const currentPackage = useMemo(() => {
+    if (!store) return null;
+    return packages.find((pkg) => pkg.slug === store.packageName) || packages.find((pkg) => pkg.isActive) || null;
+  }, [packages, store]);
   const handleAddProduct = () => {
     if (isProductLimitReached) {
         const isUnlimited = (fullStoreData?.productLimit ?? Number.MAX_SAFE_INTEGER) >= Number.MAX_SAFE_INTEGER;
@@ -830,6 +838,76 @@ export default function StoreDashboardPage() {
                     )}
 
                     {activeView === 'products' && (
+                      <>
+                        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">حالة الاشتراك</p>
+                              <h3 className="mt-2 text-2xl font-bold text-slate-950">الباقة الحالية والخيارات المتاحة</h3>
+                              <p className="mt-2 text-sm text-slate-600">راقب صلاحية اشتراكك، وحدد الباقة المناسبة لتوسيع متجر you.</p>
+                            </div>
+                            <Badge variant={isSubscriptionExpired ? 'destructive' : 'default'} className="self-start">
+                              {isSubscriptionExpired ? 'الاشتراك منتهي' : 'اشتراك نشط'}
+                            </Badge>
+                          </div>
+
+                          <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                            <article className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 text-white shadow-sm">
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-300">الباقة الحالية</p>
+                              <h4 className="mt-3 text-xl font-bold">{currentPackage?.name || 'لا توجد باقة مخصصة بعد'}</h4>
+                              <p className="mt-2 text-sm text-slate-300">{currentPackage?.description || 'سيتم عرض تفاصيل الباقة هنا عند تعيينها للمتجر.'}</p>
+                              <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-200">
+                                <span className="rounded-full bg-white/10 px-3 py-1">الحد: {currentPackage?.productLimit ? (currentPackage.productLimit >= Number.MAX_SAFE_INTEGER ? 'غير محدود' : currentPackage.productLimit) : fullStoreData.productLimit} منتج</span>
+                                <span className="rounded-full bg-white/10 px-3 py-1">المدة: {currentPackage?.subscriptionDuration || fullStoreData.subscriptionDuration || 30} يوم</span>
+                                <span className="rounded-full bg-white/10 px-3 py-1">السعر: {currentPackage?.price ? `${currentPackage.price.toLocaleString()} د.ع` : 'غير محدد'}</span>
+                              </div>
+                            </article>
+
+                            <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">معلومات الاشتراك</p>
+                              <ul className="mt-4 space-y-3 text-sm text-slate-700">
+                                <li className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 border border-slate-200"><span>الأيام المتبقية</span><strong>{remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي'}</strong></li>
+                                <li className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 border border-slate-200"><span>حالة التفعيل</span><strong>{fullStoreData.isActive ? 'مفعّل' : 'غير مفعّل'}</strong></li>
+                                <li className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 border border-slate-200"><span>تاريخ التفعيل</span><strong>{fullStoreData.activationDate ? new Date(fullStoreData.activationDate).toLocaleDateString('ar-EG') : 'غير محدد'}</strong></li>
+                              </ul>
+                            </article>
+                          </div>
+                        </section>
+
+                        {packages.length > 0 && (
+                          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">الباقات المتاحة</p>
+                                <h3 className="mt-2 text-2xl font-bold text-slate-950">اختر الباقة المناسبة لنمو متجرك</h3>
+                              </div>
+                            </div>
+                            <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                              {packages.filter((pkg) => pkg.isActive).map((pkg) => (
+                                <article key={pkg.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm hover:-translate-y-0.5 transition-all">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="text-lg font-bold text-slate-900">{pkg.name}</p>
+                                      <p className="text-xs text-slate-500">{pkg.slug}</p>
+                                    </div>
+                                    <Badge variant="outline">{pkg.price === 0 ? 'مجانية' : `${pkg.price.toLocaleString()} د.ع`}</Badge>
+                                  </div>
+                                  <p className="mt-4 text-sm text-slate-600">{pkg.description || 'لا يوجد وصف إضافي لهذه الباقة.'}</p>
+                                  <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                                    <li>• الحد الأقصى للمنتجات: {pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 'غير محدود' : pkg.productLimit}</li>
+                                    <li>• مدة الاشتراك: {pkg.subscriptionDuration} يوم</li>
+                                    <li>• الحالة: {pkg.isActive ? 'مفعلة' : 'متوقفة'}</li>
+                                  </ul>
+                                  <div className="mt-5 flex items-center justify-between gap-2">
+                                    <Button size="sm" variant="secondary" onClick={() => toast({ title: 'سيتم ربط هذه الباقة مع إدارة الاشتراك قريباً' })}>عرض التفاصيل</Button>
+                                    <Button size="sm" onClick={() => toast({ title: 'سيتم تفعيل تجديد الاشتراك من صفحة الدفع قريباً' })}>تجديد الاشتراك</Button>
+                                  </div>
+                                </article>
+                              ))}
+                            </div>
+                          </section>
+                        )}
+
                         <ProductsTab 
                             products={products}
                             productLimit={fullStoreData.productLimit}
@@ -837,6 +915,7 @@ export default function StoreDashboardPage() {
                             onEdit={handleEditProduct}
                             onDelete={handleDeleteProduct}
                         />
+                      </>
                     )}
 
                     {activeView === 'orders' && (

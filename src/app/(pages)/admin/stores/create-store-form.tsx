@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2 } from "lucide-react";
+import { fetchStorePackages } from "@/services/supabase-db";
+import { createStoreOwner } from "@/services/supabase-admin";
+import type { StorePackage } from "@/lib/types";
 
 type FormData = {
   ownerName: string;
@@ -30,6 +33,7 @@ type FormData = {
   phone: string;
   governorate: string;
   city: string;
+  packageSlug: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -43,6 +47,7 @@ type Errors = {
   phone?: string;
   governorate?: string;
   city?: string;
+  packageSlug?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -59,7 +64,15 @@ const DEFAULT_MARKET_TYPES = [
   "أدوات رياضية",
 ];
 
-export default function CreateStoreForm() {
+export default function CreateStoreForm({
+  defaultPackageSlug,
+  mode = "admin",
+  showPackageSelector = true,
+}: {
+  defaultPackageSlug?: string;
+  mode?: "admin" | "public";
+  showPackageSelector?: boolean;
+}) {
   const [formData, setFormData] = useState<FormData>({
     ownerName: "",
     storeName: "",
@@ -68,6 +81,7 @@ export default function CreateStoreForm() {
     phone: "",
     governorate: "",
     city: "",
+    packageSlug: defaultPackageSlug || "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -75,9 +89,33 @@ export default function CreateStoreForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const [marketTypes, setMarketTypes] = useState<string[]>(DEFAULT_MARKET_TYPES);
+  const [packages, setPackages] = useState<StorePackage[]>([]);
   const [newMarketType, setNewMarketType] = useState("");
   const [showAddMarketType, setShowAddMarketType] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (mode !== "public") return;
+
+    let mounted = true;
+
+    async function loadPackages() {
+      const rows = await fetchStorePackages();
+      if (mounted) {
+        const activePackages = rows.filter((pkg) => pkg.isActive);
+        setPackages(activePackages);
+        if (!formData.packageSlug && activePackages[0]) {
+          setFormData((current) => ({ ...current, packageSlug: activePackages[0].slug }));
+        }
+      }
+    }
+
+    loadPackages();
+
+    return () => {
+      mounted = false;
+    };
+  }, [formData.packageSlug, mode]);
 
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
@@ -111,6 +149,10 @@ export default function CreateStoreForm() {
       newErrors.marketType = "نوع السوق/المتجر مطلوب";
     }
 
+    if (!formData.packageSlug.trim()) {
+      newErrors.packageSlug = "اختر باقة الاشتراك المطلوبة";
+    }
+
     if (!formData.email.trim()) {
       newErrors.email = "البريد الإلكتروني مطلوب";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -139,41 +181,50 @@ export default function CreateStoreForm() {
 
     setLoading(true);
     try {
-      const payload = {
-        ownerName: formData.ownerName,
-        storeName: formData.storeName,
-        storeType: formData.storeType,
-        marketType: formData.marketType,
-        phone: formData.phone.replace(/\s/g, ""),
-        ...(formData.storeType === "فعلي" && {
-          governorate: formData.governorate,
-          city: formData.city,
-        }),
-        email: formData.email,
-        password: formData.password,
-      };
+      if (mode === "public") {
+        const payload = {
+          ownerEmail: formData.email,
+          ownerName: formData.ownerName,
+          ownerPassword: formData.password,
+          storeName: formData.storeName,
+          storeDescription: "",
+          whatsappNumber: formData.phone.replace(/\s/g, ""),
+          marketType: formData.marketType,
+          packageName: formData.packageSlug,
+          storeType: formData.storeType,
+          location: formData.storeType === "فعلي" ? `${formData.governorate}, ${formData.city}` : "",
+          latitude: null,
+          longitude: null,
+          hasDelivery: false,
+          businessHours: null,
+          logoUrl: null,
+          coverUrl: null,
+        };
 
-      // جلب الـ Anon Key الخاص بمشروعك من بيئة عمل Next.js تلقائياً
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-      const response = await fetch(
-        "https://tjfogjumpyygftwwbmxb.supabase.co/functions/v1/create-store",
-        {
+        await createStoreOwner(payload);
+      } else {
+        const response = await fetch("/api/admin/create-store", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // الهيدرز الأساسية لتخطي جدار حماية Supabase (خطأ 401)
-            "Authorization": `Bearer ${supabaseAnonKey}`,
-            "apikey": supabaseAnonKey,
-          },
-          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ownerName: formData.ownerName,
+            storeName: formData.storeName,
+            storeType: formData.storeType,
+            marketType: formData.marketType,
+            phone: formData.phone.replace(/\s/g, ""),
+            ...(formData.storeType === "فعلي" && {
+              governorate: formData.governorate,
+              city: formData.city,
+            }),
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || result.message || "فشل إنشاء المتجر");
         }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || "فشل إنشاء المتجر");
       }
 
       toast({
@@ -191,6 +242,7 @@ export default function CreateStoreForm() {
         phone: "",
         governorate: "",
         city: "",
+        packageSlug: "",
         email: "",
         password: "",
         confirmPassword: "",
@@ -343,6 +395,46 @@ export default function CreateStoreForm() {
               <p className="text-sm text-destructive">{errors.city}</p>
             )}
           </div>
+        </div>
+      )}
+
+      {mode === "public" && (() => {
+        const selectedPackage = packages.find((pkg) => pkg.slug === formData.packageSlug);
+        return selectedPackage ? (
+          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">الباقة المختارة</p>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{selectedPackage.name}</h3>
+                <p className="text-sm text-slate-600">{selectedPackage.description || 'لا يوجد وصف إضافي لهذه الباقة.'}</p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-primary shadow-sm">{selectedPackage.price === 0 ? 'مجانية' : `${selectedPackage.price.toLocaleString()} د.ع`}</span>
+            </div>
+          </div>
+        ) : null;
+      })()}
+
+      {showPackageSelector && mode === "public" && (
+        <div className="space-y-2">
+          <Label htmlFor="packageSlug">الباقة المطلوبة *</Label>
+        <Select
+          value={formData.packageSlug}
+          onValueChange={(value) => setFormData({ ...formData, packageSlug: value })}
+          disabled={loading || packages.length === 0}
+        >
+          <SelectTrigger className={errors.packageSlug ? "border-destructive" : ""}>
+            <SelectValue placeholder={packages.length ? "اختر الباقة" : "لا توجد باقات متاحة حالياً"} />
+          </SelectTrigger>
+          <SelectContent>
+            {packages.map((pkg) => (
+              <SelectItem key={pkg.id} value={pkg.slug}>
+                {pkg.name} — {pkg.price === 0 ? "مجانية" : `${pkg.price.toLocaleString()} د.ع`} / {pkg.subscriptionDuration} يوم
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+          {errors.packageSlug && <p className="text-sm text-destructive">{errors.packageSlug}</p>}
+          <p className="text-xs text-muted-foreground">سيتم ربط هذا الاشتراك مباشرة مع متجر صاحب الحساب عند إنشاء المتجر.</p>
         </div>
       )}
 
@@ -502,10 +594,10 @@ export default function CreateStoreForm() {
         {loading ? (
           <>
             <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            جاري الإنشاء...
+            جاري إنشاء المتجر...
           </>
         ) : (
-          "إنشاء المتجر والحساب"
+          "ابدأ الاشتراك وإنشاء المتجر"
         )}
       </Button>
     </form>

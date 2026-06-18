@@ -34,6 +34,7 @@ export function SubscriptionsTab({
     name: '',
     slug: '',
     description: '',
+    features: '',
     price: 0,
     productLimit: 50,
     subscriptionDuration: 30,
@@ -59,6 +60,7 @@ export function SubscriptionsTab({
       name: '',
       slug: '',
       description: '',
+      features: '',
       price: 0,
       productLimit: 50,
       subscriptionDuration: 30,
@@ -80,6 +82,7 @@ export function SubscriptionsTab({
       name: pkg.name,
       slug: pkg.slug,
       description: pkg.description || '',
+      features: Array.isArray(pkg.metadata?.features) ? pkg.metadata.features.join('\n') : '',
       price: pkg.price,
       productLimit: pkg.productLimit,
       subscriptionDuration: pkg.subscriptionDuration,
@@ -116,6 +119,16 @@ export function SubscriptionsTab({
         return;
       }
     }
+
+    const featureLines = formState.features
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    metadata = {
+      ...(metadata || {}),
+      features: featureLines,
+    };
 
     const slug = formState.slug.trim() || slugify(formState.name);
     if (!slug) {
@@ -268,6 +281,13 @@ export function SubscriptionsTab({
                     <p className="mt-1 font-semibold">{pkg.subscriptionDuration} يوم</p>
                   </div>
                 </div>
+                {Array.isArray(pkg.metadata?.features) && pkg.metadata.features.length > 0 && (
+                  <ul className="mt-4 space-y-1 text-xs text-slate-700">
+                    {pkg.metadata.features.map((feature: string) => (
+                      <li key={feature} className="rounded-full bg-white px-3 py-1">• {feature}</li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" className="flex-1 min-w-[120px]" onClick={() => openEditPackageDialog(pkg)}>
                     <Edit className="h-4 w-4" />
@@ -461,6 +481,11 @@ export function SubscriptionsTab({
             <div className="space-y-2">
               <Label htmlFor="package-description">الوصف</Label>
               <Textarea id="package-description" value={formState.description} onChange={(e) => setFormState({ ...formState, description: e.target.value })} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="package-features">المزايا / الخدمات</Label>
+              <Textarea id="package-features" value={formState.features} onChange={(e) => setFormState({ ...formState, features: e.target.value })} rows={4} placeholder="أضف كل ميزة في سطر جديد" />
+              <p className="text-xs text-muted-foreground">سيظهر هذا في بطاقات الباقات على الصفحة العامة.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="package-metadata">Metadata (JSON)</Label>

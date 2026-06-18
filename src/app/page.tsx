@@ -83,6 +83,15 @@ function HomePageContent() {
       {/* Hero Section */}
       <section className="relative overflow-hidden py-6 md:py-12">
         <div className="container mx-auto px-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-primary/10 bg-primary/5 p-4 shadow-sm">
+            <div>
+              <p className="text-sm font-semibold text-primary">ابدأ رحلتك الآن</p>
+              <h2 className="text-xl font-bold text-slate-900">أنشئ متجرك من صفحة واحدة، اختر الباقة، ثم ابدأ بالاشتراك.</h2>
+            </div>
+            <Link href="/create-store">
+              <Button size="lg">إنشاء متجر</Button>
+            </Link>
+          </div>
           {loading ? (
             <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
           ) : (

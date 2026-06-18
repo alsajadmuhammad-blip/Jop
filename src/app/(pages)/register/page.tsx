@@ -20,22 +20,16 @@ import { customerRegistrationSchema } from "@/lib/validations";
 
 function StoreRegistrationForm() {
   return (
-    <div className="space-y-5 p-6 text-center">
-      <p className="text-xl font-semibold">تسجيل المتاجر متاح فقط للمشرفين والمندوبين</p>
-      <p className="text-muted-foreground">
-        لسلامة المنصة وحماية الحسابات، لا يمكن للمستخدمين العاديين إنشاء حساب متجر مباشرة من هذه الصفحة.
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/login" className="w-full">
-          <Button className="w-full">تسجيل الدخول</Button>
-        </Link>
-        <Link href="/representative/add-store" className="w-full">
-          <Button variant="outline" className="w-full">صفحة المندوب</Button>
-        </Link>
+    <div className="space-y-5 p-1 text-center">
+      <div className="rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/8 via-background to-background p-5 text-center shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-primary">إنشاء متجر جديد</p>
+        <h3 className="mt-2 text-2xl font-bold text-slate-900">ابدأ من صفحة مخصصة لإنشاء المتجر</h3>
+        <p className="mt-2 text-sm text-muted-foreground">هذه الصفحة مخصصة لحساب العميل فقط. إذا كنت تريد فتح متجر جديد، استخدم الصفحة المخصصة لاختيار الباقة وإكمال إنشاء المتجر.</p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        إذا كنت مندوباً ميدانيًا، يمكنك إضافة أصحاب المتاجر من داخل لوحة المندوب.
-      </p>
+      <Link href="/create-store" className="block w-full">
+        <Button className="w-full" size="lg">فتح متجر جديد</Button>
+      </Link>
+      <p className="text-sm text-muted-foreground">لن تظهر هنا أي تكرار في اختيار الباقة؛ كل شيء موحد داخل صفحة إنشاء المتجر.</p>
     </div>
   );
 }
