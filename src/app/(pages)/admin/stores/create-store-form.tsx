@@ -20,9 +20,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { fetchStorePackages } from "@/services/supabase-db";
 import { createStoreOwner } from "@/services/supabase-admin";
+import { initiateSubscriptionPayment } from "@/services/subscription-service";
 import type { StorePackage } from "@/lib/types";
 
 type FormData = {
@@ -92,6 +93,8 @@ export default function CreateStoreForm({
   const [packages, setPackages] = useState<StorePackage[]>([]);
   const [newMarketType, setNewMarketType] = useState("");
   const [showAddMarketType, setShowAddMarketType] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<'form' | 'payment' | 'completed'>('form');
+  const [pendingStoreData, setPendingStoreData] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -181,28 +184,54 @@ export default function CreateStoreForm({
 
     setLoading(true);
     try {
-      if (mode === "public") {
-        const payload = {
-          ownerEmail: formData.email,
-          ownerName: formData.ownerName,
-          ownerPassword: formData.password,
-          storeName: formData.storeName,
-          storeDescription: "",
-          whatsappNumber: formData.phone.replace(/\s/g, ""),
-          marketType: formData.marketType,
-          packageName: formData.packageSlug,
-          storeType: formData.storeType,
-          location: formData.storeType === "فعلي" ? `${formData.governorate}, ${formData.city}` : "",
-          latitude: null,
-          longitude: null,
-          hasDelivery: false,
-          businessHours: null,
-          logoUrl: null,
-          coverUrl: null,
-        };
+      const selectedPackage = packages.find(pkg => pkg.slug === formData.packageSlug);
+      
+      if (mode === "public" && selectedPackage) {
+        // Public mode: Check if payment is required
+        if (selectedPackage.price > 0) {
+          // Payment required: initiate payment first
+          const paymentPayload = {
+            storeId: crypto.randomUUID(), // Temporary ID - will be replaced after payment
+            packageId: selectedPackage.id,
+            storeEmail: formData.email,
+            storeName: formData.storeName,
+            ownerName: formData.ownerName,
+            whatsappNumber: formData.phone.replace(/\s/g, ""),
+          };
 
-        await createStoreOwner(payload);
-      } else {
+          const paymentResponse = await initiateSubscriptionPayment(paymentPayload);
+
+          if (!paymentResponse.success) {
+            throw new Error(paymentResponse.error || "Failed to initiate payment");
+          }
+
+          // Store pending data for after payment
+          setPendingStoreData({
+            ...formData,
+            packageId: selectedPackage.id,
+            transactionId: paymentResponse.transactionId,
+          });
+
+          setPaymentStep("payment");
+
+          toast({
+            title: "تم توجيهك لبوابة الدفع",
+            description: "يرجى إكمال عملية الدفع",
+            variant: "default",
+          });
+
+          // Redirect to payment URL
+          if (paymentResponse.paymentUrl) {
+            setTimeout(() => {
+              window.location.href = paymentResponse.paymentUrl!;
+            }, 2000);
+          }
+        } else {
+          // Free package: create store directly
+          await createStoreWithoutPayment();
+        }
+      } else if (mode === "admin") {
+        // Admin mode: create store directly
         const response = await fetch("/api/admin/create-store", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -218,6 +247,7 @@ export default function CreateStoreForm({
             }),
             email: formData.email,
             password: formData.password,
+            packageSlug: formData.packageSlug,
           }),
         });
 
@@ -225,38 +255,76 @@ export default function CreateStoreForm({
         if (!response.ok) {
           throw new Error(result.error || result.message || "فشل إنشاء المتجر");
         }
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم إنشاء المتجر وحساب المالك بنجاح",
+          variant: "default",
+        });
+
+        setPaymentStep("completed");
+        resetForm();
+      } else {
+        throw new Error("Invalid mode or package not selected");
       }
-
-      toast({
-        title: "تم بنجاح",
-        description: "تم إنشاء المتجر وحساب المالك بنجاح",
-        variant: "default",
-      });
-
-      // إرجاع الفورم لحالته الأصلية بعد النجاح
-      setFormData({
-        ownerName: "",
-        storeName: "",
-        storeType: "",
-        marketType: "",
-        phone: "",
-        governorate: "",
-        city: "",
-        packageSlug: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-      });
     } catch (err: any) {
-      console.error("Error creating store:", err);
+      console.error("Error:", err);
       toast({
         title: "خطأ",
-        description: err.message || "حدث خطأ أثناء إنشاء المتجر",
+        description: err.message || "حدث خطأ أثناء المعالجة",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const createStoreWithoutPayment = async () => {
+    const payload = {
+      ownerEmail: formData.email,
+      ownerName: formData.ownerName,
+      ownerPassword: formData.password,
+      storeName: formData.storeName,
+      storeDescription: "",
+      whatsappNumber: formData.phone.replace(/\s/g, ""),
+      marketType: formData.marketType,
+      packageName: formData.packageSlug,
+      storeType: formData.storeType,
+      location: formData.storeType === "فعلي" ? `${formData.governorate}, ${formData.city}` : "",
+      latitude: null,
+      longitude: null,
+      hasDelivery: false,
+      businessHours: null,
+      logoUrl: null,
+      coverUrl: null,
+    };
+
+    await createStoreOwner(payload);
+
+    toast({
+      title: "تم بنجاح",
+      description: "تم إنشاء المتجر والحساب بنجاح",
+      variant: "default",
+    });
+
+    setPaymentStep("completed");
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      ownerName: "",
+      storeName: "",
+      storeType: "",
+      marketType: "",
+      phone: "",
+      governorate: "",
+      city: "",
+      packageSlug: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
   };
 
   const handleAddMarketType = async () => {
@@ -594,12 +662,29 @@ export default function CreateStoreForm({
         {loading ? (
           <>
             <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            جاري إنشاء المتجر...
+            {mode === "public" && (packages.find(p => p.slug === formData.packageSlug)?.price ?? 0) > 0
+              ? "جاري توجيهك لبوابة الدفع..."
+              : "جاري إنشاء المتجر..."}
           </>
         ) : (
-          "ابدأ الاشتراك وإنشاء المتجر"
+          <>
+            {mode === "public" && (packages.find(p => p.slug === formData.packageSlug)?.price ?? 0) > 0
+              ? "ابدأ الاشتراك والدفع"
+              : "إنشاء المتجر والحساب"}
+          </>
         )}
       </Button>
+
+      {mode === "public" && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+          <div className="flex gap-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <p>
+              <span className="font-semibold">ملاحظة:</span> إذا كانت الباقة مدفوعة، ستتم إعادة توجيهك لبوابة الدفع الآمنة (Zain Cash) لإكمال العملية.
+            </p>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

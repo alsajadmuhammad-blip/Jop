@@ -110,6 +110,12 @@
       "namedRegex": "^/dashboard/store/change\\-password(?:/)?$"
     },
     {
+      "page": "/dashboard/subscription/renew",
+      "regex": "^/dashboard/subscription/renew(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/subscription/renew(?:/)?$"
+    },
+    {
       "page": "/login",
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
@@ -156,6 +162,18 @@
       "regex": "^/stores(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/stores(?:/)?$"
+    },
+    {
+      "page": "/subscription/payment-error",
+      "regex": "^/subscription/payment\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/subscription/payment\\-error(?:/)?$"
+    },
+    {
+      "page": "/subscription/payment-success",
+      "regex": "^/subscription/payment\\-success(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/subscription/payment\\-success(?:/)?$"
     },
     {
       "page": "/track",

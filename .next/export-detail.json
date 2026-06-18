@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "outDirectory": "/workspaces/markazi/out",
-  "success": true
+  "outDirectory": "/workspaces/markazi/.next/export",
+  "success": false
 }
