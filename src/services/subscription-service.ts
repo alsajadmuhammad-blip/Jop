@@ -9,10 +9,13 @@ import type {
 } from '@/lib/subscription-types';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    // Required by Supabase Edge Functions
+    'apikey': SUPABASE_ANON_KEY || '',
   };
 
   try {

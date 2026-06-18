@@ -107,9 +107,13 @@ export default function CreateStoreForm({
       if (mounted) {
         const activePackages = rows.filter((pkg) => pkg.isActive);
         setPackages(activePackages);
-        if (!formData.packageSlug && activePackages[0]) {
-          setFormData((current) => ({ ...current, packageSlug: activePackages[0].slug }));
-        }
+        
+        // Use defaultPackageSlug if provided, otherwise use first active package
+        const slugToUse = defaultPackageSlug || (activePackages[0]?.slug || "");
+        setFormData((current) => ({ 
+          ...current, 
+          packageSlug: slugToUse || current.packageSlug 
+        }));
       }
     }
 
@@ -118,7 +122,7 @@ export default function CreateStoreForm({
     return () => {
       mounted = false;
     };
-  }, [formData.packageSlug, mode]);
+  }, [mode]);
 
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
@@ -186,7 +190,11 @@ export default function CreateStoreForm({
     try {
       const selectedPackage = packages.find(pkg => pkg.slug === formData.packageSlug);
       
-      if (mode === "public" && selectedPackage) {
+      if (!selectedPackage) {
+        throw new Error('الرجاء اختيار باقة صحيحة');
+      }
+
+      if (mode === "public") {
         // Public mode: Register store and handle payment flow
         const registerPayload = {
           ownerName: formData.ownerName,
@@ -198,11 +206,15 @@ export default function CreateStoreForm({
           packageId: selectedPackage.id,
         };
 
+        console.log('📝 Submitting public store registration:', registerPayload);
+        
         const result = await registerStoreAndInitiatePayment(registerPayload);
 
         if (!result.success) {
           throw new Error(result.error || 'فشل إنشاء المتجر');
         }
+
+        console.log('✅ Store registered successfully:', result);
 
         // Store the registration data
         setPendingStoreData({
@@ -220,14 +232,16 @@ export default function CreateStoreForm({
 
         // If payment is required, redirect to payment gateway
         if (result.paymentUrl) {
+          console.log('💳 Redirecting to payment:', result.paymentUrl);
           setTimeout(() => {
             window.location.href = result.paymentUrl!;
           }, 2000);
         } else {
           // Free package: redirect to success page
+          console.log('✨ Free package - redirecting to success page');
           setPaymentStep("completed");
           setTimeout(() => {
-            window.location.href = `/subscription/payment-success?store_id=${result.storeId}&is_free=true`;
+            window.location.href = `/subscription/payment-success?transaction_id=${result.transactionId || 'free'}&is_free=true`;
           }, 2000);
         }
       } else if (mode === "admin") {
@@ -268,7 +282,7 @@ export default function CreateStoreForm({
         throw new Error("Invalid mode or package not selected");
       }
     } catch (err: any) {
-      console.error("Error:", err);
+      console.error("❌ Error:", err);
       toast({
         title: "خطأ",
         description: err.message || "حدث خطأ أثناء المعالجة",
@@ -277,38 +291,6 @@ export default function CreateStoreForm({
     } finally {
       setLoading(false);
     }
-  };
-
-  const createStoreWithoutPayment = async () => {
-    const payload = {
-      ownerEmail: formData.email,
-      ownerName: formData.ownerName,
-      ownerPassword: formData.password,
-      storeName: formData.storeName,
-      storeDescription: "",
-      whatsappNumber: formData.phone.replace(/\s/g, ""),
-      marketType: formData.marketType,
-      packageName: formData.packageSlug,
-      storeType: formData.storeType,
-      location: formData.storeType === "فعلي" ? `${formData.governorate}, ${formData.city}` : "",
-      latitude: null,
-      longitude: null,
-      hasDelivery: false,
-      businessHours: null,
-      logoUrl: null,
-      coverUrl: null,
-    };
-
-    await createStoreOwner(payload);
-
-    toast({
-      title: "تم بنجاح",
-      description: "تم إنشاء المتجر والحساب بنجاح",
-      variant: "default",
-    });
-
-    setPaymentStep("completed");
-    resetForm();
   };
 
   const resetForm = () => {
