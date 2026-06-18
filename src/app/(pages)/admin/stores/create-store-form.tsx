@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { fetchStorePackages } from "@/services/supabase-db";
 import { createStoreOwner } from "@/services/supabase-admin";
-import { initiateSubscriptionPayment } from "@/services/subscription-service";
+import { registerStoreAndInitiatePayment } from "@/services/subscription-service";
 import type { StorePackage } from "@/lib/types";
 
 type FormData = {
@@ -187,51 +187,51 @@ export default function CreateStoreForm({
       const selectedPackage = packages.find(pkg => pkg.slug === formData.packageSlug);
       
       if (mode === "public" && selectedPackage) {
-        // Public mode: Check if payment is required
-        if (selectedPackage.price > 0) {
-          // Payment required: initiate payment first
-          const paymentPayload = {
-            storeId: crypto.randomUUID(), // Temporary ID - will be replaced after payment
-            packageId: selectedPackage.id,
-            storeEmail: formData.email,
-            storeName: formData.storeName,
-            ownerName: formData.ownerName,
-            whatsappNumber: formData.phone.replace(/\s/g, ""),
-          };
+        // Public mode: Register store and handle payment flow
+        const registerPayload = {
+          ownerName: formData.ownerName,
+          storeName: formData.storeName,
+          marketType: formData.marketType,
+          whatsappNumber: formData.phone.replace(/\s/g, ""),
+          ownerEmail: formData.email,
+          password: formData.password,
+          packageId: selectedPackage.id,
+        };
 
-          const paymentResponse = await initiateSubscriptionPayment(paymentPayload);
+        const result = await registerStoreAndInitiatePayment(registerPayload);
 
-          if (!paymentResponse.success) {
-            throw new Error(paymentResponse.error || "Failed to initiate payment");
-          }
+        if (!result.success) {
+          throw new Error(result.error || 'فشل إنشاء المتجر');
+        }
 
-          // Store pending data for after payment
-          setPendingStoreData({
-            ...formData,
-            packageId: selectedPackage.id,
-            transactionId: paymentResponse.transactionId,
-          });
+        // Store the registration data
+        setPendingStoreData({
+          storeId: result.storeId,
+          ownerId: result.ownerId,
+          transactionId: result.transactionId,
+          packageId: selectedPackage.id,
+        });
 
-          setPaymentStep("payment");
+        toast({
+          title: result.message,
+          description: result.amount ? 'تم توجيهك لبوابة الدفع' : 'تم إنشاء المتجر بنجاح',
+          variant: "default",
+        });
 
-          toast({
-            title: "تم توجيهك لبوابة الدفع",
-            description: "يرجى إكمال عملية الدفع",
-            variant: "default",
-          });
-
-          // Redirect to payment URL
-          if (paymentResponse.paymentUrl) {
-            setTimeout(() => {
-              window.location.href = paymentResponse.paymentUrl!;
-            }, 2000);
-          }
+        // If payment is required, redirect to payment gateway
+        if (result.paymentUrl) {
+          setTimeout(() => {
+            window.location.href = result.paymentUrl!;
+          }, 2000);
         } else {
-          // Free package: create store directly
-          await createStoreWithoutPayment();
+          // Free package: redirect to success page
+          setPaymentStep("completed");
+          setTimeout(() => {
+            window.location.href = `/subscription/payment-success?store_id=${result.storeId}&is_free=true`;
+          }, 2000);
         }
       } else if (mode === "admin") {
-        // Admin mode: create store directly
+        // Admin mode: create store directly using API
         const response = await fetch("/api/admin/create-store", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

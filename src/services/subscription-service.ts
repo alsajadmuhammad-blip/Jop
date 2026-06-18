@@ -352,3 +352,117 @@ export async function initiateSubscriptionPayment(
     ipAddress,
   });
 }
+
+/**
+ * Public store registration and payment workflow
+ * 1. Register store and create owner account
+ * 2. Initiate payment for subscription
+ */
+export async function registerStoreAndInitiatePayment(payload: {
+  ownerName: string;
+  storeName: string;
+  marketType?: string;
+  whatsappNumber: string;
+  ownerEmail: string;
+  password?: string;
+  packageId: string;
+  registeredByAgentId?: string;
+}): Promise<{
+  success: boolean;
+  storeId?: string;
+  ownerId?: string;
+  transactionId?: string;
+  paymentUrl?: string;
+  amount?: number;
+  error?: string;
+  message: string;
+}> {
+  try {
+    const REGISTER_STORE_URL = process.env.NEXT_PUBLIC_REGISTER_STORE_FUNCTION_URL;
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    if (!REGISTER_STORE_URL || !SUPABASE_URL) {
+      throw new Error('Missing function configuration URLs');
+    }
+
+    const headers = await getAuthHeaders();
+
+    // Step 1: Register store and create owner account
+    console.log('Step 1: Registering store...');
+    const registerResponse = await fetch(REGISTER_STORE_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const registerData = await registerResponse.json();
+
+    if (!registerResponse.ok || !registerData.success) {
+      throw new Error(
+        registerData.error || 
+        registerData.message || 
+        'Failed to register store'
+      );
+    }
+
+    const { storeId, ownerId, amountToPay } = registerData;
+
+    if (!storeId) {
+      throw new Error('Store registration failed: No storeId returned');
+    }
+
+    console.log('Step 1: Store registered successfully. StoreId:', storeId);
+
+    // Step 2: Check if payment is required
+    if (amountToPay && amountToPay > 0) {
+      console.log('Step 2: Initiating payment for amount:', amountToPay);
+
+      const ipAddress = await getClientIpAddress();
+      const paymentPayload: ProcessPaymentRequest = {
+        storeId,
+        packageId: payload.packageId,
+        storeEmail: payload.ownerEmail,
+        storeName: payload.storeName,
+        ownerName: payload.ownerName,
+        whatsappNumber: payload.whatsappNumber,
+        ipAddress,
+      };
+
+      const paymentResponse = await processSubscriptionPayment(paymentPayload);
+
+      if (!paymentResponse.success) {
+        throw new Error(paymentResponse.error || 'Failed to initiate payment');
+      }
+
+      console.log('Step 2: Payment initiated successfully');
+
+      return {
+        success: true,
+        storeId,
+        ownerId,
+        transactionId: paymentResponse.transactionId,
+        paymentUrl: paymentResponse.paymentUrl,
+        amount: paymentResponse.amount,
+        message: 'Store registered and payment initiated successfully',
+      };
+    } else {
+      // Free package: no payment required
+      console.log('Step 2: Package is free, no payment required');
+
+      return {
+        success: true,
+        storeId,
+        ownerId,
+        message: 'Store registered successfully. No payment required for this package.',
+      };
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Store registration and payment workflow error:', errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+      message: 'Failed to complete store registration and payment',
+    };
+  }
+}
