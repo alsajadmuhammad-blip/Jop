@@ -280,7 +280,6 @@ function PackageSelectStep({
             >
               متابعة البيانات
             </Button>
-            <p className="text-xs text-slate-400">يمكنك تغيير الباقة لاحقاً من لوحة التحكم</p>
           </div>
         </>
       )}
