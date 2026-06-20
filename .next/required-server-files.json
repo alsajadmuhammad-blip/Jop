@@ -131,7 +131,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/workspaces/markazi",
+    "outputFileTracingRoot": "/home/runner/workspace",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -188,7 +188,7 @@
       "proxyPrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 1,
+      "cpus": 3,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptTimeoutInSeconds": 7,
@@ -325,11 +325,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.js",
     "turbopack": {
-      "root": "/workspaces/markazi"
+      "root": "/home/runner/workspace"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "/workspaces/markazi",
+  "appDir": "/home/runner/workspace",
   "relativeAppDir": "",
   "files": [
     ".next/routes-manifest.json",

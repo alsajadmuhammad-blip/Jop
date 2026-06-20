@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Check, Zap } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Package, Zap } from "lucide-react";
 import CreateStoreForm from "@/app/(pages)/admin/stores/create-store-form";
 import { fetchStorePackages } from "@/services/supabase-db";
 import type { StorePackage } from "@/lib/types";
@@ -16,20 +16,6 @@ const fadeUp = {
   exit: { opacity: 0, y: -16 },
   transition: { duration: 0.35, ease: "easeOut" },
 };
-
-function PopularBadge({ highlighted }: { highlighted: boolean }) {
-  return (
-    <div
-      className={`px-4 py-2 border-b text-xs font-bold ${
-        highlighted
-          ? "bg-gradient-to-r from-primary/20 to-transparent border-primary/30 text-primary"
-          : "bg-gradient-to-r from-amber-50 to-transparent border-amber-200 text-amber-700"
-      }`}
-    >
-      ⭐ الأكثر شيوعاً
-    </div>
-  );
-}
 
 function PackageCard({
   pkg,
@@ -43,72 +29,132 @@ function PackageCard({
   onSelect: () => void;
 }) {
   const features: string[] = pkg.metadata?.features ?? [];
+  const isFree = pkg.price === 0;
 
   return (
-    <button
+    <motion.button
       onClick={onSelect}
-      className={`text-right w-full transition-all duration-300 ${
-        isSelected ? "ring-2 ring-primary ring-offset-2 rounded-xl" : "hover:scale-[1.02]"
-      }`}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="text-right w-full focus:outline-none"
     >
-      <Card
-        className={`h-full overflow-hidden border-2 transition-colors ${
+      <div
+        className={`relative h-full rounded-2xl overflow-hidden transition-all duration-300 ${
           isSelected
-            ? "bg-primary/8 border-primary shadow-lg"
-            : "bg-white border-slate-200 hover:border-primary/50"
+            ? "shadow-xl shadow-primary/15 ring-2 ring-primary ring-offset-2"
+            : "shadow-md hover:shadow-lg ring-1 ring-slate-200 hover:ring-primary/30"
         }`}
       >
-        {isPopular && <PopularBadge highlighted={isSelected} />}
+        {/* شريط الرأس الملوّن */}
+        <div
+          className={`relative px-6 pt-6 pb-8 ${
+            isSelected
+              ? "bg-gradient-to-br from-primary to-primary/80"
+              : isFree
+              ? "bg-gradient-to-br from-slate-700 to-slate-800"
+              : "bg-gradient-to-br from-slate-800 to-slate-900"
+          }`}
+        >
+          {/* شارة الأكثر شيوعاً */}
+          {isPopular && (
+            <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+              ⭐ الأكثر شيوعاً
+            </span>
+          )}
 
-        <CardContent className="p-6 space-y-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-slate-900">{pkg.name}</h3>
-              {pkg.description && (
-                <p className="text-sm text-slate-500 mt-1 leading-relaxed">{pkg.description}</p>
-              )}
+          {/* أيقونة + اسم الباقة */}
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                  isSelected ? "bg-white/20" : "bg-white/10"
+                }`}
+              >
+                <Package className="w-5 h-5 text-white" />
+              </span>
+              <h3 className="text-lg font-bold text-white leading-tight">{pkg.name}</h3>
             </div>
             {isSelected && (
-              <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                <Check className="w-4 h-4 text-white" />
-              </span>
+              <CheckCircle2 className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
             )}
           </div>
 
-          <div className="pb-5 border-b border-slate-200">
-            <p className="text-3xl font-bold text-slate-900">
-              {pkg.price === 0 ? "مجاني" : `${pkg.price.toLocaleString()} د.ع`}
+          {/* السعر */}
+          <div>
+            <p className="text-4xl font-extrabold text-white tracking-tight">
+              {isFree ? "مجاني" : pkg.price.toLocaleString()}
             </p>
-            {pkg.subscriptionDuration && (
-              <p className="text-sm text-slate-500 mt-1">لمدة {pkg.subscriptionDuration} يوم</p>
-            )}
+            <div className="flex items-center gap-2 mt-1">
+              {!isFree && (
+                <span className="text-sm font-medium text-white/70">د.ع</span>
+              )}
+              {pkg.subscriptionDuration && (
+                <span className="text-sm text-white/60">
+                  {!isFree && "/ "}لمدة {pkg.subscriptionDuration} يوم
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center justify-between pb-5 border-b border-slate-200">
-            <span className="text-slate-600 text-sm">عدد المنتجات</span>
-            <span className="font-bold text-slate-900">
+          {/* منحنى سفلي */}
+          <div
+            className={`absolute bottom-0 left-0 right-0 h-5 rounded-t-[24px] ${
+              isSelected ? "bg-primary/5" : "bg-slate-50"
+            }`}
+          />
+        </div>
+
+        {/* جسم البطاقة */}
+        <div
+          className={`px-6 pt-4 pb-6 space-y-4 ${
+            isSelected ? "bg-primary/5" : "bg-slate-50"
+          }`}
+        >
+          {/* الوصف */}
+          {pkg.description && (
+            <p className="text-sm text-slate-600 leading-relaxed">{pkg.description}</p>
+          )}
+
+          {/* عدد المنتجات */}
+          <div
+            className={`flex items-center justify-between rounded-xl px-4 py-3 ${
+              isSelected ? "bg-primary/10" : "bg-white border border-slate-200"
+            }`}
+          >
+            <span className="text-sm text-slate-600">عدد المنتجات</span>
+            <span
+              className={`text-sm font-bold ${
+                isSelected ? "text-primary" : "text-slate-900"
+              }`}
+            >
               {pkg.productLimit === 999999 ? "غير محدود" : `${pkg.productLimit} منتج`}
             </span>
           </div>
 
+          {/* المميزات */}
           {features.length > 0 && (
-            <ul className="space-y-2">
+            <ul className="space-y-2.5 pt-1">
               {features.slice(0, 4).map((feature, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-700">
+                  <Check
+                    className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                      isSelected ? "text-primary" : "text-slate-400"
+                    }`}
+                  />
                   {feature}
                 </li>
               ))}
               {features.length > 4 && (
-                <li className="text-xs text-primary font-semibold">
+                <li className="text-xs font-semibold text-primary pr-6">
                   +{features.length - 4} مميزات إضافية
                 </li>
               )}
             </ul>
           )}
-        </CardContent>
-      </Card>
-    </button>
+        </div>
+      </div>
+    </motion.button>
   );
 }
 
