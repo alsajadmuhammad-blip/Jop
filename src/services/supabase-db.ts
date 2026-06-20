@@ -559,16 +559,10 @@ export async function updateProduct(productId: string, updates: Partial<Product>
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.description !== undefined) payload.description = updates.description;
   if (updates.price !== undefined) payload.price = updates.price;
-  if (updates.sectionId !== undefined) {
-    payload.section_id = updates.sectionId;
-    payload.sectionId = updates.sectionId;
-  }
+  if (updates.sectionId !== undefined) payload.section_id = updates.sectionId;
   if (updates.sku !== undefined) payload.sku = updates.sku;
   if (updates.stock !== undefined) payload.stock = updates.stock;
-  if (updates.imageUrl !== undefined) {
-    payload.image_url = updates.imageUrl;
-    payload.imageUrl = updates.imageUrl;
-  }
+  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
 
   const { data, error } = await supabase
     .from('products')
@@ -908,15 +902,12 @@ export async function createStorePackage(pkg: Omit<StorePackage, 'id' | 'created
       {
         name: pkg.name,
         slug: pkg.slug,
-        description: pkg.description ?? null,
+        description: pkg.description || null,
         price: Number(pkg.price),
-        product_limit: pkg.productLimit,
-        productLimit: pkg.productLimit,
-        subscription_duration: pkg.subscriptionDuration,
-        subscriptionDuration: pkg.subscriptionDuration,
+        product_limit: Number(pkg.productLimit),
+        subscription_duration: Number(pkg.subscriptionDuration),
         is_active: pkg.isActive,
-        isActive: pkg.isActive,
-        metadata: pkg.metadata ?? null,
+        metadata: (pkg.metadata && Object.keys(pkg.metadata).length > 0) ? pkg.metadata : null,
       },
     ])
     .select('*')
@@ -935,21 +926,22 @@ export async function updateStorePackage(packageId: string, updates: Partial<Sto
 
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.slug !== undefined) payload.slug = updates.slug;
-  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.description !== undefined) {
+    payload.description = updates.description || null;
+  }
   if (updates.price !== undefined) payload.price = Number(updates.price);
   if (updates.productLimit !== undefined) {
-    payload.product_limit = updates.productLimit;
-    payload.productLimit = updates.productLimit;
+    payload.product_limit = Number(updates.productLimit);
   }
   if (updates.subscriptionDuration !== undefined) {
-    payload.subscription_duration = updates.subscriptionDuration;
-    payload.subscriptionDuration = updates.subscriptionDuration;
+    payload.subscription_duration = Number(updates.subscriptionDuration);
   }
   if (updates.isActive !== undefined) {
     payload.is_active = updates.isActive;
-    payload.isActive = updates.isActive;
   }
-  if (updates.metadata !== undefined) payload.metadata = updates.metadata;
+  if (updates.metadata !== undefined) {
+    payload.metadata = updates.metadata && Object.keys(updates.metadata).length > 0 ? updates.metadata : null;
+  }
 
   const { data, error } = await supabase
     .from('store_packages')
@@ -1004,12 +996,12 @@ function mapStorePackageRow(row: any): StorePackage {
     slug: row.slug,
     description: row.description || '',
     price: typeof row.price === 'number' ? row.price : Number(row.price ?? 0),
-    productLimit: typeof row.product_limit === 'number' ? row.product_limit : Number(row.productLimit ?? 0),
-    subscriptionDuration: typeof row.subscription_duration === 'number' ? row.subscription_duration : Number(row.subscriptionDuration ?? 0),
-    isActive: parseBoolean(row.is_active ?? row.isActive),
-    metadata: row.metadata ?? null,
-    createdAt: row.created_at || row.createdAt || null,
-    updatedAt: row.updated_at || row.updatedAt || null,
+    productLimit: typeof row.product_limit === 'number' ? row.product_limit : Number(row.product_limit ?? 50),
+    subscriptionDuration: typeof row.subscription_duration === 'number' ? row.subscription_duration : Number(row.subscription_duration ?? 30),
+    isActive: parseBoolean(row.is_active ?? true),
+    metadata: (row.metadata && typeof row.metadata === 'object') ? row.metadata : null,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null,
   };
 }
 

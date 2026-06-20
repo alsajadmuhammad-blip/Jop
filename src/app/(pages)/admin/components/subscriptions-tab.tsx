@@ -34,12 +34,10 @@ export function SubscriptionsTab({
     name: '',
     slug: '',
     description: '',
-    features: '',
-    price: 0,
-    productLimit: 50,
-    subscriptionDuration: 30,
-    isActive: true,
-    metadata: '',
+    price: '',
+    product_limit: '',
+    subscription_duration: '',
+    is_active: false,
   });
   const [deletePackage, setDeletePackage] = useState<StorePackage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,12 +58,10 @@ export function SubscriptionsTab({
       name: '',
       slug: '',
       description: '',
-      features: '',
-      price: 0,
-      productLimit: 50,
-      subscriptionDuration: 30,
-      isActive: true,
-      metadata: '',
+      price: '',
+      product_limit: '',
+      subscription_duration: '',
+      is_active: false,
     });
     setEditingPackage(null);
     setPackageError(null);
@@ -82,12 +78,10 @@ export function SubscriptionsTab({
       name: pkg.name,
       slug: pkg.slug,
       description: pkg.description || '',
-      features: Array.isArray(pkg.metadata?.features) ? pkg.metadata.features.join('\n') : '',
-      price: pkg.price,
-      productLimit: pkg.productLimit,
-      subscriptionDuration: pkg.subscriptionDuration,
-      isActive: pkg.isActive,
-      metadata: pkg.metadata ? JSON.stringify(pkg.metadata, null, 2) : '',
+      price: String(pkg.price),
+      product_limit: String(pkg.productLimit),
+      subscription_duration: String(pkg.subscriptionDuration),
+      is_active: pkg.isActive,
     });
     setPackageError(null);
     setIsDialogOpen(true);
@@ -104,35 +98,30 @@ export function SubscriptionsTab({
   const handleSubmitPackage = async (event: React.FormEvent) => {
     event.preventDefault();
     setPackageError(null);
+    
     if (!formState.name.trim()) {
       setPackageError('الرجاء إدخال اسم الباقة.');
       return;
     }
 
-    const metadataValue = formState.metadata.trim();
-    let metadata: Record<string, any> | null = null;
-    if (metadataValue) {
-      try {
-        metadata = JSON.parse(metadataValue);
-      } catch (error: any) {
-        setPackageError('تنسيق metadata غير صحيح. يجب أن يكون JSON صالح.');
-        return;
-      }
+    if (!formState.price || Number(formState.price) < 0) {
+      setPackageError('الرجاء إدخال سعر صحيح.');
+      return;
     }
 
-    const featureLines = formState.features
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
+    if (!formState.product_limit || Number(formState.product_limit) <= 0) {
+      setPackageError('الرجاء إدخال حد منتجات صحيح.');
+      return;
+    }
 
-    metadata = {
-      ...(metadata || {}),
-      features: featureLines,
-    };
+    if (!formState.subscription_duration || Number(formState.subscription_duration) <= 0) {
+      setPackageError('الرجاء إدخال مدة اشتراك صحيحة.');
+      return;
+    }
 
     const slug = formState.slug.trim() || slugify(formState.name);
     if (!slug) {
-      setPackageError('الرجاء إدخال اسم مسار صالح (slug) للباقه.');
+      setPackageError('الرجاء إدخال اسم مسار صالح (slug).');
       return;
     }
 
@@ -143,12 +132,12 @@ export function SubscriptionsTab({
         const updated = await updateStorePackage(editingPackage.id, {
           name: formState.name,
           slug,
-          description: formState.description,
+          description: formState.description || undefined,
           price: Number(formState.price),
-          productLimit: Number(formState.productLimit),
-          subscriptionDuration: Number(formState.subscriptionDuration),
-          isActive: formState.isActive,
-          metadata,
+          productLimit: Number(formState.product_limit),
+          subscriptionDuration: Number(formState.subscription_duration),
+          isActive: formState.is_active,
+          metadata: null,
         });
 
         if (updated === null) {
@@ -160,12 +149,12 @@ export function SubscriptionsTab({
         const created = await createStorePackage({
           name: formState.name,
           slug,
-          description: formState.description,
+          description: formState.description || undefined,
           price: Number(formState.price),
-          productLimit: Number(formState.productLimit),
-          subscriptionDuration: Number(formState.subscriptionDuration),
-          isActive: formState.isActive,
-          metadata,
+          productLimit: Number(formState.product_limit),
+          subscriptionDuration: Number(formState.subscription_duration),
+          isActive: formState.is_active,
+          metadata: null,
         });
 
         if (created === null) {
@@ -457,43 +446,34 @@ export function SubscriptionsTab({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="package-name">اسم الباقة</Label>
-                <Input id="package-name" value={formState.name} onChange={(e) => setFormState({ ...formState, name: e.target.value })} />
+                <Input id="package-name" value={formState.name} onChange={(e) => setFormState({ ...formState, name: e.target.value })} placeholder="مثال: الباقة الأساسية" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="package-slug">المعرف (Slug)</Label>
-                <Input id="package-slug" value={formState.slug} onChange={(e) => setFormState({ ...formState, slug: e.target.value })} placeholder="example-package" />
+                <Input id="package-slug" value={formState.slug} onChange={(e) => setFormState({ ...formState, slug: e.target.value })} placeholder="basic-package" />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="package-price">السعر</Label>
-                <Input id="package-price" type="number" min={0} value={formState.price} onChange={(e) => setFormState({ ...formState, price: Number(e.target.value) })} />
+                <Label htmlFor="package-price">السعر (د.ع)</Label>
+                <Input id="package-price" type="number" step="0.01" value={formState.price} onChange={(e) => setFormState({ ...formState, price: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="package-limit">حد المنتجات</Label>
-                <Input id="package-limit" type="number" min={1} value={formState.productLimit} onChange={(e) => setFormState({ ...formState, productLimit: Number(e.target.value) })} />
+                <Input id="package-limit" type="number" min="1" value={formState.product_limit} onChange={(e) => setFormState({ ...formState, product_limit: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="package-duration">مدة الاشتراك (أيام)</Label>
-                <Input id="package-duration" type="number" min={1} value={formState.subscriptionDuration} onChange={(e) => setFormState({ ...formState, subscriptionDuration: Number(e.target.value) })} />
+                <Input id="package-duration" type="number" min="1" value={formState.subscription_duration} onChange={(e) => setFormState({ ...formState, subscription_duration: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="package-description">الوصف</Label>
-              <Textarea id="package-description" value={formState.description} onChange={(e) => setFormState({ ...formState, description: e.target.value })} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="package-features">المزايا / الخدمات</Label>
-              <Textarea id="package-features" value={formState.features} onChange={(e) => setFormState({ ...formState, features: e.target.value })} rows={4} placeholder="أضف كل ميزة في سطر جديد" />
-              <p className="text-xs text-muted-foreground">سيظهر هذا في بطاقات الباقات على الصفحة العامة.</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="package-metadata">Metadata (JSON)</Label>
-              <Textarea id="package-metadata" value={formState.metadata} onChange={(e) => setFormState({ ...formState, metadata: e.target.value })} rows={3} />
+              <Label htmlFor="package-description">الوصف (اختياري)</Label>
+              <Textarea id="package-description" value={formState.description} onChange={(e) => setFormState({ ...formState, description: e.target.value })} rows={2} placeholder="أدخل وصف الباقة..." />
             </div>
             <div className="flex items-center gap-4">
-              <Switch checked={formState.isActive} onCheckedChange={(value) => setFormState({ ...formState, isActive: value })} />
-              <span>{formState.isActive ? 'الباقة مفعلة' : 'الباقة معطلة'}</span>
+              <Switch checked={formState.is_active} onCheckedChange={(value) => setFormState({ ...formState, is_active: value })} />
+              <span>{formState.is_active ? 'الباقة مفعلة ✅' : 'الباقة معطلة ❌'}</span>
             </div>
             {packageError ? (
               <Alert variant="destructive">

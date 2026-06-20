@@ -150,6 +150,10 @@ export default function CreateStoreForm({
 
     if (!formData.phone.trim()) {
       newErrors.phone = "رقم الهاتف مطلوب";
+    } else if (formData.phone.length < 9) {
+      newErrors.phone = "يجب أن يكون الرقم 9 أرقام على الأقل";
+    } else if (!/^\d+$/.test(formData.phone)) {
+      newErrors.phone = "الرقم يجب أن يحتوي على أرقام فقط";
     }
 
     if (!formData.marketType.trim()) {
@@ -200,7 +204,7 @@ export default function CreateStoreForm({
           ownerName: formData.ownerName,
           storeName: formData.storeName,
           marketType: formData.marketType,
-          whatsappNumber: formData.phone.replace(/\s/g, ""),
+          whatsappNumber: `+964${formData.phone}`,
           ownerEmail: formData.email,
           password: formData.password,
           packageId: selectedPackage.id,
@@ -254,7 +258,7 @@ export default function CreateStoreForm({
             storeName: formData.storeName,
             storeType: formData.storeType,
             marketType: formData.marketType,
-            phone: formData.phone.replace(/\s/g, ""),
+            phone: `+964${formData.phone}`,
             ...(formData.storeType === "فعلي" && {
               governorate: formData.governorate,
               city: formData.city,
@@ -558,21 +562,33 @@ export default function CreateStoreForm({
       {/* Phone Number */}
       <div className="space-y-2">
         <Label htmlFor="phone">رقم الهاتف (الواتساب والتواصل) *</Label>
-        <Input
-          id="phone"
-          type="tel"
-          placeholder="966501234567 أو 0501234567"
-          value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          className={errors.phone ? "border-destructive" : ""}
-          disabled={loading}
-          dir="ltr"
-        />
+        <div className="relative">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 font-medium">🇮🇶 +964</span>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="7XXXXXXXXX"
+            value={formData.phone}
+            onChange={(e) => {
+              let value = e.target.value.replace(/\D/g, '');
+              // Remove leading 0 if user types it
+              if (value.startsWith('0')) {
+                value = value.substring(1);
+              }
+              // Keep max 9 digits (without country code)
+              value = value.substring(0, 9);
+              setFormData({ ...formData, phone: value })
+            }}
+            className={`pl-20 text-left ${errors.phone ? "border-destructive" : ""}`}
+            disabled={loading}
+            dir="ltr"
+          />
+        </div>
         {errors.phone && (
           <p className="text-sm text-destructive">{errors.phone}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          هذا الرقم سيكون للتواصل والواتساب
+          سيتم حفظه كـ: +964{formData.phone || 'XXXXXXXXX'}
         </p>
       </div>
 
