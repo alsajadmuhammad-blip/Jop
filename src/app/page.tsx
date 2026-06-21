@@ -19,7 +19,6 @@ import {
   Zap,
   Globe,
   Building2,
-  TrendingUp,
   Shield,
   LayoutGrid,
   Sparkles,
@@ -49,28 +48,6 @@ function FadeInSection({
       {children}
     </motion.div>
   );
-}
-
-/* ─── عداد متحرك ─── */
-function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-
-  useEffect(() => {
-    if (!inView) return;
-    let start = 0;
-    const duration = 1400;
-    const step = Math.ceil(target / (duration / 16));
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(timer); }
-      else setCount(start);
-    }, 16);
-    return () => clearInterval(timer);
-  }, [inView, target]);
-
-  return <span ref={ref}>{count.toLocaleString("ar")}{suffix}</span>;
 }
 
 /* ─── بطاقة ميزة ─── */
@@ -166,19 +143,11 @@ export default function Home() {
     return true;
   });
 
-  const stats = [
-    { label: "متجر نشط", value: stores.length || 0, suffix: "+" },
-    { label: "عملية بيع", value: 1200, suffix: "+" },
-    { label: "تقييم عملاء", value: 4.8, suffix: "★" },
-    { label: "فئة تجارية", value: 8, suffix: "+" },
-  ];
-
   const features = [
     { icon: Zap, title: "إطلاق فوري", desc: "أنشئ متجرك وابدأ البيع في دقائق بدون تعقيدات تقنية." },
     { icon: LayoutGrid, title: "لوحة تحكم متكاملة", desc: "أدر منتجاتك وطلباتك واشتراكاتك من مكان واحد." },
     { icon: Globe, title: "متاجر أونلاين وفعلية", desc: "ندعم كلا النوعين مع خرائط موقع وساعات عمل." },
     { icon: Shield, title: "دفع آمن", desc: "بوابة دفع موثوقة مع حماية كاملة لمعلوماتك." },
-    { icon: TrendingUp, title: "إحصائيات مباشرة", desc: "راقب أداء متجرك وعدد الزيارات والمبيعات لحظة بلحظة." },
     { icon: Star, title: "نظام تقييم", desc: "اجمع آراء عملائك وابنِ سمعتك رقمياً." },
   ];
 
@@ -264,26 +233,6 @@ export default function Home() {
             )}
           </motion.div>
         </motion.div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          قسم الأرقام
-      ══════════════════════════════════════ */}
-      <section className="border-y border-slate-100 bg-slate-50/60 py-14">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <FadeInSection key={stat.label} delay={i * 0.07}>
-                <div className="text-center">
-                  <p className="text-4xl md:text-5xl font-black text-slate-900 mb-1">
-                    <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-                  </p>
-                  <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
-                </div>
-              </FadeInSection>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ══════════════════════════════════════
@@ -432,7 +381,7 @@ export default function Home() {
               <Link href="/create-store">
                 <Button size="lg" className="h-12 px-10 rounded-2xl text-base font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow gap-2">
                   <Store className="w-5 h-5" />
-                  أنشئ متجرك مجاناً
+                  أنشئ متجرك الآن
                 </Button>
               </Link>
               <Link href="/register">

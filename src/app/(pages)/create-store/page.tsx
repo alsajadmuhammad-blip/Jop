@@ -234,7 +234,7 @@ function PackageSelectStep({
           اختر الباقة المناسبة
         </h1>
         <p className="text-lg text-slate-500 max-w-xl mx-auto leading-relaxed">
-          حدد الباقة التي تناسب احتياجات متجرك، يمكنك تغييرها في أي وقت
+          حدد الباقة التي تناسب احتياجات متجرك
         </p>
       </div>
 
