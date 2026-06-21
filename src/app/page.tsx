@@ -243,7 +243,6 @@ export default function Home() {
               <div className="relative z-10">
                 <p className="text-white/80 text-xs font-medium mb-0.5">ابدأ رحلتك الرقمية</p>
                 <p className="text-white text-base font-black leading-tight">أنشئ متجرك الآن</p>
-                <p className="text-white/70 text-xs mt-1">انضم لمئات المتاجر على مركزي</p>
               </div>
               <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center">
                 <Store className="w-6 h-6 text-white" />
