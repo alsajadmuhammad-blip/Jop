@@ -24,11 +24,11 @@ import {
   BookOpen,
   Wrench,
   Sparkles,
-  Star,
   Store,
+  LayoutGrid,
 } from "lucide-react";
 
-/* ─── خريطة أيقونات الفئات ─── */
+/* ─── أيقونات + ألوان الفئات ─── */
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "هواتف ذكية": Smartphone,
   "ملابس": Shirt,
@@ -41,16 +41,28 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "ملحقات": ShoppingBag,
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "هواتف ذكية": "bg-blue-50 text-blue-600 border-blue-100",
-  "ملابس": "bg-pink-50 text-pink-600 border-pink-100",
-  "أجهزة كهربائية": "bg-purple-50 text-purple-600 border-purple-100",
-  "أدوات رياضية": "bg-green-50 text-green-600 border-green-100",
-  "كتب": "bg-amber-50 text-amber-600 border-amber-100",
-  "قطع غيار": "bg-slate-100 text-slate-600 border-slate-200",
-  "مستحضرات عناية": "bg-rose-50 text-rose-600 border-rose-100",
-  "طعام": "bg-orange-50 text-orange-600 border-orange-100",
-  "ملحقات": "bg-indigo-50 text-indigo-600 border-indigo-100",
+const CATEGORY_BG: Record<string, string> = {
+  "هواتف ذكية":        "bg-blue-50   text-blue-600",
+  "ملابس":             "bg-pink-50   text-pink-600",
+  "أجهزة كهربائية":   "bg-purple-50 text-purple-600",
+  "أدوات رياضية":     "bg-green-50  text-green-600",
+  "كتب":               "bg-amber-50  text-amber-600",
+  "قطع غيار":         "bg-slate-100 text-slate-600",
+  "مستحضرات عناية":   "bg-rose-50   text-rose-600",
+  "طعام":              "bg-orange-50 text-orange-600",
+  "ملحقات":            "bg-indigo-50 text-indigo-600",
+};
+
+const CATEGORY_ACTIVE: Record<string, string> = {
+  "هواتف ذكية":        "bg-blue-500   text-white",
+  "ملابس":             "bg-pink-500   text-white",
+  "أجهزة كهربائية":   "bg-purple-500 text-white",
+  "أدوات رياضية":     "bg-green-500  text-white",
+  "كتب":               "bg-amber-500  text-white",
+  "قطع غيار":         "bg-slate-600  text-white",
+  "مستحضرات عناية":   "bg-rose-500   text-white",
+  "طعام":              "bg-orange-500 text-white",
+  "ملحقات":            "bg-indigo-500 text-white",
 };
 
 /* ─── شريط بحث ─── */
@@ -65,35 +77,34 @@ function SearchBar() {
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 pointer-events-none" />
+      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="ابحث عن متجر أو منتج..."
-        className="w-full h-12 pr-11 pl-4 rounded-2xl bg-slate-100 border border-transparent text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+        className="w-full h-11 pr-11 pl-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-transparent text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-all duration-200"
       />
     </form>
   );
 }
 
-/* ─── فلتر النوع ─── */
+/* ─── فلتر نوع المتجر ─── */
 type FilterType = "all" | "physical" | "online";
-
-const FILTERS: { key: FilterType; label: string; icon: React.ElementType }[] = [
-  { key: "all", label: "الكل", icon: Store },
-  { key: "physical", label: "متاجر فعلية", icon: Building2 },
-  { key: "online", label: "إلكترونية", icon: Globe },
+const FILTERS: { key: FilterType; label: string }[] = [
+  { key: "all",      label: "الكل"        },
+  { key: "physical", label: "فعلية"       },
+  { key: "online",   label: "إلكترونية"  },
 ];
 
 /* ══════════════════════════════════════
    الصفحة الرئيسية
 ══════════════════════════════════════ */
 export default function Home() {
-  const [heroItems, setHeroItems] = useState<HeroCarouselItem[]>([]);
-  const [stores, setStores] = useState<StoreType[]>([]);
-  const [marketTypes, setMarketTypes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [heroItems,    setHeroItems]    = useState<HeroCarouselItem[]>([]);
+  const [stores,       setStores]       = useState<StoreType[]>([]);
+  const [marketTypes,  setMarketTypes]  = useState<string[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [filterType,   setFilterType]   = useState<FilterType>("all");
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   useEffect(() => {
@@ -105,7 +116,7 @@ export default function Home() {
             .from("hero_carousel_items")
             .select("id, src, hint, text, store_id")
             .order("created_at", { ascending: false })
-            .limit(5),
+            .limit(6),
           supabase
             .from("stores")
             .select("*")
@@ -135,7 +146,9 @@ export default function Home() {
               .map((row: any) => mapStoreRow(row))
               .filter((s: StoreType) => s.isActive);
             setStores(active);
-            const types = [...new Set(active.map((s: StoreType) => s.marketType).filter(Boolean))] as string[];
+            const types = [
+              ...new Set(active.map((s: StoreType) => s.marketType).filter(Boolean)),
+            ] as string[];
             setMarketTypes(types);
           }
         }
@@ -152,121 +165,165 @@ export default function Home() {
     const typeMatch =
       filterType === "all" ||
       (filterType === "physical" && s.type === "فعلي") ||
-      (filterType === "online" && s.type === "إلكتروني");
+      (filterType === "online"   && s.type === "إلكتروني");
     const catMatch = activeCategory === "all" || s.marketType === activeCategory;
     return typeMatch && catMatch;
   });
 
-  return (
-    <div className="min-h-screen bg-slate-50/40">
+  /* عدد المتاجر لكل فئة */
+  const countByType = (type: string) =>
+    stores.filter((s) => s.marketType === type).length;
 
-      {/* ──────────────────────────────
-          شريط البحث العلوي
-      ────────────────────────────── */}
-      <div className="sticky top-[56px] z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3">
+  return (
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
+
+      {/* ── شريط بحث ثابت ── */}
+      <div className="sticky top-[56px] z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 py-2.5">
         <SearchBar />
       </div>
 
       <div className="container mx-auto px-4 max-w-5xl">
 
-        {/* ──────────────────────────────
+        {/* ═══════════════════════════════
             البانر الإعلاني
-        ────────────────────────────── */}
-        <section className="pt-5 pb-4">
+        ═══════════════════════════════ */}
+        <section className="pt-5 pb-5">
           {loading ? (
-            <Skeleton className="w-full aspect-[16/6] rounded-2xl" />
+            <Skeleton className="w-full aspect-[16/7] rounded-2xl" />
           ) : (
-            <div className="rounded-2xl overflow-hidden shadow-sm">
-              <HeroCarousel heroCarouselItems={heroItems} />
-            </div>
+            <HeroCarousel heroCarouselItems={heroItems} />
           )}
         </section>
 
-        {/* ──────────────────────────────
-            فئات الأسواق
-        ────────────────────────────── */}
-        {marketTypes.length > 0 && (
-          <section className="pb-5">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4">
-              {/* الكل */}
-              <button
-                onClick={() => setActiveCategory("all")}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition-all duration-200 ${
-                  activeCategory === "all"
-                    ? "bg-primary text-white border-primary shadow-sm"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-primary/40"
-                }`}
-              >
-                <Store className="w-4 h-4" />
-                الكل
-              </button>
-
-              {marketTypes.map((type) => {
-                const Icon = CATEGORY_ICONS[type] ?? ShoppingBag;
-                const color = CATEGORY_COLORS[type] ?? "bg-slate-50 text-slate-600 border-slate-200";
-                const isActive = activeCategory === type;
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setActiveCategory(type)}
-                    className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition-all duration-200 ${
-                      isActive
-                        ? "bg-primary text-white border-primary shadow-sm"
-                        : `${color} hover:border-primary/30`
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {type}
-                  </button>
-                );
-              })}
+        {/* ═══════════════════════════════
+            الأقسام — بطاقات بصرية
+        ═══════════════════════════════ */}
+        {(loading || marketTypes.length > 0) && (
+          <section className="pb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4 text-primary" />
+                تصفح الأقسام
+              </h2>
             </div>
+
+            {loading ? (
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2.5">
+                {/* بطاقة الكل */}
+                <button
+                  onClick={() => { setActiveCategory("all"); setFilterType("all"); }}
+                  className="group flex flex-col items-center gap-1.5"
+                >
+                  <div className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                    activeCategory === "all"
+                      ? "bg-primary text-white shadow-primary/25 scale-95"
+                      : "bg-white dark:bg-slate-800 text-slate-500 hover:bg-primary/5 border border-slate-100 dark:border-slate-700"
+                  }`}>
+                    <Store className="w-6 h-6" />
+                  </div>
+                  <span className={`text-[11px] font-semibold leading-tight text-center ${
+                    activeCategory === "all" ? "text-primary" : "text-slate-500 dark:text-slate-400"
+                  }`}>
+                    الكل
+                  </span>
+                </button>
+
+                {/* بطاقات الأقسام */}
+                {marketTypes.map((type, i) => {
+                  const Icon = CATEGORY_ICONS[type] ?? ShoppingBag;
+                  const isActive = activeCategory === type;
+                  const idleClass   = CATEGORY_BG[type]     ?? "bg-slate-50 text-slate-500";
+                  const activeClass = CATEGORY_ACTIVE[type] ?? "bg-primary text-white";
+                  return (
+                    <motion.button
+                      key={type}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: i * 0.04 }}
+                      onClick={() => {
+                        setActiveCategory(isActive ? "all" : type);
+                        setFilterType("all");
+                      }}
+                      className="group flex flex-col items-center gap-1.5"
+                    >
+                      <div className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                        isActive
+                          ? `${activeClass} scale-95`
+                          : `${idleClass} hover:scale-95 border border-white dark:border-slate-700`
+                      }`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className={`text-[11px] font-semibold leading-tight text-center line-clamp-1 w-full ${
+                        isActive ? "text-primary" : "text-slate-500 dark:text-slate-400"
+                      }`}>
+                        {type}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
 
-        {/* ──────────────────────────────
+        {/* ═══════════════════════════════
             بنر إنشاء متجر
-        ────────────────────────────── */}
+        ═══════════════════════════════ */}
         <section className="pb-6">
           <Link href="/create-store">
             <motion.div
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/80 p-5 flex items-center justify-between gap-4 shadow-md shadow-primary/20 cursor-pointer"
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/75 p-5 flex items-center justify-between gap-4 shadow-md shadow-primary/20 cursor-pointer"
             >
-              <div className="absolute inset-0 opacity-10"
+              <div
+                className="absolute inset-0 opacity-[0.07]"
                 style={{
-                  backgroundImage: "radial-gradient(circle at 80% 50%, white 1px, transparent 1px)",
-                  backgroundSize: "24px 24px",
+                  backgroundImage:
+                    "radial-gradient(circle, white 1px, transparent 1px)",
+                  backgroundSize: "20px 20px",
                 }}
               />
               <div className="relative z-10">
-                <p className="text-white/80 text-xs font-medium mb-0.5">ابدأ رحلتك الرقمية</p>
-                <p className="text-white text-base font-black leading-tight">أنشئ متجرك الآن</p>
+                <p className="text-white/75 text-xs font-medium mb-0.5">ابدأ رحلتك الرقمية</p>
+                <p className="text-white text-base font-black">أنشئ متجرك الآن</p>
               </div>
-              <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center">
+              <div className="relative z-10 w-12 h-12 rounded-xl bg-white/15 flex-shrink-0 flex items-center justify-center">
                 <Store className="w-6 h-6 text-white" />
               </div>
             </motion.div>
           </Link>
         </section>
 
-        {/* ──────────────────────────────
-            كل المتاجر
-        ────────────────────────────── */}
-        <section className="pb-10">
-          {/* رأس القسم + فلاتر النوع */}
+        {/* ═══════════════════════════════
+            جميع المتاجر
+        ═══════════════════════════════ */}
+        <section className="pb-12">
+          {/* رأس + فلاتر */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-slate-900">جميع المتاجر</h2>
-            <div className="flex gap-1.5">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              {activeCategory === "all" ? "جميع المتاجر" : `متاجر ${activeCategory}`}
+              {!loading && (
+                <span className="mr-1.5 text-xs font-normal text-slate-400">
+                  ({filteredStores.length})
+                </span>
+              )}
+            </h2>
+            <div className="flex gap-1">
               {FILTERS.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => setFilterType(f.key)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                     filterType === f.key
-                      ? "bg-slate-900 text-white"
-                      : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"
+                      ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
+                      : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700"
                   }`}
                 >
                   {f.label}
@@ -279,25 +336,25 @@ export default function Home() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-60 rounded-2xl" />
+                <Skeleton key={i} className="h-56 rounded-2xl" />
               ))}
             </div>
           ) : filteredStores.length > 0 ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${filterType}-${activeCategory}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.18 }}
                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
               >
                 {filteredStores.map((store, i) => (
                   <motion.div
                     key={store.id}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.03 }}
+                    transition={{ duration: 0.25, delay: Math.min(i * 0.03, 0.3) }}
                   >
                     <StoreCard store={store} />
                   </motion.div>
@@ -305,8 +362,8 @@ export default function Home() {
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="text-center py-16 rounded-2xl bg-white border border-dashed border-slate-200">
-              <Store className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-700">
+              <Store className="w-10 h-10 text-slate-300 mb-3" />
               <p className="text-slate-400 text-sm font-medium">لا توجد متاجر في هذه الفئة</p>
             </div>
           )}

@@ -1,20 +1,14 @@
-
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, User, Users, LayoutDashboard, LogOut, LogIn, Search, Home, Store, Phone, Shield, UserCircle, Bell, PanelLeft, Menu, X, Moon, Sun } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ShoppingCart, User, Users, LayoutDashboard, LogOut, LogIn,
+  Search, Home, Store, Phone, Shield, UserCircle, Moon, Sun,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
@@ -30,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "../ui/input";
-import { Separator } from "../ui/separator";
 import { useTheme } from "next-themes";
 
 const navLinks = [
@@ -41,36 +34,35 @@ const navLinks = [
 ];
 
 function SearchBar() {
-    const router = useRouter();
-    const { register, handleSubmit } = useForm<{ query: string }>();
+  const router = useRouter();
+  const { register, handleSubmit } = useForm<{ query: string }>();
 
-    const onSubmit = (data: { query: string }) => {
-        if (data.query.trim()) {
-            router.push(`/search?query=${encodeURIComponent(data.query.trim())}`);
-        }
-    };
+  const onSubmit = (data: { query: string }) => {
+    if (data.query.trim()) {
+      router.push(`/search?query=${encodeURIComponent(data.query.trim())}`);
+    }
+  };
 
-    return (
-        <form onSubmit={handleSubmit(onSubmit)} className="relative w-full max-w-md group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors" />
-            <Input
-                {...register("query")}
-                placeholder="ابحث..."
-                className="w-full rounded-full border border-border bg-muted/30 px-10 py-2.5 text-sm placeholder:text-muted-foreground transition-all duration-200 focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none hover:border-primary/40"
-            />
-        </form>
-    );
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="relative w-full max-w-md group">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        {...register("query")}
+        placeholder="ابحث..."
+        className="w-full rounded-full border border-border bg-muted/30 px-10 py-2.5 text-sm placeholder:text-muted-foreground focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+      />
+    </form>
+  );
 }
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="rounded-full"
+      className="rounded-full flex-shrink-0"
     >
       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -83,102 +75,96 @@ export function Header() {
   const { user, userRole, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     router.push('/');
-  }
+  };
 
   const isAdmin = userRole === 'admin';
   const isStore = userRole === 'store';
   const isRepresentative = userRole === 'representative';
-
   const isGuest = !user;
 
-  return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-md transition-all duration-200">
-      <div className="container mx-auto flex h-14 items-center justify-between gap-4 px-4 md:px-6">
-        {!isGuest ? (
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0 group hover:opacity-80 transition-opacity">
-            <Image
-              src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
-              alt="مركزي"
-              width={40}
-              height={40}
-              className="object-contain"
-              priority
-            />
-            <span className="hidden sm:inline font-bold text-lg font-headline text-primary">مركزي</span>
-          </Link>
-        ) : (
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0 group hover:opacity-80 transition-opacity">
-            <Image
-              src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
-              alt="مركزي"
-              width={40}
-              height={40}
-              className="object-contain"
-              priority
-            />
-            <span className="hidden sm:inline font-bold text-lg font-headline text-primary">مركزي</span>
-          </Link>
-        )}
+  const visibleLinks = navLinks.filter(
+    (link) => userRole && link.roles.includes(userRole)
+  );
 
+  return (
+    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border/40">
+      {/* ── الصف الأول: اللوغو + الأدوات ── */}
+      <div className="container mx-auto flex h-14 items-center justify-between gap-3 px-4">
+        {/* اللوغو */}
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+          <Image
+            src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
+            alt="مركزي"
+            width={36}
+            height={36}
+            className="object-contain"
+            priority
+          />
+          <span className="font-bold text-lg font-headline text-primary">مركزي</span>
+        </Link>
+
+        {/* روابط التنقل — تظهر فقط على الديسكتوب */}
         {!isGuest && (
-          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
-            {navLinks
-              .filter((link) => userRole && link.roles.includes(userRole))
-              .map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-2 rounded-lg transition-all duration-150 ${
-                    pathname === link.href
-                      ? 'text-primary bg-primary/10'
-                      : 'text-foreground/70 hover:text-primary hover:bg-primary/5'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+          <nav className="hidden md:flex items-center gap-0.5 text-sm font-medium flex-1 justify-center">
+            {visibleLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-4 py-2 rounded-xl transition-all duration-150 ${
+                  pathname === link.href
+                    ? "text-primary bg-primary/10 font-semibold"
+                    : "text-foreground/60 hover:text-primary hover:bg-primary/5"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
         )}
 
-        <div className="flex items-center gap-1 md:gap-2">
+        {/* الأدوات */}
+        <div className="flex items-center gap-1 flex-shrink-0">
           <ThemeToggle />
 
-          {!isGuest && userRole !== 'admin' && (
+          {!isGuest && userRole !== "admin" && (
             <div className="hidden lg:block">
               <SearchBar />
             </div>
           )}
 
-          {!isGuest && userRole === 'customer' && (
+          {!isGuest && userRole === "customer" && (
             <CartSheet>
-              <Button variant="ghost" size="sm" className="rounded-lg gap-2 px-3">
+              <Button variant="ghost" size="sm" className="rounded-xl px-3">
                 <ShoppingCart className="h-4 w-4" />
               </Button>
             </CartSheet>
           )}
 
           {isGuest ? (
-            <Button asChild size="sm" className="rounded-lg gap-2">
+            <Button asChild size="sm" className="rounded-xl gap-2 text-sm">
               <Link href="/login">
                 <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">دخول</span>
+                <span>دخول</span>
               </Link>
             </Button>
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="rounded-lg gap-2">
+                <Button variant="ghost" size="sm" className="rounded-xl gap-2">
                   <UserCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline text-xs">{user?.name || 'حساب'}</span>
+                  <span className="hidden sm:inline text-xs max-w-[80px] truncate">
+                    {user?.name || "حساب"}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="text-xs text-muted-foreground">{user?.email}</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs text-muted-foreground truncate">
+                  {user?.email}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {isStore && (
                   <DropdownMenuItem asChild>
@@ -212,87 +198,33 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-
-          {!isGuest && (
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden rounded-lg">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-72 p-0">
-                <SheetHeader className="border-b px-4 py-3">
-                  <SheetTitle className="text-right">القائمة</SheetTitle>
-                </SheetHeader>
-                <div className="flex flex-col gap-3 p-4">
-                  {userRole !== 'admin' && <SearchBar />}
-                  <nav className="space-y-1">
-                    {navLinks
-                    .filter((link) => userRole && link.roles.includes(userRole))
-                    .map((link) => (
-                      <SheetClose asChild key={link.href}>
-                        <Link
-                          href={link.href}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                            pathname === link.href
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-foreground/70 hover:bg-primary/5'
-                          }`}
-                        >
-                          <link.icon className="h-4 w-4" />
-                          <span className="text-sm">{link.label}</span>
-                        </Link>
-                      </SheetClose>
-                    ))}
-                  </nav>
-
-                  {userRole ? (
-                    <div className="border-t pt-3 space-y-2">
-                      <div className="px-3 py-2">
-                        <p className="text-xs font-medium">{user?.name}</p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
-                      </div>
-                      {isStore && (
-                        <SheetClose asChild>
-                          <Link href="/dashboard/store" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
-                            <LayoutDashboard className="h-4 w-4" />
-                            لوحة المتجر
-                          </Link>
-                        </SheetClose>
-                      )}
-                      {isRepresentative && (
-                        <SheetClose asChild>
-                          <Link href="/dashboard/representative" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
-                            <Users className="h-4 w-4" />
-                            لوحة التسويق
-                          </Link>
-                        </SheetClose>
-                      )}
-                      {isAdmin && (
-                        <SheetClose asChild>
-                          <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-primary/5">
-                            <Shield className="h-4 w-4" />
-                            الإدارة
-                          </Link>
-                        </SheetClose>
-                      )}
-                      <Button 
-                        onClick={handleLogout} 
-                        variant="ghost" 
-                        size="sm"
-                        className="w-full justify-start text-destructive text-xs"
-                      >
-                        <LogOut className="ml-2 h-4 w-4" />
-                        خروج
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              </SheetContent>
-            </Sheet>
-          )}
         </div>
       </div>
+
+      {/* ── الصف الثاني: روابط التنقل على الموبايل ── */}
+      {!isGuest && visibleLinks.length > 0 && (
+        <div className="md:hidden border-t border-border/30 bg-background/80">
+          <div className="flex overflow-x-auto no-scrollbar px-2 py-1">
+            {visibleLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-xl transition-all text-xs ${
+                    pathname === link.href
+                      ? "text-primary font-semibold"
+                      : "text-foreground/50"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
