@@ -1,186 +1,175 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, memo } from "react";
+import { memo, useMemo } from "react";
+import {
+  Truck, Globe, ShoppingCart, MessageSquare, Star,
+  Map, Building2, Package, Phone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Truck, Globe, ShoppingCart, MessageSquare, Star, Map, Package } from "lucide-react";
 import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapper";
+import { StoreStatusInfo } from "@/components/store-status-info";
 import type { Store } from "@/lib/types";
 
-interface StoreHeroProps {
-  store: Store;
-}
-
-function StoreHeroContent({ store }: StoreHeroProps) {
-  const storeInfo = useMemo(() => {
-    const cleanWhatsAppNumber = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
-    const whatsappHref = cleanWhatsAppNumber
-      ? `https://wa.me/${cleanWhatsAppNumber.replace(/^\+/, "")}`
-      : undefined;
-
-    const isPhysicalStore = store.type === "فعلي";
-    const hasLocation = isPhysicalStore && Boolean(store.latitude && store.longitude);
+function StoreHeroContent({ store }: { store: Store }) {
+  const { whatsappHref, mapsUrl, isPhysical, hasLocation } = useMemo(() => {
+    const clean = store.whatsappNumber?.replace(/[^0-9+]/g, "") ?? "";
+    const whatsappHref = clean ? `https://wa.me/${clean.replace(/^\+/, "")}` : undefined;
+    const isPhysical = store.type === "فعلي";
+    const hasLocation = isPhysical && Boolean(store.latitude && store.longitude);
     const mapsUrl = hasLocation
       ? `https://www.google.com/maps/?q=${store.latitude},${store.longitude}`
       : undefined;
-
-    return { whatsappHref, isPhysicalStore, hasLocation, mapsUrl };
+    return { whatsappHref, mapsUrl, isPhysical, hasLocation };
   }, [store.whatsappNumber, store.type, store.latitude, store.longitude]);
 
+  const hasCover = Boolean(store.coverImageUrl);
+  const hasLogo  = Boolean(store.logoUrl);
+
   return (
-    <section 
-      className="relative overflow-hidden mb-0"
-      style={{ contain: 'layout style paint' }}
-    >
-      {/* Hero Background - Logo */}
-      <div 
-        className="relative w-full h-[300px] bg-slate-900 overflow-hidden"
-      >
-        {store.logoUrl ? (
-          <Image
-            src={store.logoUrl}
-            alt={store.name}
-            fill
-            className="object-cover"
-            sizes="100vw"
-            priority={true}
-            quality={75}
-            decoding="async"
-          />
+    <section className="relative w-full">
+
+      {/* ── غلاف المتجر ── */}
+      <div className="relative w-full h-52 sm:h-64 bg-slate-800 overflow-hidden">
+        {hasCover ? (
+          <>
+            <Image
+              src={store.coverImageUrl!}
+              alt={store.name}
+              fill
+              className="object-cover"
+              priority
+              quality={80}
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          </>
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-8">
-            <Globe className="w-24 h-24 opacity-15 text-white" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/80 via-primary to-primary/60 flex items-center justify-center">
+            <Globe className="w-20 h-20 text-white/10" />
           </div>
         )}
       </div>
 
-      {/* Royal Blue spacer */}
-      <div 
-        className="relative w-full h-6 bg-gradient-to-b from-blue-700 to-blue-600"
-      />
+      {/* ── بطاقة المعلومات الرئيسية ── */}
+      <div className="relative z-10 -mt-10 mx-4 sm:mx-6 lg:mx-auto lg:max-w-5xl">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
 
-      {/* Card - overlays hero with minimal offset */}
-      <div 
-        className="relative px-4 sm:px-6 lg:px-8 -mt-6 mb-0 z-10"
-      >
-        <div 
-          className="mx-auto max-w-7xl rounded-t-3xl bg-white overflow-hidden border border-slate-100"
-          style={{
-            boxShadow: '0 -5px 30px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          <div className="p-6 sm:p-8 lg:p-10">
-            {/* Store Title and Info */}
-            <div className="grid gap-6 mb-6">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight text-slate-900 mb-4">
-                  {store.name}
-                </h1>
-                
-                {/* Stats Cards */}
-                <div className="grid gap-2 grid-cols-3 w-full">
-                  <div 
-                    className="rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 p-3 border border-amber-200/50 flex flex-col items-center justify-center hover:from-amber-100 hover:to-orange-100 transition-colors"
-                  >
-                    <Star className="w-4 h-4 text-amber-500 mb-1 fill-amber-500" />
-                    <span className="text-base font-bold text-slate-900">{store.reviews > 0 ? store.rating.toFixed(1) : "-"}</span>
-                    <span className="text-xs text-slate-600">تقييم</span>
-                  </div>
-                  
-                  <div 
-                    className={`rounded-lg p-3 border flex flex-col items-center justify-center transition-colors ${
-                      store.isActive 
-                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200/50 hover:from-green-100 hover:to-emerald-100' 
-                        : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200/50 hover:from-red-100 hover:to-pink-100'
-                    }`}
-                  >
-                    <Truck className={`w-4 h-4 mb-1 ${store.isActive ? "text-green-600 fill-green-600" : "text-red-600 fill-red-600"}`} />
-                    <span className={`text-xs font-bold ${store.isActive ? 'text-green-700' : 'text-red-700'}`}>
-                      {store.isActive ? "نشط" : "مغلق"}
-                    </span>
-                  </div>
-
-                  <div 
-                    className="rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 p-3 border border-blue-200/50 flex flex-col items-center justify-center hover:from-blue-100 hover:to-cyan-100 transition-colors"
-                  >
-                    <Package className="w-4 h-4 text-blue-600 mb-1 fill-blue-600" />
-                    <span className="text-xs font-bold text-blue-700">
-                      {store.hasDelivery ? "متاح" : "غير متاح"}
-                    </span>
-                    <span className="text-xs text-blue-600 font-medium">توصيل</span>
-                  </div>
+          {/* رأس البطاقة: لوغو + اسم + شارات */}
+          <div className="flex items-end gap-4 px-5 pt-5 pb-4">
+            {/* اللوغو */}
+            <div className="relative flex-shrink-0 w-20 h-20 -mt-12 rounded-2xl bg-white dark:bg-slate-800 border-4 border-white dark:border-slate-900 shadow-lg overflow-hidden">
+              {hasLogo ? (
+                <Image
+                  src={store.logoUrl!}
+                  alt={store.name}
+                  fill
+                  className="object-contain p-1"
+                  priority
+                  sizes="80px"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                  <Building2 className="w-8 h-8 text-primary/40" />
                 </div>
+              )}
+            </div>
+
+            {/* الاسم + معلومات سريعة */}
+            <div className="flex-1 min-w-0 pb-1">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 leading-tight line-clamp-2">
+                {store.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                {/* التقييم */}
+                <span className="flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  {store.reviews > 0 ? store.rating.toFixed(1) : "جديد"}
+                  {store.reviews > 0 && (
+                    <span className="text-xs font-normal text-slate-400">({store.reviews})</span>
+                  )}
+                </span>
+
+                {/* شارة النوع */}
+                <span className="flex items-center gap-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-full">
+                  {isPhysical ? <Building2 className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                  {store.type}
+                </span>
+
+                {/* توصيل */}
+                {store.hasDelivery && (
+                  <span className="flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">
+                    <Truck className="w-3 h-3" />
+                    توصيل
+                  </span>
+                )}
+
+                {/* نوع السوق */}
+                {store.marketType && (
+                  <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                    {store.marketType}
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Button 
-                asChild 
-                size="lg" 
-                className="w-full bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 font-bold flex items-center justify-center gap-2 h-12 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95"
-              >
-                <a href="#store-products" aria-label="ابدأ التسوق">
-                  <ShoppingCart className="w-5 h-5" />
-                  <span>ابدأ التسوق</span>
-                </a>
-              </Button>
-              
-              <div className={storeInfo.isPhysicalStore ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
-                {storeInfo.isPhysicalStore && (
-                  storeInfo.hasLocation ? (
-                    <Button 
-                      asChild 
-                      size="lg" 
-                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-semibold flex items-center justify-center gap-2 h-11 shadow-md hover:shadow-lg transition-all active:scale-95"
-                    >
-                      <a href={storeInfo.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label="الموقع على الخريطة">
-                        <Map className="w-4 h-4" />
-                        <span className="text-sm">الخريطة</span>
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button 
-                      size="lg" 
-                      className="w-full rounded-xl bg-slate-100 text-slate-400 border border-slate-200 font-semibold flex items-center justify-center gap-2 h-11" 
-                      disabled
-                    >
-                      <Map className="w-4 h-4" />
-                      <span className="text-sm">الخريطة</span>
-                    </Button>
-                  )
-                )}
-                {storeInfo.whatsappHref ? (
-                  <Button 
-                    asChild 
-                    size="lg" 
-                    className="w-full rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 font-semibold flex items-center justify-center gap-2 h-11 shadow-md hover:shadow-lg transition-all active:scale-95"
-                  >
-                    <a href={storeInfo.whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="واتساب">
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="text-sm">واتساب</span>
-                    </a>
-                  </Button>
-                ) : (
-                  <Button 
-                    size="lg" 
-                    className="w-full rounded-xl bg-slate-100 text-slate-400 border border-slate-200 font-semibold flex items-center justify-center gap-2 h-11" 
-                    disabled
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="text-sm">واتساب</span>
-                  </Button>
-                )}
+            {/* حالة الدوام */}
+            {isPhysical && store.businessHours && (
+              <div className="flex-shrink-0 hidden sm:block">
+                <StoreStatusInfo businessHours={store.businessHours} isCardVersion={false} />
               </div>
-              
+            )}
+          </div>
+
+          {/* وصف المتجر */}
+          {store.description && (
+            <div className="px-5 pb-4">
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                {store.description}
+              </p>
+            </div>
+          )}
+
+          {/* فاصل */}
+          <div className="border-t border-slate-100 dark:border-slate-800" />
+
+          {/* أزرار الإجراءات */}
+          <div className="px-5 py-4 flex flex-wrap gap-2.5">
+            <a href="#store-products" className="flex-1 min-w-[120px]">
+              <Button className="w-full h-11 rounded-2xl font-bold gap-2 text-sm shadow-sm">
+                <ShoppingCart className="w-4 h-4" />
+                ابدأ التسوق
+              </Button>
+            </a>
+
+            {whatsappHref && (
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[100px]">
+                <Button variant="outline" className="w-full h-11 rounded-2xl font-semibold gap-2 text-sm border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400">
+                  <MessageSquare className="w-4 h-4" />
+                  واتساب
+                </Button>
+              </a>
+            )}
+
+            {isPhysical && hasLocation && mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[100px]">
+                <Button variant="outline" className="w-full h-11 rounded-2xl font-semibold gap-2 text-sm border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400">
+                  <Map className="w-4 h-4" />
+                  الخريطة
+                </Button>
+              </a>
+            )}
+
+            <div className="flex-1 min-w-[120px]">
               <StoreRatingDialogWrapper
                 storeId={store.id}
                 storeName={store.name}
                 ownerId={store.ownerId}
-                buttonClassName="w-full font-semibold flex items-center justify-center gap-2 h-11 rounded-xl"
+                buttonClassName="w-full h-11 rounded-2xl font-semibold gap-2 text-sm"
               />
             </div>
           </div>
+
         </div>
       </div>
     </section>
