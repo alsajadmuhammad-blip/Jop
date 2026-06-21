@@ -15,7 +15,6 @@ import {
   Search,
   Building2,
   Globe,
-  ChevronLeft,
   Smartphone,
   ShoppingBag,
   Utensils,
@@ -53,41 +52,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   "طعام": "bg-orange-50 text-orange-600 border-orange-100",
   "ملحقات": "bg-indigo-50 text-indigo-600 border-indigo-100",
 };
-
-/* ─── بطاقة متجر أفقية (للقسم المميز) ─── */
-function FeaturedStoreCard({ store }: { store: StoreType }) {
-  return (
-    <Link href={`/store?id=${store.id}`} className="flex-shrink-0 w-44 group">
-      <div className="rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-        <div className="h-28 bg-slate-50 flex items-center justify-center overflow-hidden relative">
-          {store.logoUrl ? (
-            <img src={store.logoUrl} alt={store.name} className="object-contain w-full h-full p-2" />
-          ) : store.coverImageUrl ? (
-            <img src={store.coverImageUrl} alt={store.name} className="object-cover w-full h-full" />
-          ) : (
-            <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-primary/8 to-primary/3">
-              <Store className="w-8 h-8 text-primary/40" />
-            </div>
-          )}
-        </div>
-        <div className="px-3 py-2.5">
-          <p className="text-sm font-semibold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
-            {store.name}
-          </p>
-          <div className="flex items-center gap-1 mt-1">
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-            <span className="text-xs text-slate-500">
-              {store.reviews > 0 ? store.rating.toFixed(1) : "جديد"}
-            </span>
-            {store.marketType && (
-              <span className="text-xs text-slate-400 mr-1 line-clamp-1">· {store.marketType}</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 /* ─── شريط بحث ─── */
 function SearchBar() {
@@ -184,8 +148,6 @@ export default function Home() {
     load();
   }, []);
 
-  const featuredStores = stores.filter((s) => s.rating >= 4 || s.reviews >= 5).slice(0, 10);
-
   const filteredStores = stores.filter((s) => {
     const typeMatch =
       filterType === "all" ||
@@ -263,31 +225,32 @@ export default function Home() {
         )}
 
         {/* ──────────────────────────────
-            المتاجر المميزة
+            بنر إنشاء متجر
         ────────────────────────────── */}
-        {!loading && featuredStores.length > 0 && (
-          <section className="pb-7">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-slate-900">متاجر مميزة</h2>
-              <Link href="/stores" className="flex items-center gap-1 text-sm text-primary font-medium">
-                الكل
-                <ChevronLeft className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
-              {featuredStores.map((store, i) => (
-                <motion.div
-                  key={store.id}
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
-                >
-                  <FeaturedStoreCard store={store} />
-                </motion.div>
-              ))}
-            </div>
-          </section>
-        )}
+        <section className="pb-6">
+          <Link href="/create-store">
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/80 p-5 flex items-center justify-between gap-4 shadow-md shadow-primary/20 cursor-pointer"
+            >
+              <div className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: "radial-gradient(circle at 80% 50%, white 1px, transparent 1px)",
+                  backgroundSize: "24px 24px",
+                }}
+              />
+              <div className="relative z-10">
+                <p className="text-white/80 text-xs font-medium mb-0.5">ابدأ رحلتك الرقمية</p>
+                <p className="text-white text-base font-black leading-tight">أنشئ متجرك الآن</p>
+                <p className="text-white/70 text-xs mt-1">انضم لمئات المتاجر على مركزي</p>
+              </div>
+              <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center">
+                <Store className="w-6 h-6 text-white" />
+              </div>
+            </motion.div>
+          </Link>
+        </section>
 
         {/* ──────────────────────────────
             كل المتاجر
