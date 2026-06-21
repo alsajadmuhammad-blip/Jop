@@ -77,8 +77,7 @@ function StoreProductsSectionContent({ products, sections, store }: StoreProduct
   return (
     <Card 
       id="store-products" 
-      className="border-0 shadow-xl min-w-0 overflow-hidden"
-      style={{ contain: 'layout style paint' }}
+      className="border-0 shadow-xl min-w-0"
     >
       <CardContent className="p-4 sm:p-6 min-w-0">
         <StoreSectionsNav

@@ -50,15 +50,8 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
   }
 
   return (
-    <div 
-      onClick={handleCardClick} 
-      className="group cursor-pointer h-full min-w-0"
-      style={{ contain: 'layout style paint' }}
-    >
-      <div 
-        className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-card shadow hover:shadow-md transition-shadow duration-150"
-        style={{ transform: 'translateZ(0)' }}
-      >
+    <div onClick={handleCardClick} className="group cursor-pointer">
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-sm hover:shadow-md transition-shadow duration-200">
         <div 
           className="relative h-40 sm:h-48 md:h-56 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center"
         >
