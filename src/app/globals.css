@@ -227,9 +227,9 @@
     -webkit-transform: translateZ(0);
   }
 
-  /* Contain layout for large lists — paint removed to allow inner overflow-x scroll */
+  /* Contain layout for large lists */
   [class*="grid"] {
-    contain: style;
+    contain: layout style paint;
   }
 
   /* Smooth transitions by default */
