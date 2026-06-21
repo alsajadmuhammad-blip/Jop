@@ -1,13 +1,9 @@
-
 "use client";
 
 import { useState, memo } from "react";
 import Image from "next/image";
-import { ShoppingCart, Check, ImageIcon } from "lucide-react";
-
+import { ShoppingCart, Check, ImageIcon, Star } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -33,7 +29,6 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
       });
       return;
     }
-
     addItem(product);
     toast({
       title: "تمت الإضافة إلى السلة",
@@ -41,33 +36,23 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
       productImage: product.imageUrl,
     });
     setIsAdded(true);
-    setTimeout(() => { setIsAdded(false); }, 1500);
+    setTimeout(() => setIsAdded(false), 1500);
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onQuickView(product);
-  }
+  const outOfStock = product.stock <= 0;
 
   return (
-    <div 
-      onClick={handleCardClick} 
-      className="group cursor-pointer h-full min-w-0"
-      style={{ contain: 'layout style paint' }}
-    >
-      <div 
-        className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-card shadow hover:shadow-md transition-shadow duration-150"
-        style={{ transform: 'translateZ(0)' }}
-      >
-        <div 
-          className="relative h-40 sm:h-48 md:h-56 w-full min-w-0 overflow-hidden bg-muted/20 flex items-center justify-center"
-        >
+    <div onClick={() => onQuickView(product)} className="group cursor-pointer h-full">
+      <div className="flex flex-col h-full rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+
+        {/* ── صورة المنتج ── */}
+        <div className="relative w-full aspect-square bg-slate-50 dark:bg-slate-800 overflow-hidden flex-shrink-0">
           {product.imageUrl ? (
-            product.imageUrl.startsWith('data:') ? (
+            product.imageUrl.startsWith("data:") ? (
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="object-cover w-full h-full"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
                 decoding="async"
               />
@@ -76,41 +61,65 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 loading="lazy"
-                decoding="async"
               />
             )
           ) : (
-            <ImageIcon className="size-10 text-muted-foreground/30" />
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon className="w-10 h-10 text-slate-200 dark:text-slate-700" />
+            </div>
+          )}
+
+          {/* شارة نفد المخزون */}
+          {outOfStock && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <span className="bg-white/90 text-slate-800 text-xs font-bold px-3 py-1 rounded-full">
+                نفد المخزون
+              </span>
+            </div>
+          )}
+
+          {/* شارة مميز */}
+          {product.isFeatured && (
+            <span className="absolute top-2 right-2 flex items-center gap-0.5 bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+              <Star className="w-2.5 h-2.5 fill-white" />
+              مميز
+            </span>
           )}
         </div>
-        
-        <div className="flex-1 p-2.5 sm:p-3 md:p-4 space-y-1.5 sm:space-y-2 flex flex-col">
-          <h3 className="line-clamp-2 text-xs sm:text-sm md:text-base font-bold text-foreground leading-tight">{product.name}</h3>
-          <div className="flex-1 space-y-3 flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-                <p className="text-xs sm:text-sm md:text-base font-extrabold text-primary">{product.price.toLocaleString()} د.ع</p>
-                <Button
-                  size="sm"
-                  className={cn(
-                    "size-7 sm:size-8 md:size-9 rounded-lg p-0 transition-colors duration-150 text-xs font-semibold shadow-sm hover:shadow active:scale-95",
-                    isAdded ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary/90"
-                  )}
-                  onClick={handleAddToCart}
-                  disabled={product.stock <= 0}
-                >
-                  {isAdded ? <Check className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" /> : <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" />}
-                </Button>
-              </div>
-              <p className={cn("text-xs font-semibold", product.stock > 0 ? "text-emerald-600" : "text-destructive")}> 
-                {product.stock > 0 ? `متوفر: ${product.stock}` : "نفد المخزون"}
-              </p>
-            </div>
+
+        {/* ── معلومات المنتج ── */}
+        <div className="flex flex-col gap-1.5 p-3 flex-grow">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+            {product.name}
+          </h3>
+
+          <div className="flex items-center justify-between mt-auto pt-1.5">
+            <span className="text-sm font-extrabold text-primary">
+              {product.price.toLocaleString("ar-IQ")} <span className="text-xs font-semibold text-slate-400">د.ع</span>
+            </span>
+
+            <button
+              onClick={handleAddToCart}
+              disabled={outOfStock}
+              className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-90 shadow-sm",
+                outOfStock
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-300 cursor-not-allowed"
+                  : isAdded
+                  ? "bg-emerald-500 text-white"
+                  : "bg-primary text-white hover:bg-primary/90"
+              )}
+            >
+              {isAdded
+                ? <Check className="w-4 h-4" />
+                : <ShoppingCart className="w-4 h-4" />}
+            </button>
           </div>
         </div>
+
       </div>
     </div>
   );

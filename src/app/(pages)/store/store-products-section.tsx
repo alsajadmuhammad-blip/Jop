@@ -35,10 +35,11 @@ const SectionsNav = memo(function SectionsNav({
   if (sections.length === 0) return null;
 
   return (
-    <div className="sticky top-[56px] z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 -mx-4 sm:-mx-5 px-4 sm:px-5 pt-2 pb-2">
+    <div className="sticky top-[56px] z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 -mx-4 sm:-mx-5 pt-2 pb-2">
       <div
         ref={navRef}
-        className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+        className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 px-4 sm:px-5"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         {/* زر الكل */}
         <button
