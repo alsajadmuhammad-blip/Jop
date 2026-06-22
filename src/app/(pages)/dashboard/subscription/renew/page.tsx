@@ -35,9 +35,11 @@ export default function RenewSubscriptionPage() {
         const subscription = await getStoreActiveSubscription(user.storeId);
         setCurrentSubscription(subscription);
 
-        // Load available packages
+        // Load available packages — للتجديد: renewal أو both فقط
         const allPackages = await fetchStorePackages();
-        const activePackages = allPackages.filter((p) => p.isActive);
+        const activePackages = allPackages.filter(
+          (p) => p.isActive && (p.visibility === 'renewal' || p.visibility === 'both')
+        );
         setPackages(activePackages);
 
         // Default to current package

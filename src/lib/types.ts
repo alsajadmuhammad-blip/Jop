@@ -28,6 +28,9 @@ export type Category = {
   name: string;
 };
 
+/** public = للعام | renewal = للتجديد فقط | both = للاثنين */
+export type PackageVisibility = 'public' | 'renewal' | 'both';
+
 export type StorePackage = {
   id: string;
   name: string;
@@ -37,6 +40,7 @@ export type StorePackage = {
   productLimit: number;
   subscriptionDuration: number;
   isActive: boolean;
+  visibility: PackageVisibility;
   metadata?: Record<string, any> | null;
   createdAt?: string | null;
   updatedAt?: string | null;

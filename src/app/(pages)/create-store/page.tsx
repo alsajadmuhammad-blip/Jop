@@ -347,7 +347,9 @@ export default function CreateStorePage() {
     let mounted = true;
     fetchStorePackages().then((rows) => {
       if (!mounted) return;
-      const active = rows.filter((pkg) => pkg.isActive);
+      const active = rows.filter(
+        (pkg) => pkg.isActive && (pkg.visibility === 'public' || pkg.visibility === 'both')
+      );
       setPackages(active);
       if (active[0]) setSelectedSlug(active[0].slug);
     });

@@ -907,6 +907,7 @@ export async function createStorePackage(pkg: Omit<StorePackage, 'id' | 'created
         product_limit: Number(pkg.productLimit),
         subscription_duration: Number(pkg.subscriptionDuration),
         is_active: pkg.isActive,
+        visibility: pkg.visibility ?? 'public',
         metadata: (pkg.metadata && Object.keys(pkg.metadata).length > 0) ? pkg.metadata : null,
       },
     ])
@@ -941,6 +942,9 @@ export async function updateStorePackage(packageId: string, updates: Partial<Sto
   }
   if (updates.metadata !== undefined) {
     payload.metadata = updates.metadata && Object.keys(updates.metadata).length > 0 ? updates.metadata : null;
+  }
+  if (updates.visibility !== undefined) {
+    payload.visibility = updates.visibility;
   }
 
   const { data, error } = await supabase
@@ -990,6 +994,9 @@ export async function fetchSubscriptionPackages(): Promise<{
 }
 
 function mapStorePackageRow(row: any): StorePackage {
+  const rawVisibility = row.visibility || row.packageVisibility || 'public';
+  const visibility: import('@/lib/types').PackageVisibility =
+    ['public', 'renewal', 'both'].includes(rawVisibility) ? rawVisibility : 'public';
   return {
     id: row.id,
     name: row.name,
@@ -999,6 +1006,7 @@ function mapStorePackageRow(row: any): StorePackage {
     productLimit: typeof row.product_limit === 'number' ? row.product_limit : Number(row.product_limit ?? 50),
     subscriptionDuration: typeof row.subscription_duration === 'number' ? row.subscription_duration : Number(row.subscription_duration ?? 30),
     isActive: parseBoolean(row.is_active ?? true),
+    visibility,
     metadata: (row.metadata && typeof row.metadata === 'object') ? row.metadata : null,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null,
