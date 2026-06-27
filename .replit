@@ -41,3 +41,4 @@ outputType = "webview"
 
 [nix]
 packages = ["speech-tools"]
+channel = "stable-25_05"

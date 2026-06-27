@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { StoreOwnerNavbar } from "./navbar";
-import { PlusCircle, MoreHorizontal, AlertTriangle, Edit, Trash2, Settings, Package, Image as ImageIcon, PanelLeft, Package2, Shield, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe } from "lucide-react";
+import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section, StorePackage } from "@/lib/types";
@@ -42,67 +42,66 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-// ...existing code...
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
-import { BackButton } from "@/components/layout/back-button";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 
 // ===== New Dashboard Product Card =====
 function DashboardProductCard({ product, onEdit, onDelete }: { product: Product, onEdit: (product: Product) => void, onDelete: (productId: string) => void }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg border border-slate-200/80 rounded-3xl bg-background">
-        <div className="relative h-40 w-full overflow-hidden border-b bg-muted flex items-center justify-center">
-            {product.imageUrl ? (
-                <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                />
-            ) : (
-                <ImageIcon className="w-10 h-10 text-muted-foreground/50"/>
-            )}
-        </div>
-        <div className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="text-sm font-semibold truncate" title={product.name}>{product.name}</h3>
-              {product.sectionName ? (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                  {product.sectionName}
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-3 text-sm font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
-            <p className={product.stock > 0 ? "mt-2 text-xs font-medium text-success" : "mt-2 text-xs font-medium text-destructive"}>
-              {product.stock > 0 ? `المخزون: ${product.stock}` : 'نفد المخزون'}
-            </p>
-        </div>
-        <div className="mt-auto p-4 pt-0 flex flex-wrap gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={() => onEdit(product)}>
-                <Edit className="ml-1 h-3 w-3" />
-                تعديل
-            </Button>
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200/60 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+      <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center overflow-hidden">
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 50vw, 33vw"
+          />
+        ) : (
+          <ImageIcon className="w-8 h-8 text-slate-300" />
+        )}
+        <div className="absolute top-3 left-3 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon" className="h-9 w-9">
-                        <Trash2 className="h-4 w-4"/>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>هل أنت متأكد من الحذف؟</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            سيتم حذف المنتج "{product.name}" نهائياً. لا يمكن التراجع عن هذا الإجراء.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(product.id)}>نعم، حذف</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
+              <AlertDialogTrigger asChild>
+                <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm backdrop-blur transition-colors hover:bg-red-50 hover:text-red-600">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    هل أنت متأكد من حذف "{product.name}"؟ لا يمكن التراجع.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2 sm:gap-0">
+                  <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
+                  <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => onDelete(product.id)}>حذف</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
             </AlertDialog>
+            <button onClick={() => onEdit(product)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 hover:text-slate-900">
+              <Edit className="h-4 w-4" />
+            </button>
         </div>
+      </div>
+      <div className="p-4 flex flex-col flex-1">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-slate-900 line-clamp-1" title={product.name}>{product.name}</h3>
+          {product.sectionName && (
+            <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+              {product.sectionName}
+            </span>
+          )}
+        </div>
+        <div className="mt-auto flex items-end justify-between">
+          <p className="text-lg font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
+          <p className={product.stock > 0 ? "text-xs font-medium text-emerald-600" : "text-xs font-medium text-red-500"}>
+            {product.stock > 0 ? `مخزون: ${product.stock}` : 'نفد'}
+          </p>
+        </div>
+      </div>
     </article>
   );
 }
@@ -682,305 +681,214 @@ export default function StoreDashboardPage() {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-background flex flex-col">
-                <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur-sm shadow-sm">
-                    <div className="px-4 md:px-8 py-3 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <BackButton href="/dashboard/store" />
-                            {fullStoreData?.logoUrl && (
-                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
-                                <Image
-                                  src={fullStoreData.logoUrl}
-                                  alt={fullStoreData.name}
-                                  fill
-                                  className="object-cover"
-                                  sizes="40px"
-                                />
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                                 <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
-                                    {fullStoreData.name}
-                                </h1>
-                                <p className="text-xs text-muted-foreground">
-                                    لوحة التحكم
-                                </p>
-                            </div>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={handleLogout} className="flex-shrink-0 md:hidden">
-                            <LogOut className="h-5 w-5" />
-                        </Button>
-                    </div>
-                </header>
-
-                <div className="px-4 md:px-8">
-                  <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* ===== Header ===== */}
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex h-14 items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              {fullStoreData?.logoUrl ? (
+                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-slate-200">
+                  <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="32px" />
                 </div>
+              ) : (
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Package2 className="h-4 w-4 text-primary" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900 leading-none">{fullStoreData.name}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">لوحة التحكم</p>
+              </div>
+            </div>
 
-                <main className="flex-1 px-4 md:px-8 py-6 space-y-8">
-                    {/* Quick Stats - Only show on Products page */}
-                    {activeView === 'products' && (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">المنتجات</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-950">{products.length}</p>
-                              </div>
-                              <Package className="h-10 w-10 text-blue-100" strokeWidth={1.5} />
-                            </div>
-                        </motion.div>
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15 }}
-                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">الحالة</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-950">{fullStoreData.isActive ? '✓ نشط' : '◆ متوقف'}</p>
-                              </div>
-                              <div className={`h-10 w-10 rounded-full ${fullStoreData.isActive ? 'bg-green-100' : 'bg-red-100'}`} />
-                            </div>
-                        </motion.div>
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">التوصيل</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-950">{fullStoreData.hasDelivery ? '✓ متاح' : '✗ معطل'}</p>
-                              </div>
-                              <Truck className="h-10 w-10 text-amber-100" strokeWidth={1.5} />
-                            </div>
-                        </motion.div>
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.25 }}
-                          className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">الاشتراك</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-950">{remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي'}</p>
-                              </div>
-                              <ShoppingCartIcon className="h-10 w-10 text-purple-100" strokeWidth={1.5} />
-                            </div>
-                        </motion.div>
-                    </div>
-                    )}
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-slate-600 hover:text-slate-900">
+                <Link href={`/store?id=${fullStoreData.id}`}>
+                  <Globe className="ml-1.5 h-4 w-4" />
+                  عرض المتجر
+                </Link>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 text-slate-500 hover:text-slate-900">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-                    {/* Welcome Card */}
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-lg overflow-hidden relative"
-                    >
-                        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-                        <div className="relative z-10">
-                          <h2 className="text-2xl md:text-3xl font-bold mb-2">{fullStoreData.name}</h2>
-                          <p className="text-sm md:text-base leading-relaxed text-slate-300 mb-6">
-                              {fullStoreData.description || 'إدارة متجرك بسهولة من لوحة التحكم. أضف منتجات، أدر الطلبات، وراقب أداء متجرك في الوقت الفعلي.'}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                              <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
-                                  <Link href={`/store?id=${fullStoreData.id}`}>
-                                    <Globe className="ml-2 h-4 w-4" />
-                                    عرض المتجر
-                                  </Link>
-                              </Button>
-                              <Button size="sm" className="rounded-full px-5 bg-white hover:bg-slate-100 text-slate-900" onClick={() => handleViewChange('settings')}>
-                                <Settings className="ml-2 h-4 w-4" />
-                                الإعدادات
-                              </Button>
-                          </div>
-                        </div>
-                    </motion.div>
+          <div className="pb-3">
+            <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
+          </div>
+        </div>
+      </header>
 
-                {isPendingReview && (
-                      <Alert className="bg-primary/10 border-primary/20 text-primary">
-                        <Info className="h-4 w-4 flex-shrink-0" />
-                        <AlertTitle>جاري المراجعة</AlertTitle>
-                        <AlertDescription className="text-sm mt-1">
-                            متجرك قيد المراجعة من إدارتنا وسيتم تفعيله قريباً.
-                        </AlertDescription>
-                      </Alert>
-                    )}
+      {/* ===== Alerts ===== */}
+      {(isPendingReview || isSubscriptionExpired || showExpirationWarning) && (
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-4 space-y-2">
+          {isPendingReview && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-800 py-2.5">
+              <Info className="h-4 w-4 shrink-0 text-amber-600" />
+              <AlertDescription className="text-sm font-medium">متجرك قيد المراجعة، سيتم تفعيله قريباً.</AlertDescription>
+            </Alert>
+          )}
+          {isSubscriptionExpired && (
+            <Alert variant="destructive" className="py-2.5">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <AlertDescription className="text-sm font-medium">الاشتراك منتهي — تواصل مع الإدارة لتجديده.</AlertDescription>
+            </Alert>
+          )}
+          {showExpirationWarning && !isSubscriptionExpired && (
+            <Alert variant="destructive" className="py-2.5 border-orange-200 bg-orange-50 text-orange-800">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600" />
+              <AlertDescription className="text-sm font-medium">تنبيه — متبقي {remainingDays} أيام لانتهاء الاشتراك.</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
-                    {isSubscriptionExpired && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                        <AlertTitle>الاشتراك منتهي!</AlertTitle>
-                        <AlertDescription className="text-sm mt-1">
-                            تواصل مع الإدارة لتجديد الاشتراك.
-                        </AlertDescription>
-                      </Alert>
-                    )}
+      {/* ===== Main Content ===== */}
+      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6">
 
-                    {showExpirationWarning && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                        <AlertTitle>تنبيه!</AlertTitle>
-                        <AlertDescription className="text-sm">متبقي {remainingDays} أيام لانتهاء الاشتراك.</AlertDescription>
-                      </Alert>
-                    )}
+        {/* ── تبويب المنتجات ── */}
+        {activeView === 'products' && (
+          <motion.div
+            key="products"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* إحصائيات سريعة */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: 'المنتجات', value: `${products.length}/${isUnlimited ? '∞' : fullStoreData.productLimit}`, icon: <Package className="h-5 w-5 text-primary/40" /> },
+                { label: 'حالة المتجر', value: fullStoreData.isActive ? 'نشط' : 'متوقف', icon: <div className={`h-2.5 w-2.5 rounded-full ${fullStoreData.isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />, accent: fullStoreData.isActive ? 'text-emerald-600' : 'text-red-500' },
+                { label: 'التوصيل', value: fullStoreData.hasDelivery ? 'متاح' : 'معطل', icon: <Truck className="h-5 w-5 text-amber-300" />, accent: fullStoreData.hasDelivery ? 'text-emerald-600' : 'text-slate-500' },
+                { label: 'الاشتراك', value: remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي', icon: <ShoppingCartIcon className="h-5 w-5 text-purple-200" />, accent: (remainingDays ?? 0) > 5 ? 'text-slate-900' : 'text-red-500' },
+              ].map((stat, i) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex flex-col gap-2 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">{stat.label}</p>
+                    {stat.icon}
+                  </div>
+                  <p className={`text-xl font-bold ${stat.accent ?? 'text-slate-900'}`}>{stat.value}</p>
+                </motion.div>
+              ))}
+            </div>
 
-                    {activeView === 'products' && (
-                      <>
-                        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">حالة الاشتراك</p>
-                              <h3 className="mt-2 text-2xl font-bold text-slate-950">الباقة الحالية والخيارات المتاحة</h3>
-                              <p className="mt-2 text-sm text-slate-600">راقب صلاحية اشتراكك، وحدد الباقة المناسبة لتوسيع متجر you.</p>
-                            </div>
-                            <Badge variant={isSubscriptionExpired ? 'destructive' : 'default'} className="self-start">
-                              {isSubscriptionExpired ? 'الاشتراك منتهي' : 'اشتراك نشط'}
-                            </Badge>
-                          </div>
+            {/* قائمة المنتجات */}
+            <ProductsTab
+              products={products}
+              productLimit={fullStoreData.productLimit}
+              onAdd={handleAddProduct}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+            />
+          </motion.div>
+        )}
 
-                          <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                            <article className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 text-white shadow-sm">
-                              <p className="text-xs uppercase tracking-[0.24em] text-slate-300">الباقة الحالية</p>
-                              <h4 className="mt-3 text-xl font-bold">{currentPackage?.name || 'لا توجد باقة مخصصة بعد'}</h4>
-                              <p className="mt-2 text-sm text-slate-300">{currentPackage?.description || 'سيتم عرض تفاصيل الباقة هنا عند تعيينها للمتجر.'}</p>
-                              <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-200">
-                                <span className="rounded-full bg-white/10 px-3 py-1">الحد: {currentPackage?.productLimit ? (currentPackage.productLimit >= Number.MAX_SAFE_INTEGER ? 'غير محدود' : currentPackage.productLimit) : fullStoreData.productLimit} منتج</span>
-                                <span className="rounded-full bg-white/10 px-3 py-1">المدة: {currentPackage?.subscriptionDuration || fullStoreData.subscriptionDuration || 30} يوم</span>
-                                <span className="rounded-full bg-white/10 px-3 py-1">السعر: {currentPackage?.price ? `${currentPackage.price.toLocaleString()} د.ع` : 'غير محدد'}</span>
-                              </div>
-                            </article>
+        {/* ── تبويب الطلبات ── */}
+        {activeView === 'orders' && (
+          <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+            <StoreOrdersTab storeId={fullStoreData.id} />
+          </motion.div>
+        )}
 
-                            <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">معلومات الاشتراك</p>
-                              <ul className="mt-4 space-y-3 text-sm text-slate-700">
-                                <li className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 border border-slate-200"><span>الأيام المتبقية</span><strong>{remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي'}</strong></li>
-                                <li className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 border border-slate-200"><span>حالة التفعيل</span><strong>{fullStoreData.isActive ? 'مفعّل' : 'غير مفعّل'}</strong></li>
-                                <li className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 border border-slate-200"><span>تاريخ التفعيل</span><strong>{fullStoreData.activationDate ? new Date(fullStoreData.activationDate).toLocaleDateString('ar-EG') : 'غير محدد'}</strong></li>
-                              </ul>
-                            </article>
-                          </div>
-                        </section>
+        {/* ── تبويب الأقسام ── */}
+        {activeView === 'sections' && (
+          <motion.div
+            key="sections"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-semibold text-slate-900 mb-1">أقسام المتجر</h2>
+              <p className="text-sm text-slate-500 mb-4">نظّم منتجاتك في أقسام لتسهيل تصفح العملاء.</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSectionName}
+                  onChange={(e) => setNewSectionName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateSection()}
+                  placeholder="اسم القسم الجديد"
+                  className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                />
+                <Button onClick={handleCreateSection} disabled={!newSectionName.trim()} className="shrink-0 rounded-xl px-4">
+                  إضافة
+                </Button>
+              </div>
+            </div>
 
-                        {packages.length > 0 && (
-                          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <div className="flex items-center justify-between gap-4">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">الباقات المتاحة</p>
-                                <h3 className="mt-2 text-2xl font-bold text-slate-950">اختر الباقة المناسبة لنمو متجرك</h3>
-                              </div>
-                            </div>
-                            <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                              {packages.filter((pkg) => pkg.isActive).map((pkg) => (
-                                <article key={pkg.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm hover:-translate-y-0.5 transition-all">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="text-lg font-bold text-slate-900">{pkg.name}</p>
-                                      <p className="text-xs text-slate-500">{pkg.slug}</p>
-                                    </div>
-                                    <Badge variant="outline">{pkg.price === 0 ? 'مجانية' : `${pkg.price.toLocaleString()} د.ع`}</Badge>
-                                  </div>
-                                  <p className="mt-4 text-sm text-slate-600">{pkg.description || 'لا يوجد وصف إضافي لهذه الباقة.'}</p>
-                                  <ul className="mt-4 space-y-2 text-sm text-slate-700">
-                                    <li>• الحد الأقصى للمنتجات: {pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 'غير محدود' : pkg.productLimit}</li>
-                                    <li>• مدة الاشتراك: {pkg.subscriptionDuration} يوم</li>
-                                    <li>• الحالة: {pkg.isActive ? 'مفعلة' : 'متوقفة'}</li>
-                                  </ul>
-                                  <div className="mt-5 flex items-center justify-between gap-2">
-                                    <Button size="sm" variant="secondary" onClick={() => toast({ title: 'سيتم ربط هذه الباقة مع إدارة الاشتراك قريباً' })}>عرض التفاصيل</Button>
-                                    <Button size="sm" onClick={() => toast({ title: 'سيتم تفعيل تجديد الاشتراك من صفحة الدفع قريباً' })}>تجديد الاشتراك</Button>
-                                  </div>
-                                </article>
-                              ))}
-                            </div>
-                          </section>
-                        )}
-
-                        <ProductsTab 
-                            products={products}
-                            productLimit={fullStoreData.productLimit}
-                            onAdd={handleAddProduct}
-                            onEdit={handleEditProduct}
-                            onDelete={handleDeleteProduct}
-                        />
-                      </>
-                    )}
-
-                    {activeView === 'orders' && (
-                        <StoreOrdersTab storeId={fullStoreData.id} />
-                    )}
-
-                    {activeView === 'sections' && (
-                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <div className="flex flex-col gap-4">
-<div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                              <div>
-                                <h2 className="text-2xl font-bold">أقسام المتجر</h2>
-                                <p className="text-sm text-muted-foreground mt-1">أنشئ ونظّم الأقسام التي سيختار منها العملاء منتجاتك.</p>
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                                <input
-                                  type="text"
-                                  value={newSectionName}
-                                  onChange={(event) => setNewSectionName(event.target.value)}
-                                  placeholder="أضف اسم قسم جديد"
-                                  className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition-colors duration-150 focus:border-primary focus:ring-2 focus:ring-primary/10"
-                                />
-                                <Button type="button" onClick={handleCreateSection} className="whitespace-nowrap">
-                                  إضافة قسم
-                                </Button>
-                              </div>
-                            </div>
-
-                          {sections.length > 0 ? (
-                            <div className="grid gap-4 md:grid-cols-2">
-                              {sections.map((section) => (
-                                <div key={section.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4">
-                                  <div>
-                                    <p className="text-lg font-semibold">{section.name}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">{section.createdAt ? new Date(section.createdAt).toLocaleDateString('ar-EG') : 'بدون تاريخ'}</p>
-                                  </div>
-                                  <Button variant="destructive" size="sm" onClick={() => handleDeleteSection(section.id)}>
-                                    حذف
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                              <p className="text-sm font-medium text-slate-900">لا توجد أقسام بعد.</p>
-                              <p className="text-sm text-muted-foreground mt-2">أضف قسمًا جديدًا كي تتمكن من تنظيم منتجاتك بشكل احترافي.</p>
-                            </div>
-                          )}
-                        </div>
+            {sections.length > 0 ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {sections.map((section, i) => (
+                  <motion.div
+                    key={section.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                        <Package className="h-4 w-4" />
                       </div>
-                    )}
-                    
-                    {activeView === 'settings' && (
-                        <StoreSettingsTab 
-                            store={fullStoreData}
-                            onSettingChange={handleStoreSettingChange}
-                            onLogoSave={handleLogoSave}
-                        />
-                    )}
-                </main>
-             </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-900">{section.name}</p>
+                        {section.createdAt && (
+                          <p className="text-[11px] text-slate-400">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
+                        )}
+                      </div>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>حذف القسم</AlertDialogTitle>
+                          <AlertDialogDescription>هل أنت متأكد من حذف قسم "{section.name}"؟</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                          <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => handleDeleteSection(section.id)}>حذف</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center">
+                <Package className="h-10 w-10 text-slate-200 mb-3" strokeWidth={1.5} />
+                <p className="text-sm font-medium text-slate-700">لا توجد أقسام بعد</p>
+                <p className="text-xs text-slate-400 mt-1">أضف قسماً لتنظيم منتجاتك</p>
+              </div>
+            )}
+          </motion.div>
+        )}
 
-      {/* Product form moved to separate page at /dashboard/store/add-product */}
-    </>
-    );
+        {/* ── تبويب الإعدادات ── */}
+        {activeView === 'settings' && (
+          <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+            <StoreSettingsTab
+              store={fullStoreData}
+              onSettingChange={handleStoreSettingChange}
+              onLogoSave={handleLogoSave}
+            />
+          </motion.div>
+        )}
+      </main>
+    </div>
+  );
 }
 
