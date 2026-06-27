@@ -20,7 +20,7 @@ export function StoreOwnerNavbar({
   onTabChange: (tab: string) => void;
 }) {
   return (
-    <nav className="overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+    <nav className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       <div className="inline-flex min-w-max items-center gap-0.5 rounded-xl bg-slate-100 p-1">
         {navLinks.map((link) => {
           const isActive = activeTab === link.tab;
@@ -30,7 +30,7 @@ export function StoreOwnerNavbar({
               key={link.tab}
               onClick={() => onTabChange(link.tab)}
               className={cn(
-                "relative flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium outline-none transition-colors whitespace-nowrap",
+                "relative flex items-center gap-1 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-medium outline-none transition-colors whitespace-nowrap",
                 isActive
                   ? "text-slate-900"
                   : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/60"

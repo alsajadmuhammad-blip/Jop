@@ -45,62 +45,91 @@ import {
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 
-// ===== New Dashboard Product Card =====
+// ===== Dashboard Product Card =====
 function DashboardProductCard({ product, onEdit, onDelete }: { product: Product, onEdit: (product: Product) => void, onDelete: (productId: string) => void }) {
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200/60 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
-      <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center overflow-hidden">
+    <article className="group relative flex flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+      {/* Image */}
+      <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <ImageIcon className="w-8 h-8 text-slate-300" />
+          <div className="flex h-full items-center justify-center">
+            <ImageIcon className="w-10 h-10 text-slate-200" />
+          </div>
         )}
-        <div className="absolute top-3 left-3 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm backdrop-blur transition-colors hover:bg-red-50 hover:text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    هل أنت متأكد من حذف "{product.name}"؟ لا يمكن التراجع.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="gap-2 sm:gap-0">
-                  <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => onDelete(product.id)}>حذف</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <button onClick={() => onEdit(product)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 hover:text-slate-900">
-              <Edit className="h-4 w-4" />
-            </button>
+        {/* Action buttons — always visible on mobile, hover on desktop */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity sm:block hidden" />
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 shadow-sm backdrop-blur-sm transition-colors hover:bg-red-500 hover:text-white">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
+                <AlertDialogDescription>هل أنت متأكد من حذف "{product.name}"؟ لا يمكن التراجع.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2 sm:gap-0">
+                <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
+                <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => onDelete(product.id)}>حذف</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <button
+            onClick={() => onEdit(product)}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-primary hover:text-white"
+          >
+            <Edit className="h-3.5 w-3.5" />
+          </button>
         </div>
+        {/* Stock badge */}
+        {product.stock === 0 && (
+          <span className="absolute bottom-2 right-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">نفد</span>
+        )}
       </div>
-      <div className="p-4 flex flex-col flex-1">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-slate-900 line-clamp-1" title={product.name}>{product.name}</h3>
-          {product.sectionName && (
-            <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-              {product.sectionName}
-            </span>
+
+      {/* Info */}
+      <div className="p-2.5 flex flex-col gap-1">
+        {product.sectionName && (
+          <span className="text-[10px] font-medium text-primary/70 leading-none">{product.sectionName}</span>
+        )}
+        <h3 className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug" title={product.name}>{product.name}</h3>
+        <div className="flex items-center justify-between gap-1 mt-0.5">
+          <p className="text-sm font-bold text-primary leading-none">{product.price.toLocaleString()}<span className="text-[10px] font-medium mr-0.5">د.ع</span></p>
+          {product.stock > 0 && (
+            <p className="text-[10px] text-slate-400">{product.stock} قطعة</p>
           )}
         </div>
-        <div className="mt-auto flex items-end justify-between">
-          <p className="text-lg font-bold text-primary">{product.price.toLocaleString()} د.ع</p>
-          <p className={product.stock > 0 ? "text-xs font-medium text-emerald-600" : "text-xs font-medium text-red-500"}>
-            {product.stock > 0 ? `مخزون: ${product.stock}` : 'نفد'}
-          </p>
-        </div>
+      </div>
+
+      {/* Mobile edit button row */}
+      <div className="flex border-t border-slate-100 sm:hidden">
+        <button onClick={() => onEdit(product)} className="flex-1 py-2 text-xs font-medium text-primary hover:bg-primary/5 transition-colors">تعديل</button>
+        <div className="w-px bg-slate-100" />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="flex-1 py-2 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">حذف</button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
+              <AlertDialogDescription>هل أنت متأكد من حذف "{product.name}"؟ لا يمكن التراجع.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-0">
+              <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
+              <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => onDelete(product.id)}>حذف</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </article>
   );
@@ -420,7 +449,7 @@ export default function StoreDashboardPage() {
     }
   }, [user, toast]);
 
-  const validViews = ['products', 'orders', 'sections', 'settings'];
+  const validViews = ['products', 'orders', 'sections', 'subscription', 'settings'];
 
   const handleViewChange = (view: string) => {
     if (!validViews.includes(view)) return;
@@ -461,9 +490,19 @@ export default function StoreDashboardPage() {
       
       if (cachedStore && cachedProducts && cachedSections) {
         try {
-          setStore(JSON.parse(cachedStore));
+          const parsedStore = JSON.parse(cachedStore);
+          setStore(parsedStore);
           setProducts(JSON.parse(cachedProducts));
           setSections(JSON.parse(cachedSections));
+          // إعادة حساب الاشتراك من بيانات الكاش
+          const activationDays = parsedStore.activationDate
+            ? differenceInDays(new Date(), parseISO(parsedStore.activationDate as string))
+            : 0;
+          const subDuration = parsedStore.subscriptionDuration || 30;
+          const daysLeft = subDuration - activationDays;
+          setRemainingDays(daysLeft);
+          setIsStoreActive(!!parsedStore.isActive);
+          setIsSubscriptionExpired(!!parsedStore.isActive && daysLeft <= 0);
           setLoading(false);
           setSessionRestored(true);
           return;
@@ -745,19 +784,11 @@ export default function StoreDashboardPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <Button asChild size="sm" className="rounded-lg gap-1.5 bg-primary text-white hover:bg-primary/90 shadow-sm hidden sm:inline-flex">
+              <Button asChild size="sm" className="rounded-lg gap-1.5 bg-primary text-white hover:bg-primary/90 shadow-sm">
                 <Link href={`/store?id=${fullStoreData.id}`} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-3.5 w-3.5" />
-                  عرض المتجر
+                  <span className="hidden sm:inline">عرض المتجر</span>
                 </Link>
-              </Button>
-              <Button asChild size="icon" variant="outline" className="h-9 w-9 rounded-lg sm:hidden">
-                <Link href={`/store?id=${fullStoreData.id}`} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9 rounded-lg text-slate-500 hover:text-red-500 hover:bg-red-50">
-                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -801,34 +832,34 @@ export default function StoreDashboardPage() {
           <motion.div key="products" {...tabMotion} className="space-y-5">
 
             {/* Stats strip */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {([
                 {
                   label: 'المنتجات',
                   value: `${products.length}`,
-                  sub: `من ${isUnlimited ? 'غير محدود' : fullStoreData.productLimit}`,
-                  icon: <Package className="h-5 w-5" />,
+                  sub: `من ${isUnlimited ? '∞' : fullStoreData.productLimit}`,
+                  icon: <Package className="h-4 w-4" />,
                   color: 'text-blue-600 bg-blue-50',
                 },
                 {
                   label: 'الحالة',
                   value: fullStoreData.isActive ? 'نشط' : 'متوقف',
-                  sub: fullStoreData.isActive ? 'يقبل الطلبات' : 'مغلق مؤقتاً',
-                  icon: <CheckCircle2 className="h-5 w-5" />,
+                  sub: fullStoreData.isActive ? 'يقبل الطلبات' : 'مغلق',
+                  icon: <CheckCircle2 className="h-4 w-4" />,
                   color: fullStoreData.isActive ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50',
                 },
                 {
                   label: 'التوصيل',
                   value: fullStoreData.hasDelivery ? 'متاح' : 'معطل',
-                  sub: fullStoreData.hasDelivery ? 'خدمة توصيل فعالة' : 'لا يوجد توصيل',
-                  icon: <Truck className="h-5 w-5" />,
+                  sub: fullStoreData.hasDelivery ? 'فعال' : 'غير متاح',
+                  icon: <Truck className="h-4 w-4" />,
                   color: fullStoreData.hasDelivery ? 'text-amber-600 bg-amber-50' : 'text-slate-400 bg-slate-100',
                 },
                 {
                   label: 'الاشتراك',
                   value: remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي',
-                  sub: remainingDays !== null && remainingDays > 0 ? 'متبقٍ للتجديد' : 'يرجى التجديد',
-                  icon: <CreditCard className="h-5 w-5" />,
+                  sub: remainingDays !== null && remainingDays > 0 ? 'متبقٍ' : 'للتجديد',
+                  icon: <CreditCard className="h-4 w-4" />,
                   color: (remainingDays ?? 0) > 5 ? 'text-purple-600 bg-purple-50' : 'text-red-500 bg-red-50',
                 },
               ] as const).map((stat, i) => (
@@ -837,14 +868,14 @@ export default function StoreDashboardPage() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
                 >
-                  <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl mb-3 ${stat.color}`}>
+                  <div className={`inline-flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${stat.color}`}>
                     {stat.icon}
                   </div>
-                  <p className="text-xl font-bold text-slate-900 leading-none">{stat.value}</p>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">{stat.sub}</p>
-                  <p className="text-xs font-medium text-slate-500 mt-2">{stat.label}</p>
+                  <p className="text-lg font-bold text-slate-900 leading-none">{stat.value}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">{stat.sub}</p>
+                  <p className="text-[11px] font-medium text-slate-500 mt-1.5">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -969,7 +1000,7 @@ export default function StoreDashboardPage() {
                 </Badge>
               </div>
 
-              <div className="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="p-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
                   {
                     label: 'الباقة',
@@ -1031,7 +1062,7 @@ export default function StoreDashboardPage() {
                   <h2 className="text-base font-bold text-slate-900">الباقات المتاحة</h2>
                   <p className="text-sm text-slate-500 mt-0.5">اختر الباقة المناسبة لتوسيع نطاق متجرك.</p>
                 </div>
-                <div className="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="p-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {packages.filter((pkg) => pkg.isActive).map((pkg, i) => {
                     const isCurrent = currentPackage?.id === pkg.id;
                     return (
