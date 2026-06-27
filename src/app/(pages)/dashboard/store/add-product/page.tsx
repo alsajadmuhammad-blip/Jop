@@ -273,6 +273,13 @@ function AddProductPageContent() {
         toast({ title: "✓ تمت إضافة المنتج بنجاح" });
       }
 
+      // مسح الـ cache في sessionStorage لإجبار لوحة التحكم على إعادة جلب البيانات الحديثة
+      if (user?.id) {
+        sessionStorage.removeItem(`products_${user.id}`);
+        sessionStorage.removeItem(`store_${user.id}`);
+        sessionStorage.removeItem(`sections_${user.id}`);
+      }
+
       setTimeout(() => router.push("/dashboard/store?tab=products"), 800);
     } catch (error) {
       console.error("Error saving product:", error);
