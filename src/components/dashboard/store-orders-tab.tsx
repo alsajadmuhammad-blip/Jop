@@ -244,7 +244,8 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
