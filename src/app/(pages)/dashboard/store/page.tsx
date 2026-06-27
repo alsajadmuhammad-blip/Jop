@@ -56,6 +56,7 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
             src={product.imageUrl}
             alt={product.name}
             fill
+            loading="lazy"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
@@ -64,33 +65,6 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
             <ImageIcon className="w-10 h-10 text-slate-200" />
           </div>
         )}
-        {/* Action buttons — always visible on mobile, hover on desktop */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity sm:block hidden" />
-        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className="flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 shadow-sm backdrop-blur-sm transition-colors hover:bg-red-500 hover:text-white">
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
-                <AlertDialogDescription>هل أنت متأكد من حذف "{product.name}"؟ لا يمكن التراجع.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="gap-2 sm:gap-0">
-                <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
-                <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => onDelete(product.id)}>حذف</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <button
-            onClick={() => onEdit(product)}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-primary hover:text-white"
-          >
-            <Edit className="h-3.5 w-3.5" />
-          </button>
-        </div>
         {/* Stock badge */}
         {product.stock === 0 && (
           <span className="absolute bottom-2 right-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">نفد</span>
@@ -98,11 +72,11 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
       </div>
 
       {/* Info */}
-      <div className="p-2.5 flex flex-col gap-1">
+      <div className="p-2.5 flex flex-col gap-1 flex-1">
         {product.sectionName && (
           <span className="text-[10px] font-medium text-primary/70 leading-none">{product.sectionName}</span>
         )}
-        <h3 className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug" title={product.name}>{product.name}</h3>
+        <h3 className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug flex-1" title={product.name}>{product.name}</h3>
         <div className="flex items-center justify-between gap-1 mt-0.5">
           <p className="text-sm font-bold text-primary leading-none">{product.price.toLocaleString()}<span className="text-[10px] font-medium mr-0.5">د.ع</span></p>
           {product.stock > 0 && (
@@ -111,9 +85,14 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
         </div>
       </div>
 
-      {/* Mobile edit button row */}
-      <div className="flex border-t border-slate-100 sm:hidden">
-        <button onClick={() => onEdit(product)} className="flex-1 py-2 text-xs font-medium text-primary hover:bg-primary/5 transition-colors">تعديل</button>
+      {/* Action row */}
+      <div className="flex border-t border-slate-100">
+        <button
+          onClick={() => onEdit(product)}
+          className="flex-1 py-2 text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
+        >
+          تعديل
+        </button>
         <div className="w-px bg-slate-100" />
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -283,16 +262,42 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
     );
 }
 
+const PAGE_SIZE = 20;
+
 // ===== Products Tab Content =====
-function ProductsTab({ products, productLimit, onAdd, onEdit, onDelete }: {
+function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete }: {
     products: Product[];
+    sections: Section[];
     productLimit: number;
     onAdd: () => void;
     onEdit: (product: Product) => void;
     onDelete: (productId: string) => void;
 }) {
+    const [search, setSearch] = useState('');
+    const [sectionFilter, setSectionFilter] = useState('all');
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
     const isUnlimited = productLimit >= Number.MAX_SAFE_INTEGER;
     const limitReached = !isUnlimited && products.length >= productLimit;
+
+    const filtered = useMemo(() => {
+        let list = products;
+        if (sectionFilter !== 'all') {
+            list = list.filter((p) => (p.sectionId ?? '') === sectionFilter);
+        }
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            list = list.filter((p) => p.name.toLowerCase().includes(q));
+        }
+        return list;
+    }, [products, search, sectionFilter]);
+
+    const visible = filtered.slice(0, visibleCount);
+    const hasMore = filtered.length > visibleCount;
+
+    // reset pagination whenever filter/search changes
+    const handleSearch = (v: string) => { setSearch(v); setVisibleCount(PAGE_SIZE); };
+    const handleSection = (v: string) => { setSectionFilter(v); setVisibleCount(PAGE_SIZE); };
 
     return (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -315,13 +320,60 @@ function ProductsTab({ products, productLimit, onAdd, onEdit, onDelete }: {
                 </Button>
             </div>
 
+            {/* Search + Filter */}
+            {products.length > 0 && (
+                <div className="px-4 pt-3 pb-2 flex flex-wrap gap-2 border-b border-slate-100">
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        placeholder="ابحث عن منتج…"
+                        className="flex-1 min-w-0 h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
+                    />
+                    {sections.length > 0 && (
+                        <Select value={sectionFilter} onValueChange={handleSection}>
+                            <SelectTrigger className="h-9 w-36 rounded-lg text-sm">
+                                <SelectValue placeholder="كل الأقسام" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">كل الأقسام</SelectItem>
+                                {sections.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+            )}
+
             {/* Grid */}
             {products.length > 0 ? (
-                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {products.map((product) => (
-                        <DashboardProductCard key={product.id} product={product} onEdit={onEdit} onDelete={onDelete} />
-                    ))}
-                </div>
+                filtered.length > 0 ? (
+                    <div className="p-4 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {visible.map((product) => (
+                                <DashboardProductCard key={product.id} product={product} onEdit={onEdit} onDelete={onDelete} />
+                            ))}
+                        </div>
+                        {hasMore && (
+                            <div className="flex items-center justify-center pt-1">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-lg text-xs font-semibold"
+                                    onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                                >
+                                    عرض المزيد ({filtered.length - visibleCount} منتج متبقٍ)
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-14 text-center">
+                        <p className="text-sm font-semibold text-slate-600">لا توجد نتائج</p>
+                        <p className="text-xs text-slate-400 mt-1">جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً</p>
+                    </div>
+                )
             ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mb-4">
@@ -883,6 +935,7 @@ export default function StoreDashboardPage() {
             {/* Products list */}
             <ProductsTab
               products={products}
+              sections={sections}
               productLimit={fullStoreData.productLimit}
               onAdd={handleAddProduct}
               onEdit={handleEditProduct}

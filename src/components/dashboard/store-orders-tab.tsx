@@ -141,13 +141,15 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
       </div>
 
       <div className="space-y-4">
-        {orders.map((order) => (
+        {orders.map((order, index) => {
+          const orderNumber = orders.length - index;
+          return (
           <Card key={order.id} className="overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="text-lg">
-                    طلب #{order.id.slice(0, 8).toUpperCase()}
+                    طلب #{orderNumber}
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
