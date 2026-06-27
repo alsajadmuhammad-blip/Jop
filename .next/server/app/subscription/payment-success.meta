@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(pages)/layout,_N_T_/(pages)/subscription/layout,_N_T_/(pages)/subscription/payment-success/layout,_N_T_/(pages)/subscription/payment-success/page,_N_T_/subscription/payment-success"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KHBhZ2VzKQ/subscription/payment-success/__PAGE__",
+    "/!KHBhZ2VzKQ/subscription/payment-success",
+    "/!KHBhZ2VzKQ/subscription",
+    "/!KHBhZ2VzKQ",
+    "/_index",
+    "/_head"
+  ]
+}
