@@ -46,9 +46,21 @@ import { LogoUploader } from "@/components/dashboard/logo-uploader";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 
 // ===== Dashboard Product Card =====
-function DashboardProductCard({ product, onEdit, onDelete }: { product: Product, onEdit: (product: Product) => void, onDelete: (productId: string) => void }) {
+// Lightweight card — no portals, no GPU-layer transforms. Confirm dialog is shared at the grid level.
+function DashboardProductCard({
+  product,
+  onEdit,
+  onDeleteRequest,
+}: {
+  product: Product;
+  onEdit: (product: Product) => void;
+  onDeleteRequest: (product: Product) => void;
+}) {
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+    <article
+      style={{ contain: "layout style paint" }}
+      className="flex flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm"
+    >
       {/* Image */}
       <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
         {product.imageUrl ? (
@@ -57,7 +69,7 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
             alt={product.name}
             fill
             loading="lazy"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
@@ -65,20 +77,31 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
             <ImageIcon className="w-10 h-10 text-slate-200" />
           </div>
         )}
-        {/* Stock badge */}
         {product.stock === 0 && (
-          <span className="absolute bottom-2 right-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">نفد</span>
+          <span className="absolute bottom-2 right-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+            نفد
+          </span>
         )}
       </div>
 
       {/* Info */}
       <div className="p-2.5 flex flex-col gap-1 flex-1">
         {product.sectionName && (
-          <span className="text-[10px] font-medium text-primary/70 leading-none">{product.sectionName}</span>
+          <span className="text-[10px] font-medium text-primary/70 leading-none">
+            {product.sectionName}
+          </span>
         )}
-        <h3 className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug flex-1" title={product.name}>{product.name}</h3>
+        <h3
+          className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug flex-1"
+          title={product.name}
+        >
+          {product.name}
+        </h3>
         <div className="flex items-center justify-between gap-1 mt-0.5">
-          <p className="text-sm font-bold text-primary leading-none">{product.price.toLocaleString()}<span className="text-[10px] font-medium mr-0.5">د.ع</span></p>
+          <p className="text-sm font-bold text-primary leading-none">
+            {product.price.toLocaleString()}
+            <span className="text-[10px] font-medium mr-0.5">د.ع</span>
+          </p>
           {product.stock > 0 && (
             <p className="text-[10px] text-slate-400">{product.stock} قطعة</p>
           )}
@@ -89,26 +112,17 @@ function DashboardProductCard({ product, onEdit, onDelete }: { product: Product,
       <div className="flex border-t border-slate-100">
         <button
           onClick={() => onEdit(product)}
-          className="flex-1 py-2 text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
+          className="flex-1 py-2 text-xs font-medium text-primary hover:bg-primary/5"
         >
           تعديل
         </button>
         <div className="w-px bg-slate-100" />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button className="flex-1 py-2 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">حذف</button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
-              <AlertDialogDescription>هل أنت متأكد من حذف "{product.name}"؟ لا يمكن التراجع.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 sm:gap-0">
-              <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
-              <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => onDelete(product.id)}>حذف</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <button
+          onClick={() => onDeleteRequest(product)}
+          className="flex-1 py-2 text-xs font-medium text-red-500 hover:bg-red-50"
+        >
+          حذف
+        </button>
       </div>
     </article>
   );
@@ -276,6 +290,8 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
     const [search, setSearch] = useState('');
     const [sectionFilter, setSectionFilter] = useState('all');
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    // Single shared delete dialog — avoids a portal per card
+    const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
 
     const isUnlimited = productLimit >= Number.MAX_SAFE_INTEGER;
     const limitReached = !isUnlimited && products.length >= productLimit;
@@ -295,11 +311,32 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
     const visible = filtered.slice(0, visibleCount);
     const hasMore = filtered.length > visibleCount;
 
-    // reset pagination whenever filter/search changes
     const handleSearch = (v: string) => { setSearch(v); setVisibleCount(PAGE_SIZE); };
     const handleSection = (v: string) => { setSectionFilter(v); setVisibleCount(PAGE_SIZE); };
 
+    const confirmDelete = () => {
+        if (pendingDelete) onDelete(pendingDelete.id);
+        setPendingDelete(null);
+    };
+
     return (
+        <>
+        {/* Single shared confirm dialog — rendered once, not per-card */}
+        <AlertDialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        هل أنت متأكد من حذف &quot;{pendingDelete?.name}&quot;؟ لا يمكن التراجع.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2 sm:gap-0">
+                    <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
+                    <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={confirmDelete}>حذف</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-100">
@@ -352,7 +389,12 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
                     <div className="p-4 space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             {visible.map((product) => (
-                                <DashboardProductCard key={product.id} product={product} onEdit={onEdit} onDelete={onDelete} />
+                                <DashboardProductCard
+                                    key={product.id}
+                                    product={product}
+                                    onEdit={onEdit}
+                                    onDeleteRequest={setPendingDelete}
+                                />
                             ))}
                         </div>
                         {hasMore && (
@@ -388,6 +430,7 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
                 </div>
             )}
         </div>
+        </>
     );
 }
 
