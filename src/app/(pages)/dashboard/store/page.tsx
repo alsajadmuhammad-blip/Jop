@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { StoreOwnerNavbar } from "./navbar";
-import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe } from "lucide-react";
+import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, ExternalLink, Tag } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section, StorePackage } from "@/lib/types";
@@ -144,28 +144,30 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
     };
 
     return (
-        <div className="space-y-8">
-            <div className="border-b pb-6">
-                <h3 className="text-lg font-semibold mb-2">هوية المتجر</h3>
-                <p className="text-muted-foreground text-sm mb-6">تحديث شعار متجرك.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <div className="flex flex-col gap-4 border p-4 rounded-lg bg-muted/20">
-                        <Label className="font-semibold">شعار المتجر</Label>
-                        <LogoUploader store={store} onSave={onLogoSave} />
-                    </div>
-
+        <div className="space-y-4">
+            {/* شعار المتجر */}
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100">
+                    <h3 className="text-base font-bold text-slate-900">هوية المتجر</h3>
+                    <p className="text-sm text-slate-500 mt-0.5">شعار المتجر الظاهر للعملاء.</p>
+                </div>
+                <div className="p-5">
+                    <LogoUploader store={store} onSave={onLogoSave} />
                 </div>
             </div>
 
-            <div className="border-b pb-6">
-                <h3 className="text-lg font-semibold mb-2">إعدادات التشغيل</h3>
-                <p className="text-muted-foreground text-sm mb-6">تحكم في أوقات العمل وخيارات التوصيل.</p>
-                <div className="grid md:grid-cols-2 gap-6">
+            {/* إعدادات التشغيل */}
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100">
+                    <h3 className="text-base font-bold text-slate-900">إعدادات التشغيل</h3>
+                    <p className="text-sm text-slate-500 mt-0.5">أوقات العمل وخيارات التوصيل.</p>
+                </div>
+                <div className="p-5 space-y-5">
                     <div>
-                        <Label>أوقات الدوام</Label>
-                        <div className="grid gap-3 mt-2 sm:grid-cols-[1fr_auto]">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs text-slate-500">من</span>
+                        <Label className="text-sm font-semibold text-slate-700 mb-2 block">ساعات الدوام</Label>
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col gap-1.5 flex-1">
+                                <span className="text-xs text-slate-400">من</span>
                                 <input
                                     type="time"
                                     step={3600}
@@ -173,11 +175,12 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
                                     max="23:00"
                                     value={getBusinessHourValue(businessHours.open)}
                                     onChange={(event) => handleBusinessHoursChange("open", event.target.value)}
-                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition-colors duration-150 focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
                                 />
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs text-slate-500">إلى</span>
+                            <div className="pt-5 text-slate-300 font-bold">—</div>
+                            <div className="flex flex-col gap-1.5 flex-1">
+                                <span className="text-xs text-slate-400">إلى</span>
                                 <input
                                     type="time"
                                     step={3600}
@@ -185,52 +188,68 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
                                     max="23:00"
                                     value={getBusinessHourValue(businessHours.close)}
                                     onChange={(event) => handleBusinessHoursChange("close", event.target.value)}
-                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition-colors duration-150 focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 self-end">
-                        <Switch id="delivery-switch" checked={!!store.hasDelivery} onCheckedChange={(checked) => onSettingChange("hasDelivery", checked)} dir="ltr" />
-                        <Label htmlFor="delivery-switch" className="cursor-pointer">توفير خدمة التوصيل</Label>
+                    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div>
+                            <p className="text-sm font-semibold text-slate-800">خدمة التوصيل</p>
+                            <p className="text-xs text-slate-400 mt-0.5">تفعيل خيار التوصيل لعملائك</p>
+                        </div>
+                        <Switch
+                            id="delivery-switch"
+                            checked={!!store.hasDelivery}
+                            onCheckedChange={(checked) => onSettingChange("hasDelivery", checked)}
+                            dir="ltr"
+                        />
                     </div>
                 </div>
             </div>
 
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-2">الموقع الجغرافي</h3>
-                  <p className="text-muted-foreground text-sm mb-4">اضبط إحداثيات المتجر (خط العرض وخط الطول) ليتمكن العملاء من فتح موقع المتجر على خرائط هواتفهم.</p>
-                  <div className="grid gap-4">
-                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-slate-700 mb-2">اضغط الزر لتحديد موقع متجرك تلقائياً. لن تحتاج لتعبئة الإحداثيات يدوياً.</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={handleUseCurrentLocation} size="sm">تحديد الموقع الذكي</Button>
-                        <Button onClick={handleUseCurrentLocation} variant="outline" size="sm">تحديث الموقع</Button>
-                      </div>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">خط العرض</p>
-                        <p className="mt-2 text-sm text-slate-900">{store.latitude ?? 'لم يتم التحديد'}</p>
-                      </div>
-                      <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">خط الطول</p>
-                        <p className="mt-2 text-sm text-slate-900">{store.longitude ?? 'لم يتم التحديد'}</p>
-                      </div>
-                    </div>
-                    {store.latitude && store.longitude && (
-                      <a
-                        href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                      >
-                        عرض الموقع على الخريطة
-                      </a>
-                    )}
-                  </div>
+            {/* الموقع الجغرافي */}
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100">
+                    <h3 className="text-base font-bold text-slate-900">الموقع الجغرافي</h3>
+                    <p className="text-sm text-slate-500 mt-0.5">يُمكّن العملاء من فتح موقع متجرك على الخريطة.</p>
                 </div>
+                <div className="p-5 space-y-4">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm text-slate-600 mb-3">اضغط لتحديد موقع متجرك تلقائياً بدون إدخال يدوي.</p>
+                        <div className="flex flex-wrap gap-2">
+                            <Button onClick={handleUseCurrentLocation} size="sm" className="rounded-xl font-semibold">تحديد الموقع تلقائياً</Button>
+                            {store.latitude && (
+                                <Button onClick={handleUseCurrentLocation} variant="outline" size="sm" className="rounded-xl">تحديث الموقع</Button>
+                            )}
+                        </div>
+                    </div>
+                    {store.latitude && store.longitude ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">خط العرض</p>
+                                <p className="text-sm font-medium text-slate-800">{store.latitude}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">خط الطول</p>
+                                <p className="text-sm font-medium text-slate-800">{store.longitude}</p>
+                            </div>
+                            <a
+                                href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                            >
+                                <Globe className="h-4 w-4" />
+                                عرض الموقع على الخريطة
+                            </a>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-400 text-center py-2">لم يتم تحديد الموقع بعد.</p>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
@@ -244,39 +263,50 @@ function ProductsTab({ products, productLimit, onAdd, onEdit, onDelete }: {
     onDelete: (productId: string) => void;
 }) {
     const isUnlimited = productLimit >= Number.MAX_SAFE_INTEGER;
-    
+    const limitReached = !isUnlimited && products.length >= productLimit;
+
     return (
-        <>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
-                <div>
-                    <h2 className="text-2xl font-bold">منتجاتك</h2>
-                    <p className="text-muted-foreground">
-                        ({products.length}/{isUnlimited ? '∞' : productLimit}) منتجات.
-                    </p>
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-base font-bold text-slate-900">المنتجات</h2>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                        {products.length}{!isUnlimited && `/${productLimit}`}
+                    </span>
                 </div>
-                <Button onClick={onAdd} disabled={!isUnlimited && products.length >= productLimit}>
-                    <PlusCircle className="ml-2 h-4 w-4" /> إضافة منتج
+                <Button
+                    onClick={onAdd}
+                    disabled={limitReached}
+                    size="sm"
+                    className="rounded-lg gap-1.5 font-semibold"
+                >
+                    <PlusCircle className="h-4 w-4" />
+                    إضافة منتج
                 </Button>
             </div>
+
+            {/* Grid */}
             {products.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {products.map((product) => (
                         <DashboardProductCard key={product.id} product={product} onEdit={onEdit} onDelete={onDelete} />
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16 rounded-lg bg-background border-2 border-dashed">
-                    <Package className="mx-auto h-16 w-16 text-muted-foreground" strokeWidth={1} />
-                    <h2 className="mt-4 text-xl font-semibold">لم تقم بإضافة أي منتجات بعد</h2>
-                    <p className="mt-2 text-muted-foreground">
-                        انقر على زر "إضافة منتج" لبدء عرض بضاعتك.
-                    </p>
-                    <Button onClick={onAdd} className="mt-6" disabled={!isUnlimited && products.length >= productLimit}>
-                        <PlusCircle className="ml-2 h-4 w-4" /> إضافة أول منتج
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mb-4">
+                        <Package className="h-8 w-8 text-slate-300" strokeWidth={1.5} />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">لا توجد منتجات بعد</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-5">أضف أول منتج لتبدأ عرض بضاعتك</p>
+                    <Button onClick={onAdd} size="sm" className="rounded-lg gap-1.5 font-semibold" disabled={limitReached}>
+                        <PlusCircle className="h-4 w-4" />
+                        إضافة أول منتج
                     </Button>
                 </div>
             )}
-        </>
+        </div>
     );
 }
 
@@ -680,108 +710,146 @@ export default function StoreDashboardPage() {
       )
   }
 
+  const tabMotion = { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18 } };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* ===== Header ===== */}
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-14 items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
+
+      {/* ══════════════════ HEADER ══════════════════ */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,.06)]">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+
+          {/* Top row */}
+          <div className="flex h-16 items-center justify-between gap-3">
+            {/* Store identity */}
             <div className="flex items-center gap-3 min-w-0">
-              {fullStoreData?.logoUrl ? (
-                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-slate-200">
-                  <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="32px" />
-                </div>
-              ) : (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Package2 className="h-4 w-4 text-primary" />
-                </div>
-              )}
+              <div className="relative shrink-0">
+                {fullStoreData.logoUrl ? (
+                  <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                    <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="40px" />
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 shadow-sm">
+                    <Package2 className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                {fullStoreData.isActive && (
+                  <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                )}
+              </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900 leading-none">{fullStoreData.name}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">لوحة التحكم</p>
+                <p className="truncate text-base font-bold text-slate-900 leading-snug">{fullStoreData.name}</p>
+                <p className="text-xs text-slate-400 font-medium">لوحة التحكم</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-slate-600 hover:text-slate-900">
-                <Link href={`/store?id=${fullStoreData.id}`}>
-                  <Globe className="ml-1.5 h-4 w-4" />
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Button asChild size="sm" className="rounded-lg gap-1.5 bg-primary text-white hover:bg-primary/90 shadow-sm hidden sm:inline-flex">
+                <Link href={`/store?id=${fullStoreData.id}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
                   عرض المتجر
                 </Link>
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 text-slate-500 hover:text-slate-900">
+              <Button asChild size="icon" variant="outline" className="h-9 w-9 rounded-lg sm:hidden">
+                <Link href={`/store?id=${fullStoreData.id}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9 rounded-lg text-slate-500 hover:text-red-500 hover:bg-red-50">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <div className="pb-3">
+          {/* Nav tabs */}
+          <div className="pb-2.5">
             <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
           </div>
         </div>
       </header>
 
-      {/* ===== Alerts ===== */}
+      {/* ══════════════════ BANNER ALERTS ══════════════════ */}
       {(isPendingReview || isSubscriptionExpired || showExpirationWarning) && (
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-4 space-y-2">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-4 space-y-2">
           {isPendingReview && (
-            <Alert className="border-amber-200 bg-amber-50 text-amber-800 py-2.5">
+            <Alert className="border-amber-200 bg-amber-50 py-3">
               <Info className="h-4 w-4 shrink-0 text-amber-600" />
-              <AlertDescription className="text-sm font-medium">متجرك قيد المراجعة، سيتم تفعيله قريباً.</AlertDescription>
+              <AlertDescription className="text-sm font-medium text-amber-800">متجرك قيد المراجعة من فريقنا، سيتم تفعيله قريباً.</AlertDescription>
             </Alert>
           )}
           {isSubscriptionExpired && (
-            <Alert variant="destructive" className="py-2.5">
+            <Alert variant="destructive" className="py-3">
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <AlertDescription className="text-sm font-medium">الاشتراك منتهي — تواصل مع الإدارة لتجديده.</AlertDescription>
+              <AlertDescription className="text-sm font-medium">انتهى اشتراكك — تواصل مع الإدارة لتجديده واستعادة متجرك.</AlertDescription>
             </Alert>
           )}
           {showExpirationWarning && !isSubscriptionExpired && (
-            <Alert variant="destructive" className="py-2.5 border-orange-200 bg-orange-50 text-orange-800">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600" />
-              <AlertDescription className="text-sm font-medium">تنبيه — متبقي {remainingDays} أيام لانتهاء الاشتراك.</AlertDescription>
+            <Alert className="border-orange-200 bg-orange-50 py-3">
+              <Clock className="h-4 w-4 shrink-0 text-orange-500" />
+              <AlertDescription className="text-sm font-medium text-orange-800">تنبيه — متبقي <strong>{remainingDays}</strong> أيام فقط لانتهاء اشتراكك.</AlertDescription>
             </Alert>
           )}
         </div>
       )}
 
-      {/* ===== Main Content ===== */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6">
+      {/* ══════════════════ MAIN ══════════════════ */}
+      <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-6">
 
-        {/* ── تبويب المنتجات ── */}
+        {/* ─── تبويب المنتجات ─── */}
         {activeView === 'products' && (
-          <motion.div
-            key="products"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6"
-          >
-            {/* إحصائيات سريعة */}
+          <motion.div key="products" {...tabMotion} className="space-y-5">
+
+            {/* Stats strip */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                { label: 'المنتجات', value: `${products.length}/${isUnlimited ? '∞' : fullStoreData.productLimit}`, icon: <Package className="h-5 w-5 text-primary/40" /> },
-                { label: 'حالة المتجر', value: fullStoreData.isActive ? 'نشط' : 'متوقف', icon: <div className={`h-2.5 w-2.5 rounded-full ${fullStoreData.isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />, accent: fullStoreData.isActive ? 'text-emerald-600' : 'text-red-500' },
-                { label: 'التوصيل', value: fullStoreData.hasDelivery ? 'متاح' : 'معطل', icon: <Truck className="h-5 w-5 text-amber-300" />, accent: fullStoreData.hasDelivery ? 'text-emerald-600' : 'text-slate-500' },
-                { label: 'الاشتراك', value: remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي', icon: <ShoppingCartIcon className="h-5 w-5 text-purple-200" />, accent: (remainingDays ?? 0) > 5 ? 'text-slate-900' : 'text-red-500' },
-              ].map((stat, i) => (
+              {([
+                {
+                  label: 'المنتجات',
+                  value: `${products.length}`,
+                  sub: `من ${isUnlimited ? 'غير محدود' : fullStoreData.productLimit}`,
+                  icon: <Package className="h-5 w-5" />,
+                  color: 'text-blue-600 bg-blue-50',
+                },
+                {
+                  label: 'الحالة',
+                  value: fullStoreData.isActive ? 'نشط' : 'متوقف',
+                  sub: fullStoreData.isActive ? 'يقبل الطلبات' : 'مغلق مؤقتاً',
+                  icon: <CheckCircle2 className="h-5 w-5" />,
+                  color: fullStoreData.isActive ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50',
+                },
+                {
+                  label: 'التوصيل',
+                  value: fullStoreData.hasDelivery ? 'متاح' : 'معطل',
+                  sub: fullStoreData.hasDelivery ? 'خدمة توصيل فعالة' : 'لا يوجد توصيل',
+                  icon: <Truck className="h-5 w-5" />,
+                  color: fullStoreData.hasDelivery ? 'text-amber-600 bg-amber-50' : 'text-slate-400 bg-slate-100',
+                },
+                {
+                  label: 'الاشتراك',
+                  value: remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي',
+                  sub: remainingDays !== null && remainingDays > 0 ? 'متبقٍ للتجديد' : 'يرجى التجديد',
+                  icon: <CreditCard className="h-5 w-5" />,
+                  color: (remainingDays ?? 0) > 5 ? 'text-purple-600 bg-purple-50' : 'text-red-500 bg-red-50',
+                },
+              ] as const).map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex flex-col gap-2 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+                  transition={{ delay: i * 0.06 }}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">{stat.label}</p>
+                  <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl mb-3 ${stat.color}`}>
                     {stat.icon}
                   </div>
-                  <p className={`text-xl font-bold ${stat.accent ?? 'text-slate-900'}`}>{stat.value}</p>
+                  <p className="text-xl font-bold text-slate-900 leading-none">{stat.value}</p>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">{stat.sub}</p>
+                  <p className="text-xs font-medium text-slate-500 mt-2">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
 
-            {/* قائمة المنتجات */}
+            {/* Products list */}
             <ProductsTab
               products={products}
               productLimit={fullStoreData.productLimit}
@@ -792,35 +860,38 @@ export default function StoreDashboardPage() {
           </motion.div>
         )}
 
-        {/* ── تبويب الطلبات ── */}
+        {/* ─── تبويب الطلبات ─── */}
         {activeView === 'orders' && (
-          <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div key="orders" {...tabMotion}>
             <StoreOrdersTab storeId={fullStoreData.id} />
           </motion.div>
         )}
 
-        {/* ── تبويب الأقسام ── */}
+        {/* ─── تبويب الأقسام ─── */}
         {activeView === 'sections' && (
-          <motion.div
-            key="sections"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-4"
-          >
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900 mb-1">أقسام المتجر</h2>
-              <p className="text-sm text-slate-500 mb-4">نظّم منتجاتك في أقسام لتسهيل تصفح العملاء.</p>
+          <motion.div key="sections" {...tabMotion} className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">أقسام المتجر</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">نظّم منتجاتك في أقسام لتسهيل تصفح العملاء.</p>
+                </div>
+                <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{sections.length} قسم</span>
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={newSectionName}
                   onChange={(e) => setNewSectionName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateSection()}
-                  placeholder="اسم القسم الجديد"
-                  className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  placeholder="اسم القسم الجديد…"
+                  className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
                 />
-                <Button onClick={handleCreateSection} disabled={!newSectionName.trim()} className="shrink-0 rounded-xl px-4">
+                <Button
+                  onClick={handleCreateSection}
+                  disabled={!newSectionName.trim()}
+                  className="shrink-0 rounded-xl px-5 font-semibold"
+                >
                   إضافة
                 </Button>
               </div>
@@ -834,29 +905,29 @@ export default function StoreDashboardPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
+                    className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm hover:border-primary/30 hover:shadow-md transition-all"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
-                        <Package className="h-4 w-4" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Tag className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-slate-900">{section.name}</p>
+                        <p className="truncate text-sm font-semibold text-slate-900">{section.name}</p>
                         {section.createdAt && (
-                          <p className="text-[11px] text-slate-400">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
                         )}
                       </div>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <button className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                        <button className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>حذف القسم</AlertDialogTitle>
-                          <AlertDialogDescription>هل أنت متأكد من حذف قسم "{section.name}"؟</AlertDialogDescription>
+                          <AlertDialogDescription>هل أنت متأكد من حذف قسم "{section.name}"؟ سيتم إلغاء ارتباط المنتجات بهذا القسم.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -868,18 +939,159 @@ export default function StoreDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center">
-                <Package className="h-10 w-10 text-slate-200 mb-3" strokeWidth={1.5} />
-                <p className="text-sm font-medium text-slate-700">لا توجد أقسام بعد</p>
-                <p className="text-xs text-slate-400 mt-1">أضف قسماً لتنظيم منتجاتك</p>
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 mb-4">
+                  <Tag className="h-7 w-7 text-slate-300" strokeWidth={1.5} />
+                </div>
+                <p className="text-sm font-semibold text-slate-700">لا توجد أقسام بعد</p>
+                <p className="text-xs text-slate-400 mt-1">أضف قسماً من الحقل أعلاه لتنظيم منتجاتك</p>
               </div>
             )}
           </motion.div>
         )}
 
-        {/* ── تبويب الإعدادات ── */}
+        {/* ─── تبويب الاشتراك ─── */}
+        {activeView === 'subscription' && (
+          <motion.div key="subscription" {...tabMotion} className="space-y-5">
+
+            {/* Current subscription card */}
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">الاشتراك الحالي</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">تفاصيل باقتك وصلاحية اشتراكك.</p>
+                </div>
+                <Badge
+                  variant={isSubscriptionExpired ? 'destructive' : 'default'}
+                  className={`shrink-0 rounded-lg px-3 py-1 text-xs font-semibold ${!isSubscriptionExpired ? 'bg-emerald-500 hover:bg-emerald-500' : ''}`}
+                >
+                  {isSubscriptionExpired ? 'منتهي' : 'نشط'}
+                </Badge>
+              </div>
+
+              <div className="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    label: 'الباقة',
+                    value: currentPackage?.name || 'غير محددة',
+                    icon: <CreditCard className="h-5 w-5 text-purple-500" />,
+                    bg: 'bg-purple-50',
+                  },
+                  {
+                    label: 'الأيام المتبقية',
+                    value: remainingDays !== null && remainingDays > 0 ? `${remainingDays} يوم` : 'منتهي',
+                    icon: <CalendarDays className="h-5 w-5 text-blue-500" />,
+                    bg: 'bg-blue-50',
+                  },
+                  {
+                    label: 'حد المنتجات',
+                    value: isUnlimited ? 'غير محدود' : `${fullStoreData.productLimit} منتج`,
+                    icon: <Package className="h-5 w-5 text-amber-500" />,
+                    bg: 'bg-amber-50',
+                  },
+                  {
+                    label: 'تاريخ التفعيل',
+                    value: fullStoreData.activationDate
+                      ? new Date(fullStoreData.activationDate).toLocaleDateString('ar-EG')
+                      : 'غير محدد',
+                    icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+                    bg: 'bg-emerald-50',
+                  },
+                ].map((item) => (
+                  <div key={item.label} className={`rounded-xl ${item.bg} p-4`}>
+                    <div className="mb-3">{item.icon}</div>
+                    <p className="text-base font-bold text-slate-900">{item.value}</p>
+                    <p className="text-xs text-slate-500 mt-1">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {currentPackage && (
+                <div className="px-6 pb-6">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">وصف الباقة</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{currentPackage.description || 'لا يوجد وصف إضافي لهذه الباقة.'}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-white border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+                        المدة: {currentPackage.subscriptionDuration || 30} يوم
+                      </span>
+                      <span className="rounded-full bg-white border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+                        السعر: {currentPackage.price ? `${currentPackage.price.toLocaleString()} د.ع` : 'مجاناً'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Available packages */}
+            {packages.filter((p) => p.isActive).length > 0 && (
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="px-6 py-5 border-b border-slate-100">
+                  <h2 className="text-base font-bold text-slate-900">الباقات المتاحة</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">اختر الباقة المناسبة لتوسيع نطاق متجرك.</p>
+                </div>
+                <div className="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {packages.filter((pkg) => pkg.isActive).map((pkg, i) => {
+                    const isCurrent = currentPackage?.id === pkg.id;
+                    return (
+                      <motion.article
+                        key={pkg.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.07 }}
+                        className={`relative flex flex-col rounded-2xl border p-5 transition-all ${
+                          isCurrent
+                            ? 'border-primary/40 bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:shadow-md'
+                        }`}
+                      >
+                        {isCurrent && (
+                          <span className="absolute top-4 left-4 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-white">باقتك الحالية</span>
+                        )}
+                        <div className="mb-4 mt-1">
+                          <p className="text-base font-bold text-slate-900">{pkg.name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{pkg.slug}</p>
+                        </div>
+                        <p className="text-sm text-slate-600 leading-relaxed flex-1">{pkg.description || 'لا يوجد وصف إضافي لهذه الباقة.'}</p>
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center justify-between rounded-lg bg-white border border-slate-200 px-3 py-2">
+                            <span className="text-xs text-slate-500">الحد الأقصى</span>
+                            <span className="text-xs font-semibold text-slate-800">
+                              {pkg.productLimit >= Number.MAX_SAFE_INTEGER ? 'غير محدود' : `${pkg.productLimit} منتج`}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg bg-white border border-slate-200 px-3 py-2">
+                            <span className="text-xs text-slate-500">المدة</span>
+                            <span className="text-xs font-semibold text-slate-800">{pkg.subscriptionDuration} يوم</span>
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg bg-white border border-slate-200 px-3 py-2">
+                            <span className="text-xs text-slate-500">السعر</span>
+                            <span className="text-xs font-bold text-primary">
+                              {pkg.price === 0 ? 'مجاناً' : `${pkg.price.toLocaleString()} د.ع`}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={isCurrent ? 'outline' : 'default'}
+                          className="mt-4 w-full rounded-xl font-semibold"
+                          onClick={() => toast({ title: 'للتجديد تواصل مع الإدارة' })}
+                        >
+                          {isCurrent ? 'تجديد الاشتراك' : 'طلب الترقية'}
+                        </Button>
+                      </motion.article>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ─── تبويب الإعدادات ─── */}
         {activeView === 'settings' && (
-          <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div key="settings" {...tabMotion}>
             <StoreSettingsTab
               store={fullStoreData}
               onSettingChange={handleStoreSettingChange}
@@ -887,6 +1099,7 @@ export default function StoreDashboardPage() {
             />
           </motion.div>
         )}
+
       </main>
     </div>
   );
