@@ -860,7 +860,28 @@ export function mapStoreRow(row: any): Store {
     paymentProofUrl: getRowValue<string>(row, 'payment_proof_url', 'paymentProofUrl'),
     createdAt: getRowValue<any>(row, 'created_at', 'createdAt') || null,
     registeredByAgentId: getRowValue<string>(row, 'registered_by_agent_id', 'registeredByAgentId') || null,
+    slug: getRowValue<string>(row, 'slug', 'slug') || null,
   };
+}
+
+/** Fetch a store by its custom slug. Returns null if not found or slug column missing. */
+export async function fetchStoreBySlug(slug: string): Promise<Store | null> {
+  try {
+    const { data, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('slug', slug.toLowerCase().trim())
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('fetchStoreBySlug error:', error.message);
+      return null;
+    }
+    return data ? mapStoreRow(data) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function mapProductRow(row: any): Product {

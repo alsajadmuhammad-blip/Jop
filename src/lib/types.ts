@@ -84,6 +84,7 @@ export type Store = {
   paymentProofUrl?: string; // Payment proof image/document URL
   createdAt: string | number | null; // ISO date string, timestamp, or null
   registeredByAgentId?: string | null; // UID of the representative who registered the store
+  slug?: string | null; // Custom URL slug — e.g. "apple-store" → /s/apple-store
 };
 
 export type CartItem = {
