@@ -35,7 +35,7 @@ import type { Product, Section } from "@/lib/types";
 import { productFormSchema } from "@/lib/validations";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchStoreSections, fetchProductsByStore, createProduct, updateProduct } from "@/services/supabase-db";
+import { fetchStoreSections, createProduct, updateProduct } from "@/services/supabase-db";
 import { uploadProductImageForStore } from "@/services/supabase-storage";
 import { supabase } from "@/services/supabase";
 
@@ -94,14 +94,74 @@ function AddProductPageContent() {
         // 2. ثانياً: user.storeId من الـ auth hook
         if (!storeId) storeId = user.storeId ?? null;
 
-        // 3. أخيراً: البحث في جدول sections عبر المنتج نفسه إن وُجد
-        if (!storeId && productId) {
-          const { data: pRows } = await supabase
+        if (productId) {
+          // جلب المنتج مباشرةً من قاعدة البيانات بمعرّفه
+          const { data: productRow, error: productError } = await supabase
             .from('products')
-            .select('store_id')
+            .select('*')
             .eq('id', productId)
+            .single();
+
+          if (productError || !productRow) {
+            toast({ title: "خطأ", description: "لم يتم العثور على المنتج", variant: "destructive" });
+            setPageLoading(false);
+            return;
+          }
+
+          // 3. استخراج storeId من المنتج مباشرةً إن لم يكن متوفراً
+          if (!storeId) {
+            storeId = productRow.store_id || productRow.storeId || null;
+          }
+
+          // التحقق أن المنتج ينتمي لمتجر المستخدم
+          const productStoreId = productRow.store_id || productRow.storeId;
+          if (storeId && productStoreId && productStoreId !== storeId) {
+            toast({ title: "خطأ", description: "لا تملك صلاحية تعديل هذا المنتج", variant: "destructive" });
+            setPageLoading(false);
+            return;
+          }
+
+          const product = {
+            id: productRow.id,
+            name: productRow.name,
+            description: productRow.description || '',
+            price: productRow.price,
+            imageUrl: productRow.image_url || productRow.imageUrl || '',
+            storeId: productRow.store_id || productRow.storeId || '',
+            sectionId: productRow.section_id || productRow.sectionId || '',
+            sku: productRow.sku || '',
+            stock: typeof productRow.stock === 'number' ? productRow.stock : Number(productRow.stock ?? 0),
+          };
+
+          setEditingProduct(product);
+          form.reset({
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            sku: product.sku || "",
+            stock: product.stock || 0,
+            imageUrl: product.imageUrl,
+            sectionId: product.sectionId || "",
+          });
+          setImagePreview(product.imageUrl || null);
+        }
+
+        if (!storeId) {
+          // 4. أخيراً: البحث في جدول المتاجر عبر المستخدم
+          const { data: storeRows } = await supabase
+            .from('stores')
+            .select('id')
+            .or(
+              [
+                user.id ? `owner_id.eq.${user.id}` : null,
+                user.id ? `"ownerId".eq.${user.id}` : null,
+                user.email ? `owner_email.eq.${user.email}` : null,
+              ]
+                .filter(Boolean)
+                .join(',')
+            )
             .limit(1);
-          if (pRows && pRows[0]) storeId = pRows[0].store_id ?? null;
+          if (storeRows && storeRows[0]) storeId = storeRows[0].id;
         }
 
         if (!storeId) {
@@ -112,24 +172,6 @@ function AddProductPageContent() {
 
         const sectionsData = await fetchStoreSections(storeId);
         setSections(sectionsData);
-
-        if (productId) {
-          const productsData = await fetchProductsByStore(storeId);
-          const product = productsData.find((p) => p.id === productId);
-          if (product) {
-            setEditingProduct(product);
-            form.reset({
-              name: product.name,
-              description: product.description,
-              price: product.price,
-              sku: product.sku || "",
-              stock: product.stock || 0,
-              imageUrl: product.imageUrl,
-              sectionId: product.sectionId || "",
-            });
-            setImagePreview(product.imageUrl || null);
-          }
-        }
       } catch (error) {
         console.error("Error loading data:", error);
         toast({ title: "خطأ", description: "فشل تحميل البيانات", variant: "destructive" });
@@ -156,7 +198,10 @@ function AddProductPageContent() {
   };
 
   const resolveStoreId = async (): Promise<string | null> => {
-    // 1. sessionStorage
+    // 1. من المنتج المحمّل — المصدر الأكثر موثوقية عند التعديل
+    if (editingProduct?.storeId) return editingProduct.storeId;
+
+    // 2. sessionStorage
     try {
       const cached = sessionStorage.getItem(`store_${user?.id}`);
       if (cached) {
@@ -165,11 +210,23 @@ function AddProductPageContent() {
       }
     } catch { /* تجاهل */ }
 
-    // 2. user.storeId
+    // 3. user.storeId
     if (user?.storeId) return user.storeId;
 
-    // 3. من المنتج نفسه
-    if (editingProduct?.storeId) return editingProduct.storeId;
+    // 4. استعلام قاعدة البيانات من جدول المتاجر
+    if (user?.id) {
+      const { data: storeRows } = await supabase
+        .from('stores')
+        .select('id')
+        .or(
+          [
+            `owner_id.eq.${user.id}`,
+            `"ownerId".eq.${user.id}`,
+          ].join(',')
+        )
+        .limit(1);
+      if (storeRows && storeRows[0]) return storeRows[0].id;
+    }
 
     return null;
   };

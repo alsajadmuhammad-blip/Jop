@@ -555,50 +555,46 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
 }
 
 export async function updateProduct(productId: string, updates: Partial<Product>): Promise<Product | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey) throw new Error('Supabase غير مهيأ');
+  if (!productId) throw new Error('معرّف المنتج مطلوب');
 
   const payload: Record<string, unknown> = {};
-  if (updates.name        !== undefined) payload.name        = updates.name;
-  if (updates.description !== undefined) payload.description = updates.description;
-  if (updates.price       !== undefined) payload.price       = updates.price;
-  if (updates.sectionId   !== undefined) payload.section_id  = updates.sectionId;
-  if (updates.sku         !== undefined) payload.sku         = updates.sku;
-  if (updates.stock       !== undefined) payload.stock       = updates.stock;
-  if (updates.imageUrl    !== undefined) payload.image_url   = updates.imageUrl;
-
-  // استخدم token الجلسة إن وُجد، وإلا استخدم anonKey
-  let authToken = anonKey;
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData?.session?.access_token) {
-      authToken = sessionData.session.access_token;
-    }
-  } catch { /* تابع بـ anonKey */ }
-
-  const url = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/products?id=eq.${productId}`;
-
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      'apikey':       anonKey,
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type':  'application/json',
-      'Prefer':        'return=representation',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error('updateProduct error:', errText);
-    throw new Error(`فشل تحديث المنتج: ${errText}`);
+  if (updates.name        !== undefined) {
+    payload.name        = updates.name;
+  }
+  if (updates.description !== undefined) {
+    payload.description = updates.description;
+  }
+  if (updates.price       !== undefined) {
+    payload.price       = Number(updates.price);
+  }
+  if (updates.sectionId   !== undefined) {
+    payload.section_id  = updates.sectionId || null;
+    payload.sectionId   = updates.sectionId || null;
+  }
+  if (updates.sku         !== undefined) {
+    payload.sku         = updates.sku || null;
+  }
+  if (updates.stock       !== undefined) {
+    payload.stock       = Number(updates.stock ?? 0);
+  }
+  if (updates.imageUrl    !== undefined) {
+    payload.image_url   = updates.imageUrl || null;
+    payload.imageUrl    = updates.imageUrl || null;
   }
 
-  const rows = await response.json();
-  const row  = Array.isArray(rows) ? rows[0] : rows;
-  return row ? mapProductRow(row) : null;
+  const { data, error } = await supabase
+    .from('products')
+    .update(payload)
+    .eq('id', productId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('updateProduct error:', error.message, error.details);
+    throw new Error(`فشل تحديث المنتج: ${error.message}`);
+  }
+
+  return data ? mapProductRow(data) : null;
 }
 
 export async function deleteProduct(productId: string, storeId: string): Promise<boolean> {
