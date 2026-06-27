@@ -150,8 +150,6 @@ export default function CreateStoreForm({
 
     if (!formData.phone.trim()) {
       newErrors.phone = "رقم الهاتف مطلوب";
-    } else if (formData.phone.length < 9) {
-      newErrors.phone = "يجب أن يكون الرقم 9 أرقام على الأقل";
     } else if (!/^\d+$/.test(formData.phone)) {
       newErrors.phone = "الرقم يجب أن يحتوي على أرقام فقط";
     }
@@ -575,8 +573,6 @@ export default function CreateStoreForm({
               if (value.startsWith('0')) {
                 value = value.substring(1);
               }
-              // Keep max 9 digits (without country code)
-              value = value.substring(0, 9);
               setFormData({ ...formData, phone: value })
             }}
             className={`pl-20 text-left ${errors.phone ? "border-destructive" : ""}`}

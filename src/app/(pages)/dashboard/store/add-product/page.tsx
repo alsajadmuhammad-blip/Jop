@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchStoreSections, fetchProductsByStore, createProduct, updateProduct } from "@/services/supabase-db";
 import { uploadProductImageForStore } from "@/services/supabase-storage";
+import { supabase } from "@/services/supabase";
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
@@ -44,7 +45,7 @@ function AddProductPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const productId = searchParams.get("id");
   const [sections, setSections] = useState<Section[]>([]);
@@ -53,6 +54,13 @@ function AddProductPageContent() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+
+  // إذا انتهى تحميل المصادقة ولا يوجد storeId، أوقف شاشة التحميل
+  useEffect(() => {
+    if (!authLoading && !user?.storeId) {
+      setPageLoading(false);
+    }
+  }, [authLoading, user?.storeId]);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -69,19 +77,44 @@ function AddProductPageContent() {
 
   // Load sections and product data
   useEffect(() => {
-    const loadData = async () => {
-      if (!user?.storeId) {
-        toast({ title: "خطأ", description: "لم يتم العثور على معرف المتجر", variant: "destructive" });
-        router.push("/dashboard/store");
-        return;
-      }
+    if (authLoading || !user) return;
 
+    const loadData = async () => {
       try {
-        const sectionsData = await fetchStoreSections(user.storeId);
+        // 1. أولاً: sessionStorage — لوحة التحكم تحفظ المتجر هناك
+        let storeId: string | null = null;
+        try {
+          const cached = sessionStorage.getItem(`store_${user.id}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            storeId = parsed?.id ?? null;
+          }
+        } catch { /* تجاهل */ }
+
+        // 2. ثانياً: user.storeId من الـ auth hook
+        if (!storeId) storeId = user.storeId ?? null;
+
+        // 3. أخيراً: البحث في جدول sections عبر المنتج نفسه إن وُجد
+        if (!storeId && productId) {
+          const { data: pRows } = await supabase
+            .from('products')
+            .select('store_id')
+            .eq('id', productId)
+            .limit(1);
+          if (pRows && pRows[0]) storeId = pRows[0].store_id ?? null;
+        }
+
+        if (!storeId) {
+          toast({ title: "خطأ", description: "لم يتم العثور على متجر مرتبط بحسابك", variant: "destructive" });
+          setPageLoading(false);
+          return;
+        }
+
+        const sectionsData = await fetchStoreSections(storeId);
         setSections(sectionsData);
 
         if (productId) {
-          const productsData = await fetchProductsByStore(user.storeId);
+          const productsData = await fetchProductsByStore(storeId);
           const product = productsData.find((p) => p.id === productId);
           if (product) {
             setEditingProduct(product);
@@ -106,7 +139,7 @@ function AddProductPageContent() {
     };
 
     loadData();
-  }, [user, productId, form, router, toast]);
+  }, [authLoading, user, productId, form, toast]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -122,29 +155,43 @@ function AddProductPageContent() {
     }
   };
 
-  const onSubmit = async (data: ProductFormValues) => {
-    if (!user?.storeId) {
-      toast({ title: "خطأ", description: "لم يتم العثور على معرف المتجر", variant: "destructive" });
-      return;
-    }
-
-    setIsLoading(true);
-
+  const resolveStoreId = async (): Promise<string | null> => {
+    // 1. sessionStorage
     try {
-      let imageUrl = data.imageUrl;
+      const cached = sessionStorage.getItem(`store_${user?.id}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.id) return parsed.id;
+      }
+    } catch { /* تجاهل */ }
 
-      // Upload image if a new file is selected
+    // 2. user.storeId
+    if (user?.storeId) return user.storeId;
+
+    // 3. من المنتج نفسه
+    if (editingProduct?.storeId) return editingProduct.storeId;
+
+    return null;
+  };
+
+  const onSubmit = async (data: ProductFormValues) => {
+    setIsLoading(true);
+    try {
+      const storeId = await resolveStoreId();
+      if (!storeId) {
+        toast({ title: "خطأ", description: "لم يتم العثور على متجر مرتبط بحسابك", variant: "destructive" });
+        return;
+      }
+
+      let imageUrl = data.imageUrl;
       if (imageFile) {
-        const uploadResult = await uploadProductImageForStore(imageFile, user.storeId);
-        if (!uploadResult.success) {
-          throw new Error(uploadResult.error || "فشل رفع صورة المنتج");
-        }
+        const uploadResult = await uploadProductImageForStore(imageFile, storeId);
+        if (!uploadResult.success) throw new Error(uploadResult.error || "فشل رفع صورة المنتج");
         imageUrl = uploadResult.url || imageUrl;
       }
 
       if (editingProduct) {
-        // Update existing product
-        const updated = await updateProduct(editingProduct.id, {
+        await updateProduct(editingProduct.id, {
           name: data.name,
           description: data.description,
           price: data.price,
@@ -153,11 +200,8 @@ function AddProductPageContent() {
           sku: data.sku,
           stock: data.stock,
         });
-
-        if (!updated) throw new Error("فشل تحديث المنتج");
         toast({ title: "✓ تم تحديث المنتج بنجاح" });
       } else {
-        // Create new product
         const created = await createProduct({
           name: data.name,
           description: data.description,
@@ -166,17 +210,13 @@ function AddProductPageContent() {
           sku: data.sku,
           stock: data.stock,
           imageUrl: imageUrl || undefined,
-          storeId: user.storeId,
+          storeId,
         });
-
         if (!created) throw new Error("فشل إضافة المنتج");
         toast({ title: "✓ تمت إضافة المنتج بنجاح" });
       }
 
-      // Redirect back after 1 second
-      setTimeout(() => {
-        router.push("/dashboard/store?tab=products");
-      }, 800);
+      setTimeout(() => router.push("/dashboard/store?tab=products"), 800);
     } catch (error) {
       console.error("Error saving product:", error);
       toast({
@@ -356,7 +396,7 @@ function AddProductPageContent() {
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         disabled={isLoading}
                       >
                         <FormControl>
