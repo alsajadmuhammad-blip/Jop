@@ -750,6 +750,8 @@ __turbopack_context__.s([
     ()=>fetchProductsByStore,
     "fetchStoreById",
     ()=>fetchStoreById,
+    "fetchStoreBySlug",
+    ()=>fetchStoreBySlug,
     "fetchStorePackages",
     ()=>fetchStorePackages,
     "fetchStoreSections",
@@ -1437,8 +1439,21 @@ function mapStoreRow(row) {
         packageName: getRowValue(row, 'package_name', 'packageName'),
         paymentProofUrl: getRowValue(row, 'payment_proof_url', 'paymentProofUrl'),
         createdAt: getRowValue(row, 'created_at', 'createdAt') || null,
-        registeredByAgentId: getRowValue(row, 'registered_by_agent_id', 'registeredByAgentId') || null
+        registeredByAgentId: getRowValue(row, 'registered_by_agent_id', 'registeredByAgentId') || null,
+        slug: getRowValue(row, 'slug', 'slug') || null
     };
+}
+async function fetchStoreBySlug(slug) {
+    try {
+        const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('stores').select('*').eq('slug', slug.toLowerCase().trim()).eq('is_active', true).maybeSingle();
+        if (error) {
+            console.error('fetchStoreBySlug error:', error.message);
+            return null;
+        }
+        return data ? mapStoreRow(data) : null;
+    } catch  {
+        return null;
+    }
 }
 function mapProductRow(row) {
     return {

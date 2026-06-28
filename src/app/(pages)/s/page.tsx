@@ -1,32 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { fetchStoreBySlug } from "@/services/supabase-db";
+import { Suspense } from "react";
 
-export default function StoreSlugPage() {
+function StoreSlugInner() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const [slug, setSlug] = useState("");
+  const slug = searchParams.get("store") ?? "";
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // Extract slug from the real URL path: /s/<slug>
-    const pathSlug = window.location.pathname.replace(/^\/s\//, "").replace(/\/$/, "").trim();
-    setSlug(pathSlug);
+    if (!slug) { setNotFound(true); return; }
 
-    if (!pathSlug) {
-      setNotFound(true);
-      return;
-    }
-
-    fetchStoreBySlug(pathSlug).then((store) => {
+    fetchStoreBySlug(slug).then((store) => {
       if (store) {
         router.replace(`/store?id=${store.id}`);
       } else {
         setNotFound(true);
       }
     });
-  }, [router]);
+  }, [slug, router]);
 
   if (notFound) {
     return (
@@ -38,7 +33,7 @@ export default function StoreSlugPage() {
         <h1 className="text-2xl font-bold text-slate-800">المتجر غير موجود</h1>
         <p className="text-slate-500 max-w-xs">
           الرابط{" "}
-          <span className="font-mono text-primary">/s/{slug}</span>{" "}
+          <span className="font-mono text-primary">?store={slug}</span>{" "}
           غير مرتبط بأي متجر نشط.
         </p>
         <a
@@ -59,5 +54,13 @@ export default function StoreSlugPage() {
       <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       <p className="text-sm text-slate-500">جاري تحميل المتجر…</p>
     </div>
+  );
+}
+
+export default function StoreSlugPage() {
+  return (
+    <Suspense>
+      <StoreSlugInner />
+    </Suspense>
   );
 }
