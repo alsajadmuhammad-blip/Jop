@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useMemo, memo, useCallback, useState, useTransition,
+  useMemo, memo, useCallback, useState, useTransition, useRef, useEffect,
 } from "react";
 import { ProductGrid } from "@/components/product-grid";
 import { Package } from "lucide-react";
@@ -13,7 +13,7 @@ interface StoreProductsSectionProps {
   store?: { type?: string };
 }
 
-/* ── Sticky section tab bar ─────────────────────────────────────── */
+/* ── Sticky section tab bar with overflow indicator ─────────────── */
 const SectionTabs = memo(function SectionTabs({
   sections,
   activeSection,
@@ -23,44 +23,98 @@ const SectionTabs = memo(function SectionTabs({
   activeSection: string;
   onSectionChange: (id: string) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showStartFade, setShowStartFade] = useState(false);
+  const [showEndFade, setShowEndFade] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      // RTL: scrollLeft is negative in Firefox, positive (reversed) in Chrome
+      const absScroll = Math.abs(scrollLeft);
+      const maxScroll = scrollWidth - clientWidth;
+      setShowStartFade(absScroll > 6);
+      setShowEndFade(maxScroll - absScroll > 6);
+    };
+
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [sections]);
+
   if (sections.length === 0) return null;
 
   return (
-    <div className="sticky top-0 z-20 bg-slate-50 pb-3 pt-1 -mx-0">
-      <div
-        className="overflow-x-auto scrollbar-hide"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        <div className="flex items-center gap-2 px-1 min-w-max">
-          {/* All tab */}
-          <button
-            onClick={() => onSectionChange("all")}
-            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-all active:scale-95 ${
-              activeSection === "all"
-                ? "bg-blue-600 text-white shadow-md"
-                : "bg-white text-slate-600 border border-slate-200 hover:border-blue-200 hover:text-blue-600"
-            }`}
-          >
-            الكل
-            <span className={`mr-1.5 text-xs font-medium ${activeSection === "all" ? "text-blue-200" : "text-slate-400"}`}>
-              {sections.reduce(() => 0, 0) === 0 ? "" : ""}
-            </span>
-          </button>
-
-          {sections.map((section) => (
+    <div className="sticky top-0 z-20 bg-slate-50 py-3">
+      <div className="relative">
+        {/* Scroll container */}
+        <div
+          ref={scrollRef}
+          className="overflow-x-auto scrollbar-hide"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          <div className="flex items-center gap-2 px-1 min-w-max pb-0.5">
+            {/* All tab */}
             <button
-              key={section.id}
-              onClick={() => onSectionChange(section.id)}
-              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-all active:scale-95 ${
-                activeSection === section.id
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-white text-slate-600 border border-slate-200 hover:border-blue-200 hover:text-blue-600"
+              onClick={() => onSectionChange("all")}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-95 ${
+                activeSection === "all"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                  : "bg-white text-slate-500 border border-slate-200 hover:border-blue-300 hover:text-blue-600"
               }`}
             >
-              {section.name}
+              الكل
             </button>
-          ))}
+
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => onSectionChange(section.id)}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-95 ${
+                  activeSection === section.id
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                    : "bg-white text-slate-500 border border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                }`}
+              >
+                {section.name}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Right fade — more items to the right (RTL: start) */}
+        {showStartFade && (
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-10"
+            style={{
+              background: "linear-gradient(to left, #f8fafc 30%, transparent)",
+            }}
+          />
+        )}
+
+        {/* Left fade — more items to the left (RTL: end) */}
+        {showEndFade && (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-12 flex items-center justify-start pl-1"
+            style={{
+              background: "linear-gradient(to right, #f8fafc 40%, transparent)",
+            }}
+          >
+            {/* Bouncing dots to hint at more */}
+            <div className="flex gap-[3px] opacity-60">
+              <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "120ms" }} />
+              <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "240ms" }} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

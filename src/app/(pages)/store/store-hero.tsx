@@ -5,7 +5,7 @@ import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Truck, Globe, ShoppingCart, MessageSquare,
-  Star, MapPin, Clock, CheckCircle,
+  Star, MapPin, Clock,
 } from "lucide-react";
 import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapper";
 import type { Store } from "@/lib/types";
@@ -176,9 +176,6 @@ function StoreHeroContent({ store }: StoreHeroProps) {
         {info.isPhysical && store.location && (
           <Chip icon={<MapPin className="w-3.5 h-3.5" />} label={store.location} color="rose" />
         )}
-        {store.isActive && (
-          <Chip icon={<CheckCircle className="w-3.5 h-3.5" />} label="متجر موثوق" color="emerald" />
-        )}
       </div>
 
       {/* Description */}
@@ -196,15 +193,16 @@ function StoreHeroContent({ store }: StoreHeroProps) {
       {/* ═══════════════════════════════════════════════
           ACTION BUTTONS
       ═══════════════════════════════════════════════ */}
-      <div className="px-4 sm:px-6 pt-4 pb-5 space-y-2.5">
+      <div className="px-4 sm:px-6 pt-4 pb-6">
+
         {/* Primary CTA */}
         <Button
           asChild
           size="lg"
-          className="w-full h-13 rounded-2xl font-extrabold text-base gap-2.5 shadow-lg active:scale-[0.98] transition-all"
+          className="w-full h-[52px] rounded-2xl font-extrabold text-base gap-2.5 mb-3 active:scale-[0.98] transition-all"
           style={{
             background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)",
-            boxShadow: "0 4px 20px rgba(37,99,235,0.4)",
+            boxShadow: "0 6px 24px rgba(37,99,235,0.38)",
           }}
         >
           <a href="#store-products">
@@ -213,72 +211,46 @@ function StoreHeroContent({ store }: StoreHeroProps) {
           </a>
         </Button>
 
-        {/* Secondary buttons */}
-        {(info.whatsappHref || info.isPhysical) && (
-          <div
-            className="grid gap-2"
-            style={{
-              gridTemplateColumns: `repeat(${
-                [info.whatsappHref, info.isPhysical].filter(Boolean).length + 1
-              }, minmax(0, 1fr))`,
-            }}
-          >
-            {info.whatsappHref && (
-              <Button
-                asChild
-                size="default"
-                className="rounded-xl h-10 font-bold gap-1.5 active:scale-[0.98] transition-all text-white"
-                style={{ background: "#25D366" }}
-              >
-                <a href={info.whatsappHref} target="_blank" rel="noopener noreferrer">
-                  <MessageSquare className="w-4 h-4" />
-                  <span className="text-sm">واتساب</span>
-                </a>
-              </Button>
-            )}
+        {/* Secondary row — icon buttons */}
+        <div className="flex gap-2.5">
+          {/* WhatsApp */}
+          {info.whatsappHref && (
+            <a
+              href={info.whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex flex-col items-center justify-center gap-1 h-[60px] rounded-2xl font-bold text-xs text-white transition-all active:scale-[0.97]"
+              style={{ background: "#25D366", boxShadow: "0 3px 12px rgba(37,211,102,0.35)" }}
+            >
+              <MessageSquare className="w-5 h-5" />
+              واتساب
+            </a>
+          )}
 
-            {info.isPhysical && (
-              info.hasCoords ? (
-                <Button
-                  asChild
-                  size="default"
-                  className="rounded-xl h-10 bg-slate-700 hover:bg-slate-800 text-white font-bold gap-1.5 active:scale-[0.98] transition-all"
-                >
-                  <a href={info.mapsUrl!} target="_blank" rel="noopener noreferrer">
-                    <MapPin className="w-4 h-4" />
-                    <span className="text-sm">الخريطة</span>
-                  </a>
-                </Button>
-              ) : (
-                <Button
-                  size="default"
-                  className="rounded-xl h-10 bg-slate-100 text-slate-400 border border-slate-200"
-                  disabled
-                >
-                  <MapPin className="w-4 h-4 ml-1" />
-                  <span className="text-sm">الخريطة</span>
-                </Button>
-              )
-            )}
+          {/* Maps — physical stores with coords */}
+          {info.isPhysical && info.hasCoords && (
+            <a
+              href={info.mapsUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex flex-col items-center justify-center gap-1 h-[60px] rounded-2xl font-bold text-xs text-white bg-slate-700 hover:bg-slate-800 transition-all active:scale-[0.97]"
+              style={{ boxShadow: "0 3px 12px rgba(0,0,0,0.15)" }}
+            >
+              <MapPin className="w-5 h-5" />
+              الخريطة
+            </a>
+          )}
 
+          {/* Rating */}
+          <div className="flex-1">
             <StoreRatingDialogWrapper
               storeId={store.id}
               storeName={store.name}
               ownerId={store.ownerId}
-              buttonClassName="rounded-xl h-10 font-bold text-sm w-full gap-1.5"
+              buttonClassName="w-full h-[60px] rounded-2xl font-bold text-xs flex-col gap-1"
             />
           </div>
-        )}
-
-        {/* If no secondary buttons except rating */}
-        {!info.whatsappHref && !info.isPhysical && (
-          <StoreRatingDialogWrapper
-            storeId={store.id}
-            storeName={store.name}
-            ownerId={store.ownerId}
-            buttonClassName="rounded-xl h-10 font-bold text-sm w-full gap-1.5"
-          />
-        )}
+        </div>
       </div>
     </div>
   );
