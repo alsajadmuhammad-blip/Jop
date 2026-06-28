@@ -25,7 +25,10 @@ function StoreHeroContent({ store }: StoreHeroProps) {
     return { whatsappHref, isPhysical, hasCoords, mapsUrl, hoursText };
   }, [store]);
 
-  const ratingStars = Math.round(store.rating);
+  /* دقة النجوم: كل نجمة كاملة إذا i ≤ floor، نصف نجمة إذا الكسر ≥ 0.25 */
+  const fullStars  = Math.floor(store.rating);
+  const hasHalf    = store.rating - fullStars >= 0.25;
+  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
 
   return (
     <div className="bg-white">
