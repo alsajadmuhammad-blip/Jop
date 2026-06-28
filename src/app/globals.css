@@ -100,12 +100,21 @@
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* iOS safe area — extends content under notch / Dynamic Island */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   html {
     min-width: 0;
     width: 100%;
     overflow-x: hidden;
     scroll-behavior: smooth;
+    /* Prevent iOS bounce scroll which breaks standalone feel */
+    overscroll-behavior-y: none;
+    /* Disable iOS callout on long-press */
+    -webkit-touch-callout: none;
   }
   img, video, canvas, svg {
     max-width: 100%;
