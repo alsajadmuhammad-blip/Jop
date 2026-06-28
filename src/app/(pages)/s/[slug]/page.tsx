@@ -1,26 +1,9 @@
-import { redirect, notFound } from "next/navigation";
-import { fetchStoreBySlug } from "@/services/supabase-db";
+import StoreSlugClient from "./store-slug-client";
 
-interface Props {
-  params: Promise<{ slug: string }>;
+export function generateStaticParams() {
+  return [];
 }
 
-export default async function StoreSlugPage({ params }: Props) {
-  const { slug } = await params;
-
-  if (!slug) notFound();
-
-  const store = await fetchStoreBySlug(slug);
-
-  if (!store) notFound();
-
-  redirect(`/store?id=${store.id}`);
-}
-
-export async function generateMetadata({ params }: Props) {
-  const { slug } = await params;
-  return {
-    title: slug,
-    description: `متجر ${slug} على منصة مركزي`,
-  };
+export default function StoreSlugPage() {
+  return <StoreSlugClient />;
 }

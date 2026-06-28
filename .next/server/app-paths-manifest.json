@@ -15,6 +15,7 @@
   "/(pages)/register/page": "app/(pages)/register/page.js",
   "/(pages)/representative/add-store/page": "app/(pages)/representative/add-store/page.js",
   "/(pages)/representative/page": "app/(pages)/representative/page.js",
+  "/(pages)/s/[slug]/page": "app/(pages)/s/[slug]/page.js",
   "/(pages)/search/page": "app/(pages)/search/page.js",
   "/(pages)/store/page": "app/(pages)/store/page.js",
   "/(pages)/stores/page": "app/(pages)/stores/page.js",
