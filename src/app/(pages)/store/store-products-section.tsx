@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, memo, useCallback, useTransition } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  useMemo, memo, useCallback, useState, useTransition,
+} from "react";
 import { ProductGrid } from "@/components/product-grid";
-import { Button } from "@/components/ui/button";
+import { Package } from "lucide-react";
 import type { Product, Section } from "@/lib/types";
 
 interface StoreProductsSectionProps {
@@ -12,90 +13,109 @@ interface StoreProductsSectionProps {
   store?: { type?: string };
 }
 
-interface StoreSectionsNavProps {
-  sections: Section[];
-  activeSection: string;
-  onSectionChange: (sectionId: string) => void;
-}
-
-const StoreSectionsNav = memo(function StoreSectionsNav({
+/* ── Sticky section tab bar ─────────────────────────────────────── */
+const SectionTabs = memo(function SectionTabs({
   sections,
   activeSection,
   onSectionChange,
-}: StoreSectionsNavProps) {
-  return (
-    <nav className="overflow-x-auto pb-2 mb-8" style={{ WebkitOverflowScrolling: 'touch' }}>
-      <div 
-        className="inline-flex min-w-max items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2 py-1 shadow-sm"
-        style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
-      >
-        <Button
-          variant={activeSection === "all" ? "default" : "outline"}
-          className="min-w-[80px] whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-all duration-200"
-          onClick={() => onSectionChange("all")}
-        >
-          الكل
-        </Button>
+}: {
+  sections: Section[];
+  activeSection: string;
+  onSectionChange: (id: string) => void;
+}) {
+  if (sections.length === 0) return null;
 
-        {sections.map((section) => (
-          <Button
-            key={section.id}
-            variant={activeSection === section.id ? "default" : "outline"}
-            className="min-w-[80px] whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-all duration-200"
-            onClick={() => onSectionChange(section.id)}
+  return (
+    <div className="sticky top-0 z-20 bg-slate-50 pb-3 pt-1 -mx-0">
+      <div
+        className="overflow-x-auto scrollbar-hide"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="flex items-center gap-2 px-1 min-w-max">
+          {/* All tab */}
+          <button
+            onClick={() => onSectionChange("all")}
+            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-all active:scale-95 ${
+              activeSection === "all"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-white text-slate-600 border border-slate-200 hover:border-blue-200 hover:text-blue-600"
+            }`}
           >
-            {section.name}
-          </Button>
-        ))}
+            الكل
+            <span className={`mr-1.5 text-xs font-medium ${activeSection === "all" ? "text-blue-200" : "text-slate-400"}`}>
+              {sections.reduce(() => 0, 0) === 0 ? "" : ""}
+            </span>
+          </button>
+
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => onSectionChange(section.id)}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-all active:scale-95 ${
+                activeSection === section.id
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-white text-slate-600 border border-slate-200 hover:border-blue-200 hover:text-blue-600"
+              }`}
+            >
+              {section.name}
+            </button>
+          ))}
+        </div>
       </div>
-    </nav>
+    </div>
   );
 });
 
-function StoreProductsSectionContent({ products, sections, store }: StoreProductsSectionProps) {
+/* ── Main component ──────────────────────────────────────────────── */
+function StoreProductsSectionContent({
+  products,
+  sections,
+}: StoreProductsSectionProps) {
   const [activeSection, setActiveSection] = useState<string>("all");
   const [, startTransition] = useTransition();
 
-  const sortedProducts = useMemo(() => {
-    return [...products].sort((a, b) => {
-      if (a.isFeatured === b.isFeatured) return 0;
-      return a.isFeatured ? -1 : 1;
-    });
-  }, [products]);
+  const sortedProducts = useMemo(
+    () =>
+      [...products].sort((a, b) => {
+        if (a.isFeatured === b.isFeatured) return 0;
+        return a.isFeatured ? -1 : 1;
+      }),
+    [products]
+  );
 
-  const filteredProducts = useMemo(() => {
-    if (activeSection === "all") return sortedProducts;
-    return sortedProducts.filter((product) => product.sectionId === activeSection);
-  }, [sortedProducts, activeSection]);
+  const filteredProducts = useMemo(
+    () =>
+      activeSection === "all"
+        ? sortedProducts
+        : sortedProducts.filter((p) => p.sectionId === activeSection),
+    [sortedProducts, activeSection]
+  );
 
-  const handleSectionChange = useCallback((sectionId: string) => {
-    startTransition(() => {
-      setActiveSection(sectionId);
-    });
+  const handleSectionChange = useCallback((id: string) => {
+    startTransition(() => setActiveSection(id));
   }, []);
 
   return (
-    <Card 
-      id="store-products" 
-      className="border-0 shadow-xl min-w-0 overflow-hidden"
-      style={{ contain: 'layout style paint' }}
-    >
-      <CardContent className="p-4 sm:p-6 min-w-0">
-        <StoreSectionsNav
-          sections={sections}
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
-        />
+    <div id="store-products" className="min-w-0">
+      {/* Sticky tabs */}
+      <SectionTabs
+        sections={sections}
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+      />
 
-        {filteredProducts.length === 0 ? (
-          <div className="py-12">
-            <p className="text-center text-sm text-slate-600">لا توجد منتجات حالياً في هذا القسم.</p>
+      {/* Products */}
+      {filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+            <Package className="w-7 h-7 text-slate-400" />
           </div>
-        ) : (
-          <ProductGrid products={filteredProducts} />
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-sm font-semibold text-slate-500">لا توجد منتجات في هذا القسم</p>
+        </div>
+      ) : (
+        <ProductGrid products={filteredProducts} />
+      )}
+    </div>
   );
 }
 

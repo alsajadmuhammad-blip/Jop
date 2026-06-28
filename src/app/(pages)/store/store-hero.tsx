@@ -1,184 +1,198 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, memo } from "react";
+import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Truck, Globe, ShoppingCart, MessageSquare, Star, Map, Package } from "lucide-react";
+import {
+  Truck, Globe, ShoppingCart, MessageSquare,
+  Star, MapPin, CheckCircle2, XCircle, Clock,
+} from "lucide-react";
 import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapper";
 import type { Store } from "@/lib/types";
 
-interface StoreHeroProps {
-  store: Store;
-}
+interface StoreHeroProps { store: Store }
 
 function StoreHeroContent({ store }: StoreHeroProps) {
-  const storeInfo = useMemo(() => {
-    const cleanWhatsAppNumber = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
-    const whatsappHref = cleanWhatsAppNumber
-      ? `https://wa.me/${cleanWhatsAppNumber.replace(/^\+/, "")}`
+  const info = useMemo(() => {
+    const cleanWA = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
+    const whatsappHref = cleanWA
+      ? `https://wa.me/${cleanWA.replace(/^\+/, "")}`
       : undefined;
-
-    const isPhysicalStore = store.type === "فعلي";
-    const hasLocation = isPhysicalStore && Boolean(store.latitude && store.longitude);
-    const mapsUrl = hasLocation
+    const isPhysical = store.type === "فعلي";
+    const hasCoords = isPhysical && Boolean(store.latitude && store.longitude);
+    const mapsUrl = hasCoords
       ? `https://www.google.com/maps/?q=${store.latitude},${store.longitude}`
       : undefined;
+    const businessHoursText =
+      store.businessHours
+        ? `${String(store.businessHours.open).padStart(2, "0")}:00 – ${String(store.businessHours.close).padStart(2, "0")}:00`
+        : null;
+    return { whatsappHref, isPhysical, hasCoords, mapsUrl, businessHoursText };
+  }, [store]);
 
-    return { whatsappHref, isPhysicalStore, hasLocation, mapsUrl };
-  }, [store.whatsappNumber, store.type, store.latitude, store.longitude]);
+  const coverSrc = store.coverImageUrl || store.logoUrl;
 
   return (
-    <section 
-      className="relative overflow-hidden mb-0"
-      style={{ contain: 'layout style paint' }}
-    >
-      {/* Hero Background - Logo */}
-      <div 
-        className="relative w-full h-[300px] bg-slate-900 overflow-hidden"
-      >
-        {store.logoUrl ? (
+    <section className="relative overflow-visible mb-0">
+
+      {/* ── Cover image ─────────────────────────────────────── */}
+      <div className="relative w-full h-[230px] sm:h-[270px] overflow-hidden bg-gradient-to-br from-blue-900 via-slate-800 to-slate-900">
+        {coverSrc && (
           <Image
-            src={store.logoUrl}
+            src={coverSrc}
             alt={store.name}
             fill
             className="object-cover"
             sizes="100vw"
-            priority={true}
-            quality={75}
-            decoding="async"
+            priority
+            quality={80}
           />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-8">
-            <Globe className="w-24 h-24 opacity-15 text-white" />
-          </div>
         )}
+        {/* gradient overlay: dark at bottom so card edge blends */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
+
+        {/* Store type badge - top right */}
+        <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1">
+          <span className="text-xs font-bold text-white">{store.marketType || store.type}</span>
+        </div>
+
+        {/* Active / closed badge - top left */}
+        <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1 border backdrop-blur-md text-xs font-bold ${
+          store.isActive
+            ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
+            : "bg-red-500/20 border-red-400/40 text-red-200"
+        }`}>
+          {store.isActive
+            ? <><CheckCircle2 className="w-3.5 h-3.5" />نشط</>
+            : <><XCircle className="w-3.5 h-3.5" />مغلق</>
+          }
+        </div>
       </div>
 
-      {/* Royal Blue spacer */}
-      <div 
-        className="relative w-full h-6 bg-gradient-to-b from-blue-700 to-blue-600"
-      />
+      {/* ── White card that lifts over the cover ────────────── */}
+      <div className="relative -mt-7 z-10">
+        <div className="bg-white rounded-t-[2rem] shadow-[0_-8px_30px_rgba(0,0,0,0.13)]">
+          <div className="px-4 sm:px-6 pt-5 pb-4">
 
-      {/* Card - overlays hero with minimal offset */}
-      <div 
-        className="relative px-4 sm:px-6 lg:px-8 -mt-6 mb-0 z-10"
-      >
-        <div 
-          className="mx-auto max-w-7xl rounded-t-3xl bg-white overflow-hidden border border-slate-100"
-          style={{
-            boxShadow: '0 -5px 30px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          <div className="p-6 sm:p-8 lg:p-10">
-            {/* Store Title and Info */}
-            <div className="grid gap-6 mb-6">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight text-slate-900 mb-4">
+            {/* Logo + name */}
+            <div className="flex items-start gap-4 mb-4">
+              <div className="relative -mt-14 flex-shrink-0 w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-gradient-to-br from-blue-100 to-slate-100">
+                {store.logoUrl ? (
+                  <Image src={store.logoUrl} alt={store.name} fill className="object-cover" sizes="80px" />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Globe className="w-8 h-8 text-blue-300" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 pt-1.5">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight line-clamp-2">
                   {store.name}
                 </h1>
-                
-                {/* Stats Cards */}
-                <div className="grid gap-2 grid-cols-3 w-full">
-                  <div 
-                    className="rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 p-3 border border-amber-200/50 flex flex-col items-center justify-center hover:from-amber-100 hover:to-orange-100 transition-colors"
-                  >
-                    <Star className="w-4 h-4 text-amber-500 mb-1 fill-amber-500" />
-                    <span className="text-base font-bold text-slate-900">{store.reviews > 0 ? store.rating.toFixed(1) : "-"}</span>
-                    <span className="text-xs text-slate-600">تقييم</span>
-                  </div>
-                  
-                  <div 
-                    className={`rounded-lg p-3 border flex flex-col items-center justify-center transition-colors ${
-                      store.isActive 
-                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200/50 hover:from-green-100 hover:to-emerald-100' 
-                        : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200/50 hover:from-red-100 hover:to-pink-100'
-                    }`}
-                  >
-                    <Truck className={`w-4 h-4 mb-1 ${store.isActive ? "text-green-600 fill-green-600" : "text-red-600 fill-red-600"}`} />
-                    <span className={`text-xs font-bold ${store.isActive ? 'text-green-700' : 'text-red-700'}`}>
-                      {store.isActive ? "نشط" : "مغلق"}
+                {/* Mini stats */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {/* Rating */}
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    {store.reviews > 0 ? `${store.rating.toFixed(1)} (${store.reviews})` : "جديد"}
+                  </span>
+                  {/* Delivery */}
+                  {store.hasDelivery && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-2 py-0.5">
+                      <Truck className="w-3 h-3" />توصيل
                     </span>
-                  </div>
-
-                  <div 
-                    className="rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 p-3 border border-blue-200/50 flex flex-col items-center justify-center hover:from-blue-100 hover:to-cyan-100 transition-colors"
-                  >
-                    <Package className="w-4 h-4 text-blue-600 mb-1 fill-blue-600" />
-                    <span className="text-xs font-bold text-blue-700">
-                      {store.hasDelivery ? "متاح" : "غير متاح"}
+                  )}
+                  {/* Business hours */}
+                  {info.businessHoursText && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+                      <Clock className="w-3 h-3" />
+                      {info.businessHoursText}
                     </span>
-                    <span className="text-xs text-blue-600 font-medium">توصيل</span>
-                  </div>
+                  )}
+                  {/* Location (physical stores) */}
+                  {info.isPhysical && store.location && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-2 py-0.5">
+                      <MapPin className="w-3 h-3" />
+                      {store.location}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Button 
-                asChild 
-                size="lg" 
-                className="w-full bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 font-bold flex items-center justify-center gap-2 h-12 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95"
+            {/* Description */}
+            {store.description && (
+              <p className="text-sm text-slate-500 leading-relaxed mb-4 line-clamp-2">
+                {store.description}
+              </p>
+            )}
+
+            {/* ── Action buttons ─────────────────────────── */}
+            <div className="space-y-2.5">
+              {/* Primary CTA */}
+              <Button
+                asChild
+                size="lg"
+                className="w-full h-12 rounded-2xl font-bold text-base bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md active:scale-[0.98] transition-all gap-2"
               >
-                <a href="#store-products" aria-label="ابدأ التسوق">
+                <a href="#store-products">
                   <ShoppingCart className="w-5 h-5" />
-                  <span>ابدأ التسوق</span>
+                  ابدأ التسوق
                 </a>
               </Button>
-              
-              <div className={storeInfo.isPhysicalStore ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
-                {storeInfo.isPhysicalStore && (
-                  storeInfo.hasLocation ? (
-                    <Button 
-                      asChild 
-                      size="lg" 
-                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-semibold flex items-center justify-center gap-2 h-11 shadow-md hover:shadow-lg transition-all active:scale-95"
-                    >
-                      <a href={storeInfo.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label="الموقع على الخريطة">
-                        <Map className="w-4 h-4" />
-                        <span className="text-sm">الخريطة</span>
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button 
-                      size="lg" 
-                      className="w-full rounded-xl bg-slate-100 text-slate-400 border border-slate-200 font-semibold flex items-center justify-center gap-2 h-11" 
-                      disabled
-                    >
-                      <Map className="w-4 h-4" />
-                      <span className="text-sm">الخريطة</span>
-                    </Button>
-                  )
-                )}
-                {storeInfo.whatsappHref ? (
-                  <Button 
-                    asChild 
-                    size="lg" 
-                    className="w-full rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 font-semibold flex items-center justify-center gap-2 h-11 shadow-md hover:shadow-lg transition-all active:scale-95"
+
+              {/* Secondary row */}
+              <div className={`grid gap-2 ${
+                info.isPhysical && info.hasCoords && info.whatsappHref
+                  ? "grid-cols-3"
+                  : (info.isPhysical && info.hasCoords) || info.whatsappHref
+                    ? "grid-cols-2"
+                    : "grid-cols-1"
+              }`}>
+                {/* WhatsApp */}
+                {info.whatsappHref ? (
+                  <Button
+                    asChild
+                    size="default"
+                    className="rounded-xl h-10 bg-[#25D366] hover:bg-[#20b958] text-white font-semibold gap-1.5 active:scale-[0.98] transition-all"
                   >
-                    <a href={storeInfo.whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="واتساب">
+                    <a href={info.whatsappHref} target="_blank" rel="noopener noreferrer">
                       <MessageSquare className="w-4 h-4" />
                       <span className="text-sm">واتساب</span>
                     </a>
                   </Button>
-                ) : (
-                  <Button 
-                    size="lg" 
-                    className="w-full rounded-xl bg-slate-100 text-slate-400 border border-slate-200 font-semibold flex items-center justify-center gap-2 h-11" 
-                    disabled
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="text-sm">واتساب</span>
-                  </Button>
+                ) : null}
+
+                {/* Maps — physical stores only */}
+                {info.isPhysical && (
+                  info.hasCoords ? (
+                    <Button
+                      asChild
+                      size="default"
+                      className="rounded-xl h-10 bg-blue-500 hover:bg-blue-600 text-white font-semibold gap-1.5 active:scale-[0.98] transition-all"
+                    >
+                      <a href={info.mapsUrl!} target="_blank" rel="noopener noreferrer">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm">الخريطة</span>
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button size="default" className="rounded-xl h-10 bg-slate-100 text-slate-400 border border-slate-200" disabled>
+                      <MapPin className="w-4 h-4 ml-1" />
+                      <span className="text-sm">الخريطة</span>
+                    </Button>
+                  )
                 )}
+
+                {/* Rating */}
+                <StoreRatingDialogWrapper
+                  storeId={store.id}
+                  storeName={store.name}
+                  ownerId={store.ownerId}
+                  buttonClassName="rounded-xl h-10 font-semibold text-sm w-full gap-1.5"
+                />
               </div>
-              
-              <StoreRatingDialogWrapper
-                storeId={store.id}
-                storeName={store.name}
-                ownerId={store.ownerId}
-                buttonClassName="w-full font-semibold flex items-center justify-center gap-2 h-11 rounded-xl"
-              />
             </div>
           </div>
         </div>

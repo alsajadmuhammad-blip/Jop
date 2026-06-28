@@ -1,34 +1,43 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
 import type { Product, Store, Section } from "@/lib/types";
 
-// Dynamic imports with loading fallbacks for better performance
 const StoreProductsSection = dynamic(
-  () => import("./store-products-section").then(mod => ({ default: mod.StoreProductsSection })),
-  { 
-    loading: () => <Skeleton className="h-64 rounded-[2rem]" />,
-    ssr: true 
-  }
+  () => import("./store-products-section").then((m) => ({ default: m.StoreProductsSection })),
+  { loading: () => <Skeleton className="h-64 rounded-3xl" />, ssr: true }
 );
 
 const StoreInfoSidebar = dynamic(
-  () => import("./store-info-sidebar").then(mod => ({ default: mod.StoreInfoSidebar })),
-  { 
-    loading: () => <Skeleton className="h-48 rounded-[2rem]" />,
-    ssr: true 
-  }
+  () => import("./store-info-sidebar").then((m) => ({ default: m.StoreInfoSidebar })),
+  { loading: () => <Skeleton className="h-64 rounded-3xl" />, ssr: true }
 );
+
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Skeleton className="w-full h-[230px]" />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        <Skeleton className="h-24 rounded-3xl" />
+        <Skeleton className="h-12 rounded-2xl" />
+        <div className="grid lg:grid-cols-[1fr_300px] gap-6 mt-6">
+          <Skeleton className="h-[400px] rounded-3xl" />
+          <Skeleton className="h-64 rounded-3xl hidden lg:block" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StorePageClient() {
   const searchParams = useSearchParams();
   const storeId = searchParams.get("id");
+
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -36,29 +45,17 @@ export default function StorePageClient() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadStore() {
-      if (!storeId) {
-        setLoading(false);
-        setStore(null);
-        setProducts([]);
-        setErrorMessage(null);
-        return;
-      }
+    if (!storeId) { setLoading(false); return; }
 
-      setLoading(true);
-      setErrorMessage(null);
+    setLoading(true);
+    setErrorMessage(null);
 
+    (async () => {
       try {
         const fetchedStore = await fetchStoreById(storeId);
-        if (!fetchedStore) {
-          throw new Error("لم يتم العثور على المتجر.");
-        }
+        if (!fetchedStore) throw new Error("لم يتم العثور على المتجر.");
+        if (!fetchedStore.isActive) throw new Error("هذا المتجر غير متاح حالياً.");
 
-        if (!fetchedStore.isActive) {
-          throw new Error("هذا المتجر غير متاح حالياً.");
-        }
-
-        // Parallel loading for better performance
         const [productsData, sectionsData] = await Promise.all([
           fetchProductsByStore(storeId),
           fetchStoreSections(storeId),
@@ -67,54 +64,27 @@ export default function StorePageClient() {
         setStore(fetchedStore);
         setProducts(productsData);
         setSections(sectionsData);
-      } catch (error: any) {
-        setErrorMessage(error?.message || "حدث خطأ أثناء تحميل بيانات المتجر.");
+      } catch (err: any) {
+        setErrorMessage(err?.message || "حدث خطأ أثناء تحميل المتجر.");
         setStore(null);
         setProducts([]);
       } finally {
         setLoading(false);
       }
-    }
-
-    loadStore();
+    })();
   }, [storeId]);
 
-  if (!storeId) {
-    return <div className="min-h-screen bg-slate-50" />;
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="container mx-auto px-4 py-8">
-          <Skeleton className="h-12 w-36 mb-8" />
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-96 rounded-[2rem]" />
-              <Skeleton className="h-64 rounded-[2rem]" />
-            </div>
-            <div className="space-y-6">
-              <Skeleton className="h-48 rounded-[2rem]" />
-              <Skeleton className="h-32 rounded-[2rem]" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!storeId) return <div className="min-h-screen bg-slate-50" />;
+  if (loading) return <LoadingSkeleton />;
 
   if (errorMessage) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Card className="border-red-200 bg-red-50 max-w-md">
-          <CardContent className="pt-8 pb-8 px-8 text-center space-y-4">
-            <div className="h-16 w-16 rounded-full bg-red-200 mx-auto flex items-center justify-center">
-              <span className="text-2xl">⚠️</span>
-            </div>
-            <h2 className="text-xl font-bold text-red-900">خطأ</h2>
-            <p className="text-red-700 font-semibold">{errorMessage}</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm rounded-3xl bg-white border border-red-100 shadow-xl p-8 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-red-100 mx-auto flex items-center justify-center text-2xl">⚠️</div>
+          <h2 className="text-lg font-bold text-red-900">تعذّر تحميل المتجر</h2>
+          <p className="text-sm text-red-700 font-medium">{errorMessage}</p>
+        </div>
       </div>
     );
   }
@@ -122,22 +92,28 @@ export default function StorePageClient() {
   if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50" style={{ contain: 'layout style paint' }}>
+    <div className="min-h-screen bg-slate-50">
+      {/* Full-width hero (no container) */}
       <StoreHero store={store} />
 
-      <div 
-        className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 min-w-0"
-        style={{
-          backfaceVisibility: 'hidden'
-        }}
-      >
-        <div className="grid gap-8 lg:grid-cols-[1.7fr_0.95fr] min-w-0 overflow-hidden">
-          <div className="lg:col-span-2 space-y-8 min-w-0 overflow-hidden" style={{ contain: 'layout style paint' }}>
-            <StoreProductsSection products={products} sections={sections} store={store} />
+      {/* Page body */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+
+          {/* ── Main column: products ── */}
+          <div className="min-w-0">
+            <StoreProductsSection
+              products={products}
+              sections={sections}
+              store={store}
+            />
           </div>
-          <div className="space-y-6 min-w-0 overflow-hidden" style={{ contain: 'layout style paint' }}>
+
+          {/* ── Sidebar: store info (desktop only, below products on mobile) ── */}
+          <div className="min-w-0">
             <StoreInfoSidebar store={store} />
           </div>
+
         </div>
       </div>
     </div>
