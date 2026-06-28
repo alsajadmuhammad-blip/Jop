@@ -13,10 +13,6 @@
     "trailingSlash": false,
     "rewrites": [
       {
-        "source": "/s/**",
-        "destination": "/s/index.html"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

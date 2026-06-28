@@ -15,7 +15,6 @@
   "/(pages)/register/page": "/register",
   "/(pages)/representative/add-store/page": "/representative/add-store",
   "/(pages)/representative/page": "/representative",
-  "/(pages)/s/page": "/s",
   "/(pages)/search/page": "/search",
   "/(pages)/store/page": "/store",
   "/(pages)/stores/page": "/stores",

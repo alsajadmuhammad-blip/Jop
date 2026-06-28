@@ -152,7 +152,7 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
     const [copied, setCopied] = useState(false);
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://markazi-iq.web.app';
-    const shareUrl = `${origin}/s?store=${encodeURIComponent(slugDraft || slugify(store.name))}`;
+    const shareUrl = `${origin}/s/${slugDraft || slugify(store.name)}`;
 
     const handleSlugChange = (v: string) => {
         const cleaned = v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\u0600-\u06FF-]/g, '');

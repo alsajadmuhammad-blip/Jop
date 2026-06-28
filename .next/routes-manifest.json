@@ -146,12 +146,6 @@
       "namedRegex": "^/representative/add\\-store(?:/)?$"
     },
     {
-      "page": "/s",
-      "regex": "^/s(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/s(?:/)?$"
-    },
-    {
       "page": "/search",
       "regex": "^/search(?:/)?$",
       "routeKeys": {},

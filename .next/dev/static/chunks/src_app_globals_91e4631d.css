@@ -1051,10 +1051,6 @@ html {
   height: 1.75rem;
 }
 
-.h-0\.5 {
-  height: .125rem;
-}
-
 .h-1\.5 {
   height: .375rem;
 }
@@ -1463,10 +1459,6 @@ html {
   max-width: 36rem;
 }
 
-.max-w-xs {
-  max-width: 20rem;
-}
-
 .flex-1 {
   flex: 1;
 }
@@ -1676,10 +1668,6 @@ html {
 
 .justify-around {
   justify-content: space-around;
-}
-
-.gap-0 {
-  gap: 0;
 }
 
 .gap-0\.5 {
@@ -3158,11 +3146,6 @@ html {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
 }
 
-.text-6xl {
-  font-size: 3.75rem;
-  line-height: 1;
-}
-
 .text-\[10px\] {
   font-size: 10px;
 }
@@ -4077,7 +4060,7 @@ main {
   color: hsl(var(--foreground)) !important;
 }
 
-.dark .hover\:text-slate-600:hover {
+.dark .hover\:text-slate-700:hover {
   color: hsl(var(--foreground) / .82) !important;
 }
 
@@ -4138,20 +4121,6 @@ main {
 
 .last\:border-0:last-child {
   border-width: 0;
-}
-
-.focus-within\:border-primary:focus-within {
-  border-color: hsl(var(--primary));
-}
-
-.focus-within\:ring-2:focus-within {
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-}
-
-.focus-within\:ring-primary\/10:focus-within {
-  --tw-ring-color: hsl(var(--primary) / .1);
 }
 
 .hover\:-translate-y-0\.5:hover {
@@ -4231,11 +4200,6 @@ main {
   background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:bg-emerald-600:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:bg-gray-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
@@ -4301,6 +4265,10 @@ main {
 .hover\:bg-slate-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-slate-200\/60:hover {
+  background-color: #e2e8f099;
 }
 
 .hover\:bg-slate-50:hover {
@@ -4443,9 +4411,9 @@ main {
   color: hsl(var(--sidebar-accent-foreground));
 }
 
-.hover\:text-slate-600:hover {
+.hover\:text-slate-700:hover {
   --tw-text-opacity: 1;
-  color: rgb(71 85 105 / var(--tw-text-opacity, 1));
+  color: rgb(51 65 85 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-slate-900:hover {
@@ -4468,10 +4436,6 @@ main {
 
 .hover\:opacity-80:hover {
   opacity: .8;
-}
-
-.hover\:opacity-90:hover {
-  opacity: .9;
 }
 
 .hover\:shadow:hover {
@@ -5503,9 +5467,19 @@ main {
     padding-right: 0;
   }
 
+  .sm\:px-3\.5 {
+    padding-left: .875rem;
+    padding-right: .875rem;
+  }
+
   .sm\:px-6 {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+  }
+
+  .sm\:py-2 {
+    padding-top: .5rem;
+    padding-bottom: .5rem;
   }
 
   .sm\:text-left {
