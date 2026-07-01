@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Phone, CreditCard } from "lucide-react";
 import { fetchStorePackages } from "@/services/supabase-db";
 import { createStoreOwner } from "@/services/supabase-admin";
 import { registerStoreAndInitiatePayment } from "@/services/subscription-service";
@@ -95,6 +95,7 @@ export default function CreateStoreForm({
   const [showAddMarketType, setShowAddMarketType] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'form' | 'payment' | 'completed'>('form');
   const [pendingStoreData, setPendingStoreData] = useState<any>(null);
+  const [submitMode, setSubmitMode] = useState<'contact' | 'zaincash' | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -182,12 +183,13 @@ export default function CreateStoreForm({
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, mode_override?: 'contact' | 'zaincash') => {
     e.preventDefault();
     if (!validateForm()) {
       return;
     }
 
+    const currentSubmitMode = mode_override ?? submitMode ?? 'zaincash';
     setLoading(true);
     try {
       const selectedPackage = packages.find(pkg => pkg.slug === formData.packageSlug);
@@ -197,7 +199,8 @@ export default function CreateStoreForm({
       }
 
       if (mode === "public") {
-        // Public mode: Register store and handle payment flow
+        const skipPayment = currentSubmitMode === 'contact';
+
         const registerPayload = {
           ownerName: formData.ownerName,
           storeName: formData.storeName,
@@ -206,19 +209,15 @@ export default function CreateStoreForm({
           ownerEmail: formData.email,
           password: formData.password,
           packageId: selectedPackage.id,
+          skipPayment,
         };
 
-        console.log('📝 Submitting public store registration:', registerPayload);
-        
         const result = await registerStoreAndInitiatePayment(registerPayload);
 
         if (!result.success) {
           throw new Error(result.error || 'فشل إنشاء المتجر');
         }
 
-        console.log('✅ Store registered successfully:', result);
-
-        // Store the registration data
         setPendingStoreData({
           storeId: result.storeId,
           ownerId: result.ownerId,
@@ -226,21 +225,30 @@ export default function CreateStoreForm({
           packageId: selectedPackage.id,
         });
 
+        if (skipPayment) {
+          // Contact admin path: store created as pending, show instructions
+          toast({
+            title: "تم إنشاء المتجر بنجاح ✅",
+            description: "سيتواصل معك فريق الإدارة قريباً لتفعيل المتجر.",
+          });
+          setPaymentStep("completed");
+          setTimeout(() => {
+            window.location.href = `/subscription/payment-success?transaction_id=${result.transactionId || 'pending'}&is_free=true&contact_admin=true`;
+          }, 2000);
+          return;
+        }
+
         toast({
           title: result.message,
           description: result.amount ? 'تم توجيهك لبوابة الدفع' : 'تم إنشاء المتجر بنجاح',
           variant: "default",
         });
 
-        // If payment is required, redirect to payment gateway
         if (result.paymentUrl) {
-          console.log('💳 Redirecting to payment:', result.paymentUrl);
           setTimeout(() => {
             window.location.href = result.paymentUrl!;
           }, 2000);
         } else {
-          // Free package: redirect to success page
-          console.log('✨ Free package - redirecting to success page');
           setPaymentStep("completed");
           setTimeout(() => {
             window.location.href = `/subscription/payment-success?transaction_id=${result.transactionId || 'free'}&is_free=true`;
@@ -646,38 +654,93 @@ export default function CreateStoreForm({
         )}
       </div>
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={loading}
-        size="lg"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            {mode === "public" && (packages.find(p => p.slug === formData.packageSlug)?.price ?? 0) > 0
-              ? "جاري توجيهك لبوابة الدفع..."
-              : "جاري إنشاء المتجر..."}
-          </>
-        ) : (
-          <>
-            {mode === "public" && (packages.find(p => p.slug === formData.packageSlug)?.price ?? 0) > 0
-              ? "ابدأ الاشتراك والدفع"
-              : "إنشاء المتجر والحساب"}
-          </>
-        )}
-      </Button>
+      {/* Submit Buttons */}
+      {mode === "public" && (() => {
+        const selectedPkg = packages.find(p => p.slug === formData.packageSlug);
+        const isPaid = (selectedPkg?.price ?? 0) > 0;
 
-      {mode === "public" && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
-          <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <p>
-              <span className="font-semibold">ملاحظة:</span> إذا كانت الباقة مدفوعة، ستتم إعادة توجيهك لبوابة الدفع الآمنة (Zain Cash) لإكمال العملية.
-            </p>
-          </div>
-        </div>
+        if (isPaid) {
+          return (
+            <div className="space-y-3">
+              {/* Two-button layout for paid packages */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Button 1: Contact admin (no payment) */}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => {
+                    setSubmitMode('contact');
+                    handleSubmit(e as any, 'contact');
+                  }}
+                  className="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-4 py-5 text-center transition-all duration-200 hover:border-slate-400 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {loading && submitMode === 'contact' ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+                  ) : (
+                    <Phone className="h-5 w-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">إنشاء وتواصل مع الإدارة</p>
+                    <p className="text-xs text-slate-400 mt-0.5">ينشئ المتجر ويتواصل فريقنا معك للتفعيل</p>
+                  </div>
+                </button>
+
+                {/* Button 2: ZainCash payment (immediate activation) */}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => {
+                    setSubmitMode('zaincash');
+                    handleSubmit(e as any, 'zaincash');
+                  }}
+                  className="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-primary bg-primary px-4 py-5 text-center shadow-lg shadow-primary/25 transition-all duration-200 hover:bg-primary/90 hover:shadow-primary/40 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {loading && submitMode === 'zaincash' ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
+                  ) : (
+                    <CreditCard className="h-5 w-5 text-white" />
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-white">إنشاء ودفع زين كاش</p>
+                    <p className="text-xs text-white/70 mt-0.5">تفعيل فوري بعد إتمام الدفع</p>
+                  </div>
+                  <span className="absolute -top-2.5 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                    تفعيل فوري
+                  </span>
+                </button>
+              </div>
+
+              <div className="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5 text-xs text-blue-800">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-blue-500" />
+                <p>
+                  <span className="font-semibold">زين كاش:</span> ستنتقل لبوابة الدفع الآمنة وعند الدفع يتفعّل متجرك فوراً. &nbsp;
+                  <span className="font-semibold">تواصل مع الإدارة:</span> ينشأ المتجر معلقاً وسيتواصل معك فريقنا لتسوية الدفع يدوياً.
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        // Free package: single button
+        return (
+          <Button type="submit" className="w-full" disabled={loading} size="lg">
+            {loading ? (
+              <><Loader2 className="ml-2 h-4 w-4 animate-spin" />جاري إنشاء المتجر...</>
+            ) : (
+              "إنشاء المتجر والحساب"
+            )}
+          </Button>
+        );
+      })()}
+
+      {mode === "admin" && (
+        <Button type="submit" className="w-full" disabled={loading} size="lg">
+          {loading ? (
+            <><Loader2 className="ml-2 h-4 w-4 animate-spin" />جاري إنشاء المتجر...</>
+          ) : (
+            "إنشاء المتجر والحساب"
+          )}
+        </Button>
       )}
     </form>
   );

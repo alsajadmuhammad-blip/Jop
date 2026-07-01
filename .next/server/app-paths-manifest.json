@@ -24,5 +24,6 @@
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/api/admin/create-store/route": "app/api/admin/create-store/route.js",
+  "/api/store/rate/route": "app/api/store/rate/route.js",
   "/page": "app/page.js"
 }

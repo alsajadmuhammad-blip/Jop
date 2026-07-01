@@ -367,6 +367,7 @@ export async function registerStoreAndInitiatePayment(payload: {
   marketType?: string;
   whatsappNumber: string;
   ownerEmail: string;
+  skipPayment?: boolean;
   password?: string;
   packageId: string;
   registeredByAgentId?: string;
@@ -417,7 +418,7 @@ export async function registerStoreAndInitiatePayment(payload: {
     console.log('Step 1: Store registered successfully. StoreId:', storeId);
 
     // Step 2: Check if payment is required
-    if (amountToPay && amountToPay > 0) {
+    if (!payload.skipPayment && amountToPay && amountToPay > 0) {
       console.log('Step 2: Initiating payment for amount:', amountToPay);
 
       const ipAddress = await getClientIpAddress();
