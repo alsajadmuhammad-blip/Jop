@@ -149,7 +149,7 @@ function StoreHeroContent({ store }: StoreHeroProps) {
                 <Star
                   key={i}
                   className={`w-4 h-4 ${
-                    i <= ratingStars
+                    i <= Math.round(store.rating)
                       ? "fill-amber-400 text-amber-400"
                       : "fill-slate-200 text-slate-200"
                   }`}
