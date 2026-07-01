@@ -131,11 +131,14 @@ export type Order = {
   customerId?: string | null;
   customerName?: string;
   customerPhone?: string;
+  customerPhoneBackup?: string | null;
+  customerGovernorate?: string | null;
+  customerAddress?: string | null;
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
-  notes?: string;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  paymentMethod?: 'whatsapp' | 'cash' | 'transfer'; // How the order was initiated
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paymentMethod?: 'whatsapp' | 'cash' | 'transfer';
 };

@@ -67,7 +67,10 @@ export async function createOrder(
   items: OrderItem[],
   totalAmount: number,
   notes?: string,
-  paymentMethod: 'whatsapp' | 'cash' | 'transfer' = 'whatsapp'
+  paymentMethod: 'whatsapp' | 'cash' | 'transfer' = 'whatsapp',
+  customerPhoneBackup?: string,
+  customerGovernorate?: string,
+  customerAddress?: string,
 ): Promise<Order | null> {
   try {
     // Basic validation
@@ -96,6 +99,12 @@ export async function createOrder(
       customerName: customerName?.trim() || null,
       customer_phone: customerPhone?.trim() || null,
       customerPhone: customerPhone?.trim() || null,
+      customer_phone_backup: customerPhoneBackup?.trim() || null,
+      customerPhoneBackup: customerPhoneBackup?.trim() || null,
+      customer_governorate: customerGovernorate?.trim() || null,
+      customerGovernorate: customerGovernorate?.trim() || null,
+      customer_address: customerAddress?.trim() || null,
+      customerAddress: customerAddress?.trim() || null,
       items: safeItems,
       total_amount: totalAmount,
       totalAmount: totalAmount,
@@ -272,6 +281,9 @@ function mapOrderFromDB(data: any): Order {
     customerId: getRowValue(data, 'customer_id', 'customerId'),
     customerName: getRowValue(data, 'customer_name', 'customerName'),
     customerPhone: getRowValue(data, 'customer_phone', 'customerPhone'),
+    customerPhoneBackup: getRowValue(data, 'customer_phone_backup', 'customerPhoneBackup'),
+    customerGovernorate: getRowValue(data, 'customer_governorate', 'customerGovernorate'),
+    customerAddress: getRowValue(data, 'customer_address', 'customerAddress'),
     items,
     totalAmount: typeof totalAmount === 'string' ? Number(totalAmount) : totalAmount,
     status: data.status ?? 'pending',
