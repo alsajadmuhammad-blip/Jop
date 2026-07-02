@@ -43,6 +43,12 @@ export const productFormSchema = z.object({
   name: z.string().min(3, { message: "يجب أن يكون الاسم 3 أحرف على الأقل." }),
   description: z.string().min(10, { message: "يجب أن يكون الوصف 10 أحرف على الأقل." }),
   price: z.coerce.number().positive({ message: "الرجاء إدخال سعر صالح." }),
+  discountPercent: z.coerce
+    .number()
+    .int({ message: "نسبة الخصم يجب أن تكون عدداً صحيحاً." })
+    .min(0, { message: "نسبة الخصم لا يمكن أن تكون سالبة." })
+    .max(99, { message: "نسبة الخصم لا يمكن أن تتجاوز 99%." })
+    .optional(),
   sku: z.string().max(50, { message: "الرمز التعريفي يجب ألا يزيد عن 50 حرفًا." }).optional(),
   stock: z.coerce.number().int({ message: "الرجاء إدخال كمية صحيحة." }).min(0, { message: "الكمية يجب أن تكون صفر أو أكثر." }),
   imageUrl: z.string().optional(),

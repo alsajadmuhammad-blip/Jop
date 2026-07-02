@@ -4,6 +4,8 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  /** نسبة الخصم من 1 إلى 99، القيمة 0 أو undefined تعني لا يوجد خصم */
+  discountPercent?: number;
   imageUrl?: string;
   storeId: string;
   categoryId?: string;
@@ -15,6 +17,17 @@ export type Product = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+/** يحسب السعر بعد الخصم */
+export function getDiscountedPrice(product: Pick<Product, 'price' | 'discountPercent'>): number {
+  if (!product.discountPercent || product.discountPercent <= 0) return product.price;
+  return Math.round(product.price * (1 - product.discountPercent / 100));
+}
+
+/** هل المنتج عليه خصم فعّال؟ */
+export function hasActiveDiscount(product: Pick<Product, 'discountPercent'>): boolean {
+  return !!(product.discountPercent && product.discountPercent > 0 && product.discountPercent < 100);
+}
 
 export type Section = {
   id: string;

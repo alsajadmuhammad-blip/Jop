@@ -10,6 +10,7 @@ import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, P
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section, StorePackage } from "@/lib/types";
+import { getDiscountedPrice, hasActiveDiscount } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 // Removed ProductFormDialog - now using separate page
@@ -77,6 +78,11 @@ function DashboardProductCard({
             <ImageIcon className="w-10 h-10 text-slate-200" />
           </div>
         )}
+        {hasActiveDiscount(product) && (
+          <span className="absolute top-2 right-2 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+            -{product.discountPercent}%
+          </span>
+        )}
         {product.stock === 0 && (
           <span className="absolute bottom-2 right-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
             نفد
@@ -98,10 +104,22 @@ function DashboardProductCard({
           {product.name}
         </h3>
         <div className="flex items-center justify-between gap-1 mt-0.5">
-          <p className="text-sm font-bold text-primary leading-none">
-            {product.price.toLocaleString()}
-            <span className="text-[10px] font-medium mr-0.5">د.ع</span>
-          </p>
+          {hasActiveDiscount(product) ? (
+            <div className="flex flex-col leading-none">
+              <p className="text-[10px] text-slate-400 line-through">
+                {product.price.toLocaleString()} د.ع
+              </p>
+              <p className="text-sm font-bold text-rose-600 leading-none">
+                {getDiscountedPrice(product).toLocaleString()}
+                <span className="text-[10px] font-medium mr-0.5">د.ع</span>
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm font-bold text-primary leading-none">
+              {product.price.toLocaleString()}
+              <span className="text-[10px] font-medium mr-0.5">د.ع</span>
+            </p>
+          )}
           {product.stock > 0 && (
             <p className="text-[10px] text-slate-400">{product.stock} قطعة</p>
           )}

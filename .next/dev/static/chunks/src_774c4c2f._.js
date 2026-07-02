@@ -1254,6 +1254,8 @@ async function createProduct(product) {
         name: product.name,
         description: product.description ?? null,
         price: Number(product.price),
+        discountPercent: product.discountPercent ?? 0,
+        discount_percent: product.discountPercent ?? 0,
         sku: product.sku ?? null,
         stock: Number(product.stock ?? 0),
         imageUrl: product.imageUrl ?? null,
@@ -1278,7 +1280,21 @@ async function createProduct(product) {
         console.error('Create product function returned invalid payload:', responseData);
         throw new Error('استجابة دالة إنشاء المنتج غير صحيحة.');
     }
-    return mapProductRow(responseData.product);
+    const createdProduct = mapProductRow(responseData.product);
+    // إذا كان هناك خصم، نُطبّقه مباشرةً عبر Supabase Client بدلاً من الاعتماد على Edge Function
+    // (Edge Function قد لا تقبل حقل discount_percent بعد)
+    const discountPercent = Number(product.discountPercent ?? 0);
+    if (discountPercent > 0 && createdProduct.id) {
+        const { error: discountError } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('products').update({
+            discount_percent: discountPercent
+        }).eq('id', createdProduct.id);
+        if (discountError) {
+            console.error('Failed to apply discount after creation:', discountError.message);
+        } else {
+            createdProduct.discountPercent = discountPercent;
+        }
+    }
+    return createdProduct;
 }
 async function updateProduct(productId, updates) {
     if (!productId) throw new Error('معرّف المنتج مطلوب');
@@ -1305,6 +1321,10 @@ async function updateProduct(productId, updates) {
     if (updates.imageUrl !== undefined) {
         payload.image_url = updates.imageUrl || null;
         payload.imageUrl = updates.imageUrl || null;
+    }
+    if (updates.discountPercent !== undefined) {
+        payload.discount_percent = Number(updates.discountPercent ?? 0);
+    // لا نُرسل discountPercent بالـ camelCase — العمود في DB هو discount_percent فقط
     }
     const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('products').update(payload).eq('id', productId).select('*').single();
     if (error) {
@@ -1512,11 +1532,13 @@ function mapStoreRow(row) {
     };
 }
 function mapProductRow(row) {
+    const rawDiscount = getRowValue(row, 'discount_percent', 'discountPercent');
     return {
         id: row.id,
         name: row.name,
         description: row.description || '',
         price: row.price,
+        discountPercent: rawDiscount != null && Number(rawDiscount) > 0 ? Number(rawDiscount) : undefined,
         imageUrl: getRowValue(row, 'image_url', 'imageUrl'),
         storeId: getRowValue(row, 'store_id', 'storeId') || '',
         categoryId: getRowValue(row, 'category_id', 'categoryId'),

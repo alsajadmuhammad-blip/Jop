@@ -523,6 +523,8 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
     name: product.name,
     description: product.description ?? null,
     price: Number(product.price),
+    discountPercent: product.discountPercent ?? 0,
+    discount_percent: product.discountPercent ?? 0,
     sku: product.sku ?? null,
     stock: Number(product.stock ?? 0),
     imageUrl: product.imageUrl ?? null,
@@ -551,7 +553,24 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
     throw new Error('استجابة دالة إنشاء المنتج غير صحيحة.');
   }
 
-  return mapProductRow(responseData.product);
+  const createdProduct = mapProductRow(responseData.product);
+
+  // إذا كان هناك خصم، نُطبّقه مباشرةً عبر Supabase Client بدلاً من الاعتماد على Edge Function
+  // (Edge Function قد لا تقبل حقل discount_percent بعد)
+  const discountPercent = Number(product.discountPercent ?? 0);
+  if (discountPercent > 0 && createdProduct.id) {
+    const { error: discountError } = await supabase
+      .from('products')
+      .update({ discount_percent: discountPercent })
+      .eq('id', createdProduct.id);
+    if (discountError) {
+      console.error('Failed to apply discount after creation:', discountError.message);
+    } else {
+      createdProduct.discountPercent = discountPercent;
+    }
+  }
+
+  return createdProduct;
 }
 
 export async function updateProduct(productId: string, updates: Partial<Product>): Promise<Product | null> {
@@ -580,6 +599,10 @@ export async function updateProduct(productId: string, updates: Partial<Product>
   if (updates.imageUrl    !== undefined) {
     payload.image_url   = updates.imageUrl || null;
     payload.imageUrl    = updates.imageUrl || null;
+  }
+  if (updates.discountPercent !== undefined) {
+    payload.discount_percent = Number(updates.discountPercent ?? 0);
+    // لا نُرسل discountPercent بالـ camelCase — العمود في DB هو discount_percent فقط
   }
 
   const { data, error } = await supabase
@@ -864,11 +887,13 @@ export function mapStoreRow(row: any): Store {
 }
 
 export function mapProductRow(row: any): Product {
+  const rawDiscount = getRowValue<number>(row, 'discount_percent', 'discountPercent');
   return {
     id: row.id,
     name: row.name,
     description: row.description || '',
     price: row.price,
+    discountPercent: rawDiscount != null && Number(rawDiscount) > 0 ? Number(rawDiscount) : undefined,
     imageUrl: getRowValue<string>(row, 'image_url', 'imageUrl'),
     storeId: getRowValue<string>(row, 'store_id', 'storeId') || '',
     categoryId: getRowValue<string>(row, 'category_id', 'categoryId'),

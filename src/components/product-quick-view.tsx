@@ -7,6 +7,7 @@ import { ShoppingCart, X, Store as StoreIcon, Image as ImageIcon } from "lucide-
 import { motion, AnimatePresence } from "framer-motion";
 
 import type { Product, Store } from "@/lib/types";
+import { getDiscountedPrice, hasActiveDiscount } from "@/lib/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
@@ -146,9 +147,23 @@ export function ProductQuickView({
                   {product.name}
                 </motion.h1>
                 
-                <motion.p variants={itemVariants} className="text-lg font-bold text-primary">
-                  {product.price.toLocaleString()} د.ع
-                </motion.p>
+                {hasActiveDiscount(product) ? (
+                  <motion.div variants={itemVariants} className="flex items-baseline gap-2">
+                    <span className="text-lg font-bold text-rose-600">
+                      {getDiscountedPrice(product).toLocaleString()} د.ع
+                    </span>
+                    <span className="text-sm text-slate-400 line-through">
+                      {product.price.toLocaleString()} د.ع
+                    </span>
+                    <span className="rounded-full bg-rose-100 text-rose-600 text-xs font-bold px-2 py-0.5">
+                      -{product.discountPercent}%
+                    </span>
+                  </motion.div>
+                ) : (
+                  <motion.p variants={itemVariants} className="text-lg font-bold text-primary">
+                    {product.price.toLocaleString()} د.ع
+                  </motion.p>
+                )}
                 <motion.p variants={itemVariants} className={product.stock > 0 ? "text-success text-sm" : "text-destructive text-sm"}>
                   {product.stock > 0 ? `متوفر: ${product.stock} قطعة` : "نفد المخزون"}
                 </motion.p>

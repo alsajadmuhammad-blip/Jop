@@ -68,12 +68,6 @@
       "namedRegex": "^/api/admin/create\\-store(?:/)?$"
     },
     {
-      "page": "/api/store/rate",
-      "regex": "^/api/store/rate(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/api/store/rate(?:/)?$"
-    },
-    {
       "page": "/cart",
       "regex": "^/cart(?:/)?$",
       "routeKeys": {},

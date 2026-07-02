@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, ChevronRight, Loader2 } from "lucide-react";
+import { Upload, ChevronRight, Loader2, Tag, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BackButton } from "@/components/layout/back-button";
@@ -32,6 +32,7 @@ import {
 
 import Image from "next/image";
 import type { Product, Section } from "@/lib/types";
+import { getDiscountedPrice } from "@/lib/types";
 import { productFormSchema } from "@/lib/validations";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,6 +53,7 @@ function AddProductPageContent() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [discountEnabled, setDiscountEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -68,6 +70,7 @@ function AddProductPageContent() {
       name: "",
       description: "",
       price: 0,
+      discountPercent: 0,
       sku: "",
       stock: 0,
       imageUrl: "",
@@ -121,11 +124,15 @@ function AddProductPageContent() {
             return;
           }
 
+          const rawDiscount = productRow.discount_percent ?? productRow.discountPercent ?? 0;
+          const discount = Number(rawDiscount) > 0 ? Number(rawDiscount) : 0;
+
           const product = {
             id: productRow.id,
             name: productRow.name,
             description: productRow.description || '',
             price: productRow.price,
+            discountPercent: discount || undefined,
             imageUrl: productRow.image_url || productRow.imageUrl || '',
             storeId: productRow.store_id || productRow.storeId || '',
             sectionId: productRow.section_id || productRow.sectionId || '',
@@ -134,10 +141,12 @@ function AddProductPageContent() {
           };
 
           setEditingProduct(product);
+          if (discount > 0) setDiscountEnabled(true);
           form.reset({
             name: product.name,
             description: product.description,
             price: product.price,
+            discountPercent: discount,
             sku: product.sku || "",
             stock: product.stock || 0,
             imageUrl: product.imageUrl,
@@ -247,11 +256,16 @@ function AddProductPageContent() {
         imageUrl = uploadResult.url || imageUrl;
       }
 
+      const discountPercent = discountEnabled && data.discountPercent && data.discountPercent > 0
+        ? data.discountPercent
+        : 0;
+
       if (editingProduct) {
         await updateProduct(editingProduct.id, {
           name: data.name,
           description: data.description,
           price: data.price,
+          discountPercent,
           imageUrl: imageUrl || editingProduct.imageUrl,
           sectionId: data.sectionId,
           sku: data.sku,
@@ -263,6 +277,7 @@ function AddProductPageContent() {
           name: data.name,
           description: data.description,
           price: data.price,
+          discountPercent,
           sectionId: data.sectionId,
           sku: data.sku,
           stock: data.stock,
@@ -447,6 +462,127 @@ function AddProductPageContent() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Discount */}
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  {/* Toggle header */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !discountEnabled;
+                      setDiscountEnabled(next);
+                      if (!next) form.setValue("discountPercent", 0);
+                    }}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-rose-500" />
+                      <span className="text-sm font-semibold text-slate-800">إضافة خصم</span>
+                    </div>
+                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${discountEnabled ? "bg-rose-500" : "bg-slate-300"}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200 ${discountEnabled ? "right-0.5" : "left-0.5"}`} />
+                    </div>
+                  </button>
+
+                  {/* Discount body */}
+                  {discountEnabled && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="p-4 space-y-4 border-t border-slate-200 bg-white"
+                    >
+                      <FormField
+                        control={form.control}
+                        name="discountPercent"
+                        render={({ field }) => {
+                          const percent = Number(field.value ?? 0);
+                          const price = Number(form.watch("price") ?? 0);
+                          const discountedPrice = price > 0 && percent > 0
+                            ? Math.round(price * (1 - percent / 100))
+                            : null;
+                          return (
+                            <FormItem>
+                              <FormLabel className="text-sm font-semibold text-slate-700">
+                                نسبة الخصم
+                              </FormLabel>
+                              <div className="space-y-3">
+                                {/* Slider */}
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="range"
+                                    min={1}
+                                    max={99}
+                                    value={percent || 1}
+                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                    disabled={isLoading}
+                                    className="flex-1 h-2 accent-rose-500 cursor-pointer"
+                                  />
+                                  <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1 min-w-[70px]">
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={99}
+                                      value={field.value ?? ""}
+                                      onChange={(e) => {
+                                        const v = Math.min(99, Math.max(1, Number(e.target.value)));
+                                        field.onChange(v);
+                                      }}
+                                      disabled={isLoading}
+                                      className="border-0 bg-transparent p-0 h-auto text-sm font-bold text-rose-600 w-10 focus-visible:ring-0"
+                                    />
+                                    <span className="text-sm font-bold text-rose-500">%</span>
+                                  </div>
+                                </div>
+
+                                {/* Quick presets */}
+                                <div className="flex flex-wrap gap-2">
+                                  {[10, 15, 20, 25, 30, 50].map((p) => (
+                                    <button
+                                      key={p}
+                                      type="button"
+                                      onClick={() => field.onChange(p)}
+                                      disabled={isLoading}
+                                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                                        percent === p
+                                          ? "bg-rose-500 text-white border-rose-500"
+                                          : "bg-white text-slate-600 border-slate-200 hover:border-rose-300 hover:text-rose-600"
+                                      }`}
+                                    >
+                                      {p}%
+                                    </button>
+                                  ))}
+                                </div>
+
+                                {/* Price preview */}
+                                {discountedPrice !== null && price > 0 && (
+                                  <div className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-lg px-4 py-3">
+                                    <div className="flex-1">
+                                      <p className="text-xs text-slate-400 mb-0.5">السعر الأصلي</p>
+                                      <p className="text-sm font-medium text-slate-500 line-through">
+                                        {price.toLocaleString()} د.ع
+                                      </p>
+                                    </div>
+                                    <div className="text-slate-300 font-bold">←</div>
+                                    <div className="flex-1 text-left">
+                                      <p className="text-xs text-rose-400 mb-0.5">السعر بعد الخصم</p>
+                                      <p className="text-base font-bold text-rose-600">
+                                        {discountedPrice.toLocaleString()} د.ع
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Section */}

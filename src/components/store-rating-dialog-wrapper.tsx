@@ -7,6 +7,7 @@ import { StoreRatingDialog } from "@/components/store-rating-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/services/supabase";
 
 interface StoreRatingDialogWrapperProps {
   storeId: string;
@@ -44,21 +45,48 @@ export function StoreRatingDialogWrapper({
   };
 
   const handleRatingSubmit = async (rating: number) => {
-    const response = await fetch("/api/store/rate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storeId, rating }),
-    });
+    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+      toast({
+        variant: "destructive",
+        title: "تقييم غير صحيح",
+        description: "يجب أن يكون التقييم بين 1 و 5 نجوم.",
+      });
+      throw new Error("تقييم غير صحيح");
+    }
 
-    const data = await response.json();
+    // Fetch current rating and reviews from Supabase directly (static export compatible)
+    const { data: storeData, error: fetchError } = await supabase
+      .from("stores")
+      .select("rating, reviews")
+      .eq("id", storeId)
+      .single();
 
-    if (!response.ok) {
+    if (fetchError || !storeData) {
       toast({
         variant: "destructive",
         title: "فشل إرسال التقييم",
-        description: data.error || "حدث خطأ ما. حاول مجدداً.",
+        description: "المتجر غير موجود أو حدث خطأ في الاتصال.",
       });
-      throw new Error(data.error || "فشل الإرسال");
+      throw new Error("المتجر غير موجود");
+    }
+
+    const currentRating: number = storeData.rating ?? 0;
+    const currentReviews: number = storeData.reviews ?? 0;
+    const newReviews = currentReviews + 1;
+    const newRating = (currentRating * currentReviews + rating) / newReviews;
+
+    const { error: updateError } = await supabase
+      .from("stores")
+      .update({ rating: newRating, reviews: newReviews })
+      .eq("id", storeId);
+
+    if (updateError) {
+      toast({
+        variant: "destructive",
+        title: "فشل إرسال التقييم",
+        description: updateError.message || "حدث خطأ ما. حاول مجدداً.",
+      });
+      throw new Error(updateError.message || "فشل الإرسال");
     }
 
     toast({
