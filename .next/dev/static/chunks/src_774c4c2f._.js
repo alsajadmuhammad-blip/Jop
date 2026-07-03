@@ -2217,28 +2217,74 @@ var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.sign
 ;
 ;
 ;
+// ─── كاش الجلسة ───────────────────────────────────────────────────
+const USER_CACHE_KEY = 'markazi_auth_user_v2';
+const USER_CACHE_TTL = 60 * 60 * 1000; // ساعة كاملة
+function readUserCache() {
+    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+    ;
+    try {
+        const raw = localStorage.getItem(USER_CACHE_KEY);
+        if (!raw) return null;
+        const { user, userRole, ts } = JSON.parse(raw);
+        if (!user || !userRole || !ts) return null;
+        if (Date.now() - ts > USER_CACHE_TTL) {
+            localStorage.removeItem(USER_CACHE_KEY);
+            return null;
+        }
+        return {
+            user,
+            userRole
+        };
+    } catch  {
+        return null;
+    }
+}
+function writeUserCache(user, userRole) {
+    try {
+        localStorage.setItem(USER_CACHE_KEY, JSON.stringify({
+            user,
+            userRole,
+            ts: Date.now()
+        }));
+    } catch  {}
+}
+function clearUserCache() {
+    try {
+        localStorage.removeItem(USER_CACHE_KEY);
+    } catch  {}
+}
 const AuthContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createContext"])(undefined);
 const AuthProvider = ({ children })=>{
     _s();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     const pathname = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"])();
     const { toast } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$hooks$2f$use$2d$toast$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"])();
-    const [user, setUser] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
-    const [userRole, setUserRole] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
-    const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
+    // ── استعادة فورية من الكاش — بدون spinner ──────────────────────
+    const [user, setUser] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        "AuthProvider.useState": ()=>readUserCache()?.user ?? null
+    }["AuthProvider.useState"]);
+    const [userRole, setUserRole] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        "AuthProvider.useState": ()=>readUserCache()?.userRole ?? null
+    }["AuthProvider.useState"]);
+    // loading = false إذا عندنا كاش، true فقط إذا ما عندنا شي
+    const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        "AuthProvider.useState": ()=>readUserCache() === null
+    }["AuthProvider.useState"]);
+    // ──────────────────────────────────────────────────────────────
     const redirectRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(false);
     const authInitializedRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(false);
+    // نمنع إعادة fetch إذا الـ user_id نفسه
+    const lastFetchedUserId = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(readUserCache()?.user?.id ?? null);
     const handleRedirect = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "AuthProvider.useCallback[handleRedirect]": (role, appUser)=>{
             const isAuthPage = pathname === '/login' || pathname === '/register';
             if (!isAuthPage || redirectRef.current) return;
             redirectRef.current = true;
             const redirectPath = role === 'admin' ? '/admin' : role === 'store' ? '/dashboard/store' : role === 'representative' ? '/dashboard/representative' : '/';
-            const toastTitle = role === 'admin' ? 'مرحباً أيها المشرف' : 'مرحباً بك';
-            const toastDescription = role === 'admin' ? 'تم تسجيل دخولك كمشرف.' : 'تم تسجيل الدخول بنجاح.';
             toast({
-                title: toastTitle,
-                description: toastDescription
+                title: 'مرحباً بك',
+                description: 'تم تسجيل الدخول بنجاح.'
             });
             router.replace(redirectPath);
         }
@@ -2259,17 +2305,27 @@ const AuthProvider = ({ children })=>{
             email
         };
     };
+    // ── fetch من DB — يُستدعى مرة واحدة فقط لكل user_id ──────────
     const fetchAndSetUser = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "AuthProvider.useCallback[fetchAndSetUser]": async (sessionUser, isLoginEvent = false)=>{
             if (!sessionUser) {
                 setUser(null);
                 setUserRole(null);
                 setLoading(false);
+                clearUserCache();
+                lastFetchedUserId.current = null;
                 return false;
             }
+            const { id: userId, email } = getAuthIdentifiers(sessionUser);
+            // إذا fetch سبق لنفس الـ user_id، لا نكرر الطلبات — نكتفي بالكاش
+            if (userId && userId === lastFetchedUserId.current && !isLoginEvent) {
+                setLoading(false);
+                return true;
+            }
+            // عند أول fetch أو login، نشغّل loading فقط إذا ما عندنا بيانات حالية
+            if (!user) setLoading(true);
             const findStoreForAuthUser = {
                 "AuthProvider.useCallback[fetchAndSetUser].findStoreForAuthUser": async ()=>{
-                    const { id: userId, email } = getAuthIdentifiers(sessionUser);
                     if (!userId && !email) return null;
                     const conditions = [
                         userId ? `owner_id.eq.${userId}` : null,
@@ -2279,19 +2335,12 @@ const AuthProvider = ({ children })=>{
                     ].filter(Boolean).join(',');
                     if (!conditions) return null;
                     const { data: storeRows, error: storeError } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('stores').select('id').or(conditions).limit(1);
-                    if (storeError) {
-                        console.warn('Store lookup failed for auth user:', storeError.message);
-                        return null;
-                    }
+                    if (storeError) return null;
                     return storeRows && storeRows.length > 0 ? storeRows[0] : null;
                 }
             }["AuthProvider.useCallback[fetchAndSetUser].findStoreForAuthUser"];
-            setLoading(true);
             try {
-                const { id: userId, email } = getAuthIdentifiers(sessionUser);
-                if (!userId && !email) {
-                    throw new Error('No authenticated user identifier available.');
-                }
+                if (!userId && !email) throw new Error('No authenticated user identifier available.');
                 let row = null;
                 if (userId) {
                     const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('users').select('*').eq('id', userId).limit(1);
@@ -2301,10 +2350,7 @@ const AuthProvider = ({ children })=>{
                 if (!row && email) {
                     const { data: emailRows, error: emailError } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('users').select('*').eq('email', email).limit(1);
                     if (emailError) throw new Error(`Database query failed: ${emailError.message}`);
-                    if (emailRows && emailRows.length > 0) {
-                        row = emailRows[0];
-                        console.warn('Found legacy user record by email fallback for auth user', email);
-                    }
+                    if (emailRows && emailRows.length > 0) row = emailRows[0];
                 }
                 const storeMatch = await findStoreForAuthUser();
                 if (!row) {
@@ -2325,8 +2371,7 @@ const AuthProvider = ({ children })=>{
                         ]);
                         if (insertErr) throw insertErr;
                         row = newUser;
-                    } catch (insertError) {
-                        console.warn('Failed to create user record in users table:', insertError);
+                    } catch  {
                         row = newUser;
                     }
                 } else {
@@ -2338,9 +2383,7 @@ const AuthProvider = ({ children })=>{
                         updatePayload.store_id = storeMatch?.id;
                         updatePayload.role = 'store';
                     }
-                    if (shouldFixStoreRole) {
-                        updatePayload.role = 'store';
-                    }
+                    if (shouldFixStoreRole) updatePayload.role = 'store';
                     if (Object.keys(updatePayload).length > 0) {
                         try {
                             await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('users').update({
@@ -2351,9 +2394,7 @@ const AuthProvider = ({ children })=>{
                                 ...row,
                                 ...updatePayload
                             };
-                            console.warn('Persisted recovered store linkage or corrected role for user', row.id, updatePayload);
-                        } catch (updateError) {
-                            console.warn('Failed to persist recovered store linkage or corrected role for user:', updateError);
+                        } catch  {
                             row = {
                                 ...row,
                                 ...updatePayload
@@ -2372,70 +2413,86 @@ const AuthProvider = ({ children })=>{
                     firstLogin: row.firstLogin || row.first_login || false
                 };
                 setUser({
-                    "AuthProvider.useCallback[fetchAndSetUser]": (prevUser)=>{
-                        if (prevUser?.id === appUser.id && prevUser?.name === appUser.name && prevUser?.email === appUser.email && prevUser?.role === appUser.role && prevUser?.storeId === appUser.storeId && prevUser?.firstLogin === appUser.firstLogin) {
-                            return prevUser;
-                        }
+                    "AuthProvider.useCallback[fetchAndSetUser]": (prev)=>{
+                        if (prev?.id === appUser.id && prev?.name === appUser.name && prev?.email === appUser.email && prev?.role === appUser.role && prev?.storeId === appUser.storeId) return prev;
                         return appUser;
                     }
                 }["AuthProvider.useCallback[fetchAndSetUser]"]);
                 setUserRole({
-                    "AuthProvider.useCallback[fetchAndSetUser]": (prevRole)=>prevRole === appUser.role ? prevRole : appUser.role
+                    "AuthProvider.useCallback[fetchAndSetUser]": (prev)=>prev === appUser.role ? prev : appUser.role
                 }["AuthProvider.useCallback[fetchAndSetUser]"]);
+                // ── حفظ في الكاش فوراً ──────────────────────────────────────
+                writeUserCache(appUser, appUser.role);
+                lastFetchedUserId.current = appUser.id;
+                // ────────────────────────────────────────────────────────────
                 if (isLoginEvent || pathname === '/login' || pathname === '/register') {
                     handleRedirect(appUser.role, appUser);
                 }
                 return true;
             } catch (error) {
                 console.error('Error fetching auth user:', error);
-                setUser(null);
-                setUserRole(null);
+                // لا نمسح الكاش عند خطأ الشبكة — نحافظ على الجلسة
                 return false;
             } finally{
                 setLoading(false);
             }
         }
     }["AuthProvider.useCallback[fetchAndSetUser]"], [
-        handleRedirect
+        handleRedirect,
+        user
     ]);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "AuthProvider.useEffect": ()=>{
             const initAuth = {
                 "AuthProvider.useEffect.initAuth": async ()=>{
                     if (!__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["isSupabaseConfigured"]) {
-                        console.error('Supabase is not configured. Check environment variables.');
                         setUser(null);
                         setUserRole(null);
                         setLoading(false);
+                        clearUserCache();
                         authInitializedRef.current = true;
                         return;
                     }
                     const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].auth.getSession();
-                    if (error) {
-                        console.error('Supabase getSession error:', error.message || error);
-                    }
+                    if (error) console.error('Supabase getSession error:', error.message || error);
                     if (data?.session) {
-                        await fetchAndSetUser(data.session.user);
+                        // إذا عندنا كاش بنفس الـ user_id — نكتفي بتأكيد الجلسة بدون DB queries
+                        const cached = readUserCache();
+                        const sessionUserId = data.session.user?.id;
+                        if (cached && cached.user.id === sessionUserId) {
+                            // الجلسة سليمة والكاش موجود — لا spinner
+                            setLoading(false);
+                        } else {
+                            // أول مرة أو user مختلف — fetch من DB
+                            await fetchAndSetUser(data.session.user);
+                        }
                     } else {
+                        // لا جلسة — امسح الكاش
                         setUser(null);
                         setUserRole(null);
                         setLoading(false);
+                        clearUserCache();
+                        lastFetchedUserId.current = null;
                     }
                     authInitializedRef.current = true;
                 }
             }["AuthProvider.useEffect.initAuth"];
             const { data: listener } = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].auth.onAuthStateChange({
                 "AuthProvider.useEffect": (event, session)=>{
-                    if (!authInitializedRef.current && event === 'SIGNED_IN') {
+                    // تجاهل TOKEN_REFRESHED و USER_UPDATED — لا تعيد fetch من DB
+                    // هذه الأحداث تسبب الـ spinner المزعج بدون داعٍ
+                    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
                         return;
                     }
-                    const isLoginEvent = event === 'SIGNED_IN';
+                    if (!authInitializedRef.current && event === 'SIGNED_IN') return;
                     if (session?.user) {
-                        fetchAndSetUser(session.user, isLoginEvent);
-                    } else {
+                        fetchAndSetUser(session.user, event === 'SIGNED_IN');
+                    } else if (event === 'SIGNED_OUT') {
                         setUser(null);
                         setUserRole(null);
                         setLoading(false);
+                        clearUserCache();
+                        lastFetchedUserId.current = null;
                     }
                 }
             }["AuthProvider.useEffect"]);
@@ -2461,18 +2518,10 @@ const AuthProvider = ({ children })=>{
                 password
             });
             if (error) {
-                const errorMessage = String(error.message || 'فشل تسجيل الدخول');
-                if (errorMessage.includes('Invalid API key')) {
-                    setLoading(false);
-                    return {
-                        success: false,
-                        message: 'مفتاح Supabase العام غير صالح. تحقق من NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local.'
-                    };
-                }
                 setLoading(false);
                 return {
                     success: false,
-                    message: errorMessage
+                    message: String(error.message || 'فشل تسجيل الدخول')
                 };
             }
             let authUser = data?.user || data?.session?.user;
@@ -2482,7 +2531,7 @@ const AuthProvider = ({ children })=>{
                     setLoading(false);
                     return {
                         success: false,
-                        message: sessionResult.error.message || 'فشل تسجيل الدخول. لم يتم العثور على الجلسة.'
+                        message: sessionResult.error.message || 'لم يتم العثور على الجلسة.'
                     };
                 }
                 authUser = sessionResult.data?.session?.user;
@@ -2494,6 +2543,8 @@ const AuthProvider = ({ children })=>{
                     message: 'فشل الحصول على بيانات المستخدم.'
                 };
             }
+            // إجبار fetch جديد عند الـ login
+            lastFetchedUserId.current = null;
             const userFetched = await fetchAndSetUser(authUser, true);
             if (!userFetched) {
                 setLoading(false);
@@ -2516,6 +2567,8 @@ const AuthProvider = ({ children })=>{
     };
     const logout = async ()=>{
         try {
+            clearUserCache();
+            lastFetchedUserId.current = null;
             await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].auth.signOut();
             setUser(null);
             setUserRole(null);
@@ -2535,21 +2588,18 @@ const AuthProvider = ({ children })=>{
             const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].auth.signInWithOAuth({
                 provider: 'google'
             });
-            if (error) {
-                return {
-                    success: false,
-                    message: error.message || 'فشل تسجيل الدخول باستخدام Google.'
-                };
-            }
+            if (error) return {
+                success: false,
+                message: error.message || 'فشل تسجيل الدخول باستخدام Google.'
+            };
             const authUser = data?.user || data?.session?.user;
             if (authUser) {
+                lastFetchedUserId.current = null;
                 const userFetched = await fetchAndSetUser(authUser, true);
-                if (!userFetched) {
-                    return {
-                        success: false,
-                        message: 'فشل تحميل بيانات المستخدم بعد تسجيل الدخول باستخدام Google.'
-                    };
-                }
+                if (!userFetched) return {
+                    success: false,
+                    message: 'فشل تحميل بيانات المستخدم بعد تسجيل الدخول باستخدام Google.'
+                };
             }
             return {
                 success: true,
@@ -2568,27 +2618,29 @@ const AuthProvider = ({ children })=>{
             password: userData.password
         });
         if (error) throw new Error(error.message);
-        if (data.user) await fetchAndSetUser(data.user);
-    };
-    const contextValue = {
-        user,
-        userRole,
-        loading,
-        login,
-        logout,
-        registerUser,
-        loginWithGoogle
+        if (data.user) {
+            lastFetchedUserId.current = null;
+            await fetchAndSetUser(data.user);
+        }
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AuthContext.Provider, {
-        value: contextValue,
+        value: {
+            user,
+            userRole,
+            loading,
+            login,
+            logout,
+            registerUser,
+            loginWithGoogle
+        },
         children: children
     }, void 0, false, {
         fileName: "[project]/src/hooks/use-auth.tsx",
-        lineNumber: 359,
+        lineNumber: 366,
         columnNumber: 5
     }, ("TURBOPACK compile-time value", void 0));
 };
-_s(AuthProvider, "4SZ9hR5egq2iD22qobCxMvWRuIs=", false, function() {
+_s(AuthProvider, "R8F8dJ9xIQvMMqM3FMQa69T36lI=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"],
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"],
@@ -2599,9 +2651,7 @@ _c = AuthProvider;
 const useAuth = ()=>{
     _s1();
     const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
     return context;
 };
 _s1(useAuth, "b9L3QQ+jgeyIrH0NfHrJ8nn7VMU=");

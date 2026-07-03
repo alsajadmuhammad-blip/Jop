@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -453,6 +453,42 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
 }
 
 
+// ── كاش لوحة التحكم (localStorage + TTL 5 دقائق) ─────────────────
+const STORE_CACHE_TTL = 5 * 60 * 1000;
+
+function readStoreCache(userId: string) {
+  try {
+    const raw = localStorage.getItem(`markazi_store_${userId}`);
+    if (!raw) return null;
+    const { store, products, sections, ts } = JSON.parse(raw);
+    if (!ts || Date.now() - ts > STORE_CACHE_TTL) {
+      localStorage.removeItem(`markazi_store_${userId}`);
+      return null;
+    }
+    return { store, products, sections };
+  } catch { return null; }
+}
+
+function writeStoreCache(userId: string, store: any, products: any[], sections: any[]) {
+  try {
+    localStorage.setItem(`markazi_store_${userId}`, JSON.stringify({ store, products, sections, ts: Date.now() }));
+    // حذف مفاتيح sessionStorage القديمة
+    sessionStorage.removeItem(`store_${userId}`);
+    sessionStorage.removeItem(`products_${userId}`);
+    sessionStorage.removeItem(`sections_${userId}`);
+  } catch {}
+}
+
+function clearStoreCache(userId: string) {
+  try {
+    localStorage.removeItem(`markazi_store_${userId}`);
+    sessionStorage.removeItem(`store_${userId}`);
+    sessionStorage.removeItem(`products_${userId}`);
+    sessionStorage.removeItem(`sections_${userId}`);
+  } catch {}
+}
+// ──────────────────────────────────────────────────────────────────
+
 // ===== Main Dashboard Component =====
 export default function StoreDashboardPage() {
   const { user, userRole, logout, loading: authLoading } = useAuth();
@@ -478,9 +514,51 @@ export default function StoreDashboardPage() {
     logout();
   };
 
-  const loadStore = useCallback(async () => {
+  // ── إعادة تعيين عند تغيير المستخدم (cross-user edge case) ───────
+  const prevUserIdRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!user?.id) return;
+    if (prevUserIdRef.current && prevUserIdRef.current !== user.id) {
+      // مستخدم مختلف — أعد التعيين الكامل
+      setSessionRestored(false);
+      setStoreLoadAttempted(false);
+      setStoreLoadUserId(null);
+      setStore(null);
+      setProducts([]);
+      setSections([]);
+    }
+    prevUserIdRef.current = user.id;
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── تحميل فوري من الكاش قبل أول paint (بدون spinner) ───────────
+  useLayoutEffect(() => {
+    if (!user?.id || sessionRestored) return;
+    const cached = readStoreCache(user.id);
+    if (!cached?.store) return;
+    try {
+      const ps = cached.store;
+      setStore(ps);
+      setProducts(cached.products ?? []);
+      setSections(cached.sections ?? []);
+      const activationDays = ps.activationDate
+        ? differenceInDays(new Date(), parseISO(ps.activationDate as string))
+        : 0;
+      const daysLeft = (ps.subscriptionDuration || 30) - activationDays;
+      setRemainingDays(daysLeft);
+      setIsStoreActive(!!ps.isActive);
+      setIsSubscriptionExpired(!!ps.isActive && daysLeft <= 0);
+      setLoading(false);
+      setSessionRestored(true);
+    } catch {
+      clearStoreCache(user.id);
+    }
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ─────────────────────────────────────────────────────────────────
+
+  const loadStore = useCallback(async (silent = false) => {
     const authUserId = user?.id ?? null;
-    setLoading(true);
+    // إذا silent=true (كاش موجود) لا نعرض spinner — stale-while-revalidate
+    if (!silent) setLoading(true);
     setStoreLoadAttempted(true);
     setStoreLoadUserId(authUserId);
 
@@ -547,18 +625,19 @@ export default function StoreDashboardPage() {
       const packageRows = await fetchStorePackages();
       setPackages(packageRows);
 
-      // حفظ البيانات في sessionStorage للعودة السريعة
+      // حفظ البيانات في localStorage مع TTL للعودة الفورية
       if (user?.id) {
-        sessionStorage.setItem(`store_${user.id}`, JSON.stringify(storeData));
-        sessionStorage.setItem(`products_${user.id}`, JSON.stringify(productsRows));
-        sessionStorage.setItem(`sections_${user.id}`, JSON.stringify(sectionsRows));
+        writeStoreCache(user.id, storeData, productsRows, sectionsRows);
       }
     } catch (error) {
       console.error('Error fetching store data:', error);
-      toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'فشل تحميل بيانات المتجر.' });
+      // لا نعرض toast للأخطاء الصامتة (silent revalidate)
+      if (!silent) {
+        toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'فشل تحميل بيانات المتجر.' });
+      }
     } finally {
+      // أوقف الـ spinner دائماً بعد الانتهاء
       setLoading(false);
-      setSessionRestored(true);
     }
   }, [user, toast]);
 
@@ -595,50 +674,14 @@ export default function StoreDashboardPage() {
       return;
     }
 
-    // محاولة استعادة الجلسة من sessionStorage
-    if (!sessionRestored && store === null) {
-      const cachedStore = sessionStorage.getItem(`store_${user.id}`);
-      const cachedProducts = sessionStorage.getItem(`products_${user.id}`);
-      const cachedSections = sessionStorage.getItem(`sections_${user.id}`);
-      
-      if (cachedStore && cachedProducts && cachedSections) {
-        try {
-          const parsedStore = JSON.parse(cachedStore);
-          setStore(parsedStore);
-          setProducts(JSON.parse(cachedProducts));
-          setSections(JSON.parse(cachedSections));
-          // إعادة حساب الاشتراك من بيانات الكاش
-          const activationDays = parsedStore.activationDate
-            ? differenceInDays(new Date(), parseISO(parsedStore.activationDate as string))
-            : 0;
-          const subDuration = parsedStore.subscriptionDuration || 30;
-          const daysLeft = subDuration - activationDays;
-          setRemainingDays(daysLeft);
-          setIsStoreActive(!!parsedStore.isActive);
-          setIsSubscriptionExpired(!!parsedStore.isActive && daysLeft <= 0);
-          setLoading(false);
-          setSessionRestored(true);
-          return;
-        } catch (e) {
-          console.error('Failed to restore session:', e);
-          sessionStorage.removeItem(`store_${user.id}`);
-          sessionStorage.removeItem(`products_${user.id}`);
-          sessionStorage.removeItem(`sections_${user.id}`);
-        }
-      }
-    }
-
     const isSameUser = user.id === storeLoadUserId;
-    if (store !== null || (storeLoadAttempted && isSameUser)) {
-      return;
-    }
+    if (storeLoadAttempted && isSameUser) return;
 
-    loadStore();
+    // silent=true إذا الكاش محمّل — نجدد البيانات في الخلفية بدون spinner
+    loadStore(sessionRestored);
 
-    return () => {
-      // Nothing to clean up
-    };
-  }, [user, userRole, authLoading, router, toast, store, storeLoadAttempted, storeLoadUserId, loadStore, sessionRestored]);
+    return () => {};
+  }, [user, userRole, authLoading, router, loadStore, storeLoadAttempted, storeLoadUserId, sessionRestored]);
 
   const fullStoreData = useMemo(() => {
     // If the store doc doesn't exist yet (e.g. pending review), create a temporary one for the UI
@@ -739,6 +782,7 @@ export default function StoreDashboardPage() {
       await updateStore(store.id, { logoUrl: newLogoUrl });
       setStore({ ...store, logoUrl: newLogoUrl });
       toast({ title: "تم تحديث الشعار بنجاح." });
+      if (user?.id) clearStoreCache(user.id);
     } catch (err) {
       console.error("Failed to save logo:", err);
       toast({ title: "فشل تحديث الشعار", variant: "destructive" });
@@ -753,6 +797,7 @@ export default function StoreDashboardPage() {
       await updateStore(store.id, { [key]: value } as Partial<Store>);
       setStore({ ...store, [key]: value } as Store);
       toast({ title: "تم حفظ التغييرات بنجاح." });
+      if (user?.id) clearStoreCache(user.id);
     } catch (err) {
       console.error("Failed to update store setting:", err);
       toast({ title: "فشل حفظ التغييرات", variant: "destructive" });
@@ -804,6 +849,8 @@ export default function StoreDashboardPage() {
       toast({ title: "تم حذف المنتج بنجاح.", variant: "destructive" });
       const productsRows = await fetchProductsByStore(storeId);
       setProducts(productsRows);
+      // أبطل الكاش حتى لا تُعرض بيانات قديمة عند العودة
+      if (user?.id) clearStoreCache(user.id);
     } catch (error) {
       console.error("Failed to delete product:", error);
       toast({ title: "فشل حذف المنتج", variant: "destructive" });
@@ -822,6 +869,7 @@ export default function StoreDashboardPage() {
       setSections((prev) => [...prev, section]);
       setNewSectionName('');
       toast({ title: 'تم إنشاء القسم بنجاح.' });
+      if (user?.id) clearStoreCache(user.id);
     } catch (error) {
       console.error('Failed to create section:', error);
       toast({ title: 'فشل إنشاء القسم', variant: 'destructive' });
@@ -834,6 +882,7 @@ export default function StoreDashboardPage() {
       if (!success) throw new Error('فشل حذف القسم.');
       setSections((prev) => prev.filter((section) => section.id !== sectionId));
       toast({ title: 'تم حذف القسم بنجاح.', variant: 'destructive' });
+      if (user?.id) clearStoreCache(user.id);
     } catch (error) {
       console.error('Failed to delete section:', error);
       toast({ title: 'فشل حذف القسم', variant: 'destructive' });

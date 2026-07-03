@@ -1,0 +1,1 @@
+- [Store dashboard cache strategy](store-dashboard-cache.md) — stale-while-revalidate: useLayoutEffect shows localStorage cache before first paint, loadStore() always refreshes silently in background.
