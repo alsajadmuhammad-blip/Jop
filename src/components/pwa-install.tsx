@@ -90,7 +90,7 @@ export default function PwaInstall() {
       {/* المحتوى */}
       <div className="p-4 flex items-center gap-4">
         <img
-          src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
+          src="/markazi-logo.webp"
           alt="أيقونة مركزي"
           className="w-14 h-14 rounded-2xl flex-shrink-0 shadow"
         />

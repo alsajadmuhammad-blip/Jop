@@ -3,17 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>أنت غير متصل</title>
+  <title>غير متصل - مركزي</title>
   <style>
-    body { font-family: 'Tajawal', Arial, sans-serif; background: #f8fafc; color: #222; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-    .icon { font-size: 5rem; color: #2563eb; margin-bottom: 1rem; }
-    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-    p { color: #666; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      background: #f8faff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      color: #1e293b;
+    }
+    .card {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 32px rgba(37,99,235,0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #dbeafe, #eff6ff);
+      border-radius: 1.25rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 2rem;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: .5rem; }
+    p { font-size: .95rem; color: #64748b; line-height: 1.7; margin-bottom: 1.75rem; }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: .875rem;
+      padding: .85rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background .15s;
+    }
+    button:hover { background: #1d4ed8; }
+    .status {
+      margin-top: 1.25rem;
+      font-size: .8rem;
+      color: #94a3b8;
+    }
+    .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #f59e0b;
+      margin-left: .4rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
   </style>
 </head>
 <body>
-  <div class="icon">📶🚫</div>
-  <h1>أنت غير متصل بالإنترنت</h1>
-  <p>يرجى التحقق من اتصالك بالإنترنت ثم إعادة تحميل الصفحة.</p>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>أنت غير متصل بالإنترنت</h1>
+    <p>يبدو أن الاتصال بالشبكة منقطع.<br>تحقق من إعدادات الواي فاي أو البيانات ثم حاول مجدداً.</p>
+    <button onclick="location.reload()">إعادة المحاولة</button>
+    <p class="status">
+      <span class="dot"></span>
+      في انتظار استعادة الاتصال...
+    </p>
+  </div>
+  <script>
+    window.addEventListener('online', () => location.reload());
+  </script>
 </body>
 </html>

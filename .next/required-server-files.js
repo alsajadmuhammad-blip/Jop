@@ -132,6 +132,10 @@ self.__SERVER_FILES_MANIFEST={
       }
     },
     "outputFileTracingRoot": "/home/runner/workspace",
+    "allowedDevOrigins": [
+      "127.0.0.1",
+      "localhost"
+    ],
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -242,7 +246,6 @@ self.__SERVER_FILES_MANIFEST={
       "turbopackInferModuleSideEffects": false,
       "optimizePackageImports": [
         "lucide-react",
-        "@radix-ui/react-*",
         "date-fns",
         "lodash-es",
         "ramda",

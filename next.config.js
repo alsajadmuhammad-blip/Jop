@@ -12,8 +12,7 @@ const nextConfig = {
   // تأكد من ظهور أخطاء TypeScript أثناء البناء لتجنب المشاكل في الإنتاج.
   productionBrowserSourceMaps: false,
   
-  // Turbopack config for faster builds
-  turbopack: {},
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   
   // Compression and optimization
   compress: true,
@@ -102,9 +101,8 @@ const nextConfig = {
   output: 'export',
 
   // Export tracing for smaller builds
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-*'],
-  },
+  turbopack: {},
+  experimental: {},
 };
 
 module.exports = nextConfig;

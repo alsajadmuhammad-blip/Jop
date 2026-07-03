@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BottomNavbar } from "@/components/layout/bottom-navbar";
 import PwaInstall from '@/components/pwa-install';
+import PushNotificationPrompt from '@/components/push-notification-prompt';
 import { ThemeProvider } from "next-themes";
 
 function AppContent({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                   </main>
                   <BottomNavbar />
                   <PwaInstall />
+                  <PushNotificationPrompt />
                 </div>
               </CartProvider>
             </AuthProvider>
