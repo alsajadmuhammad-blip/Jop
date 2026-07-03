@@ -85,6 +85,7 @@ export function Header() {
   const isStore = userRole === 'store';
   const isRepresentative = userRole === 'representative';
   const isGuest = !user;
+  const isStorePage = pathname === '/store' || pathname.startsWith('/store/');
 
   const visibleLinks = navLinks.filter(
     (link) => userRole && link.roles.includes(userRole)
@@ -95,17 +96,19 @@ export function Header() {
       {/* ── الصف الأول: اللوغو + الأدوات ── */}
       <div className="container mx-auto flex h-14 items-center justify-between gap-3 px-4">
         {/* اللوغو */}
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
-          <Image
-            src="https://i.ibb.co/JRWx4h0N/20260426-060854.png"
-            alt="مركزي"
-            width={36}
-            height={36}
-            className="object-contain"
-            priority
-          />
-          <span className="font-bold text-lg font-headline text-primary">مركزي</span>
-        </Link>
+        {!isStorePage && (
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+            <Image
+              src="/markazi-logo.webp"
+              alt="مركزي"
+              width={36}
+              height={36}
+              className="object-contain rounded-lg"
+              priority
+            />
+            <span className="font-bold text-lg font-headline text-primary">مركزي</span>
+          </Link>
+        )}
 
         {/* روابط التنقل — تظهر فقط على الديسكتوب */}
         {!isGuest && (
