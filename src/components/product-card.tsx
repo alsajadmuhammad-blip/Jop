@@ -2,18 +2,31 @@
 
 import { useState, memo } from "react";
 import Image from "next/image";
-import { ShoppingCart, Check, ImageIcon } from "lucide-react";
+import { ShoppingCart, Check, ImageIcon, Zap, Clock } from "lucide-react";
 
 import type { Product } from "@/lib/types";
-import { getDiscountedPrice, hasActiveDiscount } from "@/lib/types";
+import { getDiscountedPrice, hasActiveDiscount, hasActiveFlashSale, getEffectivePrice } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useCountdown } from "@/hooks/use-countdown";
 
 interface ProductCardProps {
   product: Product;
   onQuickView: (product: Product) => void;
+}
+
+/** كاونت داون مضغوط يظهر داخل كارت المنتج */
+function FlashCountdown({ endsAt }: { endsAt: string }) {
+  const { formatted, isExpired } = useCountdown(endsAt);
+  if (isExpired) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-bold text-white tabular-nums shadow-sm">
+      <Clock className="h-2.5 w-2.5 shrink-0" />
+      {formatted}
+    </span>
+  );
 }
 
 function ProductCardContent({ product, onQuickView }: ProductCardProps) {
@@ -21,8 +34,9 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
   const { toast } = useToast();
   const [isAdded, setIsAdded] = useState(false);
 
-  const isOnSale = hasActiveDiscount(product);
-  const displayPrice = isOnSale ? getDiscountedPrice(product) : product.price;
+  const flash = hasActiveFlashSale(product);
+  const isOnSale = flash || hasActiveDiscount(product);
+  const displayPrice = flash ? product.flashPrice! : (hasActiveDiscount(product) ? getDiscountedPrice(product) : product.price);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,8 +100,19 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
             <ImageIcon className="size-10 text-muted-foreground/30" />
           )}
 
-          {/* Discount badge */}
-          {isOnSale && (
+          {/* Flash sale badge */}
+          {flash && product.flashEndsAt && (
+            <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                <Zap className="h-2.5 w-2.5" />
+                فلاش
+              </span>
+              <FlashCountdown endsAt={product.flashEndsAt} />
+            </div>
+          )}
+
+          {/* Regular discount badge (only when no flash sale) */}
+          {!flash && hasActiveDiscount(product) && (
             <span className="absolute top-2 right-2 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
               -{product.discountPercent}%
             </span>
@@ -120,7 +145,7 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
                   )}
                   <p className={cn(
                     "text-xs sm:text-sm md:text-base font-extrabold leading-none",
-                    isOnSale ? "text-rose-600" : "text-primary"
+                    flash ? "text-amber-600" : isOnSale ? "text-rose-600" : "text-primary"
                   )}>
                     {displayPrice.toLocaleString()} د.ع
                   </p>

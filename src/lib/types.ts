@@ -16,9 +16,12 @@ export type Product = {
   isFeatured?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  /** فلاش سيل — يُضاف عند جلب المنتجات إذا كان هناك عرض نشط */
+  flashPrice?: number;
+  flashEndsAt?: string; // ISO string
 };
 
-/** يحسب السعر بعد الخصم */
+/** يحسب السعر بعد الخصم العادي */
 export function getDiscountedPrice(product: Pick<Product, 'price' | 'discountPercent'>): number {
   if (!product.discountPercent || product.discountPercent <= 0) return product.price;
   return Math.round(product.price * (1 - product.discountPercent / 100));
@@ -27,6 +30,22 @@ export function getDiscountedPrice(product: Pick<Product, 'price' | 'discountPer
 /** هل المنتج عليه خصم فعّال؟ */
 export function hasActiveDiscount(product: Pick<Product, 'discountPercent'>): boolean {
   return !!(product.discountPercent && product.discountPercent > 0 && product.discountPercent < 100);
+}
+
+/** هل المنتج عليه فلاش سيل نشط؟ */
+export function hasActiveFlashSale(product: Pick<Product, 'flashPrice' | 'flashEndsAt'>): boolean {
+  return !!(
+    product.flashPrice &&
+    product.flashPrice > 0 &&
+    product.flashEndsAt &&
+    new Date(product.flashEndsAt) > new Date()
+  );
+}
+
+/** السعر الفعلي للمنتج (فلاش سيل > خصم عادي > سعر أصلي) */
+export function getEffectivePrice(product: Pick<Product, 'price' | 'discountPercent' | 'flashPrice' | 'flashEndsAt'>): number {
+  if (hasActiveFlashSale(product) && product.flashPrice) return product.flashPrice;
+  return getDiscountedPrice(product);
 }
 
 export type Section = {

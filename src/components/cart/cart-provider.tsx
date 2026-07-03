@@ -3,9 +3,10 @@
 
 import { createContext, useState, useEffect, useCallback, ReactNode, useMemo } from "react";
 import type { CartItem, Product, Store } from "@/lib/types";
-import { getDiscountedPrice } from "@/lib/types";
+import { getEffectivePrice } from "@/lib/types";
 import { supabase } from "@/services/supabase";
 import { parseBoolean } from "@/services/supabase-db";
+import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
 
 interface CartContextType {
   items: CartItem[];
@@ -21,6 +22,7 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 
 // Helper to fetch only the products currently in the cart from Supabase
+// Also merges active flash sales so flash prices survive page refresh
 async function getProductsByIds(productIds: string[]): Promise<Product[]> {
     if (productIds.length === 0) return [];
 
@@ -39,16 +41,29 @@ async function getProductsByIds(productIds: string[]): Promise<Product[]> {
         id: row.id,
         name: row.name,
         description: row.description,
-        price: row.price,
+        price: Number(row.price),
         discountPercent: row.discount_percent ?? row.discountPercent ?? 0,
         imageUrl: row.image_url || row.imageUrl,
         storeId: row.store_id || row.storeId,
         categoryId: row.category_id || row.categoryId,
         stock: row.stock ?? 0,
-        isAvailable: row.is_available ?? row.isAvailable ?? true,
     }));
 
-    return products;
+    // دمج الفلاش سيل النشطة — نجلب لكل متجر فريد في السلة
+    try {
+        const storeIds = [...new Set(products.map((p) => p.storeId))];
+        const allFlash = (
+            await Promise.all(storeIds.map((sid) => fetchActiveFlashSalesByStore(sid)))
+        ).flat();
+        const flashMap = new Map(allFlash.map((fs) => [fs.productId, fs]));
+        return products.map((p) => {
+            const fs = flashMap.get(p.id);
+            if (fs) return { ...p, flashPrice: fs.flashPrice, flashEndsAt: fs.endsAt };
+            return p;
+        });
+    } catch {
+        return products;
+    }
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -176,7 +191,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const totalPrice = items.reduce(
-    (total, item) => total + getDiscountedPrice(item.product) * item.quantity,
+    (total, item) => total + getEffectivePrice(item.product) * item.quantity,
     0
   );
 

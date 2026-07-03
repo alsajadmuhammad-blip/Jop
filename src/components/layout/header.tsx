@@ -26,11 +26,13 @@ import {
 import { Input } from "../ui/input";
 import { useTheme } from "next-themes";
 
+const WHATSAPP_CONTACT = "https://wa.me/9647772323607?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%B5%D9%84%20%D9%85%D8%B9%20%D9%85%D8%B1%D9%83%D8%B2%D9%8A";
+
 const navLinks = [
-  { href: "/", label: "الرئيسية", icon: Home, roles: ["customer", "store", "representative"] },
-  { href: "/stores", label: "المتاجر", icon: Store, roles: ["customer", "store", "representative"] },
-  { href: "/contact", label: "اتصل بنا", icon: Phone, roles: ["customer", "store", "representative"] },
-  { href: "/admin", label: "الإدارة", icon: Shield, roles: ["admin"] },
+  { href: "/", label: "الرئيسية", icon: Home, roles: ["customer", "store", "representative"], external: false },
+  { href: "/stores", label: "المتاجر", icon: Store, roles: ["customer", "store", "representative"], external: false },
+  { href: WHATSAPP_CONTACT, label: "اتصل بنا", icon: Phone, roles: ["customer", "store", "representative"], external: true },
+  { href: "/admin", label: "الإدارة", icon: Shield, roles: ["admin"], external: false },
 ];
 
 function SearchBar() {
@@ -113,19 +115,32 @@ export function Header() {
         {/* روابط التنقل — تظهر فقط على الديسكتوب */}
         {!isGuest && (
           <nav className="hidden md:flex items-center gap-0.5 text-sm font-medium flex-1 justify-center">
-            {visibleLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-xl transition-all duration-150 ${
-                  pathname === link.href
-                    ? "text-primary bg-primary/10 font-semibold"
-                    : "text-foreground/60 hover:text-primary hover:bg-primary/5"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {visibleLinks.map((link) =>
+              link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded-xl transition-all duration-150 text-foreground/60 hover:text-primary hover:bg-primary/5 flex items-center gap-1.5"
+                >
+                  <link.icon className="h-3.5 w-3.5" />
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-4 py-2 rounded-xl transition-all duration-150 ${
+                    pathname === link.href
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-foreground/60 hover:text-primary hover:bg-primary/5"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
           </nav>
         )}
 
@@ -210,6 +225,20 @@ export function Header() {
           <div className="flex overflow-x-auto no-scrollbar px-2 py-1">
             {visibleLinks.map((link) => {
               const Icon = link.icon;
+              if (link.external) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-xl transition-all text-xs text-foreground/50 hover:text-primary"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {link.label}
+                  </a>
+                );
+              }
               return (
                 <Link
                   key={link.href}

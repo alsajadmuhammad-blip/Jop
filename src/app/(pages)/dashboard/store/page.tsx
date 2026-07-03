@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { StoreOwnerNavbar } from "./navbar";
-import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, ExternalLink, Tag } from "lucide-react";
+import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section, StorePackage } from "@/lib/types";
@@ -45,6 +45,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
+import { FlashSalesTab } from "@/components/dashboard/flash-sales-tab";
+import { DiscountCodesTab } from "@/components/dashboard/discount-codes-tab";
 
 // ===== Dashboard Product Card =====
 // Lightweight card — no portals, no GPU-layer transforms. Confirm dialog is shared at the grid level.
@@ -641,7 +643,7 @@ export default function StoreDashboardPage() {
     }
   }, [user, toast]);
 
-  const validViews = ['products', 'orders', 'sections', 'subscription', 'settings'];
+  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'subscription', 'settings'];
 
   const handleViewChange = (view: string) => {
     if (!validViews.includes(view)) return;
@@ -946,10 +948,10 @@ export default function StoreDashboardPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <Button asChild size="sm" className="rounded-lg gap-1.5 bg-primary text-white hover:bg-primary/90 shadow-sm">
-                <Link href={`/store?id=${fullStoreData.id}`} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">عرض المتجر</span>
+              <Button asChild size="sm" variant="outline" className="rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary hover:text-white transition-all font-semibold shadow-sm px-4">
+                <Link href={`/store?id=${fullStoreData.id}`}>
+                  <Eye className="h-4 w-4" />
+                  <span>معاينة المتجر</span>
                 </Link>
               </Button>
             </div>
@@ -1141,6 +1143,20 @@ export default function StoreDashboardPage() {
                 <p className="text-xs text-slate-400 mt-1">أضف قسماً من الحقل أعلاه لتنظيم منتجاتك</p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* ─── تبويب الفلاش سيل ─── */}
+        {activeView === 'flash' && fullStoreData && (
+          <motion.div key="flash" {...tabMotion}>
+            <FlashSalesTab storeId={fullStoreData.id} products={products} />
+          </motion.div>
+        )}
+
+        {/* ─── تبويب كودات الخصم ─── */}
+        {activeView === 'coupons' && fullStoreData && (
+          <motion.div key="coupons" {...tabMotion}>
+            <DiscountCodesTab storeId={fullStoreData.id} />
           </motion.div>
         )}
 

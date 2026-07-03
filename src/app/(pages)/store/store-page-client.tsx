@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
+import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
 import type { Product, Store, Section } from "@/lib/types";
@@ -56,13 +57,22 @@ export default function StorePageClient() {
         if (!fetchedStore) throw new Error("لم يتم العثور على المتجر.");
         if (!fetchedStore.isActive) throw new Error("هذا المتجر غير متاح حالياً.");
 
-        const [productsData, sectionsData] = await Promise.all([
+        const [productsData, sectionsData, flashSalesData] = await Promise.all([
           fetchProductsByStore(storeId),
           fetchStoreSections(storeId),
+          fetchActiveFlashSalesByStore(storeId),
         ]);
 
+        // دمج بيانات الفلاش سيل النشطة مع المنتجات
+        const flashMap = new Map(flashSalesData.map((fs) => [fs.productId, fs]));
+        const productsWithFlash = productsData.map((p) => {
+          const fs = flashMap.get(p.id);
+          if (fs) return { ...p, flashPrice: fs.flashPrice, flashEndsAt: fs.endsAt };
+          return p;
+        });
+
         setStore(fetchedStore);
-        setProducts(productsData);
+        setProducts(productsWithFlash);
         setSections(sectionsData);
       } catch (err: any) {
         setErrorMessage(err?.message || "حدث خطأ أثناء تحميل المتجر.");

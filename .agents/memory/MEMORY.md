@@ -1,1 +1,2 @@
 - [Store dashboard cache strategy](store-dashboard-cache.md) — stale-while-revalidate: useLayoutEffect shows localStorage cache before first paint, loadStore() always refreshes silently in background.
+- [Flash sales & discount codes](flash-discount-features.md) — two new features added; flash price takes priority over regular discount in ALL pricing paths via getEffectivePrice().

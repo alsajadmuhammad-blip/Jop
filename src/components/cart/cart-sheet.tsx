@@ -24,9 +24,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, ShoppingCart, Minus, Plus, Image as ImageIcon, Loader2, MapPin, Phone, User, Wallet, ChevronRight, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { CartItem, OrderItem } from "@/lib/types";
-import { getDiscountedPrice } from "@/lib/types";
+import { getDiscountedPrice, getEffectivePrice } from "@/lib/types";
 import { createOrder } from "@/services/orders";
 import { fetchStoreById } from "@/services/supabase-db";
+import { validateDiscountCode, incrementDiscountUsage, type DiscountCode } from "@/services/discount-codes";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +85,12 @@ export function CartSheet({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<Partial<CheckoutForm>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // كود الخصم
+  const [discountInput, setDiscountInput] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [discountError, setDiscountError] = useState("");
+  const [discountLoading, setDiscountLoading] = useState(false);
+
   useEffect(() => {
     if (user?.name) setForm((f) => ({ ...f, name: f.name || user.name || "" }));
   }, [user?.name]);
@@ -108,7 +115,24 @@ export function CartSheet({ children }: { children: ReactNode }) {
     setCheckoutData({ storeId, storeName, whatsappNumber, storeItems });
     setForm({ ...emptyForm, name: user?.name || "" });
     setErrors({});
+    setDiscountInput("");
+    setAppliedDiscount(null);
+    setDiscountError("");
     setIsCheckoutOpen(true);
+  };
+
+  const handleApplyDiscount = async () => {
+    if (!checkoutData || !discountInput.trim()) return;
+    setDiscountLoading(true);
+    setDiscountError("");
+    const result = await validateDiscountCode(checkoutData.storeId, discountInput.trim());
+    setDiscountLoading(false);
+    if (result.valid && result.discountCode) {
+      setAppliedDiscount(result.discountCode);
+    } else {
+      setDiscountError(result.error ?? "الكود غير صحيح");
+      setAppliedDiscount(null);
+    }
   };
 
   const handleSubmitOrder = async () => {
@@ -133,11 +157,15 @@ export function CartSheet({ children }: { children: ReactNode }) {
         productId: item.product.id,
         productName: item.product.name,
         quantity: item.quantity,
-        unitPrice: getDiscountedPrice(item.product),
-        totalPrice: getDiscountedPrice(item.product) * item.quantity,
+        unitPrice: getEffectivePrice(item.product),
+        totalPrice: getEffectivePrice(item.product) * item.quantity,
       }));
 
-      const storeTotal = orderItems.reduce((s, i) => s + i.totalPrice, 0);
+      const rawTotal = orderItems.reduce((s, i) => s + i.totalPrice, 0);
+      const discountAmount = appliedDiscount
+        ? Math.round(rawTotal * appliedDiscount.discountPercent / 100)
+        : 0;
+      const storeTotal = rawTotal - discountAmount;
 
       const order = await createOrder(
         checkoutData.storeId,
@@ -171,18 +199,31 @@ export function CartSheet({ children }: { children: ReactNode }) {
 
       msg += `\n*المنتجات:*\n`;
       checkoutData.storeItems.forEach((item) => {
-        const unitP = getDiscountedPrice(item.product);
+        const unitP = getEffectivePrice(item.product);
         msg += `• ${item.product.name} × ${item.quantity} = ${(unitP * item.quantity).toLocaleString()} د.ع\n`;
       });
       msg += `────────────────────\n`;
-      msg += `*الإجمالي:* ${storeTotal.toLocaleString()} د.ع\n`;
+      if (appliedDiscount && discountAmount > 0) {
+        msg += `*الإجمالي قبل الخصم:* ${rawTotal.toLocaleString()} د.ع\n`;
+        msg += `*كود الخصم:* ${appliedDiscount.code} (${appliedDiscount.discountPercent}% — وفر ${discountAmount.toLocaleString()} د.ع)\n`;
+        msg += `*الإجمالي بعد الخصم:* ${storeTotal.toLocaleString()} د.ع\n`;
+      } else {
+        msg += `*الإجمالي:* ${storeTotal.toLocaleString()} د.ع\n`;
+      }
       msg += `*الدفع:* عند الاستلام (أو حسب الاتفاق)\n`;
       if (form.notes.trim()) msg += `\n*ملاحظات:* ${form.notes.trim()}\n`;
       msg += `\n📱 منصة مركزي`;
 
       window.open(`https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
 
+      // زيادة عداد استخدام الكود إن وُجد
+      if (appliedDiscount) {
+        incrementDiscountUsage(appliedDiscount).catch(() => {});
+      }
+
       checkoutData.storeItems.forEach((item) => removeItem(item.product.id));
+      setAppliedDiscount(null);
+      setDiscountInput("");
       setIsCheckoutOpen(false);
 
       toast({
@@ -226,7 +267,7 @@ export function CartSheet({ children }: { children: ReactNode }) {
                       <div className="flex flex-1 flex-col justify-between">
                         <div>
                           <h4 className="font-semibold text-sm">{item.product.name}</h4>
-                          <p className="text-sm font-bold text-primary mt-0.5">{getDiscountedPrice(item.product).toLocaleString()} د.ع</p>
+                          <p className="text-sm font-bold text-primary mt-0.5">{getEffectivePrice(item.product).toLocaleString()} د.ع</p>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
@@ -298,15 +339,72 @@ export function CartSheet({ children }: { children: ReactNode }) {
                 {checkoutData.storeItems.map((item) => (
                   <div key={item.product.id} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{item.product.name} × {item.quantity}</span>
-                    <span className="font-medium">{(getDiscountedPrice(item.product) * item.quantity).toLocaleString()} د.ع</span>
+                    <span className="font-medium">{(getEffectivePrice(item.product) * item.quantity).toLocaleString()} د.ع</span>
                   </div>
                 ))}
-                <div className="border-t pt-2 flex justify-between font-bold text-sm">
-                  <span>الإجمالي</span>
-                  <span className="text-primary">
-                    {checkoutData.storeItems.reduce((s, i) => s + getDiscountedPrice(i.product) * i.quantity, 0).toLocaleString()} د.ع
-                  </span>
-                </div>
+                {(() => {
+                  const rawTotal = checkoutData.storeItems.reduce((s, i) => s + getEffectivePrice(i.product) * i.quantity, 0);
+                  const discountAmt = appliedDiscount ? Math.round(rawTotal * appliedDiscount.discountPercent / 100) : 0;
+                  const finalTotal = rawTotal - discountAmt;
+                  return (
+                    <>
+                      {appliedDiscount && (
+                        <div className="flex justify-between text-sm text-emerald-600 font-semibold">
+                          <span>خصم كود ({appliedDiscount.code} − {appliedDiscount.discountPercent}%)</span>
+                          <span>−{discountAmt.toLocaleString()} د.ع</span>
+                        </div>
+                      )}
+                      <div className="border-t pt-2 flex justify-between font-bold text-sm">
+                        <span>الإجمالي</span>
+                        <span className="text-primary">{finalTotal.toLocaleString()} د.ع</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Discount Code */}
+            {checkoutData && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  🎟️ كود الخصم <span className="font-normal">(اختياري)</span>
+                </label>
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
+                    <span className="text-sm font-bold text-emerald-700">
+                      ✅ {appliedDiscount.code} — خصم {appliedDiscount.discountPercent}%
+                    </span>
+                    <button
+                      onClick={() => { setAppliedDiscount(null); setDiscountInput(""); }}
+                      className="text-xs text-red-500 hover:underline font-medium"
+                    >
+                      إزالة
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={discountInput}
+                      onChange={(e) => { setDiscountInput(e.target.value.toUpperCase()); setDiscountError(""); }}
+                      placeholder="أدخل كود الخصم…"
+                      className="flex-1 h-10 rounded-lg border border-input bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                      dir="ltr"
+                      onKeyDown={(e) => { if (e.key === "Enter") handleApplyDiscount(); }}
+                    />
+                    <button
+                      onClick={handleApplyDiscount}
+                      disabled={discountLoading || !discountInput.trim()}
+                      className="h-10 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
+                    >
+                      {discountLoading ? "…" : "تطبيق"}
+                    </button>
+                  </div>
+                )}
+                {discountError && (
+                  <p className="text-xs text-destructive font-medium">{discountError}</p>
+                )}
               </div>
             )}
 
