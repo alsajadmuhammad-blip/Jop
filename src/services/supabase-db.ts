@@ -879,6 +879,8 @@ export function mapStoreRow(row: any): Store {
     activationDate: getRowValue<any>(row, 'activation_date', 'activationDate') || null,
     ownerId: getRowValue<string>(row, 'owner_id', 'ownerId') || null,
     ownerEmail: getRowValue<string>(row, 'owner_email', 'ownerEmail'),
+    slug: row.slug || undefined,
+    packageId: getRowValue<string>(row, 'package_id', 'packageId') || undefined,
     packageName: getRowValue<string>(row, 'package_name', 'packageName'),
     paymentProofUrl: getRowValue<string>(row, 'payment_proof_url', 'paymentProofUrl'),
     createdAt: getRowValue<any>(row, 'created_at', 'createdAt') || null,

@@ -61,7 +61,8 @@ export type StorePackage = {
 
 export type Store = {
   id: string;
-  name:string;
+  name: string;
+  slug?: string;               // URL-friendly identifier (e.g. "my-store")
   description: string;
   logoUrl?: string;
   coverImageUrl?: string;
@@ -73,30 +74,27 @@ export type Store = {
   type: "فعلي" | "إلكتروني";
   /**
    * نوع السوق/النشاط لهذا المتجر (مثال: 'هواتف'، 'قطع غيار'، 'ملابس'، ...)
-   * - 'spare-parts' = مركز قطع غيار
-   * - 'phones' = متجر هواتف
-   * - 'clothes' = ملابس
-   * - ...
    */
   marketType: string;
   businessHours?: {
-    open: number; // 24-hour format
+    open: number;  // 24-hour format
     close: number; // 24-hour format
   };
   products: Product[];
   whatsappNumber?: string;
   hasDelivery: boolean;
-  isActive: boolean; // Admin control
-  productLimit: number; // Admin control. Use a large number (e.g., Number.MAX_SAFE_INTEGER) for "unlimited".
+  isActive: boolean;           // Admin control
+  productLimit: number;        // Admin control. Use Number.MAX_SAFE_INTEGER for "unlimited".
   subscriptionDuration: number; // Admin control, in days
-  activationDate: string | null; // ISO date string, can be null for pending stores
-  ownerId: string | null; // UID of the user who owns the store, null for pending
-  ownerEmail?: string; // Store owner email for activation
-  password?: string; // Store owner password for activation
-  packageName?: string; // Subscription package name (e.g., 'basic', 'advanced', 'unlimited')
-  paymentProofUrl?: string; // Payment proof image/document URL
-  createdAt: string | number | null; // ISO date string, timestamp, or null
-  registeredByAgentId?: string | null; // UID of the representative who registered the store
+  activationDate: string | null; // ISO date string, null for pending stores
+  ownerId: string | null;      // UID of the user who owns the store
+  ownerEmail?: string;
+  password?: string;
+  packageId?: string;          // FK → store_packages.id
+  packageName?: string;
+  paymentProofUrl?: string;
+  createdAt: string | number | null;
+  registeredByAgentId?: string | null;
 };
 
 export type CartItem = {

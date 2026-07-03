@@ -364,7 +364,9 @@ export async function initiateSubscriptionPayment(
 export async function registerStoreAndInitiatePayment(payload: {
   ownerName: string;
   storeName: string;
+  storeType?: string;
   marketType?: string;
+  location?: string;
   whatsappNumber: string;
   ownerEmail: string;
   skipPayment?: boolean;

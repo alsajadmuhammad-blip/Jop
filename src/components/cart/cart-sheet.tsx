@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, ShoppingCart, Minus, Plus, Image as ImageIcon, Loader2, MapPin, Phone, User, Wallet, ChevronRight, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { CartItem, OrderItem } from "@/lib/types";
+import { getDiscountedPrice } from "@/lib/types";
 import { createOrder } from "@/services/orders";
 import { fetchStoreById } from "@/services/supabase-db";
 import {
@@ -132,8 +133,8 @@ export function CartSheet({ children }: { children: ReactNode }) {
         productId: item.product.id,
         productName: item.product.name,
         quantity: item.quantity,
-        unitPrice: item.product.price,
-        totalPrice: item.product.price * item.quantity,
+        unitPrice: getDiscountedPrice(item.product),
+        totalPrice: getDiscountedPrice(item.product) * item.quantity,
       }));
 
       const storeTotal = orderItems.reduce((s, i) => s + i.totalPrice, 0);
@@ -170,7 +171,8 @@ export function CartSheet({ children }: { children: ReactNode }) {
 
       msg += `\n*المنتجات:*\n`;
       checkoutData.storeItems.forEach((item) => {
-        msg += `• ${item.product.name} × ${item.quantity} = ${(item.product.price * item.quantity).toLocaleString()} د.ع\n`;
+        const unitP = getDiscountedPrice(item.product);
+        msg += `• ${item.product.name} × ${item.quantity} = ${(unitP * item.quantity).toLocaleString()} د.ع\n`;
       });
       msg += `────────────────────\n`;
       msg += `*الإجمالي:* ${storeTotal.toLocaleString()} د.ع\n`;
@@ -224,7 +226,7 @@ export function CartSheet({ children }: { children: ReactNode }) {
                       <div className="flex flex-1 flex-col justify-between">
                         <div>
                           <h4 className="font-semibold text-sm">{item.product.name}</h4>
-                          <p className="text-sm font-bold text-primary mt-0.5">{item.product.price.toLocaleString()} د.ع</p>
+                          <p className="text-sm font-bold text-primary mt-0.5">{getDiscountedPrice(item.product).toLocaleString()} د.ع</p>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
@@ -296,13 +298,13 @@ export function CartSheet({ children }: { children: ReactNode }) {
                 {checkoutData.storeItems.map((item) => (
                   <div key={item.product.id} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{item.product.name} × {item.quantity}</span>
-                    <span className="font-medium">{(item.product.price * item.quantity).toLocaleString()} د.ع</span>
+                    <span className="font-medium">{(getDiscountedPrice(item.product) * item.quantity).toLocaleString()} د.ع</span>
                   </div>
                 ))}
                 <div className="border-t pt-2 flex justify-between font-bold text-sm">
                   <span>الإجمالي</span>
                   <span className="text-primary">
-                    {checkoutData.storeItems.reduce((s, i) => s + i.product.price * i.quantity, 0).toLocaleString()} د.ع
+                    {checkoutData.storeItems.reduce((s, i) => s + getDiscountedPrice(i.product) * i.quantity, 0).toLocaleString()} د.ع
                   </span>
                 </div>
               </div>

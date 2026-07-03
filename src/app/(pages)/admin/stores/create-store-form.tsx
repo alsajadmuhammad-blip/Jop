@@ -204,7 +204,12 @@ export default function CreateStoreForm({
         const registerPayload = {
           ownerName: formData.ownerName,
           storeName: formData.storeName,
+          storeType: formData.storeType,
           marketType: formData.marketType,
+          // المحافظة + المدينة → location (للمتاجر الفعلية فقط)
+          ...(formData.storeType === "فعلي" && formData.governorate && {
+            location: [formData.governorate, formData.city].filter(Boolean).join(" - "),
+          }),
           whatsappNumber: `+964${formData.phone}`,
           ownerEmail: formData.email,
           password: formData.password,

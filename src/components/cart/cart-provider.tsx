@@ -3,6 +3,7 @@
 
 import { createContext, useState, useEffect, useCallback, ReactNode, useMemo } from "react";
 import type { CartItem, Product, Store } from "@/lib/types";
+import { getDiscountedPrice } from "@/lib/types";
 import { supabase } from "@/services/supabase";
 import { parseBoolean } from "@/services/supabase-db";
 
@@ -39,9 +40,12 @@ async function getProductsByIds(productIds: string[]): Promise<Product[]> {
         name: row.name,
         description: row.description,
         price: row.price,
+        discountPercent: row.discount_percent ?? row.discountPercent ?? 0,
         imageUrl: row.image_url || row.imageUrl,
         storeId: row.store_id || row.storeId,
         categoryId: row.category_id || row.categoryId,
+        stock: row.stock ?? 0,
+        isAvailable: row.is_available ?? row.isAvailable ?? true,
     }));
 
     return products;
@@ -172,7 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const totalPrice = items.reduce(
-    (total, item) => total + item.product.price * item.quantity,
+    (total, item) => total + getDiscountedPrice(item.product) * item.quantity,
     0
   );
 
