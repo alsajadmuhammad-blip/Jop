@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { fetchStorePackages } from "@/services/supabase-db";
 import { validatePartnerCode } from "@/services/supabase-admin";
 import { registerStoreAndInitiatePayment } from "@/services/subscription-service";
+import { supabase } from "@/services/supabase";
 import type { StorePackage } from "@/lib/types";
 
 // ─── ثوابت ────────────────────────────────────────────────────────
@@ -736,8 +737,16 @@ export default function CreateStorePage() {
         password:   data.password,
         packageId:  selectedPackage.id,
         skipPayment: mode === 'contact',
-        ...(partnerInfo && partnerCode && { partner_code: partnerCode }),
-        ...(partnerInfo?.id && { registered_by_agent_id: partnerInfo.id }),
+        // إرسال كود الشريك بكلا الصيغتين (snake_case و camelCase)
+        // لضمان توافق الـ edge function بغض النظر عن التسمية المستخدمة
+        ...(partnerInfo && partnerCode && {
+          partner_code: partnerCode,
+          partnerCode: partnerCode,
+        }),
+        ...(partnerInfo?.id && {
+          registered_by_agent_id: partnerInfo.id,
+          registeredByAgentId: partnerInfo.id,
+        }),
       };
 
       const result = await registerStoreAndInitiatePayment(payload);
@@ -748,6 +757,25 @@ export default function CreateStorePage() {
         await login(data.email, data.password);
       } catch {
         // لو فشل الـ auto-login ما يوقف العملية
+      }
+
+      // ── ربط المتجر بالشريك مباشرة (بعد الدخول) كـ fallback ──
+      // يعمل بعد login لأن RLS يتطلب مستخدم مصادق
+      if (result.storeId && partnerInfo?.id) {
+        try {
+          const { error: linkErr } = await supabase
+            .from('stores')
+            .update({
+              registered_by_agent_id: partnerInfo.id,
+              registeredByAgentId: partnerInfo.id,
+            })
+            .eq('id', result.storeId);
+          if (linkErr) {
+            console.warn('partner link fallback failed:', linkErr.message);
+          }
+        } catch {
+          // لا نوقف العملية
+        }
       }
 
       toast({

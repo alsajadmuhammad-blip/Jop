@@ -46,10 +46,7 @@ export default function RepresentativeAddStorePage() {
             </p>
           </div>
 
-          <CreateStoreForm
-            partnerCode={user.partnerCode ?? undefined}
-            partnerUserId={user.id}
-          />
+          <CreateStoreForm />
         </div>
       </div>
     </div>
