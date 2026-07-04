@@ -283,6 +283,8 @@ export default function CreateStoreForm({
             email: formData.email,
             password: formData.password,
             packageSlug: formData.packageSlug,
+            ...(partnerCode && { partnerCode }),
+            ...(partnerUserId && { registeredByAgentId: partnerUserId }),
           }),
         });
 

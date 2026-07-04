@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
       }),
       email: body.email,
       password: body.password,
+      ...(body.packageSlug && { packageSlug: body.packageSlug }),
+      ...(body.partnerCode && { partnerCode: body.partnerCode }),
+      ...(body.registeredByAgentId && { registeredByAgentId: body.registeredByAgentId }),
     };
 
     // Call Supabase Edge Function
