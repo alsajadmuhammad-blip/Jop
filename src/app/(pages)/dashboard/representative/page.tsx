@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { Store } from '@/lib/types';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, CheckCircle, Hourglass, XCircle, Store as StoreIcon, TrendingUp, Users, CalendarDays, DollarSign } from 'lucide-react';
+import { LogOut, CheckCircle, Hourglass, XCircle, Store as StoreIcon, TrendingUp, Users, CalendarDays, DollarSign, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,19 @@ const getStatusBadge = (store: Store) => {
     return <Badge variant="destructive"><XCircle className="ml-1 h-3 w-3" /> موقوف</Badge>;
 };
 
+
+function PartnerCodeCopy({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(code).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      className="inline-flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-white px-4 py-2 font-mono text-xl font-black tracking-widest text-primary hover:bg-primary/5 transition-colors"
+    >
+      {code}
+      {copied ? <Check className="h-5 w-5 text-emerald-500" /> : <Copy className="h-5 w-5 text-primary/50" />}
+    </button>
+  );
+}
 
 function RepresentativeDashboard() {
     const { user, logout } = useAuth();
@@ -146,8 +159,11 @@ function RepresentativeDashboard() {
 
     const totalStores = stores.length;
     const activeStores = stores.filter(s => s.isActive).length;
-    const requiredStores = user.requiredStoresCount || 0;
-    const monthlySalary = user.monthlySalary || 0;
+    const requiredStores = (user as any).requiredStoresCount || 0;
+    const monthlySalary = (user as any).monthlySalary || 0;
+    const commissionPercent = (user as any).commissionPercent || 0;
+    const packageDiscountPercent = (user as any).packageDiscountPercent || 0;
+    const partnerCode = (user as any).partnerCode || (user as any).partner_code || null;
     const hasAchievedTarget = totalStores >= requiredStores;
 
     return (
@@ -166,7 +182,7 @@ function RepresentativeDashboard() {
                             <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 rounded-full border-2 border-background"/>
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold font-headline">لوحة تحكم المندوب</h1>
+                            <h1 className="text-3xl font-bold font-headline">لوحة تحكم الشريك</h1>
                             <p className="text-muted-foreground mt-1">أهلاً بعودتك، {user?.name}!</p>
                         </div>
                     </div>
@@ -185,6 +201,30 @@ function RepresentativeDashboard() {
 
                 {activeSection === 'overview' ? (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* كود الشريك — بطاقة بارزة */}
+                        {partnerCode && (
+                          <Card className="lg:col-span-4 border-primary/30 bg-gradient-to-l from-primary/5 to-white">
+                            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-5 px-6">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-muted-foreground mb-1">كودك الخاص — شاركه مع أصحاب المتاجر</p>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <PartnerCodeCopy code={partnerCode} />
+                                  {packageDiscountPercent > 0 && (
+                                    <span className="rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1">
+                                      يمنح خصم {packageDiscountPercent}% على الباقة
+                                    </span>
+                                  )}
+                                  {commissionPercent > 0 && (
+                                    <span className="rounded-full bg-primary/10 text-primary text-xs font-bold px-3 py-1">
+                                      عمولة {commissionPercent}% / متجر
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">الراتب الشهري</CardTitle>

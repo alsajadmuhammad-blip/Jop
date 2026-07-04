@@ -69,10 +69,14 @@ export default function CreateStoreForm({
   defaultPackageSlug,
   mode = "admin",
   showPackageSelector = true,
+  partnerCode,
+  partnerUserId,
 }: {
   defaultPackageSlug?: string;
   mode?: "admin" | "public";
   showPackageSelector?: boolean;
+  partnerCode?: string;
+  partnerUserId?: string;
 }) {
   const [formData, setFormData] = useState<FormData>({
     ownerName: "",
@@ -215,6 +219,8 @@ export default function CreateStoreForm({
           password: formData.password,
           packageId: selectedPackage.id,
           skipPayment,
+          ...(partnerCode && { partner_code: partnerCode }),
+          ...(partnerUserId && { registered_by_agent_id: partnerUserId }),
         };
 
         const result = await registerStoreAndInitiatePayment(registerPayload);

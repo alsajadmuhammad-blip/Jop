@@ -127,11 +127,14 @@ export type User = {
   email: string;
   storeId: string | null; // Can be null for customers
   role: 'customer' | 'store' | 'admin' | 'representative'; // User roles are now required
-  paymentSystem?: 'salary' | 'commission'; // For representatives
-  totalEarnings?: number; // For representatives
-  monthlySalary?: number; // For salary-based representatives
+  paymentSystem?: 'salary' | 'commission'; // For representatives/partners
+  totalEarnings?: number; // For representatives/partners
+  monthlySalary?: number; // For salary-based partners
   requiredStoresCount?: number; // Number of stores required for salary
-  monthlyActivations?: number; // For salary-based representatives
+  commissionPercent?: number;   // نسبة عمولة على كل متجر إضافي بعد الهدف (أو على كل متجر في نظام النسبة)
+  packageDiscountPercent?: number; // خصم % على سعر الباقة يمنحه الشريك للمتاجر التي تستخدم كوده
+  partnerCode?: string;         // الكود الفريد للشريك (يدخله صاحب المتجر عند التسجيل)
+  monthlyActivations?: number; // For salary-based partners
   lastResetDate?: string; // ISO date string for resetting monthly count
   firstLogin?: boolean; // True if user hasn't changed password yet after registration
 };

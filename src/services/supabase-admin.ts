@@ -77,6 +77,9 @@ export async function createRepresentative(payload: {
   paymentSystem: 'salary' | 'commission';
   monthlySalary?: number;
   requiredStoresCount?: number;
+  commissionPercent?: number;
+  packageDiscountPercent?: number;
+  partnerCode?: string;
 }) {
   return fetchSupabaseFunction(SUPABASE_CREATE_REPRESENTATIVE_FUNCTION_URL, {
     name: payload.name,
@@ -85,8 +88,33 @@ export async function createRepresentative(payload: {
     payment_system: payload.paymentSystem,
     monthly_salary: payload.monthlySalary,
     required_stores_count: payload.requiredStoresCount,
+    commission_percent: payload.commissionPercent ?? 0,
+    package_discount_percent: payload.packageDiscountPercent ?? 0,
+    partner_code: payload.partnerCode,
     role: 'representative',
   });
+}
+
+/** التحقق من كود شريك وإرجاع معلوماته (للاستخدام في صفحة التسجيل) */
+export async function validatePartnerCode(code: string): Promise<{
+  id: string;
+  name: string;
+  packageDiscountPercent: number;
+} | null> {
+  const { supabase: sb } = await import('./supabase');
+  const { data, error } = await sb
+    .from('users')
+    .select('id, name, package_discount_percent')
+    .eq('partner_code', code.trim().toUpperCase())
+    .eq('role', 'representative')
+    .single();
+
+  if (error || !data) return null;
+  return {
+    id: data.id,
+    name: data.name ?? '',
+    packageDiscountPercent: data.package_discount_percent ?? 0,
+  };
 }
 
 export async function createStoreOwner(payload: any) {

@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/use-auth';
 
-import { RepresentativesTab } from "./components/representatives-tab";
+import { PartnersTab } from "./components/partners-tab";
 import { StoresTab } from "./components/stores-tab";
 import { SubscriptionsTab } from "./components/subscriptions-tab";
 import { StatisticsTab } from "./components/statistics-tab";
@@ -67,7 +67,7 @@ function AdminDashboard() {
   const inactiveStoresCount = stores.length - activeStoresCount;
   const adminViewTabs = [
     { key: 'stores', label: 'إدارة المتاجر', icon: Package2 },
-    { key: 'reps', label: 'إدارة المندوبين', icon: Users },
+    { key: 'reps', label: 'إدارة الشركاء', icon: Users },
     { key: 'subscriptions', label: 'الباقات', icon: DollarSign },
     { key: 'ads', label: 'الإعلانات', icon: SlidersHorizontal },
     { key: 'statistics', label: 'الإحصائيات', icon: SlidersHorizontal },
@@ -85,7 +85,21 @@ function AdminDashboard() {
       if (usersError) throw usersError;
 
       setStores((storesData || []).map((r: any) => mapStoreRow(r)));
-      setRepresentatives((usersData || []).filter((u: any) => u.role === 'representative').map((u: any) => ({ id: String(u.id), ...u } as User)));
+      setRepresentatives((usersData || []).filter((u: any) => u.role === 'representative').map((u: any) => ({
+        id: String(u.id),
+        name: u.name,
+        email: u.email,
+        storeId: u.store_id ?? u.storeId ?? null,
+        role: u.role,
+        paymentSystem: u.payment_system ?? u.paymentSystem,
+        monthlySalary: u.monthly_salary ?? u.monthlySalary,
+        requiredStoresCount: u.required_stores_count ?? u.requiredStoresCount,
+        commissionPercent: u.commission_percent ?? u.commissionPercent ?? 0,
+        packageDiscountPercent: u.package_discount_percent ?? u.packageDiscountPercent ?? 0,
+        partnerCode: u.partner_code ?? u.partnerCode,
+        totalEarnings: u.total_earnings ?? u.totalEarnings ?? 0,
+        monthlyActivations: u.monthly_activations ?? u.monthlyActivations ?? 0,
+      } as User)));
       setPackages(packagesData || []);
       setLoading(false);
     } catch (error: any) {
@@ -351,10 +365,10 @@ function AdminDashboard() {
       const { error } = await supabase.from('users').delete().eq('id', repId);
       if (error) throw error;
       setRepresentatives((current) => current.filter((rep) => rep.id !== repId));
-      toast({ title: "✅ تم حذف المندوب بنجاح", variant: "default" });
+      toast({ title: "✅ تم حذف الشريك بنجاح", variant: "default" });
     } catch (error: any) {
-      console.error('Supabase error deleting representative:', error);
-      toast({ title: "❌ فشل حذف المندوب", description: error.message || String(error), variant: "destructive" });
+      console.error('Supabase error deleting partner:', error);
+      toast({ title: "❌ فشل حذف الشريك", description: error.message || String(error), variant: "destructive" });
     }
   };
 
@@ -374,6 +388,12 @@ function AdminDashboard() {
         payload.required_stores_count = updates.requiredStoresCount;
         payload.requiredStoresCount = updates.requiredStoresCount;
       }
+      if (updates.commissionPercent !== undefined) {
+        payload.commission_percent = updates.commissionPercent;
+      }
+      if (updates.packageDiscountPercent !== undefined) {
+        payload.package_discount_percent = updates.packageDiscountPercent;
+      }
       if (updates.monthlyActivations !== undefined) {
         payload.monthly_activations = updates.monthlyActivations;
         payload.monthlyActivations = updates.monthlyActivations;
@@ -389,10 +409,10 @@ function AdminDashboard() {
       setRepresentatives((current) =>
         current.map((rep) => (rep.id === repId ? { ...rep, ...updates } : rep))
       );
-      toast({ title: "✅ تم تحديث بيانات المندوب بنجاح" });
+      toast({ title: "✅ تم تحديث بيانات الشريك بنجاح" });
     } catch (error: any) {
-      console.error('Supabase error updating representative:', error);
-      toast({ title: "❌ فشل تحديث بيانات المندوب", description: error.message || String(error), variant: "destructive" });
+      console.error('Supabase error updating partner:', error);
+      toast({ title: "❌ فشل تحديث بيانات الشريك", description: error.message || String(error), variant: "destructive" });
     }
   };
 
@@ -441,7 +461,7 @@ function AdminDashboard() {
             </Card>
             <Card className="rounded-3xl border p-4 bg-slate-50">
               <CardHeader>
-                <CardTitle className="text-base">المندوبين</CardTitle>
+                <CardTitle className="text-base">الشركاء</CardTitle>
                 <CardDescription className="mt-2 text-3xl font-semibold">{representatives.length}</CardDescription>
               </CardHeader>
             </Card>
@@ -478,9 +498,9 @@ function AdminDashboard() {
             />
           )}
           {activeView === 'reps' && (
-            <RepresentativesTab 
-              representatives={representatives} 
-              stores={stores} 
+            <PartnersTab
+              representatives={representatives}
+              stores={stores}
               onRepresentativeAdded={handleRepresentativeAdded}
               onRepresentativeDeleted={handleDeleteRepresentative}
               onRepresentativeUpdated={handleUpdateRepresentative}
