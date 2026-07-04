@@ -78,7 +78,7 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
       toast({ variant: "destructive", title: "أدخل جميع الحقول الإلزامية" }); return;
     }
     if (!/^[A-Z0-9_-]{2,20}$/.test(form.partnerCode)) {
-      toast({ variant: "destructive", title: "كود الشريك: أحرف إنجليزية وأرقام فقط (2-20 حرف)" }); return;
+      toast({ variant: "destructive", title: "الكود يجب أن يكون أحرف إنجليزية وأرقام فقط (2-20 حرف)" }); return;
     }
     if (paymentSystem === 'salary' && (!form.monthlySalary || !form.requiredStoresCount)) {
       toast({ variant: "destructive", title: "أدخل الراتب الشهري وعدد المتاجر المطلوب" }); return;
@@ -95,7 +95,7 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
         partnerCode: form.partnerCode.trim(),
       });
       if (result?.success === false) throw new Error(result.error);
-      toast({ title: "✅ تم إنشاء حساب الشريك", description: `الكود: ${form.partnerCode}` });
+      toast({ title: "✅ تم إنشاء الحساب بنجاح", description: `الكود: ${form.partnerCode}` });
       reset(); onOpenChange(false); onPartnerAdded?.();
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل الإنشاء", description: err?.message });
@@ -107,9 +107,9 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
       <DialogContent className="w-full max-w-lg max-h-[92vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Handshake className="h-5 w-5 text-primary" /> إضافة شريك جديد
+            <Handshake className="h-5 w-5 text-primary" /> إضافة مسوّق جديد
           </DialogTitle>
-          <DialogDescription>أنشئ حساب شريك تسويق مع كود خاص وشروط واضحة</DialogDescription>
+          <DialogDescription>أنشئ حساب مسوّق مع كود خاص وشروط واضحة</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
@@ -119,7 +119,7 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
               <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="أحمد علي" disabled={saving} />
             </div>
             <div className="space-y-1.5">
-              <Label>كود الشريك *</Label>
+              <Label>الكود التسويقي *</Label>
               <input
                 value={form.partnerCode}
                 onChange={e => set('partnerCode', e.target.value.toUpperCase())}
@@ -188,7 +188,7 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
             <Button type="button" variant="outline" onClick={() => { reset(); onOpenChange(false); }} disabled={saving}>إلغاء</Button>
             <Button type="submit" disabled={saving} className="gap-2">
               <Handshake className="h-4 w-4" />
-              {saving ? 'جاري الإنشاء…' : 'إنشاء الشريك'}
+              {saving ? 'جاري الإنشاء…' : 'إنشاء الحساب'}
             </Button>
           </DialogFooter>
         </form>
@@ -231,7 +231,7 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!partner?.id) return;
-    if (!form.name.trim()) { toast({ variant: "destructive", title: "أدخل اسم الشريك" }); return; }
+    if (!form.name.trim()) { toast({ variant: "destructive", title: "أدخل الاسم الكامل" }); return; }
     setSaving(true);
     try {
       const updates: Partial<User> = {
@@ -243,7 +243,7 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
         }),
       };
       onUpdated?.(partner.id, updates);
-      toast({ title: "✅ تم تحديث بيانات الشريك" });
+      toast({ title: "✅ تم تحديث البيانات بنجاح" });
       onOpenChange(false);
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل التحديث", description: err?.message });
@@ -254,7 +254,7 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-lg max-h-[92vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle>تعديل بيانات الشريك</DialogTitle>
+          <DialogTitle>تعديل البيانات</DialogTitle>
           {partner?.partnerCode && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-muted-foreground">الكود:</span>
@@ -421,7 +421,7 @@ function PartnerCard({ partner, storeCount, activeStoreCount, onEdit, onDelete, 
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent dir="rtl">
-              <AlertDialogHeader><AlertDialogTitle>حذف الشريك؟</AlertDialogTitle></AlertDialogHeader>
+              <AlertDialogHeader><AlertDialogTitle>تأكيد الحذف</AlertDialogTitle></AlertDialogHeader>
               <AlertDialogDescription>سيتم حذف حساب <strong>{partner.name}</strong> نهائياً.</AlertDialogDescription>
               <AlertDialogFooter>
                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -463,7 +463,7 @@ export function PartnersTab({
   const handleDelete = async (id: string) => {
     const count = storeCount(id);
     if (count > 0) {
-      toast({ variant: "destructive", title: "❌ لا يمكن الحذف", description: `هذا الشريك لديه ${count} متجر مرتبط. يجب نقلها أولاً.` });
+      toast({ variant: "destructive", title: "❌ لا يمكن الحذف", description: `هذا الحساب لديه ${count} متجر مرتبط. يجب نقلها أولاً.` });
       return;
     }
     onRepresentativeDeleted?.(id);
@@ -531,7 +531,7 @@ export function PartnersTab({
               </Button>
             )}
             <Button onClick={() => setIsCreateOpen(true)} size="sm" className="gap-1.5 text-xs h-8">
-              <UserPlus className="w-3.5 h-3.5" /> إضافة شريك
+              <UserPlus className="w-3.5 h-3.5" /> إضافة مسوّق
             </Button>
           </div>
         </CardHeader>
@@ -552,7 +552,7 @@ export function PartnersTab({
               <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-30" strokeWidth={1.5} />
               <p className="text-muted-foreground text-sm">لا يوجد شركاء مسجلون حتى الآن</p>
               <Button className="mt-4 gap-2" onClick={() => setIsCreateOpen(true)}>
-                <UserPlus className="h-4 w-4" /> إضافة أول شريك
+                <UserPlus className="h-4 w-4" /> إضافة أول مسوّق
               </Button>
             </div>
           ) : filtered.length === 0 ? (

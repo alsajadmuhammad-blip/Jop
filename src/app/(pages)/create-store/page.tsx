@@ -234,11 +234,11 @@ function PackageStep({
         <p className="text-slate-500">حدد الباقة التي تناسب احتياجات متجرك</p>
       </div>
 
-      {/* كود الشريك */}
+      {/* كود الدعوة */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
           <Tag className="w-4 h-4 text-primary" />
-          كود الشريك
+          كود الدعوة
           <span className="text-slate-400 font-normal text-xs">(اختياري)</span>
         </p>
         {partnerInfo ? (
@@ -278,7 +278,7 @@ function PackageStep({
       ) : (
         <>
           {discount > 0 && (
-            <p className="text-center text-sm font-bold text-emerald-600">🎉 يتم تطبيق خصم {discount}% على الأسعار بفضل كود الشريك</p>
+            <p className="text-center text-sm font-bold text-emerald-600">🎉 يتم تطبيق خصم {discount}% على الأسعار بفضل كود الدعوة</p>
           )}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             {packages.map((pkg, i) => (

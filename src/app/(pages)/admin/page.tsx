@@ -173,27 +173,35 @@ function AdminDashboard() {
         try {
           const { data: partnerRow } = await supabase
             .from('users')
-            .select('monthly_activations, total_earnings, commission_percent, payment_system')
+            .select('monthly_activations, total_earnings, commission_percent, payment_system, required_stores_count')
             .eq('id', storeData.registeredByAgentId)
             .maybeSingle();
 
           if (partnerRow) {
             const newMonthlyActivations = (partnerRow.monthly_activations ?? 0) + 1;
 
-            // احتساب العمولة إن كان نظام العمولة
+            // ── احتساب العمولة ──────────────────────────────────────────
             let earningsIncrement = 0;
-            if (
-              partnerRow.payment_system === 'commission' &&
-              (partnerRow.commission_percent ?? 0) > 0 &&
-              storeData.packageId
-            ) {
+            const commissionPct = partnerRow.commission_percent ?? 0;
+
+            if (commissionPct > 0 && storeData.packageId) {
               const { data: pkgRow } = await supabase
                 .from('store_packages')
                 .select('price')
                 .eq('id', storeData.packageId)
                 .maybeSingle();
+
               if (pkgRow?.price) {
-                earningsIncrement = (pkgRow.price * partnerRow.commission_percent) / 100;
+                if (partnerRow.payment_system === 'commission') {
+                  // نظام العمولة: نسبة من كل متجر يُفعَّل
+                  earningsIncrement = (pkgRow.price * commissionPct) / 100;
+                } else if (partnerRow.payment_system === 'salary') {
+                  // نظام الراتب: عمولة إضافية فقط للمتاجر فوق الهدف الشهري
+                  const required = partnerRow.required_stores_count ?? 0;
+                  if (required > 0 && newMonthlyActivations > required) {
+                    earningsIncrement = (pkgRow.price * commissionPct) / 100;
+                  }
+                }
               }
             }
 
