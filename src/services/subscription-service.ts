@@ -373,6 +373,9 @@ export async function registerStoreAndInitiatePayment(payload: {
   password?: string;
   packageId: string;
   registeredByAgentId?: string;
+  registered_by_agent_id?: string;
+  partnerCode?: string;
+  partner_code?: string;
 }): Promise<{
   success: boolean;
   storeId?: string;

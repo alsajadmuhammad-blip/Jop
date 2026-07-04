@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Handshake, UserPlus, Edit, Trash2, Copy, Check } from "lucide-react";
+import { Handshake, UserPlus, Edit, Trash2, Copy, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Store, User } from "@/lib/types";
 import { createRepresentative } from "@/services/supabase-admin";
@@ -337,12 +337,14 @@ export function PartnersTab({
   onRepresentativeAdded,
   onRepresentativeDeleted,
   onRepresentativeUpdated,
+  onRefresh,
 }: {
   representatives: User[];
   stores: Store[];
   onRepresentativeAdded?: () => void;
   onRepresentativeDeleted?: (id: string) => void;
   onRepresentativeUpdated?: (id: string, updates: Partial<User>) => void;
+  onRefresh?: () => void;
 }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -375,9 +377,16 @@ export function PartnersTab({
           </CardTitle>
           <CardDescription>إضافة وتتبع أداء ومستحقات شركاء التسويق</CardDescription>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-          <UserPlus className="w-4 h-4" /> إضافة شريك
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
+              <RefreshCw className="w-4 h-4" /> تحديث
+            </Button>
+          )}
+          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" /> إضافة شريك
+          </Button>
+        </div>
       </CardHeader>
 
       <CardContent>

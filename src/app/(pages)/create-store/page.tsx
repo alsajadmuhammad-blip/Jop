@@ -37,11 +37,7 @@ const IRAQI_GOVERNORATES = [
   "المثنى","ميسان","دهوك","أربيل","السليمانية",
 ];
 
-const DEFAULT_MARKET_TYPES = [
-  "هواتف ذكية","ملابس","أجهزة كهربائية","أثاث","كتب",
-  "قطع غيار","مستحضرات عناية","أدوات رياضية","مواد غذائية",
-  "صيدلانيات","إلكترونيات","مجوهرات",
-];
+const DEFAULT_MARKET_TYPES = ["مضافة"];
 
 const fadeSlide = {
   initial: { opacity: 0, x: 40 },
@@ -522,7 +518,7 @@ function StoreStep({
               <SelectValue placeholder="فعلي أم إلكتروني؟" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="فعلي">🏪 فعلي — له مقر فيزيائي</SelectItem>
+              <SelectItem value="فعلي">🏪 فعلي — متجر حقيقي</SelectItem>
               <SelectItem value="إلكتروني">💻 إلكتروني — أونلاين فقط</SelectItem>
             </SelectContent>
           </Select>

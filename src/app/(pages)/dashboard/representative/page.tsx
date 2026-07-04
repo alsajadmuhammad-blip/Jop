@@ -227,7 +227,7 @@ function PartnerDashboard() {
       <div className="bg-white border-b border-border/60 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold leading-none">لوحة تحكم الشريك</h1>
+            <h1 className="text-xl font-bold leading-none">لوحة التحكم</h1>
             <p className="text-sm text-muted-foreground mt-0.5">أهلاً، {user?.name}</p>
           </div>
           <Button variant="outline" size="sm" onClick={logout} className="gap-2">

@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Shield, Package2, Users, LogOut, DollarSign, SlidersHorizontal } from "lucide-react";
+import { Shield, Package2, Users, LogOut, DollarSign, SlidersHorizontal, BarChart3, Clock, RefreshCw } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import type { Store, StorePackage, User } from "@/lib/types";
@@ -66,11 +66,11 @@ function AdminDashboard() {
   const activeStoresCount = stores.filter((store) => store.isActive).length;
   const inactiveStoresCount = stores.length - activeStoresCount;
   const adminViewTabs = [
-    { key: 'stores', label: 'إدارة المتاجر', icon: Package2 },
-    { key: 'reps', label: 'إدارة الشركاء', icon: Users },
-    { key: 'subscriptions', label: 'الباقات', icon: DollarSign },
-    { key: 'ads', label: 'الإعلانات', icon: SlidersHorizontal },
-    { key: 'statistics', label: 'الإحصائيات', icon: SlidersHorizontal },
+    { key: 'stores',        label: 'المتاجر',    icon: Package2       },
+    { key: 'reps',          label: 'الشركاء',    icon: Users          },
+    { key: 'subscriptions', label: 'الباقات',    icon: DollarSign     },
+    { key: 'ads',           label: 'الإعلانات',  icon: SlidersHorizontal },
+    { key: 'statistics',    label: 'الإحصائيات', icon: BarChart3      },
   ];
 
   const fetchAll = async () => {
@@ -464,65 +464,88 @@ function AdminDashboard() {
     fetchAll();
   };
 
-  if (loading) return <div className="flex h-screen w-full items-center justify-center">جاري تحميل البيانات...</div>;
+  const pendingCount = stores.filter(s => !s.isActive && !s.activationDate).length;
+
+  if (loading) return (
+    <div className="flex h-screen w-full items-center justify-center gap-3 text-muted-foreground">
+      <RefreshCw className="h-5 w-5 animate-spin" />
+      <span>جاري تحميل البيانات...</span>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-6 rounded-3xl bg-white shadow-sm border border-border/80 p-4 md:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold font-headline">لوحة تحكم المشرف</h1>
-              <p className="mt-1 text-sm text-muted-foreground">واجهة إدارة مركزية مع ملخص شامل على الهاتف.</p>
+    <div className="min-h-screen bg-slate-50/60 overflow-x-hidden" dir="rtl">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+
+        {/* ── الهيدر ── */}
+        <header className="mb-5 rounded-2xl bg-white shadow-sm border border-border/60 p-4 md:p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold leading-none">لوحة تحكم المشرف</h1>
+                <p className="text-xs text-muted-foreground mt-0.5">إدارة المتاجر والشركاء والباقات</p>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={handleLogout} className="w-full sm:w-auto">
-                <LogOut className="ml-2 h-4 w-4" />
-                خروج
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => fetchAll()} className="gap-1.5 text-xs">
+                <RefreshCw className="h-3.5 w-3.5" /> تحديث
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5 text-xs">
+                <LogOut className="h-3.5 w-3.5" /> خروج
               </Button>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="min-w-0 rounded-3xl border p-4 bg-slate-50">
-              <CardHeader>
-                <CardTitle className="text-base">المتاجر الإجمالية</CardTitle>
-                <CardDescription className="mt-2 text-3xl font-semibold">{stores.length}</CardDescription>
-              </CardHeader>
-            </Card>
-            <Card className="rounded-3xl border p-4 bg-slate-50">
-              <CardHeader>
-                <CardTitle className="text-base">المتاجر النشطة</CardTitle>
-                <CardDescription className="mt-2 text-3xl font-semibold">{activeStoresCount}</CardDescription>
-              </CardHeader>
-            </Card>
-            <Card className="rounded-3xl border p-4 bg-slate-50">
-              <CardHeader>
-                <CardTitle className="text-base">المتاجر المعلقة</CardTitle>
-                <CardDescription className="mt-2 text-3xl font-semibold">{inactiveStoresCount}</CardDescription>
-              </CardHeader>
-            </Card>
-            <Card className="rounded-3xl border p-4 bg-slate-50">
-              <CardHeader>
-                <CardTitle className="text-base">الشركاء</CardTitle>
-                <CardDescription className="mt-2 text-3xl font-semibold">{representatives.length}</CardDescription>
-              </CardHeader>
-            </Card>
+          {/* ── بطاقات الإحصاء السريع ── */}
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'إجمالي المتاجر',   value: stores.length,        color: 'text-primary',      bg: 'bg-primary/8'    },
+              { label: 'المتاجر النشطة',   value: activeStoresCount,    color: 'text-emerald-600',  bg: 'bg-emerald-50'   },
+              { label: 'قيد المراجعة',     value: pendingCount,         color: 'text-amber-600',    bg: 'bg-amber-50'     },
+              { label: 'الشركاء',           value: representatives.length, color: 'text-blue-600',  bg: 'bg-blue-50'      },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} className={`rounded-xl border border-border/40 ${bg} p-3 text-center`}>
+                <p className={`text-2xl font-black ${color}`}>{value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+              </div>
+            ))}
           </div>
+
+          {/* ── تنبيه المتاجر المعلقة ── */}
+          {pendingCount > 0 && (
+            <button
+              onClick={() => handleViewChange('stores')}
+              className="mt-3 w-full flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 hover:bg-amber-100 transition text-right"
+            >
+              <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>{pendingCount}</strong> {pendingCount === 1 ? 'متجر ينتظر' : 'متجر ينتظرون'} موافقتك — انقر للمراجعة
+              </span>
+            </button>
+          )}
         </header>
 
-        <div className="mb-6 overflow-x-auto">
-          <div className="inline-flex min-w-max gap-2 rounded-full border border-border/80 bg-white/80 p-2 shadow-sm">
+        {/* ── شريط التنقل ── */}
+        <div className="mb-5 overflow-x-auto">
+          <div className="inline-flex min-w-max gap-1.5 rounded-2xl border border-border/60 bg-white/90 p-1.5 shadow-sm">
             {adminViewTabs.map((tab) => (
               <Button
                 key={tab.key}
-                variant={activeView === tab.key ? 'default' : 'outline'}
+                variant={activeView === tab.key ? 'default' : 'ghost'}
                 size="sm"
-                className="whitespace-nowrap"
+                className="whitespace-nowrap rounded-xl text-xs h-8 px-3"
                 onClick={() => handleViewChange(tab.key)}
               >
-                <tab.icon className="ml-2 h-4 w-4" />
+                <tab.icon className="ml-1.5 h-3.5 w-3.5" />
                 {tab.label}
+                {tab.key === 'stores' && pendingCount > 0 && (
+                  <span className="mr-1.5 inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold w-4 h-4">
+                    {pendingCount}
+                  </span>
+                )}
               </Button>
             ))}
           </div>
@@ -530,11 +553,12 @@ function AdminDashboard() {
 
         <div className="space-y-6">
           {activeView === 'statistics' && (
-            <StatisticsTab stores={stores} representatives={representatives} />
+            <StatisticsTab stores={stores} representatives={representatives} packages={packages} />
           )}
           {activeView === 'stores' && (
             <StoresTab 
-              stores={stores} 
+              stores={stores}
+              representatives={representatives}
               onStatusToggle={handleStatusToggle} 
               onDataUpdate={handleStoreDataUpdate}
               onDeleteStore={handleDeleteStore}
@@ -547,6 +571,7 @@ function AdminDashboard() {
               onRepresentativeAdded={handleRepresentativeAdded}
               onRepresentativeDeleted={handleDeleteRepresentative}
               onRepresentativeUpdated={handleUpdateRepresentative}
+              onRefresh={fetchAll}
             />
           )}
           {activeView === 'subscriptions' && (
