@@ -1,44 +1,178 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { PlusCircle, Edit, Trash2, Infinity } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { PlusCircle, Edit, Trash2, Infinity, Package, Search, Store as StoreIcon, CalendarDays, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Store, StorePackage, PackageVisibility } from "@/lib/types";
 import { createStorePackage, updateStorePackage, deleteStorePackage } from "@/services/supabase-db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-/* ─── ملصق الظهور ─── */
-const VISIBILITY_LABELS: Record<PackageVisibility, string> = {
-  public:  'للعام',
-  renewal: 'للتجديد فقط',
-  both:    'للعام والتجديد',
+// ─── ثوابت ──────────────────────────────────────────────────────────────────
+const VISIBILITY_META: Record<PackageVisibility, { label: string; cls: string; dot: string }> = {
+  public:  { label: 'للعام',           cls: 'bg-blue-50 text-blue-700 border-blue-200',   dot: 'bg-blue-400'   },
+  renewal: { label: 'للتجديد فقط',     cls: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-400'  },
+  both:    { label: 'للعام والتجديد',  cls: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-400'  },
 };
-const VISIBILITY_COLORS: Record<PackageVisibility, string> = {
-  public:  'bg-blue-50 text-blue-700 border-blue-200',
-  renewal: 'bg-amber-50 text-amber-700 border-amber-200',
-  both:    'bg-green-50 text-green-700 border-green-200',
-};
-
 const UNLIMITED = 999999;
 
-export function SubscriptionsTab({
-  stores,
-  packages,
-  onAssignPackage,
-  onPackagesChanged,
-}: {
+function fmtPrice(n: number) { return n === 0 ? 'مجانية' : `${n.toLocaleString('ar-IQ')} د.ع`; }
+function fmtLimit(n: number) {
+  if (n >= UNLIMITED) return <span className="flex items-center gap-1 font-bold text-primary"><Infinity className="h-3.5 w-3.5" /> غير محدود</span>;
+  return <span className="font-bold">{n.toLocaleString()}</span>;
+}
+function daysUntilExpiry(store: Store) {
+  if (!store.activationDate || !store.subscriptionDuration) return null;
+  const expiresAt = new Date(new Date(store.activationDate).getTime() + store.subscriptionDuration * 86400000);
+  return Math.floor((expiresAt.getTime() - Date.now()) / 86400000);
+}
+
+// ─── بطاقة باقة ─────────────────────────────────────────────────────────────
+function PackageCard({ pkg, onEdit, onDelete, onToggle }: {
+  pkg: StorePackage;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggle: (active: boolean) => void;
+}) {
+  const vm = VISIBILITY_META[pkg.visibility ?? 'public'];
+  return (
+    <Card className={`border shadow-sm transition-all ${pkg.isActive ? 'border-border/70' : 'border-border/40 opacity-70'}`}>
+      <CardContent className="p-4 space-y-3">
+        {/* الاسم والحالة */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-bold text-sm leading-tight">{pkg.name}</p>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">{pkg.slug}</p>
+          </div>
+          <Switch checked={pkg.isActive} onCheckedChange={onToggle} />
+        </div>
+
+        {/* الشارات */}
+        <div className="flex flex-wrap gap-1.5">
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${vm.cls}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${vm.dot}`} />
+            {vm.label}
+          </span>
+          {!pkg.isActive && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs text-slate-500">
+              موقوفة
+            </span>
+          )}
+        </div>
+
+        {/* التفاصيل */}
+        <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 border border-border/40 p-3">
+          <div className="text-center">
+            <p className="text-[10px] text-muted-foreground mb-1">السعر</p>
+            <p className={`text-sm font-black ${pkg.price === 0 ? 'text-emerald-600' : 'text-primary'}`}>
+              {pkg.price === 0 ? 'مجاني' : pkg.price.toLocaleString()}
+            </p>
+            {pkg.price > 0 && <p className="text-[10px] text-muted-foreground">د.ع</p>}
+          </div>
+          <div className="text-center border-x border-border/40">
+            <p className="text-[10px] text-muted-foreground mb-1">المنتجات</p>
+            <div className="flex justify-center">{fmtLimit(pkg.productLimit)}</div>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-muted-foreground mb-1">المدة</p>
+            <p className="text-sm font-black">{pkg.subscriptionDuration}</p>
+            <p className="text-[10px] text-muted-foreground">يوم</p>
+          </div>
+        </div>
+
+        {/* الوصف */}
+        {pkg.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{pkg.description}</p>
+        )}
+
+        {/* أزرار */}
+        <div className="flex gap-2 pt-1">
+          <Button size="sm" variant="outline" className="flex-1 gap-1.5 text-xs h-8" onClick={onEdit}>
+            <Edit className="h-3.5 w-3.5" /> تعديل
+          </Button>
+          <Button size="sm" variant="destructive" className="gap-1.5 text-xs h-8 px-3" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── سطر تعيين باقة لمتجر ───────────────────────────────────────────────────
+function StoreAssignRow({ store, packages, selected, onSelect, onAssign }: {
+  store: Store;
+  packages: StorePackage[];
+  selected: string;
+  onSelect: (v: string) => void;
+  onAssign: () => void;
+}) {
+  const daysLeft = daysUntilExpiry(store);
+  const isExpired   = store.isActive  && daysLeft !== null && daysLeft <= 0;
+  const isExpiring  = store.isActive  && daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+  const isPending   = !store.isActive && !store.activationDate;
+  const currentPkg  = packages.find(p => p.slug === store.packageName || p.id === store.packageId);
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-border/60 bg-white p-3">
+      {/* معلومات المتجر */}
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <div className={`h-2 w-2 rounded-full shrink-0 ${isPending ? 'bg-amber-400' : isExpired ? 'bg-red-400' : store.isActive ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate">{store.name}</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {currentPkg ? (
+              <span className="flex items-center gap-1">
+                <Package className="h-2.5 w-2.5" />{currentPkg.name}
+              </span>
+            ) : (
+              <span className="text-amber-600">لا باقة</span>
+            )}
+            {daysLeft !== null && (
+              <span className={`flex items-center gap-1 ${isExpired ? 'text-red-600' : isExpiring ? 'text-orange-600' : ''}`}>
+                <CalendarDays className="h-2.5 w-2.5" />
+                {isExpired ? 'منتهي' : isPending ? 'غير مفعّل' : `${daysLeft}د`}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* اختيار الباقة + تعيين */}
+      <div className="flex items-center gap-2 shrink-0">
+        <Select value={selected} onValueChange={onSelect}>
+          <SelectTrigger className="w-[150px] sm:w-[180px] h-8 text-xs">
+            <SelectValue placeholder="اختر باقة" />
+          </SelectTrigger>
+          <SelectContent>
+            {packages.filter(p => p.isActive).map(p => (
+              <SelectItem key={p.id} value={p.slug}>
+                {p.name} — {fmtPrice(p.price)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" className="h-8 text-xs px-3 gap-1" onClick={onAssign} disabled={!selected}>
+          تعيين
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── المكوّن الرئيسي ─────────────────────────────────────────────────────────
+export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackagesChanged }: {
   stores: Store[];
   packages: StorePackage[];
   onAssignPackage: (storeId: string, packageSlug: string) => Promise<void>;
@@ -47,590 +181,316 @@ export function SubscriptionsTab({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<StorePackage | null>(null);
   const [formState, setFormState] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    price: '',
-    product_limit: '',
-    unlimited_products: false,
-    subscription_duration: '',
-    is_active: false,
+    name: '', slug: '', description: '', price: '',
+    product_limit: '', unlimited_products: false,
+    subscription_duration: '', is_active: true,
     visibility: 'public' as PackageVisibility,
   });
   const [deletePackage, setDeletePackage] = useState<StorePackage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [packageError, setPackageError] = useState<string | null>(null);
-  const [selectedPackageByStore, setSelectedPackageByStore] = useState<Record<string, string>>({});
+  const [selectedPkgByStore, setSelectedPkgByStore] = useState<Record<string, string>>({});
+  const [storeSearch, setStoreSearch] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
-    const selection: Record<string, string> = {};
-    stores.forEach((store) => {
-      selection[store.id] = store.packageName || packages.find((pkg) => pkg.isActive)?.slug || '';
-    });
-    setSelectedPackageByStore(selection);
+    const m: Record<string, string> = {};
+    stores.forEach(s => { m[s.id] = s.packageName || packages.find(p => p.isActive)?.slug || ''; });
+    setSelectedPkgByStore(m);
   }, [stores, packages]);
 
   const resetForm = () => {
-    setFormState({
-      name: '',
-      slug: '',
-      description: '',
-      price: '',
-      product_limit: '',
-      unlimited_products: false,
-      subscription_duration: '',
-      is_active: false,
-      visibility: 'public',
-    });
-    setEditingPackage(null);
-    setPackageError(null);
+    setFormState({ name: '', slug: '', description: '', price: '', product_limit: '', unlimited_products: false, subscription_duration: '', is_active: true, visibility: 'public' });
+    setEditingPackage(null); setPackageError(null);
   };
 
-  const openAddPackageDialog = () => {
-    resetForm();
-    setIsDialogOpen(true);
-  };
+  const slugify = (v: string) => v.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
 
-  const openEditPackageDialog = (pkg: StorePackage) => {
-    const isUnlimited = pkg.productLimit >= UNLIMITED;
+  const openAdd = () => { resetForm(); setIsDialogOpen(true); };
+  const openEdit = (pkg: StorePackage) => {
     setEditingPackage(pkg);
     setFormState({
-      name: pkg.name,
-      slug: pkg.slug,
-      description: pkg.description || '',
+      name: pkg.name, slug: pkg.slug, description: pkg.description || '',
       price: String(pkg.price),
-      product_limit: isUnlimited ? '' : String(pkg.productLimit),
-      unlimited_products: isUnlimited,
+      product_limit: pkg.productLimit >= UNLIMITED ? '' : String(pkg.productLimit),
+      unlimited_products: pkg.productLimit >= UNLIMITED,
       subscription_duration: String(pkg.subscriptionDuration),
-      is_active: pkg.isActive,
-      visibility: pkg.visibility ?? 'public',
+      is_active: pkg.isActive, visibility: pkg.visibility ?? 'public',
     });
-    setPackageError(null);
-    setIsDialogOpen(true);
+    setPackageError(null); setIsDialogOpen(true);
   };
 
-  const slugify = (value: string) =>
-    value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/\-+/g, '-');
-
-  const handleSubmitPackage = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setPackageError(null);
-
-    if (!formState.name.trim()) {
-      setPackageError('الرجاء إدخال اسم الباقة.');
-      return;
-    }
-    if (!formState.price || Number(formState.price) < 0) {
-      setPackageError('الرجاء إدخال سعر صحيح.');
-      return;
-    }
-    if (!formState.unlimited_products && (!formState.product_limit || Number(formState.product_limit) <= 0)) {
-      setPackageError('الرجاء إدخال حد منتجات صحيح أو تفعيل المنتجات غير المحدودة.');
-      return;
-    }
-    if (!formState.subscription_duration || Number(formState.subscription_duration) <= 0) {
-      setPackageError('الرجاء إدخال مدة اشتراك صحيحة.');
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setPackageError(null);
+    if (!formState.name.trim()) { setPackageError('أدخل اسم الباقة'); return; }
+    if (Number(formState.price) < 0) { setPackageError('أدخل سعراً صحيحاً'); return; }
+    if (!formState.unlimited_products && Number(formState.product_limit) <= 0) { setPackageError('أدخل حد منتجات أو فعّل غير محدود'); return; }
+    if (Number(formState.subscription_duration) <= 0) { setPackageError('أدخل مدة اشتراك صحيحة'); return; }
     const slug = formState.slug.trim() || slugify(formState.name);
-    if (!slug) {
-      setPackageError('الرجاء إدخال اسم مسار صالح.');
-      return;
-    }
-
+    if (!slug) { setPackageError('أدخل معرّف صالح'); return; }
     const productLimit = formState.unlimited_products ? UNLIMITED : Number(formState.product_limit);
-
     setIsSubmitting(true);
     try {
+      const payload = {
+        name: formState.name, slug, description: formState.description || undefined,
+        price: Number(formState.price), productLimit,
+        subscriptionDuration: Number(formState.subscription_duration),
+        isActive: formState.is_active, visibility: formState.visibility, metadata: null,
+      };
       if (editingPackage) {
-        const updated = await updateStorePackage(editingPackage.id, {
-          name: formState.name,
-          slug,
-          description: formState.description || undefined,
-          price: Number(formState.price),
-          productLimit,
-          subscriptionDuration: Number(formState.subscription_duration),
-          isActive: formState.is_active,
-          visibility: formState.visibility,
-          metadata: null,
-        });
-        if (updated === null) throw new Error('فشل تحديث الباقة.');
-        toast({ title: '✅ تم تحديث الباقة بنجاح' });
+        const r = await updateStorePackage(editingPackage.id, payload);
+        if (!r) throw new Error('فشل التحديث');
+        toast({ title: '✅ تم تحديث الباقة' });
       } else {
-        const created = await createStorePackage({
-          name: formState.name,
-          slug,
-          description: formState.description || undefined,
-          price: Number(formState.price),
-          productLimit,
-          subscriptionDuration: Number(formState.subscription_duration),
-          isActive: formState.is_active,
-          visibility: formState.visibility,
-          metadata: null,
-        });
-        if (created === null) throw new Error('فشل إنشاء الباقة.');
-        toast({ title: '✅ تم إنشاء الباقة بنجاح' });
+        const r = await createStorePackage(payload);
+        if (!r) throw new Error('فشل الإنشاء');
+        toast({ title: '✅ تم إنشاء الباقة' });
       }
-      await onPackagesChanged();
-      setIsDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      setPackageError(error.message || 'حدث خطأ أثناء حفظ الباقة.');
-    } finally {
-      setIsSubmitting(false);
-    }
+      await onPackagesChanged(); setIsDialogOpen(false); resetForm();
+    } catch (err: any) {
+      setPackageError(err.message || 'حدث خطأ');
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleDeletePackage = async () => {
+  const handleDeletePkg = async () => {
     if (!deletePackage) return;
     setIsSubmitting(true);
     try {
-      const success = await deleteStorePackage(deletePackage.id);
-      if (!success) throw new Error('فشل حذف الباقة.');
-      toast({ title: '✅ تم حذف الباقة بنجاح' });
-      setDeletePackage(null);
-      await onPackagesChanged();
-    } catch (error: any) {
-      toast({ title: '❌ فشل حذف الباقة', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
+      if (!await deleteStorePackage(deletePackage.id)) throw new Error('فشل الحذف');
+      toast({ title: '✅ تم حذف الباقة' }); setDeletePackage(null); await onPackagesChanged();
+    } catch (err: any) {
+      toast({ title: '❌ فشل الحذف', description: err.message, variant: 'destructive' });
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleTogglePackageActive = async (pkg: StorePackage, isActive: boolean) => {
+  const handleToggleActive = async (pkg: StorePackage, v: boolean) => {
     try {
-      const updated = await updateStorePackage(pkg.id, { isActive });
-      if (updated === null) throw new Error('فشل تغيير حالة الباقة.');
-      toast({ title: isActive ? '✅ تم تفعيل الباقة' : '✅ تم إيقاف الباقة' });
-      await onPackagesChanged();
-    } catch (error: any) {
-      toast({ title: '❌ فشل تغيير حالة الباقة', description: error.message, variant: 'destructive' });
+      if (!await updateStorePackage(pkg.id, { isActive: v })) throw new Error();
+      toast({ title: v ? '✅ تم تفعيل الباقة' : '✅ تم إيقاف الباقة' }); await onPackagesChanged();
+    } catch {
+      toast({ title: '❌ فشل تغيير الحالة', variant: 'destructive' });
     }
-  };
-
-  const handlePackageSelectionChange = (storeId: string, value: string) => {
-    setSelectedPackageByStore((current) => ({ ...current, [storeId]: value }));
   };
 
   const handleAssign = async (storeId: string) => {
-    const selectedSlug = selectedPackageByStore[storeId];
-    if (!selectedSlug) {
-      toast({ title: 'الرجاء اختيار باقة لتعيينها', variant: 'destructive' });
-      return;
-    }
-    try {
-      await onAssignPackage(storeId, selectedSlug);
-    } catch (error: any) {
-      toast({ title: 'فشل تعيين الباقة', description: error.message, variant: 'destructive' });
+    const slug = selectedPkgByStore[storeId];
+    if (!slug) { toast({ title: 'اختر باقة أولاً', variant: 'destructive' }); return; }
+    try { await onAssignPackage(storeId, slug); } catch (e: any) {
+      toast({ title: 'فشل التعيين', description: e.message, variant: 'destructive' });
     }
   };
 
-  /* ─── مساعد عرض حد المنتجات ─── */
-  const fmtLimit = (limit: number) => limit >= UNLIMITED ? (
-    <span className="flex items-center gap-1"><Infinity className="w-4 h-4" /> غير محدود</span>
-  ) : limit;
+  const filteredStores = useMemo(() => {
+    const q = storeSearch.trim().toLowerCase();
+    if (!q) return stores;
+    return stores.filter(s => s.name.toLowerCase().includes(q) || (s.packageName ?? '').toLowerCase().includes(q));
+  }, [stores, storeSearch]);
+
+  const activePackages = packages.filter(p => p.isActive).length;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle>إدارة الباقات</CardTitle>
-          <CardDescription>أنشئ، حرِّر، واحذف الباقات. حدد ظهورها للعام أو للتجديد فقط أو لكليهما.</CardDescription>
-        </div>
-        <Button onClick={openAddPackageDialog} variant="secondary">
-          <PlusCircle className="ml-2 h-4 w-4" />
-          إضافة باقة جديدة
-        </Button>
-      </CardHeader>
+    <div className="space-y-5">
+      {/* ── ملخص سريع ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'إجمالي الباقات', value: packages.length,  cls: 'text-primary',     bg: 'bg-primary/8'  },
+          { label: 'مفعّلة',          value: activePackages,   cls: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'موقوفة',          value: packages.length - activePackages, cls: 'text-slate-500', bg: 'bg-slate-50' },
+        ].map(item => (
+          <div key={item.label} className={`rounded-xl border border-border/40 ${item.bg} p-3 text-center`}>
+            <p className={`text-2xl font-black ${item.cls}`}>{item.value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{item.label}</p>
+          </div>
+        ))}
+      </div>
 
-      <CardContent className="space-y-10">
-        {/* ─── قائمة الباقات - موبايل ─── */}
-        <div>
-          <CardTitle className="mb-4">قائمة الباقات</CardTitle>
+      <Tabs defaultValue="packages">
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="packages" className="gap-2 text-xs">
+            <Package className="h-3.5 w-3.5" /> الباقات ({packages.length})
+          </TabsTrigger>
+          <TabsTrigger value="assign" className="gap-2 text-xs">
+            <StoreIcon className="h-3.5 w-3.5" /> تعيين للمتاجر ({stores.length})
+          </TabsTrigger>
+        </TabsList>
 
-          <div className="space-y-4 sm:hidden">
-            {packages.length > 0 ? packages.map((pkg) => (
-              <div key={pkg.id} className="rounded-3xl border border-border/80 bg-muted/50 p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{pkg.name}</p>
-                    <p className="text-xs text-muted-foreground">{pkg.slug}</p>
-                  </div>
-                  <Switch checked={pkg.isActive} onCheckedChange={(v) => handleTogglePackageActive(pkg, v)} />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className={VISIBILITY_COLORS[pkg.visibility ?? 'public']}>
-                    {VISIBILITY_LABELS[pkg.visibility ?? 'public']}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">السعر</p>
-                    <p className="mt-1 font-semibold">{pkg.price === 0 ? 'مجانية' : `${pkg.price.toLocaleString()} د.ع`}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">حد المنتجات</p>
-                    <p className="mt-1 font-semibold">{fmtLimit(pkg.productLimit)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">المدة</p>
-                    <p className="mt-1 font-semibold">{pkg.subscriptionDuration} يوم</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditPackageDialog(pkg)}>
-                    <Edit className="h-4 w-4 ml-1" /> تعديل
-                  </Button>
-                  <Button size="sm" variant="destructive" className="flex-1" onClick={() => setDeletePackage(pkg)}>
-                    <Trash2 className="h-4 w-4 ml-1" /> حذف
-                  </Button>
-                </div>
-              </div>
-            )) : (
-              <div className="rounded-3xl border border-border/80 bg-muted/50 p-4 text-center text-muted-foreground">
-                لا توجد باقات مسجلة بعد.
+        {/* ── تبويب الباقات ── */}
+        <TabsContent value="packages" className="mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">إدارة خطط الاشتراك المتاحة</p>
+            <Button size="sm" className="gap-1.5 text-xs h-8" onClick={openAdd}>
+              <PlusCircle className="h-3.5 w-3.5" /> إضافة باقة
+            </Button>
+          </div>
+
+          {packages.length === 0 ? (
+            <div className="text-center py-14 text-muted-foreground">
+              <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">لا توجد باقات مسجّلة بعد</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {packages.map(pkg => (
+                <PackageCard
+                  key={pkg.id} pkg={pkg}
+                  onEdit={() => openEdit(pkg)}
+                  onDelete={() => setDeletePackage(pkg)}
+                  onToggle={v => handleToggleActive(pkg, v)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── تبويب التعيين ── */}
+        <TabsContent value="assign" className="mt-4">
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="ابحث باسم المتجر..."
+                value={storeSearch} onChange={e => setStoreSearch(e.target.value)}
+                className="pr-9 h-9 text-sm"
+              />
+            </div>
+
+            {filteredStores.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground text-sm">لا توجد متاجر</div>
+            ) : (
+              <div className="space-y-2">
+                {filteredStores.map(store => (
+                  <StoreAssignRow
+                    key={store.id}
+                    store={store}
+                    packages={packages}
+                    selected={selectedPkgByStore[store.id] || ''}
+                    onSelect={v => setSelectedPkgByStore(c => ({ ...c, [store.id]: v }))}
+                    onAssign={() => handleAssign(store.id)}
+                  />
+                ))}
               </div>
             )}
           </div>
+        </TabsContent>
+      </Tabs>
 
-          {/* ─── جدول ديسكتوب ─── */}
-          <div className="hidden sm:block overflow-x-auto">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>الاسم</TableHead>
-                  <TableHead>السعر</TableHead>
-                  <TableHead>حد المنتجات</TableHead>
-                  <TableHead>المدة</TableHead>
-                  <TableHead>الظهور</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {packages.length > 0 ? packages.map((pkg) => (
-                  <TableRow key={pkg.id}>
-                    <TableCell>
-                      <p className="font-medium">{pkg.name}</p>
-                      <p className="text-xs text-muted-foreground">{pkg.slug}</p>
-                    </TableCell>
-                    <TableCell>{pkg.price === 0 ? 'مجانية' : `${pkg.price.toLocaleString()} د.ع`}</TableCell>
-                    <TableCell>{fmtLimit(pkg.productLimit)}</TableCell>
-                    <TableCell>{pkg.subscriptionDuration} يوم</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${VISIBILITY_COLORS[pkg.visibility ?? 'public']}`}>
-                        {VISIBILITY_LABELS[pkg.visibility ?? 'public']}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Switch checked={pkg.isActive} onCheckedChange={(v) => handleTogglePackageActive(pkg, v)} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEditPackageDialog(pkg)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => setDeletePackage(pkg)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      لا توجد باقات مسجلة بعد.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        {/* ─── تعيين باقات للمتاجر ─── */}
-        <div>
-          <CardTitle className="mb-4">تعيين الباقات للمتاجر</CardTitle>
-
-          <div className="space-y-4 sm:hidden">
-            {stores.map((store) => {
-              const currentPackage = packages.find((p) => p.slug === store.packageName);
-              return (
-                <div key={store.id} className="rounded-3xl border border-border/80 bg-muted/50 p-4">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <div>
-                      <p className="text-sm font-semibold">{store.name}</p>
-                      <p className="text-xs text-muted-foreground">{currentPackage?.name || store.packageName || 'غير معينة'}</p>
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                      {store.activationDate && store.subscriptionDuration
-                        ? new Date(new Date(store.activationDate).getTime() + store.subscriptionDuration * 86400000).toLocaleDateString('ar')
-                        : 'غير محدد'}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    <Select value={selectedPackageByStore[store.id] || ''} onValueChange={(v) => handlePackageSelectionChange(store.id, v)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="اختر باقة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {packages.map((pkg) => (
-                          <SelectItem key={pkg.id} value={pkg.slug}>
-                            {pkg.name} — {VISIBILITY_LABELS[pkg.visibility ?? 'public']}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button size="sm" variant="secondary" className="w-full" onClick={() => handleAssign(store.id)} disabled={!selectedPackageByStore[store.id]}>
-                      تعيين
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="hidden sm:block overflow-x-auto">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>اسم المتجر</TableHead>
-                  <TableHead>الباقة الحالية</TableHead>
-                  <TableHead>تاريخ الانتهاء</TableHead>
-                  <TableHead>تغيير الباقة</TableHead>
-                  <TableHead>تنفيذ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stores.length > 0 ? stores.map((store) => {
-                  const currentPackage = packages.find((p) => p.slug === store.packageName);
-                  return (
-                    <TableRow key={store.id}>
-                      <TableCell>{store.name}</TableCell>
-                      <TableCell>{currentPackage?.name || store.packageName || 'غير معينة'}</TableCell>
-                      <TableCell>
-                        {store.activationDate && store.subscriptionDuration
-                          ? new Date(new Date(store.activationDate).getTime() + store.subscriptionDuration * 86400000).toLocaleDateString('ar')
-                          : 'غير محدد'}
-                      </TableCell>
-                      <TableCell>
-                        <Select value={selectedPackageByStore[store.id] || ''} onValueChange={(v) => handlePackageSelectionChange(store.id, v)}>
-                          <SelectTrigger className="w-[220px]">
-                            <SelectValue placeholder="اختر باقة" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {packages.map((pkg) => (
-                              <SelectItem key={pkg.id} value={pkg.slug}>
-                                {pkg.name} — {VISIBILITY_LABELS[pkg.visibility ?? 'public']}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="secondary" onClick={() => handleAssign(store.id)} disabled={!selectedPackageByStore[store.id]}>
-                          تعيين
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      لا توجد متاجر مسجلة بعد.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </CardContent>
-
-      {/* ════════════════════════════════
-          فورم الإضافة / التعديل
-      ════════════════════════════════ */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setIsDialogOpen(open); }}>
-        <DialogContent className="w-full max-w-full sm:max-w-xl">
+      {/* ════ نافذة إضافة / تعديل الباقة ════ */}
+      <Dialog open={isDialogOpen} onOpenChange={v => { if (!v) resetForm(); setIsDialogOpen(v); }}>
+        <DialogContent className="w-full max-w-lg max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
-            <DialogTitle>{editingPackage ? 'تعديل الباقة' : 'إضافة باقة جديدة'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-primary" />
+              {editingPackage ? 'تعديل الباقة' : 'إضافة باقة جديدة'}
+            </DialogTitle>
             <DialogDescription>
-              {editingPackage ? 'حدِّث تفاصيل الباقة واحفظ التغييرات.' : 'أضف باقة جديدة مع تحديد حدودها وطريقة ظهورها.'}
+              {editingPackage ? 'عدّل تفاصيل الباقة ثم احفظ' : 'أضف باقة اشتراك جديدة مع تحديد شروطها'}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitPackage} className="space-y-5">
-            {/* الاسم والـ slug */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="pkg-name">اسم الباقة</Label>
-                <Input
-                  id="pkg-name"
-                  value={formState.name}
-                  onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                  placeholder="مثال: الباقة الذهبية"
-                />
+          <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>اسم الباقة *</Label>
+                <Input value={formState.name} onChange={e => setFormState(s => ({ ...s, name: e.target.value }))} placeholder="الباقة الذهبية" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="pkg-slug">المعرف (Slug)</Label>
-                <Input
-                  id="pkg-slug"
-                  value={formState.slug}
-                  onChange={(e) => setFormState({ ...formState, slug: e.target.value })}
-                  placeholder="gold-package"
-                  dir="ltr"
-                />
+              <div className="space-y-1.5">
+                <Label>المعرّف (Slug)</Label>
+                <Input value={formState.slug} onChange={e => setFormState(s => ({ ...s, slug: e.target.value }))} placeholder="gold-plan" dir="ltr" />
               </div>
             </div>
 
-            {/* السعر والمدة */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="pkg-price">السعر (د.ع)</Label>
-                <Input
-                  id="pkg-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formState.price}
-                  onChange={(e) => setFormState({ ...formState, price: e.target.value })}
-                  placeholder="0"
-                />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>السعر (د.ع) *</Label>
+                <Input type="number" min="0" value={formState.price} onChange={e => setFormState(s => ({ ...s, price: e.target.value }))} placeholder="0" dir="ltr" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="pkg-duration">مدة الاشتراك (أيام)</Label>
-                <Input
-                  id="pkg-duration"
-                  type="number"
-                  min="1"
-                  value={formState.subscription_duration}
-                  onChange={(e) => setFormState({ ...formState, subscription_duration: e.target.value })}
-                  placeholder="30"
-                />
+              <div className="space-y-1.5">
+                <Label>المدة (أيام) *</Label>
+                <Input type="number" min="1" value={formState.subscription_duration} onChange={e => setFormState(s => ({ ...s, subscription_duration: e.target.value }))} placeholder="30" dir="ltr" />
               </div>
             </div>
 
             {/* حد المنتجات */}
-            <div className="space-y-3">
-              <Label>حد المنتجات</Label>
-              <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
+            <div className="space-y-2">
+              <Label>حد المنتجات *</Label>
+              <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
                 <Checkbox
                   id="unlimited"
                   checked={formState.unlimited_products}
-                  onCheckedChange={(checked) =>
-                    setFormState({ ...formState, unlimited_products: Boolean(checked), product_limit: '' })
-                  }
+                  onCheckedChange={v => setFormState(s => ({ ...s, unlimited_products: !!v, product_limit: '' }))}
                 />
-                <label htmlFor="unlimited" className="flex items-center gap-2 text-sm font-medium cursor-pointer select-none">
-                  <Infinity className="w-4 h-4 text-primary" />
-                  منتجات غير محدودة
+                <label htmlFor="unlimited" className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <Infinity className="h-4 w-4 text-primary" /> منتجات غير محدودة
                 </label>
               </div>
               {!formState.unlimited_products && (
-                <Input
-                  type="number"
-                  min="1"
-                  value={formState.product_limit}
-                  onChange={(e) => setFormState({ ...formState, product_limit: e.target.value })}
-                  placeholder="مثال: 50"
-                />
+                <Input type="number" min="1" value={formState.product_limit} onChange={e => setFormState(s => ({ ...s, product_limit: e.target.value }))} placeholder="مثال: 50" dir="ltr" />
               )}
             </div>
 
-            {/* ظهور الباقة */}
-            <div className="space-y-2">
-              <Label htmlFor="pkg-visibility">ظهور الباقة</Label>
-              <Select
-                value={formState.visibility}
-                onValueChange={(v) => setFormState({ ...formState, visibility: v as PackageVisibility })}
-              >
-                <SelectTrigger id="pkg-visibility">
-                  <SelectValue />
-                </SelectTrigger>
+            {/* الظهور */}
+            <div className="space-y-1.5">
+              <Label>ظهور الباقة</Label>
+              <Select value={formState.visibility} onValueChange={v => setFormState(s => ({ ...s, visibility: v as PackageVisibility }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">
-                    <div className="flex flex-col">
-                      <span className="font-medium">للعام</span>
-                      <span className="text-xs text-muted-foreground">تظهر عند إنشاء متجر جديد</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="renewal">
-                    <div className="flex flex-col">
-                      <span className="font-medium">للتجديد فقط</span>
-                      <span className="text-xs text-muted-foreground">مخفية عن العام، تظهر فقط عند تجديد الاشتراك</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="both">
-                    <div className="flex flex-col">
-                      <span className="font-medium">للعام والتجديد</span>
-                      <span className="text-xs text-muted-foreground">تظهر في كلا الحالتين</span>
-                    </div>
-                  </SelectItem>
+                  <SelectItem value="public">للعام — تظهر عند إنشاء متجر جديد</SelectItem>
+                  <SelectItem value="renewal">للتجديد فقط — مخفية عن الجديد</SelectItem>
+                  <SelectItem value="both">للعام والتجديد</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* الوصف */}
-            <div className="space-y-2">
-              <Label htmlFor="pkg-desc">الوصف (اختياري)</Label>
-              <Textarea
-                id="pkg-desc"
-                value={formState.description}
-                onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                rows={2}
-                placeholder="وصف مختصر للباقة..."
-              />
+            <div className="space-y-1.5">
+              <Label>الوصف <span className="text-muted-foreground text-xs">(اختياري)</span></Label>
+              <Textarea value={formState.description} onChange={e => setFormState(s => ({ ...s, description: e.target.value }))} rows={2} placeholder="وصف مختصر..." />
             </div>
 
             {/* تفعيل */}
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
-              <Switch
-                checked={formState.is_active}
-                onCheckedChange={(v) => setFormState({ ...formState, is_active: v })}
-              />
-              <span className="text-sm font-medium">
-                {formState.is_active ? '✅ الباقة مفعّلة وستظهر حسب إعداد الظهور' : '❌ الباقة معطّلة ومخفية تماماً'}
-              </span>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-sm">
+                {formState.is_active
+                  ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                <span>{formState.is_active ? 'الباقة مفعّلة' : 'الباقة موقوفة'}</span>
+              </div>
+              <Switch checked={formState.is_active} onCheckedChange={v => setFormState(s => ({ ...s, is_active: v }))} />
             </div>
 
             {packageError && (
               <Alert variant="destructive">
-                <AlertTitle>خطأ</AlertTitle>
                 <AlertDescription>{packageError}</AlertDescription>
               </Alert>
             )}
 
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => { resetForm(); setIsDialogOpen(false); }}>
-                إلغاء
-              </Button>
+            <DialogFooter className="gap-2 pt-1">
+              <Button type="button" variant="outline" onClick={() => { resetForm(); setIsDialogOpen(false); }} disabled={isSubmitting}>إلغاء</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'جاري الحفظ...' : editingPackage ? 'تحديث الباقة' : 'إضافة الباقة'}
+                {isSubmitting ? '⏳ جاري الحفظ...' : editingPackage ? '✅ حفظ التغييرات' : '✅ إنشاء الباقة'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ─── تأكيد الحذف ─── */}
-      <AlertDialog open={Boolean(deletePackage)} onOpenChange={(open) => { if (!open) setDeletePackage(null); }}>
-        <AlertDialogContent>
+      {/* ════ تأكيد الحذف ════ */}
+      <AlertDialog open={!!deletePackage} onOpenChange={v => !v && setDeletePackage(null)}>
+        <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف الباقة</AlertDialogTitle>
-            <AlertDialogDescription>
-              هل أنت متأكد أنك تريد حذف باقة <strong>{deletePackage?.name}</strong> نهائياً؟ لا يمكن التراجع عن هذا الإجراء.
-            </AlertDialogDescription>
+            <AlertDialogTitle>حذف الباقة؟</AlertDialogTitle>
           </AlertDialogHeader>
+          <AlertDialogDescription>
+            سيتم حذف باقة <strong>{deletePackage?.name}</strong> نهائياً. المتاجر التي تستخدمها لن تتأثر فورياً لكن لن تتجدد.
+          </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={handleDeletePackage} disabled={isSubmitting}>
-              حذف
+            <AlertDialogAction onClick={handleDeletePkg} disabled={isSubmitting} className="bg-destructive text-destructive-foreground">
+              {isSubmitting ? 'جاري الحذف...' : 'نعم، احذف'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }

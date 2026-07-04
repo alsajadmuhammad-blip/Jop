@@ -1,25 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
-import { Handshake, UserPlus, Edit, Trash2, Copy, Check, RefreshCw } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import {
+  Handshake, UserPlus, Edit, Trash2, Copy, Check,
+  RefreshCw, Search, TrendingUp, Store as StoreIcon,
+  DollarSign, Target, RotateCcw,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Store, User } from "@/lib/types";
 import { createRepresentative } from "@/services/supabase-admin";
+import { supabase } from "@/services/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-// ── نسب الخصم على الباقات ─────────────────────────────────
+// ─── ثوابت ──────────────────────────────────────────────────────────────────
 const DISCOUNT_PRESETS = [0, 5, 10, 15, 20, 25, 30];
+function fmtMoney(n: number) { return n.toLocaleString('ar-IQ') + ' د.ع'; }
 
-// ── chip قابل للنسخ ───────────────────────────────────────
+// ─── chip الكود ──────────────────────────────────────────────────────────────
 function CodeChip({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
+      type="button"
       onClick={() => { navigator.clipboard.writeText(code).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-sm font-bold text-slate-800 hover:bg-slate-100 transition-colors"
     >
@@ -29,7 +40,23 @@ function CodeChip({ code }: { code: string }) {
   );
 }
 
-// ── نموذج إنشاء شريك ─────────────────────────────────────
+// ─── شارة نظام الدفع ─────────────────────────────────────────────────────────
+function PaymentBadge({ partner }: { partner: User }) {
+  if (partner.paymentSystem === 'salary') {
+    return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-medium">
+        💰 راتب — {fmtMoney(partner.monthlySalary ?? 0)}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-xs font-medium">
+      📊 عمولة — {partner.commissionPercent ?? 0}%
+    </Badge>
+  );
+}
+
+// ─── نموذج إنشاء شريك ────────────────────────────────────────────────────────
 const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
   isOpen, onOpenChange, onPartnerAdded,
 }: { isOpen: boolean; onOpenChange: (v: boolean) => void; onPartnerAdded?: () => void }) {
@@ -37,43 +64,33 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
   const [saving, setSaving] = useState(false);
   const [paymentSystem, setPaymentSystem] = useState<'salary' | 'commission'>('salary');
   const [packageDiscountPercent, setPackageDiscountPercent] = useState(0);
-  const [form, setForm] = useState({
-    name: '', email: '', password: '',
-    partnerCode: '',
-    monthlySalary: '', requiredStoresCount: '', commissionPercent: '',
-  });
-
+  const [form, setForm] = useState({ name: '', email: '', password: '', partnerCode: '', monthlySalary: '', requiredStoresCount: '', commissionPercent: '' });
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   const reset = () => {
     setForm({ name: '', email: '', password: '', partnerCode: '', monthlySalary: '', requiredStoresCount: '', commissionPercent: '' });
-    setPaymentSystem('salary');
-    setPackageDiscountPercent(0);
+    setPaymentSystem('salary'); setPackageDiscountPercent(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.password.trim() || !form.partnerCode.trim()) {
-      toast({ variant: "destructive", title: "الرجاء ملء جميع الحقول الإلزامية" }); return;
+      toast({ variant: "destructive", title: "أدخل جميع الحقول الإلزامية" }); return;
     }
     if (!/^[A-Z0-9_-]{2,20}$/.test(form.partnerCode)) {
-      toast({ variant: "destructive", title: "الكود يجب أن يكون أحرف إنجليزية/أرقام (2-20 حرف)" }); return;
+      toast({ variant: "destructive", title: "كود الشريك: أحرف إنجليزية وأرقام فقط (2-20 حرف)" }); return;
     }
     if (paymentSystem === 'salary' && (!form.monthlySalary || !form.requiredStoresCount)) {
-      toast({ variant: "destructive", title: "أدخل الراتب وعدد المتاجر المطلوب" }); return;
+      toast({ variant: "destructive", title: "أدخل الراتب الشهري وعدد المتاجر المطلوب" }); return;
     }
-    const commissionPct = Number(form.commissionPercent) || 0;
-
     setSaving(true);
     try {
       const result = await createRepresentative({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
+        name: form.name.trim(), email: form.email.trim(), password: form.password,
         paymentSystem,
         monthlySalary: paymentSystem === 'salary' ? Number(form.monthlySalary) : undefined,
         requiredStoresCount: paymentSystem === 'salary' ? Number(form.requiredStoresCount) : undefined,
-        commissionPercent: commissionPct,
+        commissionPercent: Number(form.commissionPercent) || 0,
         packageDiscountPercent,
         partnerCode: form.partnerCode.trim(),
       });
@@ -81,13 +98,13 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
       toast({ title: "✅ تم إنشاء حساب الشريك", description: `الكود: ${form.partnerCode}` });
       reset(); onOpenChange(false); onPartnerAdded?.();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل إنشاء الشريك", description: err?.message });
+      toast({ variant: "destructive", title: "فشل الإنشاء", description: err?.message });
     } finally { setSaving(false); }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
-      <DialogContent className="w-full max-w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={v => { if (!v) reset(); onOpenChange(v); }}>
+      <DialogContent className="w-full max-w-lg max-h-[92vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Handshake className="h-5 w-5 text-primary" /> إضافة شريك جديد
@@ -95,94 +112,79 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
           <DialogDescription>أنشئ حساب شريك تسويق مع كود خاص وشروط واضحة</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* الاسم */}
-          <div className="space-y-1.5">
-            <Label>الاسم الكامل *</Label>
-            <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="مثال: أحمد علي" disabled={saving} />
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>الاسم الكامل *</Label>
+              <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="أحمد علي" disabled={saving} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>كود الشريك *</Label>
+              <input
+                value={form.partnerCode}
+                onChange={e => set('partnerCode', e.target.value.toUpperCase())}
+                placeholder="AHMED2024" maxLength={20} dir="ltr" disabled={saving}
+                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none transition focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              />
+              <p className="text-[11px] text-muted-foreground">أحرف إنجليزية وأرقام فقط</p>
+            </div>
           </div>
 
-          {/* البريد */}
           <div className="space-y-1.5">
             <Label>البريد الإلكتروني *</Label>
             <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="partner@example.com" dir="ltr" disabled={saving} />
           </div>
 
-          {/* كلمة المرور */}
           <div className="space-y-1.5">
             <Label>كلمة المرور *</Label>
             <Input type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="••••••••" disabled={saving} />
-          </div>
-
-          {/* كود الشريك */}
-          <div className="space-y-1.5">
-            <Label>كود الشريك *</Label>
-            <input
-              type="text"
-              value={form.partnerCode}
-              onChange={e => set('partnerCode', e.target.value.toUpperCase())}
-              placeholder="مثال: AHMED2024"
-              maxLength={20}
-              dir="ltr"
-              disabled={saving}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-mono uppercase tracking-widest outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
-            />
-            <p className="text-xs text-slate-400">أحرف إنجليزية وأرقام فقط — يدخله صاحب المتجر عند التسجيل</p>
           </div>
 
           {/* نظام الدفع */}
           <div className="space-y-2">
             <Label>نظام الدفع *</Label>
             <div className="flex gap-2">
-              {([['salary', '💰 راتب شهري'], ['commission', '📊 نسبة فقط']] as [string, string][]).map(([v, l]) => (
-                <button key={v} type="button" onClick={() => setPaymentSystem(v as 'salary' | 'commission')}
-                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${paymentSystem === v ? 'bg-primary text-white border-primary' : 'bg-white text-slate-700 border-slate-200 hover:border-primary'}`}>
-                  {l}
+              {(['salary', 'commission'] as const).map(v => (
+                <button key={v} type="button" onClick={() => setPaymentSystem(v)}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${paymentSystem === v ? 'bg-primary text-white border-primary' : 'bg-background text-foreground border-border hover:border-primary'}`}>
+                  {v === 'salary' ? '💰 راتب شهري' : '📊 نسبة عمولة'}
                 </button>
               ))}
             </div>
           </div>
 
           {paymentSystem === 'salary' && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>الراتب الشهري (د.ع) *</Label>
-                  <Input type="number" min={0} value={form.monthlySalary} onChange={e => set('monthlySalary', e.target.value)} placeholder="250000" dir="ltr" disabled={saving} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>المتاجر المطلوبة *</Label>
-                  <Input type="number" min={1} value={form.requiredStoresCount} onChange={e => set('requiredStoresCount', e.target.value)} placeholder="10" dir="ltr" disabled={saving} />
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>الراتب الشهري (د.ع) *</Label>
+                <Input type="number" min={0} value={form.monthlySalary} onChange={e => set('monthlySalary', e.target.value)} placeholder="250000" dir="ltr" disabled={saving} />
               </div>
               <div className="space-y-1.5">
-                <Label>نسبة عمولة إضافية % <span className="text-slate-400 font-normal">(على كل متجر بعد الهدف)</span></Label>
-                <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} placeholder="0" dir="ltr" disabled={saving} />
+                <Label>المتاجر المطلوبة *</Label>
+                <Input type="number" min={1} value={form.requiredStoresCount} onChange={e => set('requiredStoresCount', e.target.value)} placeholder="10" dir="ltr" disabled={saving} />
               </div>
-            </>
-          )}
-
-          {paymentSystem === 'commission' && (
-            <div className="space-y-1.5">
-              <Label>نسبة العمولة % <span className="text-slate-400 font-normal">(على كل متجر)</span></Label>
-              <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} placeholder="10" dir="ltr" disabled={saving} />
             </div>
           )}
 
+          <div className="space-y-1.5">
+            <Label>نسبة العمولة % <span className="text-muted-foreground font-normal text-xs">{paymentSystem === 'salary' ? '(إضافية بعد الهدف)' : '(على كل متجر)'}</span></Label>
+            <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} placeholder="0" dir="ltr" disabled={saving} />
+          </div>
+
           {/* خصم الباقة */}
           <div className="space-y-2">
-            <Label>خصم على الباقات % <span className="text-slate-400 font-normal">(يمنحه للمتاجر عبر كوده)</span></Label>
+            <Label>خصم على الباقات % <span className="text-muted-foreground font-normal text-xs">(يمنحه للمتاجر عبر كوده)</span></Label>
             <div className="flex flex-wrap gap-2">
               {DISCOUNT_PRESETS.map(p => (
                 <button key={p} type="button" onClick={() => setPackageDiscountPercent(p)}
-                  className={`rounded-full px-3.5 py-1.5 text-sm font-bold border transition-all ${packageDiscountPercent === p ? 'bg-primary text-white border-primary scale-105' : 'bg-white text-slate-700 border-slate-200 hover:border-primary'}`}>
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-bold border transition-all ${packageDiscountPercent === p ? 'bg-primary text-white border-primary' : 'bg-background border-border hover:border-primary'}`}>
                   {p === 0 ? 'بدون خصم' : `${p}%`}
                 </button>
               ))}
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-2">
+          <DialogFooter className="gap-2 pt-1">
             <Button type="button" variant="outline" onClick={() => { reset(); onOpenChange(false); }} disabled={saving}>إلغاء</Button>
             <Button type="submit" disabled={saving} className="gap-2">
               <Handshake className="h-4 w-4" />
@@ -196,7 +198,7 @@ const CreatePartnerDialog = React.memo(function CreatePartnerDialog({
 });
 CreatePartnerDialog.displayName = 'CreatePartnerDialog';
 
-// ── نموذج تعديل الشريك ────────────────────────────────────
+// ─── نموذج تعديل الشريك ──────────────────────────────────────────────────────
 const EditPartnerDialog = React.memo(function EditPartnerDialog({
   isOpen, onOpenChange, partner, onUpdated,
 }: { isOpen: boolean; onOpenChange: (v: boolean) => void; partner: User | null; onUpdated?: (id: string, updates: Partial<User>) => void }) {
@@ -229,13 +231,11 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!partner?.id) return;
-    if (!form.name.trim()) { toast({ variant: "destructive", title: "أدخل الاسم" }); return; }
+    if (!form.name.trim()) { toast({ variant: "destructive", title: "أدخل اسم الشريك" }); return; }
     setSaving(true);
     try {
       const updates: Partial<User> = {
-        name: form.name.trim(),
-        paymentSystem,
-        packageDiscountPercent,
+        name: form.name.trim(), paymentSystem, packageDiscountPercent,
         commissionPercent: Number(form.commissionPercent) || 0,
         ...(paymentSystem === 'salary' && {
           monthlySalary: Number(form.monthlySalary) || 0,
@@ -252,18 +252,18 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-lg max-h-[92vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle>تعديل بيانات الشريك</DialogTitle>
           {partner?.partnerCode && (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-slate-500">الكود:</span>
+              <span className="text-xs text-muted-foreground">الكود:</span>
               <CodeChip code={partner.partnerCode} />
             </div>
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div className="space-y-1.5">
             <Label>الاسم الكامل *</Label>
             <Input value={form.name} onChange={e => set('name', e.target.value)} disabled={saving} />
@@ -272,54 +272,46 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
           <div className="space-y-2">
             <Label>نظام الدفع</Label>
             <div className="flex gap-2">
-              {([['salary', '💰 راتب شهري'], ['commission', '📊 نسبة فقط']] as [string, string][]).map(([v, l]) => (
-                <button key={v} type="button" onClick={() => setPaymentSystem(v as 'salary' | 'commission')}
-                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${paymentSystem === v ? 'bg-primary text-white border-primary' : 'bg-white text-slate-700 border-slate-200 hover:border-primary'}`}>
-                  {l}
+              {(['salary', 'commission'] as const).map(v => (
+                <button key={v} type="button" onClick={() => setPaymentSystem(v)}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${paymentSystem === v ? 'bg-primary text-white border-primary' : 'bg-background border-border hover:border-primary'}`}>
+                  {v === 'salary' ? '💰 راتب شهري' : '📊 نسبة عمولة'}
                 </button>
               ))}
             </div>
           </div>
 
           {paymentSystem === 'salary' && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>الراتب الشهري (د.ع)</Label>
-                  <Input type="number" min={0} value={form.monthlySalary} onChange={e => set('monthlySalary', e.target.value)} dir="ltr" disabled={saving} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>المتاجر المطلوبة</Label>
-                  <Input type="number" min={1} value={form.requiredStoresCount} onChange={e => set('requiredStoresCount', e.target.value)} dir="ltr" disabled={saving} />
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>الراتب الشهري (د.ع)</Label>
+                <Input type="number" min={0} value={form.monthlySalary} onChange={e => set('monthlySalary', e.target.value)} dir="ltr" disabled={saving} />
               </div>
               <div className="space-y-1.5">
-                <Label>نسبة عمولة إضافية % <span className="text-slate-400 font-normal">(بعد الهدف)</span></Label>
-                <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} dir="ltr" disabled={saving} />
+                <Label>المتاجر المطلوبة</Label>
+                <Input type="number" min={1} value={form.requiredStoresCount} onChange={e => set('requiredStoresCount', e.target.value)} dir="ltr" disabled={saving} />
               </div>
-            </>
-          )}
-
-          {paymentSystem === 'commission' && (
-            <div className="space-y-1.5">
-              <Label>نسبة العمولة %</Label>
-              <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} dir="ltr" disabled={saving} />
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label>نسبة العمولة % <span className="text-muted-foreground font-normal text-xs">{paymentSystem === 'salary' ? '(إضافية بعد الهدف)' : '(على كل متجر)'}</span></Label>
+            <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} dir="ltr" disabled={saving} />
+          </div>
 
           <div className="space-y-2">
             <Label>خصم على الباقات %</Label>
             <div className="flex flex-wrap gap-2">
               {DISCOUNT_PRESETS.map(p => (
                 <button key={p} type="button" onClick={() => setPackageDiscountPercent(p)}
-                  className={`rounded-full px-3.5 py-1.5 text-sm font-bold border transition-all ${packageDiscountPercent === p ? 'bg-primary text-white border-primary scale-105' : 'bg-white text-slate-700 border-slate-200 hover:border-primary'}`}>
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-bold border transition-all ${packageDiscountPercent === p ? 'bg-primary text-white border-primary' : 'bg-background border-border hover:border-primary'}`}>
                   {p === 0 ? 'بدون خصم' : `${p}%`}
                 </button>
               ))}
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-2">
+          <DialogFooter className="gap-2 pt-1">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>إلغاء</Button>
             <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ…' : '✅ حفظ التغييرات'}</Button>
           </DialogFooter>
@@ -330,7 +322,120 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
 });
 EditPartnerDialog.displayName = 'EditPartnerDialog';
 
-// ── التبويب الرئيسي ───────────────────────────────────────
+// ─── بطاقة شريك ──────────────────────────────────────────────────────────────
+function PartnerCard({ partner, storeCount, activeStoreCount, onEdit, onDelete, onResetActivations }: {
+  partner: User;
+  storeCount: number;
+  activeStoreCount: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  onResetActivations: () => void;
+}) {
+  const progress = partner.paymentSystem === 'salary' && partner.requiredStoresCount
+    ? Math.min(100, Math.round(((partner.monthlyActivations ?? 0) / partner.requiredStoresCount) * 100))
+    : 0;
+
+  return (
+    <Card className="border border-border/70 shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-4 space-y-3">
+        {/* الرأس */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-sm leading-tight truncate">{partner.name}</p>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{partner.email}</p>
+          </div>
+          {partner.partnerCode && <CodeChip code={partner.partnerCode} />}
+        </div>
+
+        {/* شارة نظام الدفع */}
+        <div><PaymentBadge partner={partner} /></div>
+
+        {/* الإحصاءات */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-muted/40 border border-border/40 p-2.5 text-center">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+              <StoreIcon className="h-3 w-3" />
+              <span className="text-[10px]">المتاجر</span>
+            </div>
+            <p className="text-lg font-black leading-none">{storeCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{activeStoreCount} نشط</p>
+          </div>
+          <div className="rounded-xl bg-muted/40 border border-border/40 p-2.5 text-center">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+              <DollarSign className="h-3 w-3" />
+              <span className="text-[10px]">إجمالي الأرباح</span>
+            </div>
+            <p className="text-sm font-black leading-none text-emerald-600">
+              {(partner.totalEarnings ?? 0) > 0 ? (partner.totalEarnings!).toLocaleString('ar-IQ') : '—'}
+            </p>
+            {(partner.totalEarnings ?? 0) > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">د.ع</p>}
+          </div>
+        </div>
+
+        {/* تقدم الهدف الشهري */}
+        {partner.paymentSystem === 'salary' && (partner.requiredStoresCount ?? 0) > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Target className="h-3 w-3" />
+                <span>الهدف الشهري</span>
+              </div>
+              <span className="font-bold">{partner.monthlyActivations ?? 0} / {partner.requiredStoresCount}</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${progress >= 100 ? 'bg-emerald-500' : progress >= 60 ? 'bg-blue-500' : 'bg-primary'}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">{progress}% مكتمل</span>
+              <button
+                type="button"
+                onClick={onResetActivations}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition"
+              >
+                <RotateCcw className="h-2.5 w-2.5" /> إعادة تعيين الشهر
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* خصم الباقة */}
+        {(partner.packageDiscountPercent ?? 0) > 0 && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700 flex items-center gap-1.5">
+            <TrendingUp className="h-3 w-3" />
+            يمنح خصم {partner.packageDiscountPercent}% على الباقات
+          </div>
+        )}
+
+        {/* الأزرار */}
+        <div className="flex gap-2 pt-1">
+          <Button size="sm" variant="outline" className="flex-1 gap-1.5 text-xs h-8" onClick={onEdit}>
+            <Edit className="h-3.5 w-3.5" /> تعديل
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive" className="gap-1 text-xs h-8 px-3">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent dir="rtl">
+              <AlertDialogHeader><AlertDialogTitle>حذف الشريك؟</AlertDialogTitle></AlertDialogHeader>
+              <AlertDialogDescription>سيتم حذف حساب <strong>{partner.name}</strong> نهائياً.</AlertDialogDescription>
+              <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground">حذف</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── التبويب الرئيسي ──────────────────────────────────────────────────────────
 export function PartnersTab({
   representatives,
   stores,
@@ -347,11 +452,13 @@ export function PartnersTab({
   onRefresh?: () => void;
 }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isEditOpen,   setIsEditOpen]   = useState(false);
   const [editingPartner, setEditingPartner] = useState<User | null>(null);
+  const [search, setSearch] = useState('');
   const { toast } = useToast();
 
-  const storeCount = (id: string) => stores.filter(s => s.registeredByAgentId === id).length;
+  const storeCount       = (id: string) => stores.filter(s => s.registeredByAgentId === id).length;
+  const activeStoreCount = (id: string) => stores.filter(s => s.registeredByAgentId === id && s.isActive).length;
 
   const handleDelete = async (id: string) => {
     const count = storeCount(id);
@@ -362,174 +469,128 @@ export function PartnersTab({
     onRepresentativeDeleted?.(id);
   };
 
-  const paymentLabel = (p: User) => {
-    if (p.paymentSystem === 'salary') return `💰 ${(p.monthlySalary ?? 0).toLocaleString()} د.ع / شهر`;
-    return `📊 ${p.commissionPercent ?? 0}% / متجر`;
+  const handleResetActivations = async (partner: User) => {
+    try {
+      await supabase.from('users').update({
+        monthly_activations: 0,
+        monthlyActivations: 0,
+        last_reset_date: new Date().toISOString(),
+      }).eq('id', partner.id);
+      onRepresentativeUpdated?.(partner.id, { monthlyActivations: 0, lastResetDate: new Date().toISOString() });
+      toast({ title: '✅ تم إعادة تعيين التفعيلات الشهرية' });
+    } catch {
+      toast({ variant: 'destructive', title: 'فشل إعادة التعيين' });
+    }
   };
 
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between flex-wrap gap-3">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Handshake className="w-5 h-5 text-primary" />
-            إدارة الشركاء ({representatives.length})
-          </CardTitle>
-          <CardDescription>إضافة وتتبع أداء ومستحقات شركاء التسويق</CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
-          {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
-              <RefreshCw className="w-4 h-4" /> تحديث
-            </Button>
-          )}
-          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-            <UserPlus className="w-4 h-4" /> إضافة شريك
-          </Button>
-        </div>
-      </CardHeader>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return representatives;
+    return representatives.filter(p =>
+      (p.name ?? '').toLowerCase().includes(q) ||
+      (p.email ?? '').toLowerCase().includes(q) ||
+      (p.partnerCode ?? '').toLowerCase().includes(q)
+    );
+  }, [representatives, search]);
 
-      <CardContent>
-        {representatives.length === 0 ? (
-          <div className="text-center py-16">
-            <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-40" strokeWidth={1.5} />
-            <p className="text-muted-foreground text-sm">لا يوجد شركاء مسجلون حتى الآن</p>
+  // ملخص سريع
+  const totalEarnings     = representatives.reduce((s, r) => s + (r.totalEarnings ?? 0), 0);
+  const totalStores       = representatives.reduce((s, r) => s + storeCount(r.id), 0);
+  const totalActivations  = representatives.reduce((s, r) => s + (r.monthlyActivations ?? 0), 0);
+
+  return (
+    <div className="space-y-5">
+      {/* ── ملخص سريع ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'الشركاء',         value: representatives.length, cls: 'text-primary',     bg: 'bg-primary/8'   },
+          { label: 'متاجر مسجلة',     value: totalStores,            cls: 'text-blue-600',    bg: 'bg-blue-50'     },
+          { label: 'تفعيلات الشهر',   value: totalActivations,       cls: 'text-emerald-600', bg: 'bg-emerald-50'  },
+        ].map(item => (
+          <div key={item.label} className={`rounded-xl border border-border/40 ${item.bg} p-3 text-center`}>
+            <p className={`text-2xl font-black ${item.cls}`}>{item.value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{item.label}</p>
           </div>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <div className="space-y-4 sm:hidden">
-              {representatives.map(p => (
-                <div key={p.id} className="rounded-2xl border border-border/80 bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{p.email}</p>
-                    </div>
-                    {p.partnerCode && <CodeChip code={p.partnerCode} />}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <p className="text-muted-foreground">نظام الدفع</p>
-                      <p className="font-semibold mt-0.5">{paymentLabel(p)}</p>
-                    </div>
-                    {p.paymentSystem === 'salary' && (
-                      <div>
-                        <p className="text-muted-foreground">الهدف الشهري</p>
-                        <p className="font-semibold mt-0.5">{p.requiredStoresCount ?? '-'} متجر</p>
-                      </div>
-                    )}
-                    {(p.commissionPercent ?? 0) > 0 && (
-                      <div>
-                        <p className="text-muted-foreground">{p.paymentSystem === 'salary' ? 'عمولة بعد الهدف' : 'نسبة العمولة'}</p>
-                        <p className="font-semibold mt-0.5 text-primary">{p.commissionPercent}%</p>
-                      </div>
-                    )}
-                    {(p.packageDiscountPercent ?? 0) > 0 && (
-                      <div>
-                        <p className="text-muted-foreground">خصم الباقة</p>
-                        <p className="font-semibold mt-0.5 text-emerald-600">{p.packageDiscountPercent}%</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground">المتاجر المسجلة</p>
-                      <p className="font-bold mt-0.5">{storeCount(p.id)}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => { setEditingPartner(p); setIsEditOpen(true); }}>
-                      <Edit className="h-3.5 w-3.5" /> تعديل
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="destructive" className="flex-1 gap-1">
-                          <Trash2 className="h-3.5 w-3.5" /> حذف
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>حذف الشريك؟</AlertDialogTitle></AlertDialogHeader>
-                        <AlertDialogDescription>سيتم حذف حساب {p.name} نهائياً.</AlertDialogDescription>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(p.id)} className="bg-destructive text-destructive-foreground">حذف</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
+        ))}
+      </div>
+
+      {/* ── الهيدر ── */}
+      <Card className="shadow-sm">
+        <CardHeader className="flex-row items-center justify-between flex-wrap gap-3 pb-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Handshake className="w-5 h-5 text-primary" />
+              إدارة الشركاء ({representatives.length})
+            </CardTitle>
+            <CardDescription>تتبع أداء ومستحقات شركاء التسويق</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <Button variant="outline" size="sm" onClick={onRefresh} className="gap-1.5 text-xs h-8">
+                <RefreshCw className="w-3.5 h-3.5" /> تحديث
+              </Button>
+            )}
+            <Button onClick={() => setIsCreateOpen(true)} size="sm" className="gap-1.5 text-xs h-8">
+              <UserPlus className="w-3.5 h-3.5" /> إضافة شريك
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {/* بحث */}
+          <div className="relative mb-4">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ابحث بالاسم أو البريد أو الكود..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="pr-9 h-9"
+            />
+          </div>
+
+          {representatives.length === 0 ? (
+            <div className="text-center py-16">
+              <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-30" strokeWidth={1.5} />
+              <p className="text-muted-foreground text-sm">لا يوجد شركاء مسجلون حتى الآن</p>
+              <Button className="mt-4 gap-2" onClick={() => setIsCreateOpen(true)}>
+                <UserPlus className="h-4 w-4" /> إضافة أول شريك
+              </Button>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground text-sm">لا توجد نتائج للبحث</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filtered.map(p => (
+                <PartnerCard
+                  key={p.id}
+                  partner={p}
+                  storeCount={storeCount(p.id)}
+                  activeStoreCount={activeStoreCount(p.id)}
+                  onEdit={() => { setEditingPartner(p); setIsEditOpen(true); }}
+                  onDelete={() => handleDelete(p.id)}
+                  onResetActivations={() => handleResetActivations(p)}
+                />
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {/* Desktop table */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-border text-sm">
-                <thead>
-                  <tr className="text-xs text-muted-foreground">
-                    <th className="px-4 py-3 text-right font-semibold">الاسم</th>
-                    <th className="px-4 py-3 text-right font-semibold">البريد</th>
-                    <th className="px-4 py-3 text-right font-semibold">الكود</th>
-                    <th className="px-4 py-3 text-right font-semibold">الدفع</th>
-                    <th className="px-4 py-3 text-right font-semibold">الهدف</th>
-                    <th className="px-4 py-3 text-right font-semibold">عمولة %</th>
-                    <th className="px-4 py-3 text-right font-semibold">خصم الباقة</th>
-                    <th className="px-4 py-3 text-right font-semibold">المتاجر</th>
-                    <th className="px-4 py-3 text-right font-semibold">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {representatives.map(p => (
-                    <tr key={p.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="px-4 py-3 font-semibold">{p.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">{p.email}</td>
-                      <td className="px-4 py-3">{p.partnerCode ? <CodeChip code={p.partnerCode} /> : <span className="text-slate-300">—</span>}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{paymentLabel(p)}</td>
-                      <td className="px-4 py-3">{p.paymentSystem === 'salary' ? `${p.requiredStoresCount ?? 0} متجر` : '—'}</td>
-                      <td className="px-4 py-3">
-                        {(p.commissionPercent ?? 0) > 0
-                          ? <span className="font-bold text-primary">{p.commissionPercent}%</span>
-                          : <span className="text-slate-300">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        {(p.packageDiscountPercent ?? 0) > 0
-                          ? <span className="font-bold text-emerald-600">{p.packageDiscountPercent}%</span>
-                          : <span className="text-slate-300">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-bold">{storeCount(p.id)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => { setEditingPartner(p); setIsEditOpen(true); }}>
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive" className="h-8 w-8 p-0">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader><AlertDialogTitle>حذف الشريك؟</AlertDialogTitle></AlertDialogHeader>
-                              <AlertDialogDescription>سيتم حذف حساب {p.name} نهائياً.</AlertDialogDescription>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(p.id)} className="bg-destructive text-destructive-foreground">حذف</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </CardContent>
+      {/* ── إجمالي الأرباح ── */}
+      {totalEarnings > 0 && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            <span>إجمالي المستحقات المدفوعة لجميع الشركاء</span>
+          </div>
+          <span className="font-black text-base">{fmtMoney(totalEarnings)}</span>
+        </div>
+      )}
 
-      <CreatePartnerDialog isOpen={isCreateOpen} onOpenChange={setIsCreateOpen} onPartnerAdded={() => { setIsCreateOpen(false); onRepresentativeAdded?.(); }} />
-      <EditPartnerDialog isOpen={isEditOpen} onOpenChange={setIsEditOpen} partner={editingPartner} onUpdated={onRepresentativeUpdated} />
-    </Card>
+      <CreatePartnerDialog isOpen={isCreateOpen} onOpenChange={setIsCreateOpen} onPartnerAdded={onRepresentativeAdded} />
+      <EditPartnerDialog
+        isOpen={isEditOpen} onOpenChange={v => { setIsEditOpen(v); if (!v) setEditingPartner(null); }}
+        partner={editingPartner} onUpdated={onRepresentativeUpdated}
+      />
+    </div>
   );
 }
