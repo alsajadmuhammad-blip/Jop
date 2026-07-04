@@ -63,7 +63,7 @@ export function StatisticsTab({
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .then(({ count }) => {
+      .then(({ count }: { count: number | null }) => {
         setOrdersCount(count ?? 0);
         setOrdersLoading(false);
       });

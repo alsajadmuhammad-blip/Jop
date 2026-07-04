@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Shield, Package2, Users, LogOut, DollarSign, SlidersHorizontal, BarChart3, Clock, RefreshCw } from "lucide-react";
+import { Shield, Package2, Users, LogOut, DollarSign, SlidersHorizontal, BarChart3, Clock, RefreshCw, ShoppingBag, AlertTriangle } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import type { Store, StorePackage, User } from "@/lib/types";
@@ -25,6 +25,7 @@ import { StoresTab } from "./components/stores-tab";
 import { SubscriptionsTab } from "./components/subscriptions-tab";
 import { StatisticsTab } from "./components/statistics-tab";
 import { HeroSliderManager } from "./components/hero-slider-manager";
+import { OrdersTab } from "./components/orders-tab";
 
 // ===== Main Dashboard Component =====
 function AdminDashboard() {
@@ -32,6 +33,7 @@ function AdminDashboard() {
   const [packages, setPackages] = useState<StorePackage[]>([]);
   const [representatives, setRepresentatives] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersCount, setOrdersCount] = useState<number>(0);
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const [activeView, setActiveView] = useState('stores');
@@ -42,7 +44,7 @@ function AdminDashboard() {
   useEffect(() => {
     if (isInitialViewLoaded) return;
     const view = searchParams?.get('view');
-    if (view && ['stores', 'reps', 'subscriptions', 'ads', 'statistics'].includes(view)) {
+    if (view && ['stores', 'reps', 'subscriptions', 'ads', 'statistics', 'orders'].includes(view)) {
       setActiveView(view);
     }
     setIsInitialViewLoaded(true);
@@ -63,22 +65,33 @@ function AdminDashboard() {
     router.replace(url, { scroll: false });
   };
 
-  const activeStoresCount = stores.filter((store) => store.isActive).length;
+  const activeStoresCount  = stores.filter((store) => store.isActive).length;
   const inactiveStoresCount = stores.length - activeStoresCount;
+
+  // متاجر ستنتهي اشتراكاتها خلال 7 أيام
+  const expiringSoonCount = stores.filter(s => {
+    if (!s.isActive || !s.activationDate) return false;
+    const activationDays = Math.floor((Date.now() - new Date(s.activationDate).getTime()) / (1000 * 60 * 60 * 24));
+    const remaining = (s.subscriptionDuration || 30) - activationDays;
+    return remaining >= 0 && remaining <= 7;
+  }).length;
+
   const adminViewTabs = [
-    { key: 'stores',        label: 'المتاجر',    icon: Package2       },
-    { key: 'reps',          label: 'الشركاء',    icon: Users          },
-    { key: 'subscriptions', label: 'الباقات',    icon: DollarSign     },
+    { key: 'stores',        label: 'المتاجر',    icon: Package2          },
+    { key: 'reps',          label: 'الشركاء',    icon: Users             },
+    { key: 'subscriptions', label: 'الباقات',    icon: DollarSign        },
+    { key: 'orders',        label: 'الطلبات',    icon: ShoppingBag       },
     { key: 'ads',           label: 'الإعلانات',  icon: SlidersHorizontal },
-    { key: 'statistics',    label: 'الإحصائيات', icon: BarChart3      },
+    { key: 'statistics',    label: 'الإحصائيات', icon: BarChart3         },
   ];
 
   const fetchAll = async () => {
     try {
-      const [{ data: storesData, error: storesError }, { data: usersData, error: usersError }, packagesData] = await Promise.all([
+      const [{ data: storesData, error: storesError }, { data: usersData, error: usersError }, packagesData, ordersResult] = await Promise.all([
         supabase.from('stores').select('*'),
         supabase.from('users').select('*'),
         fetchStorePackages(),
+        supabase.from('orders').select('id', { count: 'exact', head: true }),
       ] as const);
 
       if (storesError) throw storesError;
@@ -101,6 +114,7 @@ function AdminDashboard() {
         monthlyActivations: u.monthly_activations ?? u.monthlyActivations ?? 0,
       } as User)));
       setPackages(packagesData || []);
+      setOrdersCount(ordersResult.count ?? 0);
       setLoading(false);
     } catch (error: any) {
       console.error('Supabase Error:', error);
@@ -500,32 +514,50 @@ function AdminDashboard() {
           </div>
 
           {/* ── بطاقات الإحصاء السريع ── */}
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: 'إجمالي المتاجر',   value: stores.length,        color: 'text-primary',      bg: 'bg-primary/8'    },
-              { label: 'المتاجر النشطة',   value: activeStoresCount,    color: 'text-emerald-600',  bg: 'bg-emerald-50'   },
-              { label: 'قيد المراجعة',     value: pendingCount,         color: 'text-amber-600',    bg: 'bg-amber-50'     },
-              { label: 'الشركاء',           value: representatives.length, color: 'text-blue-600',  bg: 'bg-blue-50'      },
-            ].map(({ label, value, color, bg }) => (
-              <div key={label} className={`rounded-xl border border-border/40 ${bg} p-3 text-center`}>
+              { label: 'إجمالي المتاجر',   value: stores.length,          color: 'text-primary',      bg: 'bg-primary/8',   key: 'stores'     },
+              { label: 'المتاجر النشطة',   value: activeStoresCount,      color: 'text-emerald-600',  bg: 'bg-emerald-50',  key: 'stores'     },
+              { label: 'قيد المراجعة',     value: pendingCount,           color: 'text-amber-600',    bg: 'bg-amber-50',    key: 'stores'     },
+              { label: 'الشركاء',           value: representatives.length, color: 'text-blue-600',     bg: 'bg-blue-50',     key: 'reps'       },
+              { label: 'إجمالي الطلبات',   value: ordersCount,            color: 'text-violet-600',   bg: 'bg-violet-50',   key: 'orders'     },
+            ].map(({ label, value, color, bg, key }) => (
+              <button
+                key={label}
+                onClick={() => handleViewChange(key)}
+                className={`rounded-xl border border-border/40 ${bg} p-3 text-center hover:opacity-80 transition cursor-pointer`}
+              >
                 <p className={`text-2xl font-black ${color}`}>{value}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-              </div>
+              </button>
             ))}
           </div>
 
-          {/* ── تنبيه المتاجر المعلقة ── */}
-          {pendingCount > 0 && (
-            <button
-              onClick={() => handleViewChange('stores')}
-              className="mt-3 w-full flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 hover:bg-amber-100 transition text-right"
-            >
-              <Clock className="h-4 w-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>{pendingCount}</strong> {pendingCount === 1 ? 'متجر ينتظر' : 'متجر ينتظرون'} موافقتك — انقر للمراجعة
-              </span>
-            </button>
-          )}
+          {/* ── تنبيهات ── */}
+          <div className="mt-3 flex flex-col gap-2">
+            {pendingCount > 0 && (
+              <button
+                onClick={() => handleViewChange('stores')}
+                className="w-full flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 hover:bg-amber-100 transition text-right"
+              >
+                <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>{pendingCount}</strong> {pendingCount === 1 ? 'متجر ينتظر' : 'متجر ينتظرون'} موافقتك — انقر للمراجعة
+                </span>
+              </button>
+            )}
+            {expiringSoonCount > 0 && (
+              <button
+                onClick={() => handleViewChange('stores')}
+                className="w-full flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800 hover:bg-red-100 transition text-right"
+              >
+                <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                <span>
+                  <strong>{expiringSoonCount}</strong> {expiringSoonCount === 1 ? 'متجر سينتهي' : 'متاجر ستنتهي'} اشتراكهم خلال 7 أيام
+                </span>
+              </button>
+            )}
+          </div>
         </header>
 
         {/* ── شريط التنقل ── */}
@@ -583,6 +615,7 @@ function AdminDashboard() {
             />
           )}
           {activeView === 'ads' && <HeroSliderManager stores={stores} />}
+          {activeView === 'orders' && <OrdersTab stores={stores} />}
         </div>
       </div>
 
