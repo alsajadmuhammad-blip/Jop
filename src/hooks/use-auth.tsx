@@ -191,6 +191,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role,
         storeId,
         firstLogin: row.firstLogin || row.first_login || false,
+        // حقول الشريك — تُقرأ فقط عند role === 'representative'
+        paymentSystem: row.payment_system || row.paymentSystem || undefined,
+        monthlySalary: row.monthly_salary ?? row.monthlySalary ?? undefined,
+        requiredStoresCount: row.required_stores_count ?? row.requiredStoresCount ?? undefined,
+        commissionPercent: row.commission_percent ?? row.commissionPercent ?? undefined,
+        packageDiscountPercent: row.package_discount_percent ?? row.packageDiscountPercent ?? undefined,
+        partnerCode: row.partner_code || row.partnerCode || undefined,
+        monthlyActivations: row.monthly_activations ?? row.monthlyActivations ?? undefined,
+        totalEarnings: row.total_earnings ?? row.totalEarnings ?? undefined,
       };
 
       setUser(prev => {

@@ -39,7 +39,7 @@ export default function RepresentativeAddStorePage() {
 
         <div className="mx-auto max-w-2xl pt-12">
           <div className="mb-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">المندوب</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">الشريك</p>
             <h1 className="mt-2 text-3xl font-bold">إضافة متجر جديد</h1>
             <p className="mt-3 text-muted-foreground">
               استخدم نفس النموذج الذي يتوفر في صفحة المشرف لإنشاء متجر جديد مع حساب المالك بشكل واضح وآمن.

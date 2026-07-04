@@ -154,6 +154,49 @@ function AdminDashboard() {
         }
       }
 
+      // ── زيادة عداد الشريك عند موافقة المشرف ──────────────────────
+      if (storeData.registeredByAgentId) {
+        try {
+          const { data: partnerRow } = await supabase
+            .from('users')
+            .select('monthly_activations, total_earnings, commission_percent, payment_system')
+            .eq('id', storeData.registeredByAgentId)
+            .maybeSingle();
+
+          if (partnerRow) {
+            const newMonthlyActivations = (partnerRow.monthly_activations ?? 0) + 1;
+
+            // احتساب العمولة إن كان نظام العمولة
+            let earningsIncrement = 0;
+            if (
+              partnerRow.payment_system === 'commission' &&
+              (partnerRow.commission_percent ?? 0) > 0 &&
+              storeData.packageId
+            ) {
+              const { data: pkgRow } = await supabase
+                .from('store_packages')
+                .select('price')
+                .eq('id', storeData.packageId)
+                .maybeSingle();
+              if (pkgRow?.price) {
+                earningsIncrement = (pkgRow.price * partnerRow.commission_percent) / 100;
+              }
+            }
+
+            await supabase
+              .from('users')
+              .update({
+                monthly_activations: newMonthlyActivations,
+                total_earnings: (partnerRow.total_earnings ?? 0) + earningsIncrement,
+              })
+              .eq('id', storeData.registeredByAgentId);
+          }
+        } catch (partnerErr) {
+          console.error('Failed to update partner stats:', partnerErr);
+          // لا نوقف التفعيل بسبب خطأ في تحديث الشريك
+        }
+      }
+
       setStores((current) =>
         current.map((store) =>
           store.id === storeId

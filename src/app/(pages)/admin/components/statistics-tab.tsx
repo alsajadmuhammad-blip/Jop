@@ -20,7 +20,7 @@ export function StatisticsTab({ stores, representatives }: { stores: Store[]; re
           </div>
           <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
             <span className="text-3xl font-bold text-primary">{representatives.length}</span>
-            <span className="mt-2 text-muted-foreground">عدد المندوبين</span>
+            <span className="mt-2 text-muted-foreground">عدد الشركاء</span>
           </div>
           <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
             <span className="text-3xl font-bold text-primary">{ordersCount}</span>

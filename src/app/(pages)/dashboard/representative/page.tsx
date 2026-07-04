@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -6,361 +5,494 @@ import { useRouter } from 'next/navigation';
 import type { Store } from '@/lib/types';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, CheckCircle, Hourglass, XCircle, Store as StoreIcon, TrendingUp, Users, CalendarDays, DollarSign, Copy, Check } from 'lucide-react';
+import {
+  LogOut, CheckCircle, Hourglass, XCircle,
+  DollarSign, Copy, Check, Users, Wallet,
+  TrendingUp, Clock, Award, AlertCircle, Target,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { LoadingSpinner } from '@/components/loading-spinner';
-import Image from 'next/image';
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from '@/components/ui/table';
+import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 
+// ─── مساعدات ──────────────────────────────────────────────────────
 
-const getStatusBadge = (store: Store) => {
-    if (store.isActive) {
-        return <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300"><CheckCircle className="ml-1 h-3 w-3" /> نشط</Badge>;
-    }
-    if (!store.activationDate) {
-        return <Badge variant="outline" className="border-amber-300"><Hourglass className="ml-1 h-3 w-3 text-amber-500" /> قيد المراجعة</Badge>;
-    }
-    return <Badge variant="destructive"><XCircle className="ml-1 h-3 w-3" /> موقوف</Badge>;
-};
+function isCurrentMonth(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
 
+function fmtDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('ar-EG', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+}
 
-function PartnerCodeCopy({ code }: { code: string }) {
+function fmtCurrency(n: number): string {
+  return n.toLocaleString('ar-IQ');
+}
+
+// ─── كود الشريك ───────────────────────────────────────────────────
+
+function PartnerCodeCard({ code, discountPercent }: { code: string; discountPercent: number }) {
   const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(code).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
-    <button
-      onClick={() => { navigator.clipboard.writeText(code).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className="inline-flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-white px-4 py-2 font-mono text-xl font-black tracking-widest text-primary hover:bg-primary/5 transition-colors"
-    >
-      {code}
-      {copied ? <Check className="h-5 w-5 text-emerald-500" /> : <Copy className="h-5 w-5 text-primary/50" />}
-    </button>
+    <Card className="border-primary/20 bg-gradient-to-l from-primary/5 via-white to-white shadow-sm">
+      <CardContent className="py-5 px-6">
+        <p className="text-xs font-semibold text-muted-foreground mb-3">
+          كودك الخاص — شاركه مع أصحاب المتاجر ليستخدموه عند التسجيل
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={copy}
+            className="inline-flex items-center gap-2.5 rounded-xl border-2 border-primary/40 bg-white px-5 py-2.5 font-mono text-2xl font-black tracking-widest text-primary hover:bg-primary/5 transition-all active:scale-95 shadow-sm"
+          >
+            {code}
+            {copied
+              ? <Check className="h-5 w-5 text-emerald-500" />
+              : <Copy className="h-5 w-5 text-primary/40" />}
+          </button>
+          {discountPercent > 0 && (
+            <span className="rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold px-4 py-1.5 border border-emerald-200">
+              يمنح خصم {discountPercent}٪ على الباقة
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function RepresentativeDashboard() {
-    const { user, logout } = useAuth();
-    const { toast } = useToast();
-    const [stores, setStores] = useState<Store[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [activeSection, setActiveSection] = useState<'overview' | 'stores'>('overview');
+// ─── بطاقة إحصاء ──────────────────────────────────────────────────
 
-    useEffect(() => {
-        if (!user || user.role !== 'representative') return;
-
-        (async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('stores')
-                    .select('*')
-                    .eq('registered_by_agent_id', user.id);
-
-                if (error) {
-                    throw error;
-                }
-
-                const mappedStores: Store[] = (data || []).map((row: any) => ({
-                    id: row.id,
-                    name: row.name,
-                    description: row.description,
-                    logoUrl: row.logo_url || row.logoUrl,
-                    coverImageUrl: row.cover_image_url || row.coverImageUrl,
-                    rating: row.rating || 0,
-                    reviews: row.reviews || 0,
-                    location: row.location || '',
-                    latitude: row.latitude ?? null,
-                    longitude: row.longitude ?? null,
-                    type: row.type,
-                    marketType: row.market_type || row.marketType || '',
-                    businessHours: row.business_hours || row.businessHours,
-                    products: row.products || [],
-                    whatsappNumber: row.whatsapp_number || row.whatsappNumber,
-                    hasDelivery: row.has_delivery || row.hasDelivery || false,
-                    isActive: row.is_active || row.isActive || false,
-                    productLimit: row.product_limit || row.productLimit || Number.MAX_SAFE_INTEGER,
-                    subscriptionDuration: row.subscription_duration || row.subscriptionDuration || 0,
-                    activationDate: row.activation_date || row.activationDate || null,
-                    ownerId: row.owner_id || row.ownerId || null,
-                    ownerEmail: row.owner_email || row.ownerEmail,
-                    password: row.password,
-                    createdAt: row.created_at || row.createdAt || null,
-                    registeredByAgentId: row.registered_by_agent_id || row.registeredByAgentId || null,
-                    referralCode: row.referral_code || row.referralCode || null,
-                } as Store));
-
-                setStores(mappedStores);
-            } catch (error) {
-                console.error("Error fetching stores: ", error);
-                toast({ title: "خطأ في تحميل المتاجر", variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        })();
-
-    }, [user, toast]);
-    
-    const monthlyStats = useMemo(() => {
-        const stats: { [key: string]: { month: string, stores: number } } = {};
-
-        stores.forEach(store => {
-             const createdAt = store.createdAt;
-            if (createdAt) {
-                // Handle both server timestamp formats and ISO string
-                const date = typeof createdAt === 'string' 
-                    ? new Date(createdAt) 
-                    : (createdAt as any).toDate();
-                    
-                if (date instanceof Date && !isNaN(date.valueOf())) {
-                    const month = date.toLocaleString('ar-SA', { month: 'long', year: 'numeric' });
-                    if (!stats[month]) {
-                        stats[month] = { month, stores: 0 };
-                    }
-                    stats[month].stores++;
-                }
-            }
-        });
-
-        return Object.values(stats).sort((a,b) => {
-            const [aMonth, aYear] = a.month.split(' ');
-            const [bMonth, bYear] = b.month.split(' ');
-            // A simple sort based on year then month index might be needed if localeCompare fails
-            return new Date(`${aMonth} 1, ${aYear}`).getTime() - new Date(`${bMonth} 1, ${bYear}`).getTime();
-        });
-    }, [stores]);
-
-
-    const chartConfig = {
-      stores: {
-        label: "المتاجر",
-        color: "hsl(var(--primary))",
-      },
-    } satisfies ChartConfig
-
-    const handleLogout = () => {
-        logout();
-    };
-
-    if (loading) {
-        return <LoadingSpinner isLoading={true} />;
-    }
-    
-    if (!user) {
-        return null;
-    }
-
-    const totalStores = stores.length;
-    const activeStores = stores.filter(s => s.isActive).length;
-    const requiredStores = (user as any).requiredStoresCount || 0;
-    const monthlySalary = (user as any).monthlySalary || 0;
-    const commissionPercent = (user as any).commissionPercent || 0;
-    const packageDiscountPercent = (user as any).packageDiscountPercent || 0;
-    const partnerCode = (user as any).partnerCode || (user as any).partner_code || null;
-    const hasAchievedTarget = totalStores >= requiredStores;
-
-    return (
-        <div className="bg-muted/30 min-h-screen">
-            <div className="px-4 py-6 md:px-6 md:py-8">
-                <header className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-                    <div className="flex items-center gap-4">
-                         <div className="relative h-16 w-16">
-                            <Image
-                              src={`https://i.pravatar.cc/150?u=${user.id}`}
-                              alt={user.name || "User Avatar"}
-                              className="rounded-full border-2 border-primary"
-                              width={64}
-                              height={64}
-                            />
-                            <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 rounded-full border-2 border-background"/>
-                        </div>
-                        <div>
-                            <h1 className="text-3xl font-bold font-headline">لوحة تحكم الشريك</h1>
-                            <p className="text-muted-foreground mt-1">أهلاً بعودتك، {user?.name}!</p>
-                        </div>
-                    </div>
-                    <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto">
-                        <LogOut className="ml-2 h-4 w-4" />
-                        تسجيل الخروج
-                    </Button>
-                </header>
-
-                <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as 'stores' | 'overview')}>
-                  <TabsList className="mb-6 rounded-3xl bg-white/80 p-1 shadow-sm border border-border/80">
-                    <TabsTrigger value="overview">الملخص</TabsTrigger>
-                    <TabsTrigger value="stores">المتاجر</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                {activeSection === 'overview' ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        {/* كود الشريك — بطاقة بارزة */}
-                        {partnerCode && (
-                          <Card className="lg:col-span-4 border-primary/30 bg-gradient-to-l from-primary/5 to-white">
-                            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-5 px-6">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-muted-foreground mb-1">كودك الخاص — شاركه مع أصحاب المتاجر</p>
-                                <div className="flex items-center gap-3 flex-wrap">
-                                  <PartnerCodeCopy code={partnerCode} />
-                                  {packageDiscountPercent > 0 && (
-                                    <span className="rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1">
-                                      يمنح خصم {packageDiscountPercent}% على الباقة
-                                    </span>
-                                  )}
-                                  {commissionPercent > 0 && (
-                                    <span className="rounded-full bg-primary/10 text-primary text-xs font-bold px-3 py-1">
-                                      عمولة {commissionPercent}% / متجر
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">الراتب الشهري</CardTitle>
-                                <DollarSign className="h-4 w-4 text-green-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{monthlySalary.toLocaleString()} <span className="text-sm">د.ع</span></div>
-                                <p className="text-xs text-muted-foreground">راتبك الشهري المحدد</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">إجمالي المتاجر المسجلة</CardTitle>
-                                <Users className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{totalStores}</div>
-                                <p className="text-xs text-muted-foreground">المتاجر التي قمت بتسجيلها</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">المتاجر النشطة</CardTitle>
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{activeStores}</div>
-                                <p className="text-xs text-muted-foreground">المتاجر المفعّلة حالياً</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">الهدف الشهري</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{hasAchievedTarget ? 'مكتمل' : 'قيد التنفيذ'}</div>
-                                <p className="text-xs text-muted-foreground">{hasAchievedTarget ? 'لقد حققت هدفك الشهري' : `متبقي ${requiredStores - totalStores} متجر`}</p>
-                            </CardContent>
-                        </Card>
-
-                        {monthlyStats.length > 0 && (
-                            <Card className="lg:col-span-4">
-                                <CardHeader>
-                                    <CardTitle>أداء التسجيل الشهري</CardTitle>
-                                    <CardDescription>عدد المتاجر التي سجلتها كل شهر.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                                        <BarChart accessibilityLayer data={monthlyStats}>
-                                            <CartesianGrid vertical={false} />
-                                            <XAxis
-                                                dataKey="month"
-                                                tickLine={false}
-                                                tickMargin={10}
-                                                axisLine={false}
-                                                tickFormatter={(value) => value.slice(0, 8)}
-                                            />
-                                            <YAxis />
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="stores" fill="var(--color-stores)" radius={4} />
-                                        </BarChart>
-                                    </ChartContainer>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-                ) : (
-                    <Card className="mt-6">
-                        <CardHeader>
-                            <CardTitle>قائمة المتاجر المسجلة</CardTitle>
-                            <CardDescription>هذه هي المتاجر التي قمت بتسجيلها مباشرة في النظام.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {stores.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>اسم المتجر</TableHead>
-                                                <TableHead>الموقع</TableHead>
-                                                <TableHead className="text-center">الحالة</TableHead>
-                                                <TableHead>تاريخ التسجيل</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {stores.map(store => (
-                                                <TableRow key={store.id}>
-                                                    <TableCell className="font-medium">{store.name}</TableCell>
-                                                    <TableCell>{store.location}</TableCell>
-                                                    <TableCell className="text-center">{getStatusBadge(store)}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <CalendarDays className="h-4 w-4 text-muted-foreground"/>
-                                                            <span>{store.createdAt ? new Date(typeof store.createdAt === 'string' ? store.createdAt : (store.createdAt as any).toDate()).toLocaleDateString('ar-EG') : 'غير معروف'}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            ) : (
-                                <div className="text-center py-16 rounded-lg bg-background border-2 border-dashed">
-                                    <StoreIcon className="mx-auto h-16 w-16 text-muted-foreground" strokeWidth={1} />
-                                    <h2 className="mt-4 text-xl font-semibold">ابدأ رحلتك الآن!</h2>
-                                    <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-                                        لم تقم بتسجيل أي متاجر بعد. ابدأ بإضافة متاجر جديدة لتحقيق هدفك الشهري.
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-        </div>
-    );
+function StatCard({
+  title, value, sub, icon, accent,
+}: {
+  title: string; value: string | number; sub?: string;
+  icon: React.ReactNode; accent?: string;
+}) {
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className={`rounded-full p-2 ${accent ?? 'bg-muted'}`}>{icon}</div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
 }
 
+// ─── شارة الحالة ──────────────────────────────────────────────────
+
+function StoreBadge({ store }: { store: Store }) {
+  if (store.isActive)
+    return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100"><CheckCircle className="ml-1 h-3 w-3" />نشط</Badge>;
+  if (!store.activationDate)
+    return <Badge variant="outline" className="border-amber-300 text-amber-700"><Hourglass className="ml-1 h-3 w-3" />قيد المراجعة</Badge>;
+  return <Badge variant="destructive"><XCircle className="ml-1 h-3 w-3" />موقوف</Badge>;
+}
+
+// ─── مكوّن الداشبورد ───────────────────────────────────────────────
+
+function PartnerDashboard() {
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loadingStores, setLoadingStores] = useState(true);
+
+  // ── جلب المتاجر المرتبطة بهذا الشريك ──────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('stores')
+          .select('id, name, description, type, market_type, location, is_active, activation_date, created_at, owner_email, package_name, package_id, registered_by_agent_id')
+          .eq('registered_by_agent_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const mapped: Store[] = (data ?? []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          description: r.description ?? null,
+          type: r.type,
+          marketType: r.market_type ?? '',
+          location: r.location ?? '',
+          isActive: r.is_active ?? false,
+          activationDate: r.activation_date ?? null,
+          createdAt: r.created_at ?? null,
+          ownerEmail: r.owner_email ?? '',
+          packageName: r.package_name ?? '',
+          packageId: r.package_id ?? '',
+          registeredByAgentId: r.registered_by_agent_id ?? null,
+          // حقول مطلوبة بالنوع
+          logoUrl: null, coverImageUrl: null, rating: 0, reviews: 0,
+          latitude: null, longitude: null, businessHours: null,
+          products: [], whatsappNumber: '', hasDelivery: false,
+          productLimit: 0, subscriptionDuration: 0,
+          ownerId: null, password: null, referralCode: null,
+        } as unknown as Store));
+
+        setStores(mapped);
+      } catch (err) {
+        console.error('partner stores fetch error:', err);
+        toast({ title: 'خطأ في تحميل المتاجر', variant: 'destructive' });
+      } finally {
+        setLoadingStores(false);
+      }
+    })();
+  }, [user, toast]);
+
+  // ── حسابات مشتقة ──────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const active   = stores.filter(s => s.isActive);
+    const pending  = stores.filter(s => !s.isActive && !s.activationDate);
+    const stopped  = stores.filter(s => !s.isActive && !!s.activationDate);
+    const thisMonthActivated = active.filter(s => isCurrentMonth(s.activationDate));
+
+    return {
+      total: stores.length,
+      active: active.length,
+      pending: pending.length,
+      stopped: stopped.length,
+      thisMonthActivated: thisMonthActivated.length,
+    };
+  }, [stores]);
+
+  // ── بيانات المخطط: تسجيلات شهرية ─────────────────────────────
+  const chartData = useMemo(() => {
+    const map: Record<string, number> = {};
+    stores.forEach(s => {
+      if (!s.createdAt) return;
+      const d = new Date(s.createdAt as string);
+      const key = d.toLocaleString('ar-SA', { month: 'short', year: 'numeric' });
+      map[key] = (map[key] ?? 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([month, count]) => ({ month, count }))
+      .slice(-6); // آخر 6 أشهر فقط
+  }, [stores]);
+
+  const chartConfig: ChartConfig = {
+    count: { label: 'متجر', color: 'hsl(var(--primary))' },
+  };
+
+  // ── بيانات الشريك ─────────────────────────────────────────────
+  const paymentSystem       = user?.paymentSystem ?? 'commission';
+  const monthlySalary       = user?.monthlySalary ?? 0;
+  const requiredStores      = user?.requiredStoresCount ?? 0;
+  const commissionPct       = user?.commissionPercent ?? 0;
+  const packageDiscountPct  = user?.packageDiscountPercent ?? 0;
+  const partnerCode         = user?.partnerCode ?? '';
+  const totalEarnings       = user?.totalEarnings ?? 0;
+  const isSalary            = paymentSystem === 'salary';
+
+  // تقدم الهدف (للراتب فقط) — نتجنّب الهدف الصفري كي لا يظهر "حققت هدفك" بلا معنى
+  const hasValidTarget = isSalary && requiredStores > 0;
+  const progressPct = hasValidTarget
+    ? Math.min(100, Math.round((stats.active / requiredStores) * 100))
+    : 0;
+  const targetReached = hasValidTarget && stats.active >= requiredStores;
+  const extraStores   = targetReached ? stats.active - requiredStores : 0;
+
+  if (loadingStores) return <LoadingSpinner isLoading />;
+
+  return (
+    <div className="min-h-screen bg-slate-50/60" dir="rtl">
+
+      {/* ── الهيدر ── */}
+      <div className="bg-white border-b border-border/60 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold leading-none">لوحة تحكم الشريك</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">أهلاً، {user?.name}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            خروج
+          </Button>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+        {/* ── كود الشريك ── */}
+        {partnerCode && (
+          <PartnerCodeCard code={partnerCode} discountPercent={packageDiscountPct} />
+        )}
+
+        {/* ── بطاقات الإحصاء ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="تفعيلات هذا الشهر"
+            value={stats.thisMonthActivated}
+            sub="متجر فُعِّل الشهر الحالي"
+            icon={<Clock className="h-4 w-4 text-blue-600" />}
+            accent="bg-blue-50"
+          />
+          <StatCard
+            title="إجمالي المتاجر النشطة"
+            value={stats.active}
+            sub={`من أصل ${stats.total} مسجّل`}
+            icon={<CheckCircle className="h-4 w-4 text-emerald-600" />}
+            accent="bg-emerald-50"
+          />
+          <StatCard
+            title="قيد المراجعة"
+            value={stats.pending}
+            sub="تنتظر موافقة المشرف"
+            icon={<Hourglass className="h-4 w-4 text-amber-600" />}
+            accent="bg-amber-50"
+          />
+          <StatCard
+            title="إجمالي الأرباح"
+            value={`${fmtCurrency(totalEarnings)} د.ع`}
+            sub="الأرباح التراكمية الكلية"
+            icon={<Wallet className="h-4 w-4 text-violet-600" />}
+            accent="bg-violet-50"
+          />
+        </div>
+
+        {/* ── نظام الراتب ── */}
+        {isSalary && (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                تفاصيل الراتب والهدف
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* شرائح التفاصيل — تظهر دائماً */}
+              <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-primary/20 bg-primary/5 px-5 py-3 min-w-[110px]">
+                  <span className="text-xs text-muted-foreground mb-1">الراتب الشهري</span>
+                  <span className="text-xl font-black text-primary leading-none">
+                    {monthlySalary > 0 ? fmtCurrency(monthlySalary) : '—'}
+                  </span>
+                  {monthlySalary > 0 && <span className="text-xs text-muted-foreground mt-0.5">دينار عراقي</span>}
+                </div>
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 min-w-[110px]">
+                  <span className="text-xs text-muted-foreground mb-1">العدد المطلوب</span>
+                  <span className="text-xl font-black text-blue-600 leading-none">
+                    {requiredStores > 0 ? requiredStores : '—'}
+                  </span>
+                  {requiredStores > 0 && <span className="text-xs text-muted-foreground mt-0.5">متجر / شهر</span>}
+                </div>
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 min-w-[110px]">
+                  <span className="text-xs text-muted-foreground mb-1">عمولة فوق الهدف</span>
+                  <span className="text-xl font-black text-emerald-600 leading-none">{commissionPct}٪</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">من كل متجر إضافي</span>
+                </div>
+              </div>
+
+              {/* شريط التقدم — فقط إذا كان الهدف محدداً */}
+              {hasValidTarget && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {targetReached
+                        ? <span className="text-emerald-600 font-semibold">✅ حققت هدفك! {extraStores > 0 ? `لديك ${extraStores} متجر إضافي` : ''}</span>
+                        : `متبقي ${requiredStores - stats.active} متجر`}
+                    </span>
+                    <span className="font-bold text-primary">{stats.active} / {requiredStores}</span>
+                  </div>
+                  <Progress value={progressPct} className="h-3" />
+                  <p className="text-xs text-muted-foreground text-left">{progressPct}٪ من الهدف</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── نظام العمولة ── */}
+        {!isSalary && (
+          <Card className="shadow-sm border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Award className="h-4 w-4 text-primary" />
+                تفاصيل العمولة
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 min-w-[130px]">
+                  <span className="text-xs text-muted-foreground mb-1">نسبتك من كل مشترك</span>
+                  <span className="text-3xl font-black text-primary leading-none">{commissionPct}٪</span>
+                  <span className="text-xs text-muted-foreground mt-1">من سعر الباقة</span>
+                </div>
+                <div className="flex flex-col justify-center gap-1.5 text-sm text-muted-foreground">
+                  <p>• تُحتسب العمولة عند تفعيل المتجر من المشرف</p>
+                  <p>• تُضاف تلقائياً لإجمالي أرباحك</p>
+                  {packageDiscountPct > 0 && (
+                    <p>• المتاجر المسجّلة بكودك تحصل على خصم <strong className="text-foreground">{packageDiscountPct}٪</strong></p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── المتاجر قيد المراجعة — تنبيه منفصل ── */}
+        {stats.pending > 0 && (
+          <Card className="shadow-sm border-amber-200 bg-amber-50/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {stats.pending} متجر قيد المراجعة
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="divide-y divide-amber-200/60">
+                {stores.filter(s => !s.isActive && !s.activationDate).map(s => (
+                  <div key={s.id} className="flex items-center justify-between py-2.5 text-sm">
+                    <span className="font-medium text-amber-900">{s.name}</span>
+                    <span className="text-xs text-amber-700">{fmtDate(s.createdAt as string)}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── المخطط + إحصاء سريع ── */}
+        {chartData.length > 0 && (
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                التسجيلات الشهرية
+              </CardTitle>
+              <CardDescription>عدد المتاجر التي سُجِّلت عبر كودك كل شهر</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[220px] w-full">
+                <BarChart data={chartData} accessibilityLayer>
+                  <CartesianGrid vertical={false} className="stroke-border" />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} className="text-xs" />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── جدول المتاجر بالكامل ── */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              جميع المتاجر المسجّلة
+            </CardTitle>
+            <CardDescription>المتاجر التي استخدم أصحابها كودك عند التسجيل</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stores.length === 0 ? (
+              <div className="text-center py-16 rounded-xl border-2 border-dashed border-border">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground/40" strokeWidth={1} />
+                <p className="mt-3 text-base font-medium text-muted-foreground">لا توجد متاجر بعد</p>
+                <p className="text-sm text-muted-foreground mt-1">عندما يستخدم أحدهم كودك سيظهر هنا</p>
+              </div>
+            ) : (
+              <Tabs defaultValue="all">
+                <TabsList className="mb-4 bg-slate-100 rounded-xl p-1">
+                  <TabsTrigger value="all" className="rounded-lg text-xs">الكل ({stats.total})</TabsTrigger>
+                  <TabsTrigger value="active" className="rounded-lg text-xs">نشط ({stats.active})</TabsTrigger>
+                  <TabsTrigger value="pending" className="rounded-lg text-xs">مراجعة ({stats.pending})</TabsTrigger>
+                  <TabsTrigger value="stopped" className="rounded-lg text-xs">موقوف ({stats.stopped})</TabsTrigger>
+                </TabsList>
+
+                {(['all', 'active', 'pending', 'stopped'] as const).map(tab => {
+                  const filtered = stores.filter(s => {
+                    if (tab === 'all') return true;
+                    if (tab === 'active') return s.isActive;
+                    if (tab === 'pending') return !s.isActive && !s.activationDate;
+                    return !s.isActive && !!s.activationDate;
+                  });
+                  return (
+                    <TabsContent key={tab} value={tab}>
+                      {filtered.length === 0 ? (
+                        <p className="text-center text-sm text-muted-foreground py-8">لا توجد متاجر في هذه الفئة</p>
+                      ) : (
+                        <div className="overflow-x-auto rounded-lg border border-border/60">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-slate-50/80">
+                                <TableHead className="font-semibold">اسم المتجر</TableHead>
+                                <TableHead className="font-semibold">النوع</TableHead>
+                                <TableHead className="font-semibold">الباقة</TableHead>
+                                <TableHead className="text-center font-semibold">الحالة</TableHead>
+                                <TableHead className="font-semibold">تاريخ التسجيل</TableHead>
+                                <TableHead className="font-semibold">تاريخ التفعيل</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filtered.map(store => (
+                                <TableRow key={store.id} className="hover:bg-slate-50/60">
+                                  <TableCell className="font-medium">{store.name}</TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">{store.marketType || store.type || '—'}</TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">{store.packageName || '—'}</TableCell>
+                                  <TableCell className="text-center"><StoreBadge store={store} /></TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">{fmtDate(store.createdAt as string)}</TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">{fmtDate(store.activationDate)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+            )}
+          </CardContent>
+        </Card>
+
+      </div>
+    </div>
+  );
+}
+
+// ─── الصفحة الرئيسية مع حماية الدور ──────────────────────────────
 
 export default function RepresentativePage() {
-    const { user, userRole, loading } = useAuth();
-    const router = useRouter();
+  const { user, userRole, loading } = useAuth();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (loading) {
-            return; // Wait for the loading to finish
-        }
-        if (!user || userRole !== 'representative') {
-            router.replace('/login');
-        }
-    }, [user, userRole, loading, router]);
+  useEffect(() => {
+    if (loading) return;
+    if (!user || userRole !== 'representative') router.replace('/login');
+  }, [user, userRole, loading, router]);
 
-    if (loading || !user || userRole !== 'representative') {
-        return <LoadingSpinner isLoading={true} />;
-    }
+  if (loading || !user || userRole !== 'representative') {
+    return <LoadingSpinner isLoading />;
+  }
 
-    return <RepresentativeDashboard />;
+  return <PartnerDashboard />;
 }

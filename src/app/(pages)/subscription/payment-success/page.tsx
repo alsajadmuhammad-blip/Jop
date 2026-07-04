@@ -118,7 +118,7 @@ function PaymentSuccessContent() {
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
               <p className="font-semibold">الخطوات القادمة</p>
               <ul className="space-y-1 text-xs text-amber-800 list-disc list-inside">
-                <li>سيتواصل معك مندوبنا خلال 24 ساعة</li>
+                <li>سيتواصل معك فريق الإدارة خلال 24 ساعة</li>
                 <li>ستتلقى بيانات تسجيل الدخول بعد التفعيل</li>
                 <li>يمكنك متابعة حالة طلبك عبر البريد الإلكتروني</li>
               </ul>
