@@ -185,6 +185,7 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
     product_limit: '', unlimited_products: false,
     subscription_duration: '', is_active: true,
     visibility: 'public' as PackageVisibility,
+    target_points: '1',
   });
   const [deletePackage, setDeletePackage] = useState<StorePackage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -200,7 +201,7 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
   }, [stores, packages]);
 
   const resetForm = () => {
-    setFormState({ name: '', slug: '', description: '', price: '', product_limit: '', unlimited_products: false, subscription_duration: '', is_active: true, visibility: 'public' });
+    setFormState({ name: '', slug: '', description: '', price: '', product_limit: '', unlimited_products: false, subscription_duration: '', is_active: true, visibility: 'public', target_points: '1' });
     setEditingPackage(null); setPackageError(null);
   };
 
@@ -216,6 +217,7 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
       unlimited_products: pkg.productLimit >= UNLIMITED,
       subscription_duration: String(pkg.subscriptionDuration),
       is_active: pkg.isActive, visibility: pkg.visibility ?? 'public',
+      target_points: String(pkg.targetPoints ?? 1),
     });
     setPackageError(null); setIsDialogOpen(true);
   };
@@ -231,11 +233,13 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
     const productLimit = formState.unlimited_products ? UNLIMITED : Number(formState.product_limit);
     setIsSubmitting(true);
     try {
+      const targetPts = Math.max(1, Number(formState.target_points) || 1);
       const payload = {
         name: formState.name, slug, description: formState.description || undefined,
         price: Number(formState.price), productLimit,
         subscriptionDuration: Number(formState.subscription_duration),
-        isActive: formState.is_active, visibility: formState.visibility, metadata: null,
+        isActive: formState.is_active, visibility: formState.visibility,
+        targetPoints: targetPts, metadata: null,
       };
       if (editingPackage) {
         const r = await updateStorePackage(editingPackage.id, payload);

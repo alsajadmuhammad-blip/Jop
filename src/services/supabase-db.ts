@@ -953,6 +953,7 @@ export async function createStorePackage(pkg: Omit<StorePackage, 'id' | 'created
         subscription_duration: Number(pkg.subscriptionDuration),
         is_active: pkg.isActive,
         visibility: pkg.visibility ?? 'public',
+        target_points: Math.max(1, Number(pkg.targetPoints ?? 1)),
         metadata: (pkg.metadata && Object.keys(pkg.metadata).length > 0) ? pkg.metadata : null,
       },
     ])
@@ -990,6 +991,9 @@ export async function updateStorePackage(packageId: string, updates: Partial<Sto
   }
   if (updates.visibility !== undefined) {
     payload.visibility = updates.visibility;
+  }
+  if (updates.targetPoints !== undefined) {
+    payload.target_points = Math.max(1, Number(updates.targetPoints));
   }
 
   const { data, error } = await supabase
@@ -1052,6 +1056,8 @@ function mapStorePackageRow(row: any): StorePackage {
     subscriptionDuration: typeof row.subscription_duration === 'number' ? row.subscription_duration : Number(row.subscription_duration ?? 30),
     isActive: parseBoolean(row.is_active ?? true),
     visibility,
+    // نقاط هدف المسوّق — افتراضي 1 إذا لم يكن العمود موجوداً بعد
+    targetPoints: typeof row.target_points === 'number' ? row.target_points : Math.max(1, Number(row.target_points ?? 1)),
     metadata: (row.metadata && typeof row.metadata === 'object') ? row.metadata : null,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null,

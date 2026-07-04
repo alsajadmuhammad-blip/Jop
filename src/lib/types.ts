@@ -73,6 +73,12 @@ export type StorePackage = {
   subscriptionDuration: number;
   isActive: boolean;
   visibility: PackageVisibility;
+  /**
+   * نقاط هدف المسوّق: عدد النقاط التي تُحتسب للمسوّق عند تفعيل متجر بهذه الباقة.
+   * القيمة الافتراضية 1. يمكن ضبطها من لوحة التحكم لجعل الباقات المميزة تُحتسب بنقاط أكثر.
+   * يجب إضافة عمود target_points INTEGER DEFAULT 1 في جدول store_packages بـ Supabase.
+   */
+  targetPoints?: number;
   metadata?: Record<string, any> | null;
   createdAt?: string | null;
   updatedAt?: string | null;
