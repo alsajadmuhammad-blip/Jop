@@ -105,6 +105,20 @@ function DiscountCodeCard({
   );
 }
 
+// ── نسب الخصم الجاهزة ───────────────────────────────────────
+const PERCENT_PRESETS = [5, 10, 15, 20, 25, 30, 40, 50];
+
+// ── خيارات المدة ─────────────────────────────────────────────
+type DurationOption = { label: string; days: number | null };
+const DURATION_OPTIONS: DurationOption[] = [
+  { label: "بدون انتهاء", days: null },
+  { label: "يوم",         days: 1    },
+  { label: "3 أيام",      days: 3    },
+  { label: "أسبوع",       days: 7    },
+  { label: "أسبوعين",     days: 14   },
+  { label: "شهر",         days: 30   },
+];
+
 // ── Create form ─────────────────────────────────────────────
 function CreateCodeForm({
   storeId,
@@ -115,10 +129,13 @@ function CreateCodeForm({
 }) {
   const { toast } = useToast();
   const [code, setCode] = useState("");
-  const [percent, setPercent] = useState("");
+  const [percent, setPercent] = useState<number | null>(null);
+  const [customPercent, setCustomPercent] = useState("");
   const [maxUses, setMaxUses] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
+  const [durationDays, setDurationDays] = useState<number | null | "unset">("unset");
   const [saving, setSaving] = useState(false);
+
+  const effectivePercent = percent ?? (customPercent ? Number(customPercent) : null);
 
   const handleSubmit = async () => {
     const trimmedCode = code.trim().toUpperCase();
@@ -127,20 +144,28 @@ function CreateCodeForm({
       toast({ variant: "destructive", title: "الكود يجب أن يكون أحرف إنجليزية وأرقام فقط (2-20 حرف)" });
       return;
     }
-    const p = Number(percent);
-    if (!p || p < 1 || p > 99) { toast({ variant: "destructive", title: "نسبة الخصم يجب أن تكون بين 1 و 99" }); return; }
+    if (!effectivePercent || effectivePercent < 1 || effectivePercent > 99) {
+      toast({ variant: "destructive", title: "اختر نسبة الخصم أولاً" }); return;
+    }
+    if (durationDays === "unset") {
+      toast({ variant: "destructive", title: "اختر مدة صلاحية الكود" }); return;
+    }
+
+    const expiresAt = durationDays !== null
+      ? new Date(Date.now() + durationDays * 86_400_000).toISOString()
+      : null;
 
     setSaving(true);
     try {
       await createDiscountCode({
         storeId,
         code: trimmedCode,
-        discountPercent: p,
+        discountPercent: effectivePercent,
         maxUses: maxUses ? Number(maxUses) : null,
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        expiresAt,
       });
       toast({ title: "تم إنشاء الكود! 🎟️", description: `الكود "${trimmedCode}" جاهز للاستخدام.` });
-      setCode(""); setPercent(""); setMaxUses(""); setExpiresAt("");
+      setCode(""); setPercent(null); setCustomPercent(""); setMaxUses(""); setDurationDays("unset");
       onCreated();
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });
@@ -150,73 +175,108 @@ function CreateCodeForm({
   };
 
   return (
-    <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+    <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Tag className="h-4 w-4 text-primary" />
         <span className="text-sm font-bold text-slate-800">كود خصم جديد</span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {/* Code name */}
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-600">اسم الكود</label>
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="مثال: RAMADAN"
-            maxLength={20}
-            dir="ltr"
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-mono uppercase tracking-widest outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-          />
-        </div>
+      {/* اسم الكود */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-slate-600">اسم الكود</label>
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="مثال: RAMADAN"
+          maxLength={20}
+          dir="ltr"
+          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-mono uppercase tracking-widest outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+        />
+      </div>
 
-        {/* Discount percent */}
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-600">نسبة الخصم %</label>
-          <input
-            type="number"
-            min={1}
-            max={99}
-            value={percent}
-            onChange={(e) => setPercent(e.target.value)}
-            placeholder="مثال: 15"
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-            dir="ltr"
-          />
+      {/* نسبة الخصم — chips */}
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-slate-600">نسبة الخصم</label>
+        <div className="flex flex-wrap gap-2">
+          {PERCENT_PRESETS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => { setPercent(p); setCustomPercent(""); }}
+              className={`rounded-full px-4 py-1.5 text-sm font-bold border transition-all ${
+                percent === p && !customPercent
+                  ? "bg-primary text-white border-primary shadow-sm scale-105"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-primary hover:text-primary"
+              }`}
+            >
+              {p}%
+            </button>
+          ))}
+          {/* خانة مخصصة */}
+          <div className="relative">
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={customPercent}
+              onChange={(e) => { setCustomPercent(e.target.value); setPercent(null); }}
+              placeholder="أخرى"
+              dir="ltr"
+              className={`h-9 w-20 rounded-full border px-3 text-sm font-bold text-center outline-none transition-all ${
+                customPercent
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-primary"
+              }`}
+            />
+          </div>
         </div>
+        {effectivePercent && effectivePercent >= 1 && effectivePercent <= 99 && (
+          <p className="text-xs font-semibold text-emerald-600">
+            ✅ خصم {effectivePercent}% على كل طلب يستخدم هذا الكود
+          </p>
+        )}
+      </div>
 
-        {/* Max uses */}
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-600">
-            الحد الأقصى للاستخدام
-            <span className="mr-1 text-slate-400 font-normal">(اختياري — اتركه فارغاً للامحدود)</span>
-          </label>
-          <input
-            type="number"
-            min={1}
-            value={maxUses}
-            onChange={(e) => setMaxUses(e.target.value)}
-            placeholder="غير محدود"
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-            dir="ltr"
-          />
+      {/* المدة — chips */}
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-slate-600">صلاحية الكود</label>
+        <div className="flex flex-wrap gap-2">
+          {DURATION_OPTIONS.map((opt) => {
+            const isSelected = durationDays !== "unset" && durationDays === opt.days;
+            return (
+              <button
+                key={String(opt.days)}
+                type="button"
+                onClick={() => setDurationDays(opt.days)}
+                className={`rounded-full px-4 py-1.5 text-sm font-bold border transition-all ${
+                  isSelected
+                    ? "bg-primary text-white border-primary shadow-sm scale-105"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-primary hover:text-primary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Expiry date */}
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-600">
-            تاريخ انتهاء الصلاحية
-            <span className="mr-1 text-slate-400 font-normal">(اختياري)</span>
-          </label>
-          <input
-            type="date"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-            dir="ltr"
-          />
-        </div>
+      {/* الحد الأقصى للاستخدام */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-slate-600">
+          الحد الأقصى للاستخدام
+          <span className="mr-1 text-slate-400 font-normal">(اختياري — فارغ = غير محدود)</span>
+        </label>
+        <input
+          type="number"
+          min={1}
+          value={maxUses}
+          onChange={(e) => setMaxUses(e.target.value)}
+          placeholder="غير محدود"
+          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+          dir="ltr"
+        />
       </div>
 
       <Button onClick={handleSubmit} disabled={saving} className="w-full rounded-lg gap-2 font-bold">

@@ -92,7 +92,7 @@ function CreateFlashSaleForm({
   const { toast } = useToast();
   const [productId, setProductId] = useState("");
   const [flashPrice, setFlashPrice] = useState("");
-  const [durationHours, setDurationHours] = useState("4");
+  const [durationHours, setDurationHours] = useState<number>(4);
   const [saving, setSaving] = useState(false);
 
   const selectedProduct = products.find((p) => p.id === productId);
@@ -107,9 +107,9 @@ function CreateFlashSaleForm({
     }
     setSaving(true);
     try {
-      await createFlashSale(storeId, productId, price, Number(durationHours));
+      await createFlashSale(storeId, productId, price, durationHours);
       toast({ title: "تم إطلاق العرض! 🔥", description: "سيظهر العرض للزبائن فوراً مع عداد تنازلي." });
-      setProductId(""); setFlashPrice(""); setDurationHours("4");
+      setProductId(""); setFlashPrice(""); setDurationHours(4);
       onCreated();
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });
@@ -173,23 +173,35 @@ function CreateFlashSaleForm({
         )}
       </div>
 
-      {/* Duration */}
-      <div className="space-y-1">
+      {/* Duration — chips */}
+      <div className="space-y-2">
         <label className="text-xs font-semibold text-slate-600">مدة العرض</label>
-        <Select value={durationHours} onValueChange={setDurationHours}>
-          <SelectTrigger className="h-10 rounded-lg text-sm bg-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">ساعة واحدة</SelectItem>
-            <SelectItem value="2">ساعتان</SelectItem>
-            <SelectItem value="4">4 ساعات</SelectItem>
-            <SelectItem value="8">8 ساعات</SelectItem>
-            <SelectItem value="12">12 ساعة</SelectItem>
-            <SelectItem value="24">24 ساعة (يوم كامل)</SelectItem>
-            <SelectItem value="48">48 ساعة (يومان)</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { label: "ساعة",    hours: 1   },
+            { label: "ساعتان",  hours: 2   },
+            { label: "4 ساعات", hours: 4   },
+            { label: "8 ساعات", hours: 8   },
+            { label: "12 ساعة", hours: 12  },
+            { label: "يوم",     hours: 24  },
+            { label: "يومان",   hours: 48  },
+            { label: "3 أيام",  hours: 72  },
+            { label: "أسبوع",   hours: 168 },
+          ] as { label: string; hours: number }[]).map((opt) => (
+            <button
+              key={opt.hours}
+              type="button"
+              onClick={() => setDurationHours(opt.hours)}
+              className={`rounded-full px-4 py-1.5 text-sm font-bold border transition-all ${
+                durationHours === opt.hours
+                  ? "bg-amber-500 text-white border-amber-500 shadow-sm scale-105"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-amber-400 hover:text-amber-600"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Button

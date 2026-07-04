@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, ShoppingCart, Minus, Plus, Image as ImageIcon, Loader2, MapPin, Phone, User, Wallet, ChevronRight, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { CartItem, OrderItem } from "@/lib/types";
-import { getDiscountedPrice, getEffectivePrice } from "@/lib/types";
+import { getEffectivePrice } from "@/lib/types";
 import { createOrder } from "@/services/orders";
 import { fetchStoreById } from "@/services/supabase-db";
 import { validateDiscountCode, incrementDiscountUsage, type DiscountCode } from "@/services/discount-codes";
