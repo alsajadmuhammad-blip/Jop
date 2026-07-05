@@ -28,31 +28,47 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const ANON_KEY      = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ACTIVATION_WINDOW_MS = 15 * 60 * 1000; // 15 دقيقة
 
-// عميل service-role للعمليات الكتابية
-const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY);
+/**
+ * ينشئ عميل Supabase بالصلاحيات المناسبة:
+ * - إذا كان SERVICE_KEY موجوداً → يُستخدم (يتجاوز RLS)
+ * - وإلا → يُستخدم JWT الأدمن (يعتمد على سياسات RLS التي تسمح للأدمن بالتعديل)
+ */
+function makeOpsClient(adminToken: string) {
+  if (SERVICE_KEY) {
+    return createClient(SUPABASE_URL, SERVICE_KEY);
+  }
+  // fallback: نستخدم JWT الأدمن لكي تنطبق سياسات RLS الخاصة بالأدمن
+  return createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${adminToken}` } },
+  });
+}
 
 // ── التحقق من الـ JWT وأن المستخدم أدمن ─────────────────────────────────────
-async function verifyAdmin(authHeader: string | null): Promise<boolean> {
-  if (!authHeader?.startsWith('Bearer ')) return false;
+// يُعيد token النظيف أو null إذا فشل التحقق
+async function verifyAdmin(authHeader: string | null): Promise<string | null> {
+  if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7);
   try {
-    // نتحقق من التوكن عبر Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) return false;
+    // نتحقق من التوكن عبر Supabase (لا يحتاج service key)
+    const supabaseCheck = createClient(SUPABASE_URL, ANON_KEY);
+    const { data: { user }, error } = await supabaseCheck.auth.getUser(token);
+    if (error || !user) return null;
 
-    // نتحقق من role في جدول users
-    const { data: row } = await supabaseAdmin
+    // نتحقق من role في جدول users باستخدام عميل الأدمن
+    const opsClient = makeOpsClient(token);
+    const { data: row } = await opsClient
       .from('users')
       .select('role')
       .eq('id', user.id)
       .maybeSingle();
 
-    return row?.role === 'admin';
+    return row?.role === 'admin' ? token : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -65,10 +81,13 @@ export type PartnerActivationResult =
 // ── المنطق الرئيسي ───────────────────────────────────────────────────────────
 export async function POST(req: NextRequest): Promise<NextResponse<PartnerActivationResult>> {
   // ── 0. التحقق من الصلاحية ─────────────────────────────────────────────────
-  const isAdmin = await verifyAdmin(req.headers.get('authorization'));
-  if (!isAdmin) {
+  const adminToken = await verifyAdmin(req.headers.get('authorization'));
+  if (!adminToken) {
     return NextResponse.json({ error: 'غير مصرح: يجب أن تكون مشرفاً' }, { status: 401 });
   }
+
+  // عميل العمليات: service-role إن وُجد، وإلا JWT الأدمن
+  const db = makeOpsClient(adminToken);
 
   try {
     const body = await req.json() as { store_id?: string };
@@ -79,7 +98,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<PartnerActiva
     }
 
     // ── 1. جلب بيانات المتجر مع التحقق من صحة التفعيل ────────────────────
-    const { data: store, error: storeErr } = await supabaseAdmin
+    const { data: store, error: storeErr } = await db
       .from('stores')
       .select('registered_by_agent_id, package_id, is_active, activation_date')
       .eq('id', store_id)
@@ -119,7 +138,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<PartnerActiva
     const packageId = store.package_id ?? null;
 
     // ── 3. جلب بيانات الشريك ──────────────────────────────────────────────
-    const { data: partner, error: partnerErr } = await supabaseAdmin
+    const { data: partner, error: partnerErr } = await db
       .from('users')
       .select('monthly_activations, total_earnings, commission_percent, payment_system, required_stores_count, monthly_salary, package_points, last_reset_date')
       .eq('id', agentId)
