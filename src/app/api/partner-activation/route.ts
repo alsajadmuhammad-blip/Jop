@@ -163,7 +163,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<PartnerActiva
     // ── 5. جلب سعر الباقة ─────────────────────────────────────────────────
     let packagePrice: number | null = null;
     if (packageId) {
-      const { data: pkg } = await supabaseAdmin
+      const { data: pkg } = await db
         .from('store_packages')
         .select('price')
         .eq('id', packageId)
@@ -241,7 +241,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<PartnerActiva
       updatePayload.last_reset_date = now.toISOString();
     }
 
-    const { error: updateErr } = await supabaseAdmin
+    const { error: updateErr } = await db
       .from('users')
       .update(updatePayload)
       .eq('id', agentId);
