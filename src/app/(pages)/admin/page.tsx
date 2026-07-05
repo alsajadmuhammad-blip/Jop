@@ -169,24 +169,25 @@ function AdminDashboard() {
         }
       }
 
-      // ── تحديث أرباح الشريك عبر API مركزية ────────────────────────
+      // ── تحديث أرباح الشريك عبر Supabase Edge Function ────────────
       if (storeData.registeredByAgentId) {
         try {
-          // نجلب التوكن ليتحقق API route من صلاحية المشرف
           const { data: sessionData } = await supabase.auth.getSession();
           const token = sessionData?.session?.access_token ?? '';
+          const fnUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/partner-activation`;
 
-          const res = await fetch('/api/partner-activation', {
+          const res = await fetch(fnUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
               ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({ store_id: storeId }),
           });
           const result = await res.json();
           if (!res.ok || result.error) {
-            console.error('partner-activation API error:', result);
+            console.error('partner-activation error:', result);
           } else if (result.success) {
             console.log(
               `[partner] +${result.pointsAdded}pt → ${result.newMonthlyActivations}pt | +${result.earningsIncrement} د.ع`,
@@ -197,7 +198,6 @@ function AdminDashboard() {
           }
         } catch (partnerErr) {
           console.error('Failed to call partner-activation:', partnerErr);
-          // لا نوقف التفعيل بسبب خطأ في تحديث الشريك
         }
       }
 
