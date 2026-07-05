@@ -112,6 +112,7 @@ function AdminDashboard() {
         partnerCode: u.partner_code ?? u.partnerCode,
         totalEarnings: u.total_earnings ?? u.totalEarnings ?? 0,
         monthlyActivations: u.monthly_activations ?? u.monthlyActivations ?? 0,
+        packagePoints: u.package_points ?? undefined,
       } as User)));
       setPackages(packagesData || []);
       setOrdersCount(ordersResult.count ?? 0);
@@ -168,63 +169,34 @@ function AdminDashboard() {
         }
       }
 
-      // ── زيادة عداد الشريك عند موافقة المشرف ──────────────────────
+      // ── تحديث أرباح الشريك عبر API مركزية ────────────────────────
       if (storeData.registeredByAgentId) {
         try {
-          const { data: partnerRow } = await supabase
-            .from('users')
-            .select('monthly_activations, total_earnings, commission_percent, payment_system, required_stores_count')
-            .eq('id', storeData.registeredByAgentId)
-            .maybeSingle();
+          // نجلب التوكن ليتحقق API route من صلاحية المشرف
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token ?? '';
 
-          if (partnerRow) {
-            // ── جلب نقاط الباقة (target_points) ─────────────────────────
-            let packagePoints = 1; // الافتراضي: نقطة واحدة لكل تفعيل
-            let packagePrice: number | null = null;
-
-            if (storeData.packageId) {
-              const { data: pkgRow } = await supabase
-                .from('store_packages')
-                .select('price, target_points')
-                .eq('id', storeData.packageId)
-                .maybeSingle();
-
-              if (pkgRow) {
-                packagePrice = pkgRow.price ?? null;
-                packagePoints = Math.max(1, Number(pkgRow.target_points ?? 1));
-              }
-            }
-
-            // ── إضافة نقاط الباقة للعداد الشهري ────────────────────────
-            const newMonthlyActivations = (partnerRow.monthly_activations ?? 0) + packagePoints;
-
-            // ── احتساب العمولة ──────────────────────────────────────────
-            let earningsIncrement = 0;
-            const commissionPct = partnerRow.commission_percent ?? 0;
-
-            if (commissionPct > 0 && packagePrice) {
-              if (partnerRow.payment_system === 'commission') {
-                // نظام العمولة: نسبة من كل متجر يُفعَّل
-                earningsIncrement = (packagePrice * commissionPct) / 100;
-              } else if (partnerRow.payment_system === 'salary') {
-                // نظام الراتب: عمولة إضافية فقط للنقاط الزائدة عن الهدف الشهري
-                const required = partnerRow.required_stores_count ?? 0;
-                if (required > 0 && newMonthlyActivations > required) {
-                  earningsIncrement = (packagePrice * commissionPct) / 100;
-                }
-              }
-            }
-
-            await supabase
-              .from('users')
-              .update({
-                monthly_activations: newMonthlyActivations,
-                total_earnings: (partnerRow.total_earnings ?? 0) + earningsIncrement,
-              })
-              .eq('id', storeData.registeredByAgentId);
+          const res = await fetch('/api/partner-activation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ store_id: storeId }),
+          });
+          const result = await res.json();
+          if (!res.ok || result.error) {
+            console.error('partner-activation API error:', result);
+          } else if (result.success) {
+            console.log(
+              `[partner] +${result.pointsAdded}pt → ${result.newMonthlyActivations}pt | +${result.earningsIncrement} د.ع`,
+              result.breakdown
+            );
+          } else if (result.skipped) {
+            console.log('[partner] skipped:', result.reason);
           }
         } catch (partnerErr) {
-          console.error('Failed to update partner stats:', partnerErr);
+          console.error('Failed to call partner-activation:', partnerErr);
           // لا نوقف التفعيل بسبب خطأ في تحديث الشريك
         }
       }
@@ -477,6 +449,10 @@ function AdminDashboard() {
         payload.last_reset_date = updates.lastResetDate;
         payload.lastResetDate = updates.lastResetDate;
       }
+      // نقاط الباقات: يُمرَّر null صراحةً لمسح الخريطة
+      if (Object.prototype.hasOwnProperty.call(updates, 'packagePoints')) {
+        payload.package_points = updates.packagePoints ?? null;
+      }
 
       const { error } = await supabase.from('users').update(payload).eq('id', repId);
       if (error) throw error;
@@ -618,6 +594,7 @@ function AdminDashboard() {
             <PartnersTab
               representatives={representatives}
               stores={stores}
+              packages={packages}
               onRepresentativeAdded={handleRepresentativeAdded}
               onRepresentativeDeleted={handleDeleteRepresentative}
               onRepresentativeUpdated={handleUpdateRepresentative}

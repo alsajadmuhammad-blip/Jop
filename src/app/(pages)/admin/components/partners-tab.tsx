@@ -4,10 +4,10 @@ import React, { useState, useMemo } from "react";
 import {
   Handshake, UserPlus, Edit, Trash2, Copy, Check,
   RefreshCw, Search, TrendingUp, Store as StoreIcon,
-  DollarSign, Target, RotateCcw,
+  DollarSign, Target, RotateCcw, Package2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Store, User } from "@/lib/types";
+import type { Store, StorePackage, User } from "@/lib/types";
 import { createRepresentative } from "@/services/supabase-admin";
 import { supabase } from "@/services/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -200,12 +200,18 @@ CreatePartnerDialog.displayName = 'CreatePartnerDialog';
 
 // ─── نموذج تعديل الشريك ──────────────────────────────────────────────────────
 const EditPartnerDialog = React.memo(function EditPartnerDialog({
-  isOpen, onOpenChange, partner, onUpdated,
-}: { isOpen: boolean; onOpenChange: (v: boolean) => void; partner: User | null; onUpdated?: (id: string, updates: Partial<User>) => void }) {
+  isOpen, onOpenChange, partner, packages, onUpdated,
+}: {
+  isOpen: boolean; onOpenChange: (v: boolean) => void;
+  partner: User | null; packages?: StorePackage[];
+  onUpdated?: (id: string, updates: Partial<User>) => void;
+}) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [paymentSystem, setPaymentSystem] = useState<'salary' | 'commission'>((partner?.paymentSystem as any) ?? 'salary');
   const [packageDiscountPercent, setPackageDiscountPercent] = useState(partner?.packageDiscountPercent ?? 0);
+  // نقاط الباقات: { [packageId]: points }
+  const [pkgPoints, setPkgPoints] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     name: partner?.name ?? '',
     monthlySalary: partner?.monthlySalary?.toString() ?? '',
@@ -223,10 +229,19 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
         requiredStoresCount: partner.requiredStoresCount?.toString() ?? '',
         commissionPercent: partner.commissionPercent?.toString() ?? '',
       });
+      // تهيئة نقاط الباقات من بيانات الشريك
+      const existing: Record<string, string> = {};
+      if (partner.packagePoints) {
+        Object.entries(partner.packagePoints).forEach(([k, v]) => {
+          existing[k] = String(v);
+        });
+      }
+      setPkgPoints(existing);
     }
   }, [partner]);
 
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const setPkgPt = (pkgId: string, v: string) => setPkgPoints(p => ({ ...p, [pkgId]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,9 +249,17 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
     if (!form.name.trim()) { toast({ variant: "destructive", title: "أدخل الاسم الكامل" }); return; }
     setSaving(true);
     try {
+      // بناء map نقاط الباقات (نُبقي فقط القيم الصالحة > 0)
+      const packagePointsMap: Record<string, number> = {};
+      Object.entries(pkgPoints).forEach(([k, v]) => {
+        const n = Number(v);
+        if (n > 0) packagePointsMap[k] = n;
+      });
+
       const updates: Partial<User> = {
         name: form.name.trim(), paymentSystem, packageDiscountPercent,
         commissionPercent: Number(form.commissionPercent) || 0,
+        packagePoints: Object.keys(packagePointsMap).length > 0 ? packagePointsMap : null,
         ...(paymentSystem === 'salary' && {
           monthlySalary: Number(form.monthlySalary) || 0,
           requiredStoresCount: Number(form.requiredStoresCount) || 0,
@@ -288,7 +311,12 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
                 <Input type="number" min={0} value={form.monthlySalary} onChange={e => set('monthlySalary', e.target.value)} dir="ltr" disabled={saving} />
               </div>
               <div className="space-y-1.5">
-                <Label>المتاجر المطلوبة</Label>
+                <Label>
+                  الهدف الشهري (نقاط)
+                  <span className="text-[10px] text-muted-foreground font-normal mr-1">
+                    — تُحتسب بنقاط الباقة أدناه
+                  </span>
+                </Label>
                 <Input type="number" min={1} value={form.requiredStoresCount} onChange={e => set('requiredStoresCount', e.target.value)} dir="ltr" disabled={saving} />
               </div>
             </div>
@@ -298,6 +326,38 @@ const EditPartnerDialog = React.memo(function EditPartnerDialog({
             <Label>نسبة العمولة % <span className="text-muted-foreground font-normal text-xs">{paymentSystem === 'salary' ? '(إضافية بعد الهدف)' : '(على كل متجر)'}</span></Label>
             <Input type="number" min={0} max={100} value={form.commissionPercent} onChange={e => set('commissionPercent', e.target.value)} dir="ltr" disabled={saving} />
           </div>
+
+          {/* ── نقاط الباقات (خاصة بهذا الشريك) ── */}
+          {packages && packages.filter(p => p.isActive).length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Package2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-sm">نقاط كل باقة نحو الهدف</Label>
+                <span className="text-[10px] text-muted-foreground">(الافتراضي: 1 نقطة)</span>
+              </div>
+              <div className="rounded-xl border border-border/60 divide-y divide-border/40 overflow-hidden">
+                {packages.filter(p => p.isActive).map(pkg => (
+                  <div key={pkg.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-muted/20">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{pkg.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{pkg.price.toLocaleString('ar-IQ')} د.ع</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <input
+                        type="number" min="1" max="20" step="1"
+                        value={pkgPoints[pkg.id] ?? '1'}
+                        onChange={e => setPkgPt(pkg.id, e.target.value)}
+                        disabled={saving}
+                        className="w-14 h-8 text-center text-sm font-bold rounded-lg border border-input bg-background outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                        dir="ltr"
+                      />
+                      <span className="text-xs text-muted-foreground">نقطة</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>خصم على الباقات %</Label>
@@ -439,6 +499,7 @@ function PartnerCard({ partner, storeCount, activeStoreCount, onEdit, onDelete, 
 export function PartnersTab({
   representatives,
   stores,
+  packages,
   onRepresentativeAdded,
   onRepresentativeDeleted,
   onRepresentativeUpdated,
@@ -446,6 +507,7 @@ export function PartnersTab({
 }: {
   representatives: User[];
   stores: Store[];
+  packages?: StorePackage[];
   onRepresentativeAdded?: () => void;
   onRepresentativeDeleted?: (id: string) => void;
   onRepresentativeUpdated?: (id: string, updates: Partial<User>) => void;
@@ -589,7 +651,7 @@ export function PartnersTab({
       <CreatePartnerDialog isOpen={isCreateOpen} onOpenChange={setIsCreateOpen} onPartnerAdded={onRepresentativeAdded} />
       <EditPartnerDialog
         isOpen={isEditOpen} onOpenChange={v => { setIsEditOpen(v); if (!v) setEditingPartner(null); }}
-        partner={editingPartner} onUpdated={onRepresentativeUpdated}
+        partner={editingPartner} packages={packages} onUpdated={onRepresentativeUpdated}
       />
     </div>
   );

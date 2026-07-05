@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Store } from '@/lib/types';
 import { supabase } from '@/services/supabase';
@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   LogOut, CheckCircle, Hourglass, XCircle,
   DollarSign, Copy, Check, Users, Wallet,
-  TrendingUp, Clock, Award, AlertCircle, Target,
+  TrendingUp, Clock, Award, AlertCircle, Target, RefreshCw,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -200,7 +200,7 @@ function PartnerDashboard() {
     count: { label: 'متجر', color: 'hsl(var(--primary))' },
   };
 
-  // ── بيانات الشريك ─────────────────────────────────────────────
+  // ── بيانات الشريك من سجل المستخدم ───────────────────────────
   const paymentSystem       = user?.paymentSystem ?? 'commission';
   const monthlySalary       = user?.monthlySalary ?? 0;
   const requiredStores      = user?.requiredStoresCount ?? 0;
@@ -210,13 +210,38 @@ function PartnerDashboard() {
   const totalEarnings       = user?.totalEarnings ?? 0;
   const isSalary            = paymentSystem === 'salary';
 
-  // تقدم الهدف (للراتب فقط) — نتجنّب الهدف الصفري كي لا يظهر "حققت هدفك" بلا معنى
+  // ── نقاط هذا الشهر (من DB عبر أحدث بيانات الشريك) ──────────
+  // نجلب القيمة الحديثة من DB مباشرةً لضمان الدقة بعد أي تفعيل
+  const [liveMonthlyPts, setLiveMonthlyPts] = useState<number | null>(null);
+  const [refreshingStats, setRefreshingStats] = useState(false);
+
+  const fetchLiveStats = useCallback(async () => {
+    if (!user?.id) return;
+    setRefreshingStats(true);
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('monthly_activations, total_earnings')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data) setLiveMonthlyPts(data.monthly_activations ?? 0);
+    } catch {}
+    finally { setRefreshingStats(false); }
+  }, [user?.id]);
+
+  useEffect(() => { fetchLiveStats(); }, [fetchLiveStats]);
+
+  // نستخدم القيمة الحية إذا توفّرت، وإلا نعود لكاش المستخدم
+  const monthlyPts = liveMonthlyPts ?? (user?.monthlyActivations ?? 0);
+
+  // ── تقدم الهدف ────────────────────────────────────────────────
+  // الهدف يُقاس بالنقاط (package_points) لا بعدد المتاجر
   const hasValidTarget = isSalary && requiredStores > 0;
-  const progressPct = hasValidTarget
-    ? Math.min(100, Math.round((stats.active / requiredStores) * 100))
+  const progressPct    = hasValidTarget
+    ? Math.min(100, Math.round((monthlyPts / requiredStores) * 100))
     : 0;
-  const targetReached = hasValidTarget && stats.active >= requiredStores;
-  const extraStores   = targetReached ? stats.active - requiredStores : 0;
+  const targetReached  = hasValidTarget && monthlyPts >= requiredStores;
+  const extraPts       = targetReached ? monthlyPts - requiredStores : 0;
 
   if (loadingStores) return <LoadingSpinner isLoading />;
 
@@ -247,9 +272,9 @@ function PartnerDashboard() {
         {/* ── بطاقات الإحصاء ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="تفعيلات هذا الشهر"
-            value={stats.thisMonthActivated}
-            sub="متجر فُعِّل الشهر الحالي"
+            title={isSalary ? 'نقاطك هذا الشهر' : 'تفعيلات هذا الشهر'}
+            value={isSalary ? monthlyPts : stats.thisMonthActivated}
+            sub={isSalary ? `من أصل ${requiredStores} نقطة` : 'متجر فُعِّل الشهر الحالي'}
             icon={<Clock className="h-4 w-4 text-blue-600" />}
             accent="bg-blue-50"
           />
@@ -315,15 +340,28 @@ function PartnerDashboard() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
                       {targetReached
-                        ? <span className="text-emerald-600 font-semibold">✅ حققت هدفك! {extraStores > 0 ? `لديك ${extraStores} متجر إضافي` : ''}</span>
-                        : `متبقي ${requiredStores - stats.active} متجر`}
+                        ? <span className="text-emerald-600 font-semibold">✅ حققت هدفك! {extraPts > 0 ? `لديك ${extraPts} نقطة إضافية` : ''}</span>
+                        : `متبقي ${requiredStores - monthlyPts} نقطة`}
                     </span>
-                    <span className="font-bold text-primary">{stats.active} / {requiredStores}</span>
+                    <span className="font-bold text-primary">{monthlyPts} / {requiredStores}</span>
                   </div>
                   <Progress value={progressPct} className="h-3" />
                   <p className="text-xs text-muted-foreground text-left">{progressPct}٪ من الهدف</p>
                 </div>
               )}
+
+              {/* زر تحديث النقاط */}
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={fetchLiveStats}
+                  disabled={refreshingStats}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-3 w-3 ${refreshingStats ? 'animate-spin' : ''}`} />
+                  تحديث
+                </button>
+              </div>
             </CardContent>
           </Card>
         )}

@@ -200,6 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         partnerCode: row.partner_code || row.partnerCode || undefined,
         monthlyActivations: row.monthly_activations ?? row.monthlyActivations ?? undefined,
         totalEarnings: row.total_earnings ?? row.totalEarnings ?? undefined,
+        packagePoints: row.package_points ?? undefined,
       };
 
       setUser(prev => {

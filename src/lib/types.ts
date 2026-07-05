@@ -140,8 +140,14 @@ export type User = {
   commissionPercent?: number;   // نسبة عمولة على كل متجر إضافي بعد الهدف (أو على كل متجر في نظام النسبة)
   packageDiscountPercent?: number; // خصم % على سعر الباقة يمنحه الشريك للمتاجر التي تستخدم كوده
   partnerCode?: string;         // الكود الفريد للشريك (يدخله صاحب المتجر عند التسجيل)
-  monthlyActivations?: number; // For salary-based partners
+  monthlyActivations?: number; // For salary-based partners — نقاط شهرية (مش عدد متاجر فقط)
   lastResetDate?: string; // ISO date string for resetting monthly count
+  /**
+   * نقاط كل باقة لهذا الشريك تحديداً — JSONB في قاعدة البيانات
+   * مثال: { "pkg-uuid-1": 2, "pkg-uuid-2": 1 }
+   * إذا لم تُحدَّد → 1 نقطة افتراضية
+   */
+  packagePoints?: Record<string, number> | null;
   firstLogin?: boolean; // True if user hasn't changed password yet after registration
 };
 
