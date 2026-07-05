@@ -5,6 +5,12 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+/** يرجع الرقم إذا صحيح وإلا null */
+function safeNum(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 const ACTIVATION_WINDOW_MS = 15 * 60 * 1000; // 15 دقيقة
 
 const cors = {
@@ -75,14 +81,13 @@ Deno.serve(async (req) => {
     if (packageId) {
       const { data: pkg } = await supabase
         .from("store_packages").select("price").eq("id", packageId).maybeSingle();
-      packagePrice = pkg?.price != null ? Number(pkg.price) : null;
+      packagePrice = safeNum(pkg?.price);
     }
 
     // ── 6. نقاط هذا التفعيل ───────────────────────────────────────
-    const pkgPointsMap: Record<string, number> = partner.package_points ?? {};
-    const pointsForThisActivation = (packageId && pkgPointsMap[packageId] != null)
-      ? Math.max(1, Number(pkgPointsMap[packageId]))
-      : 1;
+    const pkgPointsMap: Record<string, unknown> = partner.package_points ?? {};
+    const rawPoints = packageId ? safeNum(pkgPointsMap[packageId]) : null;
+    const pointsForThisActivation = rawPoints != null ? Math.max(1, rawPoints) : 1;
 
     const oldActivations = currentActivations;
     const newActivations = oldActivations + pointsForThisActivation;
@@ -109,19 +114,26 @@ Deno.serve(async (req) => {
         const nowAtGoal = newActivations >= required;
 
         if (!wasAtGoal && nowAtGoal) {
+          // ✅ وصل الهدف بهذا التفعيل → راتب + عمولة على هذا المتجر
           if (monthlySalary > 0) {
             earningsIncrement += monthlySalary;
             breakdown.push(`راتب شهري (${required} نقطة) = ${monthlySalary} د.ع`);
           }
-          if (newActivations > required && commissionPct > 0 && packagePrice) {
+          // عمولة على المتجر الذي حقق الهدف (بغض النظر هل تجاوزه أو وصل بالضبط)
+          if (commissionPct > 0 && packagePrice != null && packagePrice > 0) {
             const bonus = Math.round((packagePrice * commissionPct) / 100);
             earningsIncrement += bonus;
-            breakdown.push(`عمولة تجاوز = ${bonus} د.ع`);
+            breakdown.push(`عمولة الوصول للهدف ${commissionPct}٪ من ${packagePrice} = ${bonus} د.ع`);
+          } else if (commissionPct > 0 && (packagePrice == null || packagePrice <= 0)) {
+            breakdown.push(`تحذير: عمولة ${commissionPct}٪ لكن سعر الباقة غير محدد`);
           }
         } else if (wasAtGoal) {
-          if (commissionPct > 0 && packagePrice) {
+          // ✅ كان فوق الهدف → عمولة على كل متجر إضافي
+          if (commissionPct > 0 && packagePrice != null && packagePrice > 0) {
             earningsIncrement = Math.round((packagePrice * commissionPct) / 100);
-            breakdown.push(`عمولة بعد الهدف = ${earningsIncrement} د.ع`);
+            breakdown.push(`عمولة فوق الهدف ${commissionPct}٪ من ${packagePrice} = ${earningsIncrement} د.ع`);
+          } else if (commissionPct > 0 && (packagePrice == null || packagePrice <= 0)) {
+            breakdown.push(`تحذير: عمولة ${commissionPct}٪ لكن سعر الباقة غير محدد`);
           }
         } else {
           breakdown.push(`تقدم: ${newActivations}/${required} نقطة`);
