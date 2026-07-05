@@ -421,35 +421,16 @@ function AdminDashboard() {
 
   const handleUpdateRepresentative = async (repId: string, updates: Partial<User>) => {
     try {
-      const payload: any = {};
-      if (updates.name !== undefined) payload.name = updates.name;
-      if (updates.paymentSystem !== undefined) {
-        payload.payment_system = updates.paymentSystem;
-        payload.paymentSystem = updates.paymentSystem;
-      }
-      if (updates.monthlySalary !== undefined) {
-        payload.monthly_salary = updates.monthlySalary;
-        payload.monthlySalary = updates.monthlySalary;
-      }
-      if (updates.requiredStoresCount !== undefined) {
-        payload.required_stores_count = updates.requiredStoresCount;
-        payload.requiredStoresCount = updates.requiredStoresCount;
-      }
-      if (updates.commissionPercent !== undefined) {
-        payload.commission_percent = updates.commissionPercent;
-      }
-      if (updates.packageDiscountPercent !== undefined) {
-        payload.package_discount_percent = updates.packageDiscountPercent;
-      }
-      if (updates.monthlyActivations !== undefined) {
-        payload.monthly_activations = updates.monthlyActivations;
-        payload.monthlyActivations = updates.monthlyActivations;
-      }
-      if (updates.lastResetDate !== undefined) {
-        payload.last_reset_date = updates.lastResetDate;
-        payload.lastResetDate = updates.lastResetDate;
-      }
-      // نقاط الباقات: يُمرَّر null صراحةً لمسح الخريطة
+      // نُرسل snake_case فقط — جدول users لا يملك أعمدة camelCase
+      const payload: Record<string, any> = {};
+      if (updates.name                  !== undefined) payload.name                   = updates.name;
+      if (updates.paymentSystem         !== undefined) payload.payment_system         = updates.paymentSystem;
+      if (updates.monthlySalary         !== undefined) payload.monthly_salary         = updates.monthlySalary;
+      if (updates.requiredStoresCount   !== undefined) payload.required_stores_count  = updates.requiredStoresCount;
+      if (updates.commissionPercent     !== undefined) payload.commission_percent     = updates.commissionPercent;
+      if (updates.packageDiscountPercent !== undefined) payload.package_discount_percent = updates.packageDiscountPercent;
+      if (updates.monthlyActivations    !== undefined) payload.monthly_activations    = updates.monthlyActivations;
+      if (updates.lastResetDate         !== undefined) payload.last_reset_date        = updates.lastResetDate;
       if (Object.prototype.hasOwnProperty.call(updates, 'packagePoints')) {
         payload.package_points = updates.packagePoints ?? null;
       }
