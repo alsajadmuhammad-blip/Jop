@@ -2,79 +2,96 @@
 
 import Image from "next/image";
 import { memo, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Truck, Globe, ShoppingCart, MessageSquare,
-  Star, MapPin, Clock,
+  Star, MapPin, Clock, Shield, ChevronLeft,
 } from "lucide-react";
 import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapper";
 import type { Store } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 interface StoreHeroProps { store: Store }
 
 function StoreHeroContent({ store }: StoreHeroProps) {
+  const router = useRouter();
+
   const info = useMemo(() => {
     const cleanWA = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
     const whatsappHref = cleanWA ? `https://wa.me/${cleanWA.replace(/^\+/, "")}` : undefined;
     const isPhysical = store.type === "فعلي";
     const hasCoords = isPhysical && Boolean(store.latitude && store.longitude);
-    const mapsUrl = hasCoords ? `https://www.google.com/maps/?q=${store.latitude},${store.longitude}` : undefined;
+    const mapsUrl = hasCoords
+      ? `https://www.google.com/maps/?q=${store.latitude},${store.longitude}`
+      : undefined;
     const hoursText = store.businessHours
       ? `${String(store.businessHours.open).padStart(2, "0")}:00 – ${String(store.businessHours.close).padStart(2, "0")}:00`
       : null;
     return { whatsappHref, isPhysical, hasCoords, mapsUrl, hoursText };
   }, [store]);
 
-  /* دقة النجوم: كل نجمة كاملة إذا i ≤ floor، نصف نجمة إذا الكسر ≥ 0.25 */
-  const fullStars  = Math.floor(store.rating);
-  const hasHalf    = store.rating - fullStars >= 0.25;
-  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-
   return (
     <div className="bg-white">
 
-      {/* ═══════════════════════════════════════════════
-          TOP BANNER — gradient + pattern + logo
-      ═══════════════════════════════════════════════ */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(145deg, #0f2460 0%, #1e40af 40%, #2563eb 70%, #1d4ed8 100%)",
-          minHeight: "190px",
-        }}
-      >
-        {/* Decorative circles (blur glow) */}
-        <div
-          className="absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20"
-          style={{ background: "radial-gradient(circle, #60a5fa, transparent 70%)" }}
-        />
-        <div
-          className="absolute -bottom-12 -left-8 w-56 h-56 rounded-full opacity-15"
-          style={{ background: "radial-gradient(circle, #818cf8, transparent 70%)" }}
-        />
-        <div
-          className="absolute top-6 left-1/2 w-32 h-32 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #bfdbfe, transparent 70%)" }}
-        />
+      {/* ══════════════════════════════════════════
+          غلاف المتجر — صورة كاملة أو تدرج لوني
+      ══════════════════════════════════════════ */}
+      <div className="relative w-full overflow-hidden" style={{ height: "220px" }}>
 
-        {/* Dot pattern */}
-        <svg
-          className="absolute inset-0 w-full h-full opacity-[0.07]"
-          style={{ pointerEvents: "none" }}
+        {/* زر الرجوع */}
+        <button
+          onClick={() => router.back()}
+          className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white text-sm font-semibold px-3 py-1.5 rounded-full transition-all"
         >
-          <defs>
-            <pattern id="dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-              <circle cx="3" cy="3" r="1.5" fill="white" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#dots)" />
-        </svg>
+          <ChevronLeft className="w-4 h-4 rotate-180" />
+          رجوع
+        </button>
 
-        {/* Status badge — top right */}
-        <div className="absolute top-4 right-4">
+        {/* صورة الغلاف */}
+        {store.coverImageUrl ? (
+          store.coverImageUrl.startsWith("data:") ? (
+            <img
+              src={store.coverImageUrl}
+              alt={store.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Image
+              src={store.coverImageUrl}
+              alt={store.name}
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+              quality={90}
+            />
+          )
+        ) : (
+          /* تدرج افتراضي احترافي */
           <div
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold backdrop-blur-sm border ${
+            className="w-full h-full"
+            style={{
+              background:
+                "linear-gradient(135deg, #0f2460 0%, #1e3a8a 35%, #2563eb 65%, #3b82f6 100%)",
+            }}
+          >
+            {/* نمط نقطي */}
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{
+                backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+                backgroundSize: "22px 22px",
+              }}
+            />
+          </div>
+        )}
+
+        {/* تدرج داكن لأسفل */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+        {/* شارة النشاط — أعلى اليسار */}
+        <div className="absolute top-4 left-4 z-10">
+          <div
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold backdrop-blur-sm border ${
               store.isActive
                 ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-200"
                 : "bg-white/10 border-white/20 text-white/60"
@@ -83,67 +100,72 @@ function StoreHeroContent({ store }: StoreHeroProps) {
             <span
               className={`w-1.5 h-1.5 rounded-full ${store.isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`}
             />
-            {store.isActive ? "متجر نشط" : "مؤقتاً مغلق"}
+            {store.isActive ? "نشط" : "مغلق مؤقتاً"}
           </div>
         </div>
 
-        {/* Market type badge — top left */}
-        {(store.marketType || store.type) && (
-          <div className="absolute top-4 left-4">
-            <span className="text-xs font-semibold text-white/80 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1">
-              {store.marketType || store.type}
+        {/* اسم المتجر فوق الغلاف */}
+        <div className="absolute bottom-4 right-4 left-4 z-10">
+          {store.marketType && (
+            <span className="inline-block text-[11px] font-semibold text-white/70 bg-white/10 border border-white/20 backdrop-blur-sm rounded-full px-2.5 py-0.5 mb-1.5">
+              {store.marketType}
+            </span>
+          )}
+          <h1 className="text-2xl sm:text-3xl font-black text-white drop-shadow-lg leading-tight">
+            {store.name}
+          </h1>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════
+          بطاقة الهوية — لوغو + معلومات سريعة
+      ══════════════════════════════════════════ */}
+      <div className="relative px-4 sm:px-5">
+
+        {/* اللوغو يطفو فوق الغلاف */}
+        <div className="flex items-end justify-between -mt-10 mb-3">
+          <div
+            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white bg-white overflow-hidden flex-shrink-0"
+            style={{ boxShadow: "0 8px 28px rgba(0,0,0,0.18)" }}
+          >
+            {store.logoUrl ? (
+              store.logoUrl.startsWith("data:") ? (
+                <img src={store.logoUrl} alt={store.name} className="w-full h-full object-contain p-1" />
+              ) : (
+                <Image
+                  src={store.logoUrl}
+                  alt={store.name}
+                  fill
+                  className="object-contain p-1"
+                  sizes="96px"
+                  priority
+                />
+              )
+            ) : (
+              <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100">
+                <Globe className="w-10 h-10 text-primary/40" />
+              </div>
+            )}
+          </div>
+
+          {/* شارات سريعة */}
+          <div className="flex gap-2 mb-1">
+            {store.hasDelivery && (
+              <span className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full">
+                <Truck className="w-3 h-3" />
+                توصيل
+              </span>
+            )}
+            <span className="flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-bold px-2.5 py-1 rounded-full">
+              <Shield className="w-3 h-3 text-primary" />
+              موثّق
             </span>
           </div>
-        )}
-
-        {/* Spacer so the logo overlaps the bottom */}
-        <div className="h-[152px]" />
-      </div>
-
-      {/* ═══════════════════════════════════════════════
-          LOGO — floats between banner and content
-      ═══════════════════════════════════════════════ */}
-      <div className="flex justify-center -mt-[52px] relative z-10 px-4">
-        <div
-          className="relative w-[100px] h-[100px] sm:w-[112px] sm:h-[112px] rounded-[1.6rem] border-4 border-white overflow-hidden bg-white"
-          style={{
-            boxShadow:
-              "0 8px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)",
-          }}
-        >
-          {store.logoUrl ? (
-            <Image
-              src={store.logoUrl}
-              alt={store.name}
-              fill
-              className="object-cover"
-              sizes="112px"
-              priority
-              quality={90}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100">
-              <Globe className="w-12 h-12 text-blue-300" />
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* ═══════════════════════════════════════════════
-          STORE IDENTITY
-      ═══════════════════════════════════════════════ */}
-      <div className="px-4 sm:px-6 pt-4 text-center">
-        {/* Store name */}
-        <h1
-          className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight tracking-tight"
-          style={{ fontFamily: "'Cairo', sans-serif" }}
-        >
-          {store.name}
-        </h1>
-
-        {/* Stars */}
+        {/* التقييم */}
         {store.reviews > 0 ? (
-          <div className="flex items-center justify-center gap-1.5 mt-2">
+          <div className="flex items-center gap-2 mb-2">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Star
@@ -156,110 +178,95 @@ function StoreHeroContent({ store }: StoreHeroProps) {
                 />
               ))}
             </div>
-            <span className="text-sm font-bold text-slate-700">
-              {store.rating.toFixed(1)}
-            </span>
+            <span className="text-sm font-extrabold text-slate-800">{store.rating.toFixed(1)}</span>
             <span className="text-xs text-slate-400">({store.reviews} تقييم)</span>
           </div>
         ) : (
-          <p className="text-xs text-slate-400 mt-2">لا توجد تقييمات بعد</p>
+          <p className="text-xs text-slate-400 mb-2">لا توجد تقييمات بعد</p>
         )}
+
+        {/* وصف المتجر */}
+        {store.description && (
+          <p className="text-sm text-slate-500 leading-relaxed mb-3 line-clamp-2">
+            {store.description}
+          </p>
+        )}
+
+        {/* شرائح معلومات */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {info.hoursText && (
+            <InfoChip icon={<Clock className="w-3 h-3" />} label={info.hoursText} color="purple" />
+          )}
+          {info.isPhysical && store.location && (
+            <InfoChip icon={<MapPin className="w-3 h-3" />} label={store.location} color="rose" />
+          )}
+          {store.type && (
+            <InfoChip icon={<Globe className="w-3 h-3" />} label={store.type} color="sky" />
+          )}
+        </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          INFO CHIPS
-      ═══════════════════════════════════════════════ */}
-      <div className="flex flex-wrap justify-center gap-2 px-4 mt-4">
-        {store.hasDelivery && (
-          <Chip icon={<Truck className="w-3.5 h-3.5" />} label="توصيل متاح" color="sky" />
-        )}
-        {info.hoursText && (
-          <Chip icon={<Clock className="w-3.5 h-3.5" />} label={info.hoursText} color="purple" />
-        )}
-        {info.isPhysical && store.location && (
-          <Chip icon={<MapPin className="w-3.5 h-3.5" />} label={store.location} color="rose" />
-        )}
-      </div>
+      {/* ══════════════════════════════════════════
+          أزرار التفاعل
+      ══════════════════════════════════════════ */}
+      <div className="px-4 sm:px-5 pb-5 space-y-2.5">
 
-      {/* Description */}
-      {store.description && (
-        <p className="text-sm text-slate-500 text-center leading-relaxed mt-3 px-6 line-clamp-2">
-          {store.description}
-        </p>
-      )}
-
-      {/* ═══════════════════════════════════════════════
-          DIVIDER
-      ═══════════════════════════════════════════════ */}
-      <div className="mx-4 mt-5 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-
-      {/* ═══════════════════════════════════════════════
-          ACTION BUTTONS
-      ═══════════════════════════════════════════════ */}
-      <div className="px-4 sm:px-6 pt-4 pb-6">
-
-        {/* Primary CTA */}
-        <Button
-          asChild
-          size="lg"
-          className="w-full h-[52px] rounded-2xl font-extrabold text-base gap-2.5 mb-3 active:scale-[0.98] transition-all"
+        {/* زر ابدأ التسوق */}
+        <a
+          href="#store-products"
+          className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl font-black text-[15px] text-white transition-all active:scale-[0.98]"
           style={{
-            background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)",
-            boxShadow: "0 6px 24px rgba(37,99,235,0.38)",
+            background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)",
+            boxShadow: "0 6px 20px rgba(37,99,235,0.4)",
           }}
         >
-          <a href="#store-products">
-            <ShoppingCart className="w-5 h-5" />
-            ابدأ التسوق
-          </a>
-        </Button>
+          <ShoppingCart className="w-5 h-5" />
+          ابدأ التسوق
+        </a>
 
-        {/* Secondary row — icon buttons */}
-        <div className="flex gap-2.5">
-          {/* WhatsApp */}
+        {/* أزرار ثانوية */}
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${[info.whatsappHref, info.hasCoords && info.isPhysical, true].filter(Boolean).length}, 1fr)` }}>
           {info.whatsappHref && (
             <a
               href={info.whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex flex-col items-center justify-center gap-1 h-[60px] rounded-2xl font-bold text-xs text-white transition-all active:scale-[0.97]"
-              style={{ background: "#25D366", boxShadow: "0 3px 12px rgba(37,211,102,0.35)" }}
+              className="flex flex-col items-center justify-center gap-1.5 h-14 rounded-2xl font-bold text-[12px] text-white transition-all active:scale-[0.97]"
+              style={{ background: "#25D366", boxShadow: "0 4px 14px rgba(37,211,102,0.35)" }}
             >
               <MessageSquare className="w-5 h-5" />
               واتساب
             </a>
           )}
 
-          {/* Maps — physical stores with coords */}
           {info.isPhysical && info.hasCoords && (
             <a
               href={info.mapsUrl!}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex flex-col items-center justify-center gap-1 h-[60px] rounded-2xl font-bold text-xs text-white bg-slate-700 hover:bg-slate-800 transition-all active:scale-[0.97]"
-              style={{ boxShadow: "0 3px 12px rgba(0,0,0,0.15)" }}
+              className="flex flex-col items-center justify-center gap-1.5 h-14 rounded-2xl font-bold text-[12px] text-white bg-slate-700 hover:bg-slate-800 transition-all active:scale-[0.97]"
+              style={{ boxShadow: "0 4px 14px rgba(0,0,0,0.15)" }}
             >
               <MapPin className="w-5 h-5" />
               الخريطة
             </a>
           )}
 
-          {/* Rating */}
-          <div className="flex-1">
-            <StoreRatingDialogWrapper
-              storeId={store.id}
-              storeName={store.name}
-              ownerId={store.ownerId}
-              buttonClassName="w-full h-[60px] rounded-2xl font-bold text-xs flex-col gap-1"
-            />
-          </div>
+          <StoreRatingDialogWrapper
+            storeId={store.id}
+            storeName={store.name}
+            ownerId={store.ownerId}
+            buttonClassName="w-full h-14 rounded-2xl font-bold text-[12px] flex-col gap-1.5"
+          />
         </div>
       </div>
+
+      <div className="mx-4 sm:mx-5 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
     </div>
   );
 }
 
-/* ── Chip helper ──────────────────────────────────────────── */
+/* ── Chip مساعد ─────────────────────────────── */
 type ChipColor = "sky" | "purple" | "rose" | "emerald" | "amber";
 const chipColors: Record<ChipColor, string> = {
   sky:     "bg-sky-50 border-sky-200 text-sky-700",
@@ -269,13 +276,11 @@ const chipColors: Record<ChipColor, string> = {
   amber:   "bg-amber-50 border-amber-200 text-amber-700",
 };
 
-function Chip({ icon, label, color }: { icon: React.ReactNode; label: string; color: ChipColor }) {
+function InfoChip({ icon, label, color }: { icon: React.ReactNode; label: string; color: ChipColor }) {
   return (
-    <div
-      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${chipColors[color]}`}
-    >
+    <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${chipColors[color]}`}>
       {icon}
-      <span className="max-w-[110px] truncate">{label}</span>
+      <span className="max-w-[130px] truncate">{label}</span>
     </div>
   );
 }
