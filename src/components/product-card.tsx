@@ -3,7 +3,7 @@
 import { useState, memo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Check, ImageIcon, Zap, Clock } from "lucide-react";
+import { ShoppingCart, Check, ImageIcon, Zap, Clock, ArrowLeftRight, Sparkles, TrendingUp, BadgePercent } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { hasActiveDiscount, hasActiveFlashSale, getDiscountedPrice } from "@/lib/types";
 import { useCart } from "@/hooks/use-cart";
@@ -11,12 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCountdown } from "@/hooks/use-countdown";
 import { motion, AnimatePresence } from "framer-motion";
+import type { SmartBadge } from "./product-grid";
+import { useCompare } from "./compare/compare-context";
 
 interface ProductCardProps {
   product: Product;
+  smartBadge?: SmartBadge;
   onQuickView?: (product: Product) => void;
 }
 
+/* ─── عداد فلاش ─── */
 function FlashCountdown({ endsAt }: { endsAt: string }) {
   const { formatted, isExpired } = useCountdown(endsAt);
   if (isExpired) return null;
@@ -27,11 +31,43 @@ function FlashCountdown({ endsAt }: { endsAt: string }) {
   );
 }
 
-function ProductCardContent({ product }: ProductCardProps) {
+/* ─── شارة ذكية ─── */
+const SMART_BADGE_CONFIG: Record<SmartBadge, { label: string; icon: React.ReactNode; className: string }> = {
+  new: {
+    label: "جديد",
+    icon: <Sparkles className="w-2.5 h-2.5" />,
+    className: "bg-violet-500 text-white",
+  },
+  trending: {
+    label: "الأكثر طلباً",
+    icon: <TrendingUp className="w-2.5 h-2.5" />,
+    className: "bg-sky-500 text-white",
+  },
+  best_deal: {
+    label: "أفضل صفقة",
+    icon: <BadgePercent className="w-2.5 h-2.5" />,
+    className: "bg-emerald-500 text-white",
+  },
+};
+
+function ProductCardContent({ product, smartBadge }: ProductCardProps) {
   const router = useRouter();
   const { addItem } = useCart();
   const { toast } = useToast();
   const [isAdded, setIsAdded] = useState(false);
+
+  /* ─── اختياري: مقارنة (null خارج CompareProvider) ─── */
+  const compare = useCompare();
+  const isCompared = compare?.isSelected(product.id) ?? false;
+  const canCompare = compare?.canAdd ?? false;
+
+  const handleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!compare) return;
+    if (isCompared) compare.removeProduct(product.id);
+    else if (canCompare) compare.addProduct(product);
+  };
 
   const flash = hasActiveFlashSale(product);
   const isOnSale = flash || hasActiveDiscount(product);
@@ -51,22 +87,18 @@ function ProductCardContent({ product }: ProductCardProps) {
     setTimeout(() => setIsAdded(false), 1500);
   };
 
-  const handleCardClick = () => {
-    router.push(`/store/product?id=${product.storeId}&product=${product.id}`);
-  };
-
   return (
     <div
-      onClick={handleCardClick}
+      onClick={() => router.push(`/store/product?id=${product.storeId}&product=${product.id}`)}
       className="group cursor-pointer h-full select-none"
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-250">
+      <div className={cn(
+        "flex h-full flex-col overflow-hidden rounded-2xl bg-white border shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-250",
+        isCompared ? "border-primary/40 ring-2 ring-primary/20" : "border-slate-100"
+      )}>
 
-        {/* صورة المنتج */}
-        <div
-          className="relative overflow-hidden bg-slate-50 flex-shrink-0"
-          style={{ aspectRatio: "1/1" }}
-        >
+        {/* ──── صورة المنتج ──── */}
+        <div className="relative overflow-hidden bg-slate-50 flex-shrink-0" style={{ aspectRatio: "1/1" }}>
           {product.imageUrl ? (
             product.imageUrl.startsWith("data:") ? (
               <img
@@ -76,8 +108,7 @@ function ProductCardContent({ product }: ProductCardProps) {
               />
             ) : (
               <Image
-                src={product.imageUrl} alt={product.name}
-                fill
+                src={product.imageUrl} alt={product.name} fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                 sizes="(max-width:640px) 50vw,(max-width:1024px) 33vw,25vw"
                 loading="lazy" decoding="async"
@@ -118,6 +149,41 @@ function ProductCardContent({ product }: ProductCardProps) {
             </div>
           )}
 
+          {/* شارة ذكية — أسفل يسار الصورة */}
+          {smartBadge && !flash && !hasActiveDiscount(product) && !product.isFeatured && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.25 }}
+              className={cn(
+                "absolute top-2 right-2 flex items-center gap-1 rounded-full px-2.5 py-1 shadow-sm text-[10px] font-black",
+                SMART_BADGE_CONFIG[smartBadge].className
+              )}
+            >
+              {SMART_BADGE_CONFIG[smartBadge].icon}
+              {SMART_BADGE_CONFIG[smartBadge].label}
+            </motion.div>
+          )}
+
+          {/* زر المقارنة — يظهر أسفل يسار الصورة */}
+          {compare && (
+            <motion.button
+              whileTap={{ scale: 0.85 }}
+              onClick={handleCompare}
+              className={cn(
+                "absolute bottom-2 left-2 w-7 h-7 rounded-lg flex items-center justify-center transition-all shadow-md",
+                isCompared
+                  ? "bg-primary text-white"
+                  : canCompare
+                    ? "bg-white/80 backdrop-blur-sm text-slate-600 hover:bg-white hover:text-primary opacity-0 group-hover:opacity-100"
+                    : "bg-white/50 text-slate-300 cursor-not-allowed opacity-0 group-hover:opacity-100"
+              )}
+              title={isCompared ? "إزالة من المقارنة" : "إضافة للمقارنة"}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+            </motion.button>
+          )}
+
           {/* نفد المخزون */}
           {isOutOfStock && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -128,7 +194,7 @@ function ProductCardContent({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* تفاصيل المنتج */}
+        {/* ──── تفاصيل المنتج ──── */}
         <div className="flex flex-col flex-1 px-2.5 pt-2.5 pb-3 gap-2">
           <h3 className="text-[13px] sm:text-sm font-bold text-slate-800 line-clamp-2 leading-snug flex-1">
             {product.name}
@@ -156,29 +222,21 @@ function ProductCardContent({ product }: ProductCardProps) {
               disabled={isOutOfStock}
               className={cn(
                 "flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm",
-                isAdded
-                  ? "bg-emerald-500 text-white"
-                  : "bg-primary text-white hover:bg-primary/90",
+                isAdded ? "bg-emerald-500 text-white" : "bg-primary text-white hover:bg-primary/90",
                 isOutOfStock && "opacity-30 cursor-not-allowed"
               )}
             >
               <AnimatePresence mode="wait" initial={false}>
                 {isAdded ? (
-                  <motion.span
-                    key="check"
-                    initial={{ scale: 0, rotate: -30 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0 }}
+                  <motion.span key="check"
+                    initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }}
                     transition={{ duration: 0.2, type: "spring", stiffness: 300 }}
                   >
                     <Check className="h-3.5 w-3.5" />
                   </motion.span>
                 ) : (
-                  <motion.span
-                    key="cart"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
+                  <motion.span key="cart"
+                    initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                     transition={{ duration: 0.15 }}
                   >
                     <ShoppingCart className="h-3.5 w-3.5" />
@@ -189,13 +247,7 @@ function ProductCardContent({ product }: ProductCardProps) {
           </div>
 
           {isLowStock && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-[10px] font-bold text-amber-500"
-            >
-              ⚡ آخر {product.stock} قطع
-            </motion.p>
+            <p className="text-[10px] font-bold text-amber-500">⚡ آخر {product.stock} قطع</p>
           )}
         </div>
       </div>

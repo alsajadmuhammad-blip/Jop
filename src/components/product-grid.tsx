@@ -1,9 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { Product } from "@/lib/types";
 import { ProductCard } from "./product-card";
+
+export type SmartBadge = "new" | "trending" | "best_deal";
 
 interface ProductGridProps {
   products: Product[];
@@ -12,27 +14,51 @@ interface ProductGridProps {
 const containerVariants = {
   hidden: {},
   visible: {
-    transition: {
-      staggerChildren: 0.04,
-    },
+    transition: { staggerChildren: 0.04 },
   },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  hidden: { opacity: 0, y: 14, scale: 0.97 },
   visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring" as const,
-      stiffness: 260,
-      damping: 22,
-    },
+    opacity: 1, y: 0, scale: 1,
+    transition: { type: "spring" as const, stiffness: 260, damping: 22 },
   },
 };
 
+/** يحسب الشارات الذكية بناءً على سياق كامل قائمة المنتجات */
+function computeSmartBadges(products: Product[]): Map<string, SmartBadge> {
+  const badges = new Map<string, SmartBadge>();
+
+  /* "جديد" — أُضيف خلال آخر 10 أيام */
+  const tenDaysMs = 10 * 24 * 60 * 60 * 1000;
+  products.forEach(p => {
+    if (p.createdAt && Date.now() - new Date(p.createdAt).getTime() < tenDaysMs) {
+      badges.set(p.id, "new");
+    }
+  });
+
+  /* "الأكثر طلباً" — أقل مخزون (مؤشر على الإقبال) — أول 2 فقط، شريطة وجود 6+ منتجات */
+  if (products.length >= 6) {
+    const inStock = products.filter(p => p.stock > 0 && p.stock <= 20 && !badges.has(p.id));
+    [...inStock]
+      .sort((a, b) => a.stock - b.stock)
+      .slice(0, 2)
+      .forEach(p => badges.set(p.id, "trending"));
+  }
+
+  /* "أفضل صفقة" — أعلى نسبة خصم (واحد فقط) */
+  const bestDeal = products
+    .filter(p => (p.discountPercent ?? 0) >= 20 && !badges.has(p.id))
+    .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))[0];
+  if (bestDeal) badges.set(bestDeal.id, "best_deal");
+
+  return badges;
+}
+
 function ProductGridContent({ products }: ProductGridProps) {
+  const smartBadges = useMemo(() => computeSmartBadges(products), [products]);
+
   return (
     <motion.div
       key={products.map(p => p.id).join(",")}
@@ -44,7 +70,7 @@ function ProductGridContent({ products }: ProductGridProps) {
     >
       {products.map(product => (
         <motion.div key={product.id} variants={cardVariants} className="h-full">
-          <ProductCard product={product} />
+          <ProductCard product={product} smartBadge={smartBadges.get(product.id)} />
         </motion.div>
       ))}
     </motion.div>

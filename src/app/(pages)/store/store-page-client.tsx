@@ -9,6 +9,9 @@ import { StoreHero } from "./store-hero";
 import { StoreSectionsGrid } from "./store-sections-grid";
 import { StoreProductsSection } from "./store-products-section";
 import { StoreInfoSidebar } from "./store-info-sidebar";
+import { CompareProvider } from "@/components/compare/compare-context";
+import { CompareBar } from "@/components/compare/compare-bar";
+import { CompareSheet } from "@/components/compare/compare-sheet";
 import type { Product, Store, Section } from "@/lib/types";
 import { AlertTriangle } from "lucide-react";
 
@@ -30,9 +33,9 @@ function LoadingSkeleton() {
           <Skeleton className="h-14 rounded-2xl" />
         </div>
         <Skeleton className="h-12 rounded-2xl" />
-        <div className="grid grid-cols-2 gap-2">
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="aspect-[4/3] rounded-2xl" />
+          <Skeleton className="aspect-[4/3] rounded-2xl" />
         </div>
         <Skeleton className="h-96 rounded-2xl" />
       </div>
@@ -40,7 +43,7 @@ function LoadingSkeleton() {
   );
 }
 
-export default function StorePageClient() {
+function StoreContent() {
   const searchParams = useSearchParams();
   const storeId = searchParams.get("id");
 
@@ -104,22 +107,31 @@ export default function StorePageClient() {
   if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8">
-      {/* هيرو المتجر */}
+    <div className="min-h-screen bg-slate-50 pb-36 lg:pb-8">
       <StoreHero store={store} productCount={products.length} />
 
-      {/* شبكة الأقسام */}
       {sections.length > 0 && (
         <StoreSectionsGrid sections={sections} storeId={storeId} />
       )}
 
-      {/* جسم الصفحة */}
       <div className={`mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 ${sections.length > 0 ? "pt-3" : "pt-3"}`}>
         <div className="grid gap-3 lg:grid-cols-[1fr_268px]">
-          <StoreProductsSection products={products} sections={sections} store={store} storeId={storeId} />
+          <StoreProductsSection products={products} sections={sections} storeId={storeId} />
           <StoreInfoSidebar store={store} />
         </div>
       </div>
+
+      {/* شريط المقارنة + الشيت */}
+      <CompareBar />
+      <CompareSheet />
     </div>
+  );
+}
+
+export default function StorePageClient() {
+  return (
+    <CompareProvider>
+      <StoreContent />
+    </CompareProvider>
   );
 }
