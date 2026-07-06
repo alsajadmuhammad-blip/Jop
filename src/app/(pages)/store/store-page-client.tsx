@@ -10,16 +10,16 @@ import { StoreSectionsGrid } from "./store-sections-grid";
 import { StoreProductsSection } from "./store-products-section";
 import { StoreInfoSidebar } from "./store-info-sidebar";
 import type { Product, Store, Section } from "@/lib/types";
-import { AlertTriangle, MessageSquare } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-white">
-      <Skeleton className="w-full h-[220px] rounded-none" />
+      <Skeleton className="w-full h-[240px] rounded-none" />
       <div className="bg-white px-4 pt-4 pb-5 space-y-4">
-        <div className="flex gap-3 -mt-10">
+        <div className="flex gap-3 -mt-12">
           <Skeleton className="w-20 h-20 rounded-2xl flex-shrink-0" />
-          <div className="flex-1 pt-12 space-y-2">
+          <div className="flex-1 pt-14 space-y-2">
             <Skeleton className="h-5 w-36 rounded-full" />
             <Skeleton className="h-3 w-24 rounded-full" />
           </div>
@@ -31,8 +31,8 @@ function LoadingSkeleton() {
         </div>
         <Skeleton className="h-12 rounded-2xl" />
         <div className="grid grid-cols-2 gap-2">
-          <Skeleton className="h-28 rounded-2xl" />
-          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
         </div>
         <Skeleton className="h-96 rounded-2xl" />
       </div>
@@ -103,41 +103,23 @@ export default function StorePageClient() {
 
   if (!store) return null;
 
-  const cleanWA = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
-  const whatsappHref = cleanWA ? `https://wa.me/${cleanWA.replace(/^\+/, "")}` : undefined;
-
   return (
-    <div className="min-h-screen bg-white pb-24 lg:pb-8">
-
+    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8">
       {/* هيرو المتجر */}
       <StoreHero store={store} productCount={products.length} />
 
-      {/* شبكة الأقسام البصرية — تظهر فقط إذا كان هناك أقسام */}
+      {/* شبكة الأقسام */}
       {sections.length > 0 && (
         <StoreSectionsGrid sections={sections} storeId={storeId} />
       )}
 
       {/* جسم الصفحة */}
-      <div className={`mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 ${sections.length > 0 ? "pt-2" : "pt-3"}`}>
+      <div className={`mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 ${sections.length > 0 ? "pt-3" : "pt-3"}`}>
         <div className="grid gap-3 lg:grid-cols-[1fr_268px]">
-          <StoreProductsSection products={products} store={store} />
+          <StoreProductsSection products={products} sections={sections} store={store} storeId={storeId} />
           <StoreInfoSidebar store={store} />
         </div>
       </div>
-
-      {/* واتساب عائم على الموبايل */}
-      {whatsappHref && (
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="واتساب"
-          className="lg:hidden fixed bottom-24 left-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl"
-          style={{ background: "#25D366", boxShadow: "0 8px 24px rgba(37,211,102,0.45)" }}
-        >
-          <MessageSquare className="w-6 h-6 text-white" />
-        </a>
-      )}
     </div>
   );
 }

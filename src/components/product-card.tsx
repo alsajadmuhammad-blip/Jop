@@ -2,6 +2,7 @@
 
 import { useState, memo } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ShoppingCart, Check, ImageIcon, Zap, Clock } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { hasActiveDiscount, hasActiveFlashSale, getDiscountedPrice } from "@/lib/types";
@@ -12,7 +13,7 @@ import { useCountdown } from "@/hooks/use-countdown";
 
 interface ProductCardProps {
   product: Product;
-  onQuickView: (product: Product) => void;
+  onQuickView?: (product: Product) => void;
 }
 
 function FlashCountdown({ endsAt }: { endsAt: string }) {
@@ -25,7 +26,8 @@ function FlashCountdown({ endsAt }: { endsAt: string }) {
   );
 }
 
-function ProductCardContent({ product, onQuickView }: ProductCardProps) {
+function ProductCardContent({ product }: ProductCardProps) {
+  const router = useRouter();
   const { addItem } = useCart();
   const { toast } = useToast();
   const [isAdded, setIsAdded] = useState(false);
@@ -48,22 +50,30 @@ function ProductCardContent({ product, onQuickView }: ProductCardProps) {
     setTimeout(() => setIsAdded(false), 1500);
   };
 
+  const handleCardClick = () => {
+    router.push(`/store/product?id=${product.storeId}&product=${product.id}`);
+  };
+
   return (
-    <div onClick={() => onQuickView(product)} className="group cursor-pointer h-full select-none">
+    <div onClick={handleCardClick} className="group cursor-pointer h-full select-none">
       <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
 
         {/* صورة المنتج */}
         <div className="relative overflow-hidden bg-slate-50 flex-shrink-0" style={{ aspectRatio: "1/1" }}>
           {product.imageUrl ? (
             product.imageUrl.startsWith("data:") ? (
-              <img src={product.imageUrl} alt={product.name}
-                className="w-full h-full object-cover"
-                loading="lazy" decoding="async" />
+              <img
+                src={product.imageUrl} alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy" decoding="async"
+              />
             ) : (
-              <Image src={product.imageUrl} alt={product.name}
-                fill className="object-cover"
+              <Image
+                src={product.imageUrl} alt={product.name}
+                fill className="object-cover group-hover:scale-105 transition-transform duration-300"
                 sizes="(max-width:640px) 50vw,(max-width:1024px) 33vw,25vw"
-                loading="lazy" decoding="async" />
+                loading="lazy" decoding="async"
+              />
             )
           ) : (
             <div className="flex items-center justify-center w-full h-full">
