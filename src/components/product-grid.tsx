@@ -13,11 +13,8 @@ interface ProductGridProps {
 
 const containerVariants = {
   hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.04 },
-  },
+  visible: { transition: { staggerChildren: 0.04 } },
 };
-
 const cardVariants = {
   hidden: { opacity: 0, y: 14, scale: 0.97 },
   visible: {
@@ -26,28 +23,23 @@ const cardVariants = {
   },
 };
 
-/** يحسب الشارات الذكية بناءً على سياق كامل قائمة المنتجات */
 function computeSmartBadges(products: Product[]): Map<string, SmartBadge> {
   const badges = new Map<string, SmartBadge>();
+  const tenDays = 10 * 24 * 60 * 60 * 1000;
 
-  /* "جديد" — أُضيف خلال آخر 10 أيام */
-  const tenDaysMs = 10 * 24 * 60 * 60 * 1000;
   products.forEach(p => {
-    if (p.createdAt && Date.now() - new Date(p.createdAt).getTime() < tenDaysMs) {
+    if (p.createdAt && Date.now() - new Date(p.createdAt).getTime() < tenDays)
       badges.set(p.id, "new");
-    }
   });
 
-  /* "الأكثر طلباً" — أقل مخزون (مؤشر على الإقبال) — أول 2 فقط، شريطة وجود 6+ منتجات */
   if (products.length >= 6) {
-    const inStock = products.filter(p => p.stock > 0 && p.stock <= 20 && !badges.has(p.id));
-    [...inStock]
+    [...products]
+      .filter(p => p.stock > 0 && p.stock <= 20 && !badges.has(p.id))
       .sort((a, b) => a.stock - b.stock)
       .slice(0, 2)
       .forEach(p => badges.set(p.id, "trending"));
   }
 
-  /* "أفضل صفقة" — أعلى نسبة خصم (واحد فقط) */
   const bestDeal = products
     .filter(p => (p.discountPercent ?? 0) >= 20 && !badges.has(p.id))
     .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))[0];
