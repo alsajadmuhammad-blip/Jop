@@ -8,11 +8,11 @@ import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
 import type { Product, Store, Section } from "@/lib/types";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageSquare } from "lucide-react";
 
 const StoreProductsSection = dynamic(
   () => import("./store-products-section").then((m) => ({ default: m.StoreProductsSection })),
-  { loading: () => <Skeleton className="h-64 rounded-2xl" />, ssr: true }
+  { loading: () => <Skeleton className="h-96 rounded-2xl" />, ssr: true }
 );
 
 const StoreInfoSidebar = dynamic(
@@ -23,34 +23,32 @@ const StoreInfoSidebar = dynamic(
 /* ── هيكل التحميل ─────────────────────────────── */
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* غلاف */}
-      <Skeleton className="w-full h-[220px]" />
-      <div className="mx-auto max-w-5xl px-4 sm:px-5 lg:px-8 py-5 space-y-4">
-        {/* هوية */}
-        <div className="bg-white rounded-2xl p-5 space-y-3 shadow-sm">
-          <div className="flex gap-3">
-            <Skeleton className="w-20 h-20 rounded-2xl flex-shrink-0" />
-            <div className="flex-1 space-y-2 pt-2">
-              <Skeleton className="h-5 w-40 rounded-full" />
-              <Skeleton className="h-3 w-24 rounded-full" />
-            </div>
-          </div>
-          <Skeleton className="h-12 rounded-2xl" />
-          <div className="grid grid-cols-2 gap-2">
-            <Skeleton className="h-14 rounded-2xl" />
-            <Skeleton className="h-14 rounded-2xl" />
+    <div className="min-h-screen bg-slate-100/60">
+      <Skeleton className="w-full h-[300px] rounded-none" />
+      <div className="bg-white px-4 pt-4 pb-5 space-y-4">
+        <div className="flex gap-3 -mt-12">
+          <Skeleton className="w-24 h-24 rounded-2xl flex-shrink-0" />
+          <div className="flex-1 pt-14 space-y-2">
+            <Skeleton className="h-4 w-32 rounded-full" />
+            <Skeleton className="h-3 w-24 rounded-full" />
           </div>
         </div>
-        {/* منتجات */}
-        <Skeleton className="h-[400px] rounded-2xl" />
+        <Skeleton className="h-14 rounded-2xl" />
+        <div className="grid grid-cols-3 gap-2">
+          <Skeleton className="h-14 rounded-2xl" />
+          <Skeleton className="h-14 rounded-2xl" />
+          <Skeleton className="h-14 rounded-2xl" />
+        </div>
+      </div>
+      <div className="px-3 pt-3 space-y-3">
+        <Skeleton className="h-96 rounded-2xl" />
       </div>
     </div>
   );
 }
 
 /* ══════════════════════════════════════════════
-   صفحة المتجر الرئيسية
+   صفحة المتجر
 ══════════════════════════════════════════════ */
 export default function StorePageClient() {
   const searchParams = useSearchParams();
@@ -64,7 +62,6 @@ export default function StorePageClient() {
 
   useEffect(() => {
     if (!storeId) { setLoading(false); return; }
-
     setLoading(true);
     setErrorMessage(null);
 
@@ -83,8 +80,7 @@ export default function StorePageClient() {
         const flashMap = new Map(flashSalesData.map((fs) => [fs.productId, fs]));
         const productsWithFlash = productsData.map((p) => {
           const fs = flashMap.get(p.id);
-          if (fs) return { ...p, flashPrice: fs.flashPrice, flashEndsAt: fs.endsAt };
-          return p;
+          return fs ? { ...p, flashPrice: fs.flashPrice, flashEndsAt: fs.endsAt } : p;
         });
 
         setStore(fetchedStore);
@@ -100,18 +96,18 @@ export default function StorePageClient() {
     })();
   }, [storeId]);
 
-  if (!storeId) return <div className="min-h-screen bg-slate-50" />;
+  if (!storeId) return <div className="min-h-screen bg-slate-100/60" />;
   if (loading) return <LoadingSkeleton />;
 
   if (errorMessage) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-3xl bg-white border border-red-100 shadow-xl p-8 text-center space-y-4">
+      <div className="min-h-screen bg-slate-100/60 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm rounded-3xl bg-white shadow-xl p-8 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-red-50 mx-auto flex items-center justify-center">
             <AlertTriangle className="w-8 h-8 text-red-400" />
           </div>
           <h2 className="text-lg font-bold text-slate-800">تعذّر تحميل المتجر</h2>
-          <p className="text-sm text-red-600 font-medium">{errorMessage}</p>
+          <p className="text-sm text-red-500 font-medium">{errorMessage}</p>
         </div>
       </div>
     );
@@ -119,34 +115,45 @@ export default function StorePageClient() {
 
   if (!store) return null;
 
+  const cleanWA = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
+  const whatsappHref = cleanWA ? `https://wa.me/${cleanWA.replace(/^\+/, "")}` : undefined;
+
   return (
-    <div className="min-h-screen bg-slate-100/60">
+    <div className="min-h-screen bg-slate-100/60 pb-24 lg:pb-8">
 
-      {/* بطاقة الهيرو — بدون هوامش */}
-      <div className="bg-white shadow-sm mb-3">
-        <StoreHero store={store} />
-      </div>
+      {/* ── هيرو المتجر (بلا هوامش) ── */}
+      <StoreHero store={store} productCount={products.length} />
 
-      {/* جسم الصفحة */}
-      <div className="mx-auto max-w-5xl px-3 sm:px-5 lg:px-8 pb-8">
-        <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
+      {/* ── جسم الصفحة ── */}
+      <div className="mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 pt-3">
+        <div className="grid gap-3 lg:grid-cols-[1fr_268px]">
 
           {/* عمود المنتجات */}
           <div className="min-w-0">
-            <StoreProductsSection
-              products={products}
-              sections={sections}
-              store={store}
-            />
+            <StoreProductsSection products={products} sections={sections} store={store} />
           </div>
 
-          {/* الشريط الجانبي — ديسكتوب فوق، موبايل تحت */}
-          <div className="min-w-0 lg:order-last order-last">
+          {/* الشريط الجانبي */}
+          <div className="min-w-0">
             <StoreInfoSidebar store={store} />
           </div>
 
         </div>
       </div>
+
+      {/* ── زر واتساب عائم (موبايل فقط) ── */}
+      {whatsappHref && (
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="تواصل عبر واتساب"
+          className="lg:hidden fixed bottom-24 left-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-transform active:scale-95"
+          style={{ background: "#25D366", boxShadow: "0 8px 24px rgba(37,211,102,0.45)" }}
+        >
+          <MessageSquare className="w-6 h-6 text-white" />
+        </a>
+      )}
     </div>
   );
 }
