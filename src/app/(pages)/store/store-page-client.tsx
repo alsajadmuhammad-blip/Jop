@@ -7,7 +7,7 @@ import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
 import { StoreSectionsGrid } from "./store-sections-grid";
-import { StoreShowcase } from "./store-showcase";
+
 import { StoreProductsSection } from "./store-products-section";
 import { StoreInfoSidebar } from "./store-info-sidebar";
 import type { Product, Store, Section } from "@/lib/types";
@@ -107,9 +107,6 @@ export default function StorePageClient() {
 
       {/* هيرو المتجر */}
       <StoreHero store={store} productCount={products.length} />
-
-      {/* واجهة الهوية الاحترافية */}
-      <StoreShowcase store={store} products={products} />
 
       {/* أقسام المتجر */}
       {sections.length > 0 && (
