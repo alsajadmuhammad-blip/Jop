@@ -16,6 +16,8 @@ export type Product = {
   isFeatured?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  /** صور إضافية (ثاني صورة فما فوق) */
+  images?: string[];
   /** فلاش سيل — يُضاف عند جلب المنتجات إذا كان هناك عرض نشط */
   flashPrice?: number;
   flashEndsAt?: string; // ISO string
