@@ -391,8 +391,10 @@ function PartnerCard({ partner, storeCount, activeStoreCount, onEdit, onDelete, 
   onDelete: () => void;
   onResetActivations: () => void;
 }) {
-  const progress = partner.paymentSystem === 'salary' && partner.requiredStoresCount
-    ? Math.min(100, Math.round(((partner.monthlyActivations ?? 0) / partner.requiredStoresCount) * 100))
+  const monthlyActs = partner.monthlyActivations ?? 0;
+  const requiredActs = partner.requiredStoresCount ?? 0;
+  const progress = partner.paymentSystem === 'salary' && requiredActs > 0
+    ? Math.min(100, Math.round((monthlyActs / requiredActs) * 100))
     : 0;
 
   return (
@@ -426,9 +428,9 @@ function PartnerCard({ partner, storeCount, activeStoreCount, onEdit, onDelete, 
               <span className="text-[10px]">إجمالي الأرباح</span>
             </div>
             <p className="text-sm font-black leading-none text-emerald-600">
-              {(partner.totalEarnings ?? 0) > 0 ? (partner.totalEarnings!).toLocaleString('ar-IQ') : '—'}
+              {(partner.totalEarnings ?? 0).toLocaleString('ar-IQ')}
             </p>
-            {(partner.totalEarnings ?? 0) > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">د.ع</p>}
+            <p className="text-[10px] text-muted-foreground mt-0.5">د.ع</p>
           </div>
         </div>
 
@@ -440,7 +442,7 @@ function PartnerCard({ partner, storeCount, activeStoreCount, onEdit, onDelete, 
                 <Target className="h-3 w-3" />
                 <span>الهدف الشهري</span>
               </div>
-              <span className="font-bold">{partner.monthlyActivations ?? 0} / {partner.requiredStoresCount}</span>
+              <span className="font-bold">{monthlyActs} / {requiredActs}</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div
