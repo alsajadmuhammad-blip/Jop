@@ -283,7 +283,7 @@ function AddProductPageContent() {
           description: data.description,
           price: data.price,
           discountPercent,
-          imageUrl: primaryImageUrl ?? null,
+          imageUrl: primaryImageUrl ?? undefined,
           images: extraImages,
           sectionId: data.sectionId,
           sku: data.sku,
