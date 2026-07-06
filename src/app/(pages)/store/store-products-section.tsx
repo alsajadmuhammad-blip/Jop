@@ -1,13 +1,14 @@
 "use client";
 
 import {
-  useMemo, memo, useState, useRef,
+  useMemo, memo, useState, useRef, useCallback,
 } from "react";
 import Image from "next/image";
 import { ProductGrid } from "@/components/product-grid";
 import {
   Package, Zap, ImageIcon, ShoppingCart, Check,
-  Search, X, SlidersHorizontal, ChevronDown,
+  Search, X, ArrowUpDown, TrendingUp, TrendingDown,
+  Clock, Tag, Star,
 } from "lucide-react";
 import type { Product, Section } from "@/lib/types";
 import {
@@ -26,7 +27,22 @@ interface StoreProductsSectionProps {
   storeId?: string;
 }
 
-type SortOption = "default" | "price_asc" | "price_desc" | "offers_first";
+type SortOption =
+  | "default"
+  | "price_asc"
+  | "price_desc"
+  | "newest"
+  | "oldest"
+  | "offers_first";
+
+const SORT_OPTIONS: { key: SortOption; label: string; icon: React.ReactNode }[] = [
+  { key: "default",     label: "الافتراضي",        icon: <Star className="w-3.5 h-3.5" /> },
+  { key: "newest",      label: "الأحدث أولاً",     icon: <Clock className="w-3.5 h-3.5" /> },
+  { key: "oldest",      label: "الأقدم أولاً",     icon: <Clock className="w-3.5 h-3.5 rotate-180" /> },
+  { key: "price_asc",   label: "السعر: من الأقل",  icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  { key: "price_desc",  label: "السعر: من الأعلى", icon: <TrendingDown className="w-3.5 h-3.5" /> },
+  { key: "offers_first",label: "العروض أولاً",     icon: <Tag className="w-3.5 h-3.5" /> },
+];
 
 /* ────────────────────────────────────────────
    عداد الفلاش سيل
@@ -39,7 +55,7 @@ function FlashTimer({ endsAt }: { endsAt: string }) {
     <div className="flex items-center gap-1">
       {[hh, mm, ss].map((v, i) => (
         <span key={i} className="flex items-center gap-1">
-          <span className="inline-flex flex-col items-center bg-white/20 backdrop-blur-sm rounded-lg w-9 h-9 justify-center font-black text-white text-sm tabular-nums">
+          <span className="inline-flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-lg w-9 h-9 font-black text-white text-sm tabular-nums">
             {v}
           </span>
           {i < 2 && <span className="text-white font-black text-base">:</span>}
@@ -50,9 +66,9 @@ function FlashTimer({ endsAt }: { endsAt: string }) {
 }
 
 /* ────────────────────────────────────────────
-   بطاقة منتج أفقية (للكاروسيل المميز)
+   بطاقة منتج أفقية (كاروسيل المميز)
 ──────────────────────────────────────────── */
-function FeaturedProductCard({ product, storeId }: { product: Product; storeId?: string }) {
+function FeaturedProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const { toast } = useToast();
   const [added, setAdded] = useState(false);
@@ -75,9 +91,9 @@ function FeaturedProductCard({ product, storeId }: { product: Product; storeId?:
         <div className="relative bg-slate-50 overflow-hidden" style={{ aspectRatio: "1/1" }}>
           {product.imageUrl ? (
             product.imageUrl.startsWith("data:") ? (
-              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400" />
+              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             ) : (
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-400" sizes="160px" />
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="160px" />
             )
           ) : (
             <div className="flex items-center justify-center w-full h-full">
@@ -108,7 +124,8 @@ function FeaturedProductCard({ product, storeId }: { product: Product; storeId?:
             <button
               onClick={handleAdd}
               disabled={product.stock <= 0}
-              className={cn("w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90",
+              className={cn(
+                "w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90",
                 added ? "bg-emerald-500" : "bg-primary hover:bg-primary/90",
                 "disabled:opacity-30"
               )}
@@ -125,7 +142,7 @@ function FeaturedProductCard({ product, storeId }: { product: Product; storeId?:
 /* ────────────────────────────────────────────
    شريط المنتجات المميزة
 ──────────────────────────────────────────── */
-function FeaturedStrip({ products, storeId }: { products: Product[]; storeId?: string }) {
+function FeaturedStrip({ products }: { products: Product[] }) {
   const ref = useRef<HTMLDivElement>(null);
   if (products.length === 0) return null;
   return (
@@ -137,8 +154,12 @@ function FeaturedStrip({ products, storeId }: { products: Product[]; storeId?: s
         </h2>
         <span className="text-xs text-slate-400 font-medium">{products.length} منتج</span>
       </div>
-      <div ref={ref} className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
-        {products.map(p => <FeaturedProductCard key={p.id} product={p} storeId={storeId} />)}
+      <div
+        ref={ref}
+        className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {products.map(p => <FeaturedProductCard key={p.id} product={p} />)}
       </div>
     </div>
   );
@@ -153,7 +174,7 @@ function FlashSaleBanner({ products }: { products: Product[] }) {
   return (
     <div
       className="overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #f97316 100%)" }}
+      style={{ background: "linear-gradient(135deg,#c2410c 0%,#ea580c 50%,#f97316 100%)" }}
     >
       <div className="px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -172,143 +193,161 @@ function FlashSaleBanner({ products }: { products: Product[] }) {
 }
 
 /* ────────────────────────────────────────────
-   شريط البحث والفلترة
+   شريط البحث والترتيب
 ──────────────────────────────────────────── */
 interface FilterBarProps {
   search: string;
   onSearchChange: (v: string) => void;
-  activeSection: string | null;
-  onSectionChange: (id: string | null) => void;
   sortBy: SortOption;
   onSortChange: (s: SortOption) => void;
-  sectionFilters: { id: string; name: string }[];
   totalCount: number;
   filteredCount: number;
 }
 
 function FilterBar({
   search, onSearchChange,
-  activeSection, onSectionChange,
   sortBy, onSortChange,
-  sectionFilters, totalCount, filteredCount,
+  totalCount, filteredCount,
 }: FilterBarProps) {
   const [showSort, setShowSort] = useState(false);
 
-  const sortLabels: Record<SortOption, string> = {
-    default: "الافتراضي",
-    price_asc: "السعر: الأقل",
-    price_desc: "السعر: الأعلى",
-    offers_first: "العروض أولاً",
-  };
+  const activeSort = SORT_OPTIONS.find(o => o.key === sortBy)!;
+
+  const handleSortPick = useCallback((key: SortOption) => {
+    onSortChange(key);
+    setShowSort(false);
+  }, [onSortChange]);
 
   return (
-    <div className="px-3 sm:px-4 pt-3 pb-2 border-b border-slate-100 space-y-2.5">
-      {/* حقل البحث */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => onSearchChange(e.target.value)}
-          placeholder="ابحث في منتجات المتجر…"
-          className="w-full h-10 rounded-xl bg-slate-50 border border-slate-200 pr-9 pl-9 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition"
-          dir="rtl"
-        />
-        {search && (
-          <button
-            onClick={() => onSearchChange("")}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+    <div className="px-3 sm:px-4 pt-3 pb-3 space-y-2.5">
 
-      {/* الفلاتر + الترتيب */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
-        {/* فلتر الأقسام */}
-        <button
-          onClick={() => onSectionChange(null)}
-          className={cn(
-            "flex-shrink-0 h-7 px-3 rounded-full text-[12px] font-bold transition-all",
-            activeSection === null
-              ? "bg-primary text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          )}
-        >
-          الكل
-        </button>
-        {sectionFilters.map(sec => (
-          <button
-            key={sec.id}
-            onClick={() => onSectionChange(activeSection === sec.id ? null : sec.id)}
-            className={cn(
-              "flex-shrink-0 h-7 px-3 rounded-full text-[12px] font-bold transition-all",
-              activeSection === sec.id
-                ? "bg-primary text-white shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+      {/* صف البحث والترتيب */}
+      <div className="flex gap-2 items-center">
+
+        {/* حقل البحث */}
+        <div className="relative flex-1">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => onSearchChange(e.target.value)}
+            placeholder="ابحث في المنتجات…"
+            className="w-full h-10 rounded-xl bg-slate-50 border border-slate-200 pr-9 pl-8 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/50 transition-all duration-200"
+            dir="rtl"
+          />
+          <AnimatePresence>
+            {search && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.15 }}
+                onClick={() => onSearchChange("")}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center hover:bg-slate-300 transition-colors"
+              >
+                <X className="w-3 h-3 text-slate-500" />
+              </motion.button>
             )}
-          >
-            {sec.name}
-          </button>
-        ))}
-
-        {/* فاصل */}
-        <div className="flex-1" />
+          </AnimatePresence>
+        </div>
 
         {/* زر الترتيب */}
         <div className="relative flex-shrink-0">
           <button
             onClick={() => setShowSort(v => !v)}
             className={cn(
-              "flex items-center gap-1.5 h-7 px-3 rounded-full text-[12px] font-bold transition-all border",
+              "flex items-center gap-1.5 h-10 px-3.5 rounded-xl text-[12px] font-bold transition-all duration-200 border whitespace-nowrap",
               sortBy !== "default"
-                ? "bg-primary text-white border-primary shadow-sm"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
             )}
           >
-            <SlidersHorizontal className="w-3 h-3" />
-            {sortLabels[sortBy]}
-            <ChevronDown className={cn("w-3 h-3 transition-transform", showSort && "rotate-180")} />
+            <ArrowUpDown className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">{activeSort.label}</span>
+            <span className="sm:hidden">ترتيب</span>
           </button>
+
+          {/* قائمة الترتيب */}
           <AnimatePresence>
             {showSort && (
-              <motion.div
-                initial={{ opacity: 0, y: -4, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className="absolute left-0 top-9 z-30 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden min-w-[150px]"
-                dir="rtl"
-              >
-                {(Object.entries(sortLabels) as [SortOption, string][]).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => { onSortChange(key); setShowSort(false); }}
-                    className={cn(
-                      "w-full text-right px-4 py-2.5 text-[13px] font-semibold transition-colors",
-                      sortBy === key
-                        ? "bg-primary/10 text-primary"
-                        : "text-slate-700 hover:bg-slate-50"
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </motion.div>
+              <>
+                {/* طبقة الإغلاق */}
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setShowSort(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                  className="absolute left-0 top-12 z-30 bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden min-w-[185px]"
+                  dir="rtl"
+                >
+                  {/* رأس القائمة */}
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-wide">ترتيب حسب</p>
+                  </div>
+                  <div className="py-1">
+                    {SORT_OPTIONS.map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => handleSortPick(opt.key)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold transition-colors text-right",
+                          sortBy === opt.key
+                            ? "bg-primary/8 text-primary"
+                            : "text-slate-700 hover:bg-slate-50"
+                        )}
+                      >
+                        <span className={cn(
+                          "flex-shrink-0",
+                          sortBy === opt.key ? "text-primary" : "text-slate-400"
+                        )}>
+                          {opt.icon}
+                        </span>
+                        {opt.label}
+                        {sortBy === opt.key && (
+                          <span className="mr-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* عدد النتائج */}
-      {(search || activeSection) && (
-        <p className="text-[11px] text-slate-400 font-medium">
-          {filteredCount === totalCount
-            ? `${totalCount} منتج`
-            : `${filteredCount} من ${totalCount} منتج`}
-        </p>
-      )}
+      {/* شريط الحالة */}
+      <AnimatePresence>
+        {(search || sortBy !== "default") && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center justify-between overflow-hidden"
+          >
+            <p className="text-[11px] text-slate-400 font-medium">
+              {search
+                ? filteredCount === 0
+                  ? `لا نتائج لـ "${search}"`
+                  : `${filteredCount} نتيجة${filteredCount !== totalCount ? ` من ${totalCount}` : ""}`
+                : `${filteredCount} منتج`
+              }
+            </p>
+            <button
+              onClick={() => { onSearchChange(""); onSortChange("default"); }}
+              className="text-[11px] font-bold text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              مسح الفلاتر
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -317,38 +356,28 @@ function FilterBar({
    المكوّن الرئيسي
 ──────────────────────────────────────────── */
 function StoreProductsSectionContent({
-  products, sections = [], storeId,
+  products, storeId,
 }: StoreProductsSectionProps) {
   const [search, setSearch] = useState("");
-  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("default");
 
-  const sorted = useMemo(() =>
+  /* الترتيب الأساسي: مميز أولاً */
+  const base = useMemo(() =>
     [...products].sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
       return 0;
-    }), [products]);
+    }),
+    [products]
+  );
 
-  const featured = useMemo(() => sorted.filter(p => p.isFeatured), [sorted]);
-  const flashProducts = useMemo(() => sorted.filter(p => hasActiveFlashSale(p)), [sorted]);
+  const featured = useMemo(() => base.filter(p => p.isFeatured), [base]);
+  const flashProducts = useMemo(() => base.filter(p => hasActiveFlashSale(p)), [base]);
 
-  // استخراج فلاتر الأقسام من المنتجات
-  const sectionFilters = useMemo(() => {
-    if (sections.length > 0) {
-      return sections.map(s => ({ id: s.id, name: s.name }));
-    }
-    const map = new Map<string, string>();
-    products.forEach(p => {
-      if (p.sectionId && p.sectionName) map.set(p.sectionId, p.sectionName);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [sections, products]);
-
-  // تطبيق البحث والفلترة والترتيب
+  /* تطبيق البحث والترتيب المتقدم */
   const filtered = useMemo(() => {
-    let result = [...sorted];
+    let result = [...base];
 
-    // بحث نصي
+    /* بحث نصي — يبحث في الاسم والوصف */
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter(p =>
@@ -357,82 +386,116 @@ function StoreProductsSectionContent({
       );
     }
 
-    // فلتر القسم
-    if (activeSection) {
-      result = result.filter(p => p.sectionId === activeSection);
-    }
-
-    // ترتيب
-    if (sortBy === "price_asc") {
-      result.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
-    } else if (sortBy === "price_desc") {
-      result.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
-    } else if (sortBy === "offers_first") {
-      result.sort((a, b) => {
-        const aOffer = hasActiveFlashSale(a) || hasActiveDiscount(a) ? 1 : 0;
-        const bOffer = hasActiveFlashSale(b) || hasActiveDiscount(b) ? 1 : 0;
-        return bOffer - aOffer;
-      });
+    /* الترتيب */
+    switch (sortBy) {
+      case "price_asc":
+        result.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
+        break;
+      case "price_desc":
+        result.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
+        break;
+      case "newest":
+        result.sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        });
+        break;
+      case "oldest":
+        result.sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return ta - tb;
+        });
+        break;
+      case "offers_first":
+        result.sort((a, b) => {
+          const aScore =
+            (hasActiveFlashSale(a) ? 2 : 0) +
+            (hasActiveDiscount(a) ? 1 : 0);
+          const bScore =
+            (hasActiveFlashSale(b) ? 2 : 0) +
+            (hasActiveDiscount(b) ? 1 : 0);
+          return bScore - aScore;
+        });
+        break;
+      default:
+        break;
     }
 
     return result;
-  }, [sorted, search, activeSection, sortBy]);
+  }, [base, search, sortBy]);
 
   return (
     <div id="store-products" className="min-w-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-      {flashProducts.length > 0 && <FlashSaleBanner products={flashProducts} />}
-      {featured.length > 0 && <FeaturedStrip products={featured} storeId={storeId} />}
 
-      {/* رأس + بحث + فلترة */}
-      <div className="px-3 sm:px-4 pt-3 pb-0 border-b-0">
-        <div className="flex items-center gap-2 pt-0.5 pb-2 border-b border-slate-100">
-          <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <span className="w-1 h-4 bg-primary rounded-full block" />
-            جميع المنتجات
-          </h2>
-          <span className="text-xs font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
-            {sorted.length}
-          </span>
-        </div>
+      {flashProducts.length > 0 && <FlashSaleBanner products={flashProducts} />}
+      {featured.length > 0 && <FeaturedStrip products={featured} />}
+
+      {/* رأس القسم */}
+      <div className="flex items-center gap-2 px-3 sm:px-4 pt-3.5 pb-0">
+        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+          <span className="w-1 h-4 bg-primary rounded-full block" />
+          جميع المنتجات
+        </h2>
+        <motion.span
+          key={filtered.length}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="text-xs font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5"
+        >
+          {filtered.length}
+        </motion.span>
       </div>
 
+      {/* شريط البحث والترتيب */}
       <FilterBar
         search={search}
         onSearchChange={setSearch}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
         sortBy={sortBy}
         onSortChange={setSortBy}
-        sectionFilters={sectionFilters}
-        totalCount={sorted.length}
+        totalCount={base.length}
         filteredCount={filtered.length}
       />
 
-      <div className="p-3 sm:p-4">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center mb-3">
-              {search ? (
+      {/* شبكة المنتجات */}
+      <div className="px-3 sm:px-4 pb-4">
+        <AnimatePresence mode="wait">
+          {filtered.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col items-center justify-center py-16 text-center"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center mb-3">
                 <Search className="w-7 h-7 text-slate-300" />
-              ) : (
-                <Package className="w-7 h-7 text-slate-300" />
-              )}
-            </div>
-            <p className="text-sm font-bold text-slate-500 mb-1">
-              {search ? `لا توجد نتائج لـ "${search}"` : "لا توجد منتجات في هذا القسم"}
-            </p>
-            {(search || activeSection) && (
+              </div>
+              <p className="text-sm font-bold text-slate-500 mb-1">
+                لا توجد نتائج لـ &ldquo;{search}&rdquo;
+              </p>
+              <p className="text-xs text-slate-400 mb-3">جرّب كلمة مختلفة</p>
               <button
-                onClick={() => { setSearch(""); setActiveSection(null); }}
-                className="mt-3 text-xs font-bold text-primary hover:underline"
+                onClick={() => setSearch("")}
+                className="text-xs font-bold text-primary hover:underline"
               >
-                مسح الفلاتر
+                مسح البحث
               </button>
-            )}
-          </div>
-        ) : (
-          <ProductGrid products={filtered} />
-        )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`grid-${sortBy}-${search}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.22 }}
+            >
+              <ProductGrid products={filtered} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

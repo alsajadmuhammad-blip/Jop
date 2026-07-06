@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCountdown } from "@/hooks/use-countdown";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductCardProps {
   product: Product;
@@ -55,22 +56,29 @@ function ProductCardContent({ product }: ProductCardProps) {
   };
 
   return (
-    <div onClick={handleCardClick} className="group cursor-pointer h-full select-none">
-      <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div
+      onClick={handleCardClick}
+      className="group cursor-pointer h-full select-none"
+    >
+      <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-250">
 
         {/* صورة المنتج */}
-        <div className="relative overflow-hidden bg-slate-50 flex-shrink-0" style={{ aspectRatio: "1/1" }}>
+        <div
+          className="relative overflow-hidden bg-slate-50 flex-shrink-0"
+          style={{ aspectRatio: "1/1" }}
+        >
           {product.imageUrl ? (
             product.imageUrl.startsWith("data:") ? (
               <img
                 src={product.imageUrl} alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                 loading="lazy" decoding="async"
               />
             ) : (
               <Image
                 src={product.imageUrl} alt={product.name}
-                fill className="object-cover group-hover:scale-105 transition-transform duration-300"
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                 sizes="(max-width:640px) 50vw,(max-width:1024px) 33vw,25vw"
                 loading="lazy" decoding="async"
               />
@@ -142,24 +150,52 @@ function ProductCardContent({ product }: ProductCardProps) {
               </p>
             </div>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.88 }}
               onClick={handleAdd}
               disabled={isOutOfStock}
               className={cn(
                 "flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm",
-                isAdded ? "bg-emerald-500 text-white" : "bg-primary text-white hover:bg-primary/90",
+                isAdded
+                  ? "bg-emerald-500 text-white"
+                  : "bg-primary text-white hover:bg-primary/90",
                 isOutOfStock && "opacity-30 cursor-not-allowed"
               )}
             >
-              {isAdded
-                ? <Check className="h-3.5 w-3.5" />
-                : <ShoppingCart className="h-3.5 w-3.5" />
-              }
-            </button>
+              <AnimatePresence mode="wait" initial={false}>
+                {isAdded ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -30 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ duration: 0.2, type: "spring", stiffness: 300 }}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="cart"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           </div>
 
           {isLowStock && (
-            <p className="text-[10px] font-bold text-amber-500">⚡ آخر {product.stock} قطع</p>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[10px] font-bold text-amber-500"
+            >
+              ⚡ آخر {product.stock} قطع
+            </motion.p>
           )}
         </div>
       </div>
