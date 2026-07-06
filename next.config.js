@@ -101,7 +101,9 @@ const nextConfig = {
   output: 'export',
 
   // Export tracing for smaller builds
-  turbopack: {},
+  turbopack: {
+    root: __dirname,
+  },
   experimental: {},
 };
 
