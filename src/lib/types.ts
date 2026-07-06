@@ -52,6 +52,7 @@ export type Section = {
   id: string;
   name: string;
   storeId: string;
+  imageUrl?: string;
   createdAt?: string;
 };
 

@@ -151,6 +151,7 @@ export async function fetchStoreSections(storeId: string): Promise<Section[]> {
     id: row.id,
     name: row.name,
     storeId: getRowValue<string>(row, 'store_id', 'storeId') || storeId,
+    imageUrl: row.image_url ?? undefined,
     createdAt: getRowValue<any>(row, 'created_at', 'createdAt'),
   }));
 }
@@ -234,6 +235,18 @@ export async function updateStoreSection(sectionId: string, name: string): Promi
     storeId: data.store_id,
     createdAt: data.created_at || data.createdAt,
   };
+}
+
+export async function updateStoreSectionImage(sectionId: string, imageUrl: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('store_sections')
+    .update({ image_url: imageUrl })
+    .eq('id', sectionId);
+  if (error) {
+    console.error('Error updating section image:', error.message);
+    return false;
+  }
+  return true;
 }
 
 export async function deleteStoreSection(sectionId: string): Promise<boolean> {

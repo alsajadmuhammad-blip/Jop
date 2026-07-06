@@ -6,12 +6,12 @@ import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/serv
 import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
+import { StoreSectionsGrid } from "./store-sections-grid";
 import { StoreProductsSection } from "./store-products-section";
 import { StoreInfoSidebar } from "./store-info-sidebar";
 import type { Product, Store, Section } from "@/lib/types";
 import { AlertTriangle, MessageSquare } from "lucide-react";
 
-/* ── هيكل التحميل ─────────────────────── */
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-white">
@@ -30,22 +30,16 @@ function LoadingSkeleton() {
           <Skeleton className="h-14 rounded-2xl" />
         </div>
         <Skeleton className="h-12 rounded-2xl" />
-        <div className="grid grid-cols-3 gap-2">
-          <Skeleton className="h-14 rounded-xl" />
-          <Skeleton className="h-14 rounded-xl" />
-          <Skeleton className="h-14 rounded-xl" />
+        <div className="grid grid-cols-2 gap-2">
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
         </div>
-      </div>
-      <div className="px-3 pt-3 space-y-3">
         <Skeleton className="h-96 rounded-2xl" />
       </div>
     </div>
   );
 }
 
-/* ══════════════════════════════════════════
-   صفحة المتجر
-══════════════════════════════════════════ */
 export default function StorePageClient() {
   const searchParams = useSearchParams();
   const storeId = searchParams.get("id");
@@ -115,18 +109,23 @@ export default function StorePageClient() {
   return (
     <div className="min-h-screen bg-white pb-24 lg:pb-8">
 
-      {/* هيرو */}
+      {/* هيرو المتجر */}
       <StoreHero store={store} productCount={products.length} />
 
+      {/* شبكة الأقسام البصرية — تظهر فقط إذا كان هناك أقسام */}
+      {sections.length > 0 && (
+        <StoreSectionsGrid sections={sections} storeId={storeId} />
+      )}
+
       {/* جسم الصفحة */}
-      <div className="mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 pt-3">
+      <div className={`mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 ${sections.length > 0 ? "pt-2" : "pt-3"}`}>
         <div className="grid gap-3 lg:grid-cols-[1fr_268px]">
-          <StoreProductsSection products={products} sections={sections} store={store} />
+          <StoreProductsSection products={products} store={store} />
           <StoreInfoSidebar store={store} />
         </div>
       </div>
 
-      {/* واتساب عائم */}
+      {/* واتساب عائم على الموبايل */}
       {whatsappHref && (
         <a
           href={whatsappHref}

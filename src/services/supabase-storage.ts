@@ -205,6 +205,18 @@ export async function uploadStoreCover(file: File, storeId: string): Promise<Upl
 }
 
 /**
+ * رفع صورة قسم المتجر
+ */
+export async function uploadSectionImage(file: File, storeId: string, sectionId: string): Promise<UploadResult> {
+  const fileName = generateFileName(file.name);
+  return uploadFile({
+    bucket: 'store-logos',
+    file,
+    path: `sections/${storeId}/${sectionId}/${fileName}`,
+  });
+}
+
+/**
  * رفع صورة الشريط المتحرك
  */
 export async function uploadHeroCarouselImage(file: File): Promise<UploadResult> {

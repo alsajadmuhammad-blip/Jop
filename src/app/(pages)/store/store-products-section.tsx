@@ -1,15 +1,14 @@
 "use client";
 
 import {
-  useMemo, memo, useCallback, useState, useTransition, useRef, useEffect,
+  useMemo, memo, useState, useRef,
 } from "react";
 import Image from "next/image";
 import { ProductGrid } from "@/components/product-grid";
 import {
-  Package, Zap, Clock, ChevronLeft, ChevronRight, ImageIcon,
-  ShoppingCart, Check,
+  Package, Zap, ImageIcon, ShoppingCart, Check,
 } from "lucide-react";
-import type { Product, Section } from "@/lib/types";
+import type { Product } from "@/lib/types";
 import { hasActiveFlashSale, hasActiveDiscount, getDiscountedPrice } from "@/lib/types";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useCart } from "@/hooks/use-cart";
@@ -18,7 +17,6 @@ import { cn } from "@/lib/utils";
 
 interface StoreProductsSectionProps {
   products: Product[];
-  sections: Section[];
   store?: { type?: string };
 }
 
@@ -114,7 +112,7 @@ function FeaturedProductCard({ product }: { product: Product }) {
 }
 
 /* ────────────────────────────────────────────
-   قسم المنتجات المميزة (horizontal scroll)
+   شريط المنتجات المميزة
 ──────────────────────────────────────────── */
 function FeaturedStrip({ products }: { products: Product[] }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -142,7 +140,7 @@ function FlashSaleBanner({ products }: { products: Product[] }) {
   const first = products.find(p => p.flashEndsAt);
   if (!first?.flashEndsAt) return null;
   return (
-    <div className="mx-0 mb-0 overflow-hidden"
+    <div className="overflow-hidden"
       style={{ background: "linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #f97316 100%)" }}>
       <div className="px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -161,66 +159,9 @@ function FlashSaleBanner({ products }: { products: Product[] }) {
 }
 
 /* ────────────────────────────────────────────
-   شريط تبويبات الأقسام
-──────────────────────────────────────────── */
-function SectionTabs({
-  sections, activeSection, products, onSectionChange,
-}: { sections: Section[]; activeSection: string; products: Product[]; onSectionChange: (id: string) => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef<HTMLButtonElement>(null);
-
-  const countMap = useMemo(() => {
-    const m: Record<string, number> = { all: products.length };
-    for (const p of products) if (p.sectionId) m[p.sectionId] = (m[p.sectionId] ?? 0) + 1;
-    return m;
-  }, [products]);
-
-  useEffect(() => {
-    const el = activeRef.current, c = scrollRef.current;
-    if (!el || !c) return;
-    c.scrollTo({ left: el.offsetLeft - c.clientWidth / 2 + el.offsetWidth / 2, behavior: "smooth" });
-  }, [activeSection]);
-
-  const items = [{ id: "all", name: "الكل" }, ...sections];
-
-  return (
-    <div className="sticky top-0 z-20 bg-white border-b border-slate-100" style={{ boxShadow: "0 1px 0 0 #f1f5f9, 0 4px 12px rgba(0,0,0,0.04)" }}>
-      <div ref={scrollRef} className="flex overflow-x-auto no-scrollbar gap-1.5 px-4 py-3" style={{ WebkitOverflowScrolling: "touch" }}>
-        {items.map(item => {
-          const isActive = activeSection === item.id;
-          const count = countMap[item.id] ?? 0;
-          return (
-            <button
-              key={item.id}
-              ref={isActive ? activeRef : undefined}
-              onClick={() => onSectionChange(item.id)}
-              className={cn(
-                "flex-shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-all duration-200 active:scale-95",
-                isActive
-                  ? "bg-slate-900 text-white shadow-md"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              )}
-            >
-              {item.name}
-              <span className={cn("text-[10px] font-bold rounded-full px-1.5 leading-5 min-w-[20px] text-center",
-                isActive ? "bg-white/20 text-white" : "bg-white text-slate-500 border border-slate-200")}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ────────────────────────────────────────────
    المكوّن الرئيسي
 ──────────────────────────────────────────── */
-function StoreProductsSectionContent({ products, sections }: StoreProductsSectionProps) {
-  const [activeSection, setActiveSection] = useState("all");
-  const [, startTransition] = useTransition();
-
+function StoreProductsSectionContent({ products }: StoreProductsSectionProps) {
   const sorted = useMemo(() =>
     [...products].sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
@@ -230,41 +171,33 @@ function StoreProductsSectionContent({ products, sections }: StoreProductsSectio
   const featured = useMemo(() => sorted.filter(p => p.isFeatured), [sorted]);
   const flashProducts = useMemo(() => sorted.filter(p => hasActiveFlashSale(p)), [sorted]);
 
-  const filtered = useMemo(() =>
-    activeSection === "all" ? sorted : sorted.filter(p => p.sectionId === activeSection),
-    [sorted, activeSection]);
-
-  const handleSection = useCallback((id: string) => startTransition(() => setActiveSection(id)), []);
-
   return (
     <div id="store-products" className="min-w-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
 
-      {/* فلاش سيل */}
       {flashProducts.length > 0 && <FlashSaleBanner products={flashProducts} />}
-
-      {/* مميزة */}
       {featured.length > 0 && <FeaturedStrip products={featured} />}
 
-      {/* تبويبات */}
-      <SectionTabs
-        sections={sections}
-        activeSection={activeSection}
-        products={sorted}
-        onSectionChange={handleSection}
-      />
+      <div className="px-4 py-3 border-b border-slate-100">
+        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+          <span className="w-1 h-4 bg-primary rounded-full block" />
+          جميع المنتجات
+          <span className="text-xs font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 mr-1">
+            {sorted.length}
+          </span>
+        </h2>
+      </div>
 
-      {/* الشبكة */}
       <div className="p-3 sm:p-4">
-        {filtered.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center mb-4">
               <Package className="w-8 h-8 text-slate-300" />
             </div>
-            <p className="text-base font-bold text-slate-500 mb-1">لا توجد منتجات</p>
-            <p className="text-sm text-slate-400">جرّب قسماً آخر</p>
+            <p className="text-base font-bold text-slate-500 mb-1">لا توجد منتجات بعد</p>
+            <p className="text-sm text-slate-400">تابع المتجر لمعرفة آخر الإضافات</p>
           </div>
         ) : (
-          <ProductGrid products={filtered} />
+          <ProductGrid products={sorted} />
         )}
       </div>
     </div>

@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/61cc43b3d7ad2990.js"],"ClientPageRoot"]
-3:I[75338,["/_next/static/chunks/66fd61e990c7c1f8.js","/_next/static/chunks/b69a3e450d9744f1.js","/_next/static/chunks/4ab689051372a095.js","/_next/static/chunks/2c1bce47a294fc30.js","/_next/static/chunks/4d91cc809e51c864.js","/_next/static/chunks/4f2c6d1065a3fd3b.js","/_next/static/chunks/887afb4984438e29.js","/_next/static/chunks/0941866acb110181.js","/_next/static/chunks/e64c307b02d62ec5.js","/_next/static/chunks/b25ed6dd2cb1ba0e.js","/_next/static/chunks/f96a0f45c0445e01.js"],"default"]
+3:I[75338,["/_next/static/chunks/275bfb9b0ca385fd.js","/_next/static/chunks/b69a3e450d9744f1.js","/_next/static/chunks/66fd61e990c7c1f8.js","/_next/static/chunks/4ab689051372a095.js","/_next/static/chunks/4f2c6d1065a3fd3b.js","/_next/static/chunks/4d91cc809e51c864.js","/_next/static/chunks/0941866acb110181.js","/_next/static/chunks/ce2fc8bb9c8e3577.js","/_next/static/chunks/0b82b7a4edb72812.js","/_next/static/chunks/0917be843adcf5c7.js","/_next/static/chunks/f96a0f45c0445e01.js"],"default"]
 6:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/61cc43b3d7ad2990.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"R_TMMFNTJLg5deVkgxZJl","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/b25ed6dd2cb1ba0e.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/f96a0f45c0445e01.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"w70R2MWFKQgegrp5LHnFu","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/0917be843adcf5c7.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/f96a0f45c0445e01.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
 8:null

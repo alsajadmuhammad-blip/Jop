@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { StoreOwnerNavbar } from "./navbar";
-import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag } from "lucide-react";
+import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag, Camera, Loader2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section, StorePackage } from "@/lib/types";
@@ -16,9 +16,10 @@ import { Badge } from "@/components/ui/badge";
 // Removed ProductFormDialog - now using separate page
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, createStoreSection, updateStoreSection, deleteStoreSection, fetchStorePackages } from "@/services/supabase-db";
+import { deleteProduct, fetchProductsByStore, fetchStoreById, fetchStoreSections, createStoreSection, updateStoreSection, deleteStoreSection, fetchStorePackages, updateStoreSectionImage } from "@/services/supabase-db";
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/services/supabase';
+import { uploadSectionImage } from "@/services/supabase-storage";
 import {
   Select,
   SelectContent,
@@ -859,6 +860,28 @@ export default function StoreDashboardPage() {
     }
   };
 
+  const [uploadingSectionId, setUploadingSectionId] = useState<string | null>(null);
+
+  const handleSectionImageUpload = async (file: File, sectionId: string) => {
+    const storeId = store?.id || (user as any)?.storeId;
+    if (!storeId) return;
+    setUploadingSectionId(sectionId);
+    try {
+      const result = await uploadSectionImage(file, storeId, sectionId);
+      if (!result.success || !result.url) throw new Error(result.error || 'فشل رفع الصورة');
+      const ok = await updateStoreSectionImage(sectionId, result.url);
+      if (!ok) throw new Error('فشل حفظ الصورة');
+      setSections(prev => prev.map(s => s.id === sectionId ? { ...s, imageUrl: result.url } : s));
+      toast({ title: 'تم تحديث صورة القسم بنجاح.' });
+      if (user?.id) clearStoreCache(user.id);
+    } catch (error: any) {
+      console.error('Failed to upload section image:', error);
+      toast({ title: 'فشل رفع الصورة', description: error?.message, variant: 'destructive' });
+    } finally {
+      setUploadingSectionId(null);
+    }
+  };
+
   const handleCreateSection = async () => {
     const storeId = store?.id || user?.storeId;
     if (!storeId || !newSectionName.trim()) {
@@ -1101,19 +1124,53 @@ export default function StoreDashboardPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm hover:border-primary/30 hover:shadow-md transition-all"
+                    className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:border-primary/30 hover:shadow-md transition-all"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Tag className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">{section.name}</p>
-                        {section.createdAt && (
-                          <p className="text-[11px] text-slate-400 mt-0.5">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
-                        )}
-                      </div>
+                    {/* صورة القسم */}
+                    <div className="relative w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-slate-100">
+                      {section.imageUrl ? (
+                        <Image src={section.imageUrl} alt={section.name} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Tag className="h-5 w-5 text-slate-300" />
+                        </div>
+                      )}
                     </div>
+                    {/* الاسم والتاريخ */}
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">{section.name}</p>
+                      {section.createdAt && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
+                      )}
+                      {!section.imageUrl && (
+                        <p className="text-[10px] text-slate-400 mt-0.5">لا توجد صورة — اضغط 📷</p>
+                      )}
+                    </div>
+                    {/* زر رفع الصورة */}
+                    <label
+                      htmlFor={`section-img-${section.id}`}
+                      className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                      title="تغيير صورة القسم"
+                    >
+                      {uploadingSectionId === section.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                      <input
+                        id={`section-img-${section.id}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingSectionId !== null}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleSectionImageUpload(file, section.id);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {/* زر الحذف */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
