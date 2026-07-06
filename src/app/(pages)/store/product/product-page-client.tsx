@@ -2,24 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import {
-  ArrowRight, ShoppingCart, Check, ImageIcon,
+  ArrowRight, ShoppingCart, Check,
   Zap, Clock, Star, Truck, MapPin, Package,
-  Globe, MessageSquare,
+  Globe, MessageSquare, CreditCard,
 } from "lucide-react";
 import { supabase } from "@/services/supabase";
 import { fetchStoreById } from "@/services/supabase-db";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product, Store } from "@/lib/types";
 import {
-  hasActiveFlashSale, hasActiveDiscount, getDiscountedPrice, getEffectivePrice,
+  hasActiveFlashSale, hasActiveDiscount, getEffectivePrice,
 } from "@/lib/types";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useCountdown } from "@/hooks/use-countdown";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import Image from "next/image";
+import { ProductGallery } from "@/components/product-gallery";
 
 /* ────────────────────────────────────────────
    عداد الفلاش سيل
@@ -42,7 +43,7 @@ function FlashCountdown({ endsAt }: { endsAt: string }) {
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-slate-50" dir="rtl">
-      <div className="relative bg-white" style={{ aspectRatio: "1/1", maxHeight: 400 }}>
+      <div className="relative bg-white" style={{ aspectRatio: "1/1", maxHeight: 420 }}>
         <Skeleton className="w-full h-full rounded-none" />
       </div>
       <div className="px-4 pt-5 space-y-3">
@@ -50,7 +51,7 @@ function LoadingSkeleton() {
         <Skeleton className="h-5 w-1/3 rounded-xl" />
         <Skeleton className="h-4 w-full rounded-xl" />
         <Skeleton className="h-4 w-2/3 rounded-xl" />
-        <Skeleton className="h-12 w-full rounded-2xl mt-6" />
+        <Skeleton className="h-14 w-full rounded-2xl mt-6" />
       </div>
     </div>
   );
@@ -167,6 +168,15 @@ export default function ProductPageClient() {
 
         if (error || !data) throw new Error("المنتج غير موجود");
 
+        // بناء قائمة الصور: الصورة الرئيسية + الصور الإضافية
+        let extraImages: string[] = [];
+        const rawImages = data.images;
+        if (Array.isArray(rawImages)) {
+          extraImages = rawImages.filter((u: unknown) => typeof u === "string" && u.length > 0);
+        } else if (typeof rawImages === "string" && rawImages.startsWith("[")) {
+          try { extraImages = JSON.parse(rawImages).filter((u: unknown) => typeof u === "string"); } catch { /* ignore */ }
+        }
+
         const p: Product = {
           id: String(data.id),
           name: data.name,
@@ -174,6 +184,7 @@ export default function ProductPageClient() {
           price: data.price,
           discountPercent: data.discount_percent ?? data.discountPercent,
           imageUrl: data.image_url ?? data.imageUrl,
+          images: extraImages.length > 0 ? extraImages : undefined,
           storeId: String(data.store_id ?? data.storeId),
           categoryId: data.category_id ?? data.categoryId,
           sectionId: data.section_id ?? data.sectionId,
@@ -183,6 +194,8 @@ export default function ProductPageClient() {
           isFeatured: data.is_featured ?? data.isFeatured ?? false,
           createdAt: data.created_at ?? data.createdAt,
           updatedAt: data.updated_at ?? data.updatedAt,
+          flashPrice: data.flash_price ?? data.flashPrice,
+          flashEndsAt: data.flash_ends_at ?? data.flashEndsAt,
         };
 
         setProduct(p);
@@ -227,6 +240,15 @@ export default function ProductPageClient() {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
 
+  // بناء مصفوفة الصور للمعرض
+  const galleryImages: string[] = [];
+  if (product.imageUrl) galleryImages.push(product.imageUrl);
+  if (product.images) {
+    product.images.forEach(img => {
+      if (!galleryImages.includes(img)) galleryImages.push(img);
+    });
+  }
+
   const handleAdd = () => {
     if (isOutOfStock) return;
     addItem(product);
@@ -235,26 +257,18 @@ export default function ProductPageClient() {
     setTimeout(() => setAdded(false), 2000);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 pb-24" dir="rtl">
-      {/* صورة المنتج */}
-      <div className="relative bg-white overflow-hidden" style={{ aspectRatio: "1/1", maxHeight: 420 }}>
-        {product.imageUrl ? (
-          product.imageUrl.startsWith("data:") ? (
-            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-          ) : (
-            <Image
-              src={product.imageUrl} alt={product.name}
-              fill className="object-cover" sizes="100vw" priority
-            />
-          )
-        ) : (
-          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-            <ImageIcon className="w-20 h-20 text-slate-200" />
-          </div>
-        )}
+  const handleBuyNow = () => {
+    if (isOutOfStock) return;
+    addItem(product);
+    router.push("/cart");
+  };
 
-        {/* تدرج علوي للأزرار */}
+  return (
+    <div className="min-h-screen bg-slate-50 pb-28" dir="rtl">
+
+      {/* ───── معرض الصور ───── */}
+      <ProductGallery images={galleryImages} alt={product.name} priority>
+        {/* تدرج علوي */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent pointer-events-none" />
 
         {/* زر الرجوع */}
@@ -288,15 +302,15 @@ export default function ProductPageClient() {
 
         {/* نفد المخزون */}
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
             <span className="bg-white text-slate-700 text-sm font-black px-6 py-2.5 rounded-full shadow-lg">
               نفد المخزون
             </span>
           </div>
         )}
-      </div>
+      </ProductGallery>
 
-      {/* تفاصيل المنتج */}
+      {/* ───── تفاصيل المنتج ───── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -372,43 +386,55 @@ export default function ProductPageClient() {
         )}
       </motion.div>
 
-      {/* زر الإضافة للسلة — ثابت */}
-      <div className="fixed bottom-0 right-0 left-0 z-40 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100">
-        <button
-          onClick={handleAdd}
-          disabled={isOutOfStock}
-          className={cn(
-            "w-full h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.98]",
-            added
-              ? "bg-emerald-500"
-              : isOutOfStock
-                ? "bg-slate-300 cursor-not-allowed"
-                : "bg-primary shadow-lg",
-            !isOutOfStock && !added && "shadow-primary/40"
-          )}
-          style={
-            !isOutOfStock && !added
-              ? { boxShadow: "0 8px 24px rgba(37,99,235,0.38)" }
-              : undefined
-          }
-        >
-          {added ? (
-            <>
-              <Check className="w-5 h-5" />
-              أُضيف للسلة
-            </>
-          ) : isOutOfStock ? (
-            <>
-              <Package className="w-5 h-5" />
-              نفد المخزون
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="w-5 h-5" />
-              أضف إلى السلة
-            </>
-          )}
-        </button>
+      {/* ───── شريط الإجراءات الثابت (أضف / اشتري الآن) ───── */}
+      <div className="fixed bottom-0 right-0 left-0 z-40 p-4 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.07)]">
+        {isOutOfStock ? (
+          <button
+            disabled
+            className="w-full h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2.5 bg-slate-300 cursor-not-allowed"
+          >
+            <Package className="w-5 h-5" />
+            نفد المخزون
+          </button>
+        ) : (
+          <div className="flex gap-3">
+            {/* أضف إلى السلة */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleAdd}
+              className={cn(
+                "flex-1 h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 transition-all",
+                added
+                  ? "bg-emerald-500 shadow-emerald-200"
+                  : "bg-slate-800 hover:bg-slate-700"
+              )}
+              style={added ? { boxShadow: "0 6px 20px rgba(16,185,129,0.35)" } : undefined}
+            >
+              {added ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  أُضيف للسلة
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-5 h-5" />
+                  أضف للسلة
+                </>
+              )}
+            </motion.button>
+
+            {/* اشتري الآن */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleBuyNow}
+              className="flex-[1.4] h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 transition-all"
+              style={{ boxShadow: "0 8px 24px rgba(37,99,235,0.38)" }}
+            >
+              <CreditCard className="w-5 h-5" />
+              اشتري الآن
+            </motion.button>
+          </div>
+        )}
       </div>
     </div>
   );

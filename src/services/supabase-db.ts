@@ -542,6 +542,7 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
     stock: Number(product.stock ?? 0),
     imageUrl: product.imageUrl ?? null,
     image_url: product.imageUrl ?? null,
+    images: product.images && product.images.length > 0 ? product.images : null,
     isFeatured: false,
     is_featured: false,
   };
@@ -612,6 +613,9 @@ export async function updateProduct(productId: string, updates: Partial<Product>
   if (updates.imageUrl    !== undefined) {
     payload.image_url   = updates.imageUrl || null;
     payload.imageUrl    = updates.imageUrl || null;
+  }
+  if (updates.images      !== undefined) {
+    payload.images      = updates.images && updates.images.length > 0 ? updates.images : null;
   }
   if (updates.discountPercent !== undefined) {
     payload.discount_percent = Number(updates.discountPercent ?? 0);
@@ -903,6 +907,16 @@ export function mapStoreRow(row: any): Store {
 
 export function mapProductRow(row: any): Product {
   const rawDiscount = getRowValue<number>(row, 'discount_percent', 'discountPercent');
+
+  // دعم الصور المتعددة — عمود images (JSONB مصفوفة نصية)
+  let extraImages: string[] = [];
+  const rawImages = row.images;
+  if (Array.isArray(rawImages)) {
+    extraImages = rawImages.filter((u: unknown) => typeof u === 'string' && u.length > 0);
+  } else if (typeof rawImages === 'string' && rawImages.startsWith('[')) {
+    try { extraImages = JSON.parse(rawImages).filter((u: unknown) => typeof u === 'string'); } catch { /* ignore */ }
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -910,12 +924,16 @@ export function mapProductRow(row: any): Product {
     price: row.price,
     discountPercent: rawDiscount != null && Number(rawDiscount) > 0 ? Number(rawDiscount) : undefined,
     imageUrl: getRowValue<string>(row, 'image_url', 'imageUrl'),
+    images: extraImages.length > 0 ? extraImages : undefined,
     storeId: getRowValue<string>(row, 'store_id', 'storeId') || '',
     categoryId: getRowValue<string>(row, 'category_id', 'categoryId'),
     sectionId: getRowValue<string>(row, 'section_id', 'sectionId'),
     sectionName: getRowValue<string>(row, 'section_name', 'sectionName'),
     sku: row.sku || row.product_sku || undefined,
     stock: typeof row.stock === 'number' ? row.stock : Number(row.stock ?? 0),
+    flashPrice: getRowValue<number>(row, 'flash_price', 'flashPrice') ?? undefined,
+    flashEndsAt: getRowValue<string>(row, 'flash_ends_at', 'flashEndsAt') ?? undefined,
+    isFeatured: getRowValue<boolean>(row, 'is_featured', 'isFeatured') ?? false,
   };
 }
 

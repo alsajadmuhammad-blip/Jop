@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, ChevronRight, Loader2, Tag, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ChevronRight, Loader2, Tag } from "lucide-react";
+import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BackButton } from "@/components/layout/back-button";
 
@@ -20,7 +20,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -30,15 +29,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import Image from "next/image";
 import type { Product, Section } from "@/lib/types";
-import { getDiscountedPrice } from "@/lib/types";
 import { productFormSchema } from "@/lib/validations";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchStoreSections, createProduct, updateProduct } from "@/services/supabase-db";
-import { uploadProductImageForStore } from "@/services/supabase-storage";
+import { uploadMultipleProductImagesForStore } from "@/services/supabase-storage";
 import { supabase } from "@/services/supabase";
+import {
+  ProductImageUploader,
+  buildImageItems,
+  type ImageItem,
+} from "@/components/product-image-uploader";
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
@@ -51,8 +53,7 @@ function AddProductPageContent() {
   const productId = searchParams.get("id");
   const [sections, setSections] = useState<Section[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageItems, setImageItems] = useState<ImageItem[]>([]);
   const [discountEnabled, setDiscountEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -127,6 +128,15 @@ function AddProductPageContent() {
           const rawDiscount = productRow.discount_percent ?? productRow.discountPercent ?? 0;
           const discount = Number(rawDiscount) > 0 ? Number(rawDiscount) : 0;
 
+          // استخراج الصور الإضافية
+          let extraImages: string[] = [];
+          const rawImages = productRow.images;
+          if (Array.isArray(rawImages)) {
+            extraImages = rawImages.filter((u: unknown) => typeof u === 'string' && u.length > 0);
+          } else if (typeof rawImages === 'string' && rawImages.startsWith('[')) {
+            try { extraImages = JSON.parse(rawImages).filter((u: unknown) => typeof u === 'string'); } catch { /* ignore */ }
+          }
+
           const product = {
             id: productRow.id,
             name: productRow.name,
@@ -134,6 +144,7 @@ function AddProductPageContent() {
             price: productRow.price,
             discountPercent: discount || undefined,
             imageUrl: productRow.image_url || productRow.imageUrl || '',
+            images: extraImages.length > 0 ? extraImages : undefined,
             storeId: productRow.store_id || productRow.storeId || '',
             sectionId: productRow.section_id || productRow.sectionId || '',
             sku: productRow.sku || '',
@@ -152,7 +163,8 @@ function AddProductPageContent() {
             imageUrl: product.imageUrl,
             sectionId: product.sectionId || "",
           });
-          setImagePreview(product.imageUrl || null);
+          // بناء قائمة الصور للمحرر
+          setImageItems(buildImageItems(product.imageUrl || undefined, product.images));
         }
 
         if (!storeId) {
@@ -191,20 +203,6 @@ function AddProductPageContent() {
 
     loadData();
   }, [authLoading, user, productId, form, toast]);
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        form.setValue("imageUrl", result, { shouldValidate: true });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const resolveStoreId = async (): Promise<string | null> => {
     // 1. من المنتج المحمّل — المصدر الأكثر موثوقية عند التعديل
@@ -249,12 +247,31 @@ function AddProductPageContent() {
         return;
       }
 
-      let imageUrl = data.imageUrl;
-      if (imageFile) {
-        const uploadResult = await uploadProductImageForStore(imageFile, storeId);
-        if (!uploadResult.success) throw new Error(uploadResult.error || "فشل رفع صورة المنتج");
-        imageUrl = uploadResult.url || imageUrl;
+      // رفع الصور الجديدة (التي لديها file) إلى Supabase Storage
+      const newFiles = imageItems.filter((i: ImageItem) => i.file).map((i: ImageItem) => i.file!);
+      let uploadedUrls: string[] = [];
+      if (newFiles.length > 0) {
+        const { urls, errors } = await uploadMultipleProductImagesForStore(newFiles, storeId);
+        if (errors.length > 0) throw new Error(errors[0]);
+        uploadedUrls = urls;
       }
+
+      // بناء القائمة النهائية للصور
+      const finalUrls: string[] = [];
+      let uploadIdx = 0;
+      for (const item of imageItems) {
+        if (item.file) {
+          // صورة جديدة — استخدم الرابط المرفوع
+          if (uploadedUrls[uploadIdx]) finalUrls.push(uploadedUrls[uploadIdx]);
+          uploadIdx++;
+        } else if (item.url) {
+          // صورة سابقة — احتفظ بها
+          finalUrls.push(item.url);
+        }
+      }
+
+      const primaryImageUrl = finalUrls[0] || undefined;
+      const extraImages = finalUrls.slice(1);
 
       const discountPercent = discountEnabled && data.discountPercent && data.discountPercent > 0
         ? data.discountPercent
@@ -266,7 +283,8 @@ function AddProductPageContent() {
           description: data.description,
           price: data.price,
           discountPercent,
-          imageUrl: imageUrl || editingProduct.imageUrl,
+          imageUrl: primaryImageUrl ?? null,
+          images: extraImages,
           sectionId: data.sectionId,
           sku: data.sku,
           stock: data.stock,
@@ -281,7 +299,8 @@ function AddProductPageContent() {
           sectionId: data.sectionId,
           sku: data.sku,
           stock: data.stock,
-          imageUrl: imageUrl || undefined,
+          imageUrl: primaryImageUrl,
+          images: extraImages.length > 0 ? extraImages : undefined,
           storeId,
         });
         if (!created) throw new Error("فشل إضافة المنتج");
@@ -622,82 +641,21 @@ function AddProductPageContent() {
                   )}
                 />
 
-                {/* Product Image */}
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
-                        صورة المنتج
-                      </FormLabel>
-                      <AnimatePresence>
-                        {imagePreview && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="relative w-full rounded-xl overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-slate-50 to-slate-100"
-                          >
-                            <div className="relative aspect-square">
-                              <Image
-                                src={imagePreview}
-                                alt="معاينة المنتج"
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                            {!isLoading && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setImagePreview(null);
-                                  setImageFile(null);
-                                  form.setValue("imageUrl", "");
-                                }}
-                                className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 transition"
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      <FormControl>
-                        <div>
-                          <Label
-                            htmlFor="product-image-upload"
-                            className="w-full inline-block cursor-pointer"
-                          >
-                            <motion.div
-                              whileHover={{ scale: !isLoading ? 1.02 : 1 }}
-                              whileTap={{ scale: !isLoading ? 0.98 : 1 }}
-                              className="relative group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-xl text-base font-semibold border-2 border-dashed border-primary/30 hover:border-primary/60 bg-gradient-to-br from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/15 h-20 px-6 w-full transition-all duration-200"
-                              style={{
-                                pointerEvents: isLoading ? "none" : "auto",
-                                opacity: isLoading ? 0.6 : 1,
-                              }}
-                            >
-                              <Upload className="w-5 h-5 text-primary" />
-                              <span className="text-primary">
-                                {imagePreview ? "تغيير الصورة" : "رفع صورة المنتج"}
-                              </span>
-                            </motion.div>
-                          </Label>
-                          <Input
-                            id="product-image-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                            disabled={isLoading}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* صور المنتج — متعددة حتى 5 */}
+                <div className="space-y-2">
+                  <p className="text-base font-semibold text-slate-900">
+                    صور المنتج
+                    <span className="text-xs font-normal text-slate-400 mr-2">
+                      (حتى 5 صور — الأولى هي الرئيسية)
+                    </span>
+                  </p>
+                  <ProductImageUploader
+                    value={imageItems}
+                    onChange={setImageItems}
+                    disabled={isLoading}
+                    maxImages={5}
+                  />
+                </div>
 
                 {/* Submit Buttons */}
                 <div className="flex gap-3 pt-8 sticky bottom-0 bg-gradient-to-t from-white via-white to-white/90 backdrop-blur-sm -mx-4 px-4 py-4">

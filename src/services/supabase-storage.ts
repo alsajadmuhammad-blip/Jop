@@ -181,6 +181,25 @@ export async function uploadProductImageForStore(file: File, storeId: string): P
 }
 
 /**
+ * رفع مجموعة صور منتج (حتى 5 صور) وإرجاع روابطها
+ */
+export async function uploadMultipleProductImagesForStore(
+  files: File[],
+  storeId: string
+): Promise<{ urls: string[]; errors: string[] }> {
+  const results = await Promise.all(
+    files.map(file => uploadProductImageForStore(file, storeId))
+  );
+  const urls: string[] = [];
+  const errors: string[] = [];
+  results.forEach(r => {
+    if (r.success && r.url) urls.push(r.url);
+    else if (r.error) errors.push(r.error);
+  });
+  return { urls, errors };
+}
+
+/**
  * رفع شعار المتجر
  */
 export async function uploadStoreLogo(file: File, storeId: string): Promise<UploadResult> {
