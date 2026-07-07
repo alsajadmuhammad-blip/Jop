@@ -415,6 +415,18 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     return list;
   }, [orders, filterStatus, search, sortKey]);
 
+  /* ── Sequential order numbers: oldest = #1, sorted by (createdAt, id) for determinism ── */
+  const orderNumberMap = useMemo(() => {
+    const sorted = [...orders].sort((a, b) => {
+      const tDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (tDiff !== 0) return tDiff;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+    const map = new Map<string, number>();
+    sorted.forEach((o, i) => map.set(o.id, i + 1));
+    return map;
+  }, [orders]);
+
   /* ── Count per status (for filter badge) ── */
   const countByStatus = useMemo(() => {
     const map: Record<string, number> = { all: orders.length };
@@ -558,11 +570,11 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {visibleOrders.map((order, idx) => (
+          {visibleOrders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
-              orderNumber={order.id.slice(0, 8).toUpperCase()}
+              orderNumber={String(orderNumberMap.get(order.id) ?? order.id.slice(0, 8).toUpperCase())}
               onStatusChange={handleStatusChange}
               isUpdating={updatingOrderId === order.id}
             />

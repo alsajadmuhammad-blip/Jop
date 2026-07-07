@@ -25,7 +25,7 @@ import { Trash2, ShoppingCart, Minus, Plus, Image as ImageIcon, Loader2, MapPin,
 import { useToast } from "@/hooks/use-toast";
 import type { CartItem, OrderItem } from "@/lib/types";
 import { getEffectivePrice } from "@/lib/types";
-import { createOrder } from "@/services/orders";
+import { createOrder, getOrderSequentialNumber } from "@/services/orders";
 import { fetchStoreById } from "@/services/supabase-db";
 import { validateDiscountCode, incrementDiscountUsage, type DiscountCode } from "@/services/discount-codes";
 import {
@@ -184,10 +184,14 @@ export function CartSheet({ children }: { children: ReactNode }) {
 
       if (!order) throw new Error("فشل إنشاء الطلب.");
 
+      // Get sequential order number for this store
+      const seqNum = await getOrderSequentialNumber(checkoutData.storeId, order.id);
+      const orderLabel = seqNum > 0 ? `#${seqNum}` : `#${order.id.slice(0, 8).toUpperCase()}`;
+
       // Build WhatsApp message
       let msg = `*طلب جديد — منصة مركزي*\n`;
       msg += `────────────────────\n`;
-      msg += `*رقم الطلب:* ${order.id.slice(0, 8).toUpperCase()}\n\n`;
+      msg += `*رقم الطلب:* ${orderLabel}\n\n`;
 
       msg += `*معلومات العميل:*\n`;
       msg += `• الاسم: ${form.name.trim()}\n`;

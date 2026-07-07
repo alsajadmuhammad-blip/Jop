@@ -232,6 +232,38 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 }
 
 /**
+ * Get the sequential order number for a specific order within a store.
+ * Order #1 is the oldest by (created_at, id), #2 is the second oldest, etc.
+ * Fetches only id + created_at columns and sorts client-side for determinism
+ * — same tie-breaker logic used by the dashboard so numbers always match.
+ */
+export async function getOrderSequentialNumber(
+  storeId: string,
+  orderId: string,
+): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id, created_at')
+      .or(`store_id.eq.${storeId},storeId.eq.${storeId}`);
+
+    if (error || !data) return 0;
+
+    // Sort deterministically by (created_at ASC, id ASC) — same as dashboard
+    const sorted = [...data].sort((a, b) => {
+      const tDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (tDiff !== 0) return tDiff;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+
+    const idx = sorted.findIndex((o) => o.id === orderId);
+    return idx >= 0 ? idx + 1 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Fetch a single order by ID
  */
 export async function fetchOrderById(orderId: string): Promise<Order | null> {
