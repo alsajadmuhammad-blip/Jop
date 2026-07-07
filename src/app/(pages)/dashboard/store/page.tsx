@@ -986,7 +986,7 @@ export default function StoreDashboardPage() {
     <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
 
       {/* ══════════════════ HEADER ══════════════════ */}
-      <header className="sticky top-14 z-40 border-b border-slate-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,.06)]">
+      <header style={{ top: 'var(--header-h, 56px)' }} className="sticky z-40 border-b border-slate-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,.06)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
 
           {/* Top row */}

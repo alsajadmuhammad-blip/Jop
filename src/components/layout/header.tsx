@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
@@ -93,8 +93,21 @@ export function Header() {
     (link) => userRole && link.roles.includes(userRole)
   );
 
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () =>
+      document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <header className="fixed top-0 inset-x-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border/40">
+    <header ref={headerRef} className="fixed top-0 inset-x-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border/40">
       {/* ── الصف الأول: اللوغو + الأدوات ── */}
       <div className="container mx-auto flex h-14 items-center justify-between gap-3 px-4">
         {/* اللوغو */}

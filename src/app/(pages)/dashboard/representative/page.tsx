@@ -249,7 +249,7 @@ function PartnerDashboard() {
     <div className="min-h-screen bg-slate-50/60" dir="rtl">
 
       {/* ── الهيدر ── */}
-      <div className="bg-white border-b border-border/60 sticky top-14 z-10 shadow-sm">
+      <div style={{ top: 'var(--header-h, 56px)' }} className="bg-white border-b border-border/60 sticky z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold leading-none">لوحة التحكم</h1>
