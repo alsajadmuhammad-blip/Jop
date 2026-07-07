@@ -19,8 +19,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'مركزي - منصة المتاجر المتكاملة',
-  description: 'منصة مركزية لإدارة المتاجر والصيدليات مع تجربة تشغيل بسيطة وواضحة.',
+  title: 'MARKAZI',
+  description: '',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -31,10 +31,19 @@ export const metadata: Metadata = {
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
   },
+  openGraph: {
+    title: 'MARKAZI',
+    description: '',
+    siteName: 'MARKAZI',
+  },
+  twitter: {
+    title: 'MARKAZI',
+    description: '',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'مركزي',
+    title: 'MARKAZI',
   },
   formatDetection: {
     telephone: false,
@@ -43,8 +52,8 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'مركزي',
-    'application-name': 'مركزي',
+    'apple-mobile-web-app-title': 'MARKAZI',
+    'application-name': 'MARKAZI',
     'msapplication-TileColor': '#2563eb',
     'msapplication-tap-highlight': 'no',
   },
