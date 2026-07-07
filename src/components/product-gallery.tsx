@@ -41,6 +41,7 @@ export function ProductGallery({ images, alt = "", priority, children }: Product
     setCurrent(index);
   };
 
+  // في RTL: الصورة التالية تأتي من اليسار، السابقة من اليمين
   const prev = () => hasPrev && go(current - 1);
   const next = () => hasNext && go(current + 1);
 
@@ -53,8 +54,10 @@ export function ProductGallery({ images, alt = "", priority, children }: Product
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     touchStartX.current = null;
     if (Math.abs(diff) < 40) return;
-    if (diff > 0) next();   // سحب لليسار → التالي
-    else          prev();   // سحب لليمين → السابق
+    // RTL: سحب لليسار (diff > 0) ← الصورة التالية
+    //      سحب لليمين (diff < 0) → الصورة السابقة
+    if (diff > 0) next();
+    else          prev();
   };
 
   /* صورة واحدة فقط — بدون gallery chrome */
@@ -78,7 +81,7 @@ export function ProductGallery({ images, alt = "", priority, children }: Product
 
   /* معرض متعدد الصور */
   return (
-    <div className="bg-white">
+    <div className="bg-white" dir="rtl">
       {/* الصورة الرئيسية مع السحب */}
       <div
         className="relative overflow-hidden"
@@ -90,39 +93,39 @@ export function ProductGallery({ images, alt = "", priority, children }: Product
           <motion.div
             key={current}
             custom={direction}
-            initial={{ opacity: 0, x: direction * 60 }}
+            initial={{ opacity: 0, x: -direction * 80 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -direction * 60 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            exit={{ opacity: 0, x: direction * 80 }}
+            transition={{ duration: 0.25, ease: [0.32, 0, 0.67, 0] }}
             className="absolute inset-0"
           >
             <GalleryImage src={images[current]} alt={`${alt} ${current + 1}`} priority={current === 0 && priority} />
           </motion.div>
         </AnimatePresence>
 
-        {/* تدرج علوي للعناصر */}
+        {/* تدرج علوي */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent pointer-events-none" />
 
-        {/* أزرار السهم — تظهر فقط على الشاشات الكبيرة */}
+        {/* أزرار السهم — شاشات كبيرة فقط (RTL: السابق يسار، التالي يمين) */}
         {hasPrev && (
           <button
             onClick={prev}
-            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 backdrop-blur-sm text-white rounded-full items-center justify-center hover:bg-black/60 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
-        {hasNext && (
-          <button
-            onClick={next}
             className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 backdrop-blur-sm text-white rounded-full items-center justify-center hover:bg-black/60 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
         )}
+        {hasNext && (
+          <button
+            onClick={next}
+            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 backdrop-blur-sm text-white rounded-full items-center justify-center hover:bg-black/60 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
 
-        {/* عداد الصور */}
-        <div className="absolute top-4 left-4 z-10 bg-black/40 backdrop-blur-sm text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
+        {/* عداد الصور — أعلى اليمين */}
+        <div className="absolute top-4 right-4 z-10 bg-black/40 backdrop-blur-sm text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
           {current + 1} / {total}
         </div>
 
@@ -145,8 +148,8 @@ export function ProductGallery({ images, alt = "", priority, children }: Product
         ))}
       </div>
 
-      {/* شريط الصور المصغّرة */}
-      <div className="flex gap-2 overflow-x-auto px-4 pb-3 no-scrollbar" dir="ltr">
+      {/* شريط الصور المصغّرة — RTL */}
+      <div className="flex gap-2 overflow-x-auto px-4 pb-3 no-scrollbar" dir="rtl">
         {images.map((src, i) => (
           <button
             key={i}

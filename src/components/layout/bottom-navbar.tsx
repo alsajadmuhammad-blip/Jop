@@ -29,12 +29,18 @@ const repNavItems = [
   { href: "/dashboard/representative", icon: User, label: "حسابي", isCenter: false, external: false },
 ];
 
+// صفحات تخفي الـ bottom navbar (لها شريط إجراءات خاص بها)
+const HIDE_ON_PATHS = ["/store/product"];
+
 export function BottomNavbar() {
   const pathname = usePathname();
   const { items } = useCart();
   const { user, userRole } = useAuth();
   const totalCartItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const isGuest = !user;
+
+  // أخفِ الـ navbar على صفحات المنتج لأن لديها أزرار إجراء خاصة
+  if (HIDE_ON_PATHS.some(p => pathname?.startsWith(p))) return null;
 
   const getHref = (itemLabel: string) => {
     if (itemLabel === "الحساب") {

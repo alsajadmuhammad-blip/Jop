@@ -614,8 +614,8 @@ export async function updateProduct(productId: string, updates: Partial<Product>
     payload.image_url   = updates.imageUrl || null;
     payload.imageUrl    = updates.imageUrl || null;
   }
-  if (updates.images      !== undefined) {
-    payload.images      = updates.images && updates.images.length > 0 ? updates.images : null;
+  if (updates.images !== undefined) {
+    payload.images = updates.images && updates.images.length > 0 ? updates.images : null;
   }
   if (updates.discountPercent !== undefined) {
     payload.discount_percent = Number(updates.discountPercent ?? 0);

@@ -10,8 +10,17 @@ interface StoreInfoSidebarProps { store: Store }
 function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
   const [expanded, setExpanded] = useState(false);
 
+  function arabicDigits(n: number): string {
+    return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
+  }
+  function fmtHour(h: number): string {
+    if (h === 0)  return "١٢ منتصف ليل";
+    if (h === 12) return "١٢ ظهراً";
+    if (h < 12)   return `${arabicDigits(h)} صباحاً`;
+    return `${arabicDigits(h - 12)} مساءً`;
+  }
   const hoursText = store.businessHours
-    ? `${String(store.businessHours.open).padStart(2, "0")}:00 – ${String(store.businessHours.close).padStart(2, "0")}:00`
+    ? `${fmtHour(store.businessHours.open)} – ${fmtHour(store.businessHours.close)}`
     : null;
 
   const productLimit = store.productLimit >= Number.MAX_SAFE_INTEGER ? "غير محدود" : `${store.productLimit} منتج`;

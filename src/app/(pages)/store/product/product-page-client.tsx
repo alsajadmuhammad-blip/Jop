@@ -6,21 +6,50 @@ import {
   ArrowRight, ShoppingCart, Check,
   Zap, Clock, Star, Truck, MapPin, Package,
   Globe, MessageSquare, CreditCard,
+  User, Phone, Wallet, Loader2, X,
 } from "lucide-react";
 import { supabase } from "@/services/supabase";
 import { fetchStoreById } from "@/services/supabase-db";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Product, Store } from "@/lib/types";
+import type { Product, Store, OrderItem } from "@/lib/types";
 import {
   hasActiveFlashSale, hasActiveDiscount, getEffectivePrice,
 } from "@/lib/types";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useCountdown } from "@/hooks/use-countdown";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { ProductGallery } from "@/components/product-gallery";
+import { createOrder } from "@/services/orders";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+const IRAQI_GOVERNORATES = [
+  "بغداد", "البصرة", "نينوى", "أربيل", "الأنبار",
+  "كركوك", "النجف", "كربلاء", "ذي قار", "بابل",
+  "صلاح الدين", "ديالى", "واسط", "القادسية", "المثنى",
+  "السليمانية", "دهوك", "ميسان", "حلبجة",
+];
+
+interface CheckoutForm {
+  name: string;
+  phone: string;
+  phoneBackup: string;
+  governorate: string;
+  address: string;
+  notes: string;
+}
+
+const emptyForm: CheckoutForm = {
+  name: "", phone: "", phoneBackup: "", governorate: "", address: "", notes: "",
+};
 
 /* ────────────────────────────────────────────
    عداد الفلاش سيل
@@ -139,6 +168,370 @@ function MiniStoreCard({ store }: { store: Store }) {
 }
 
 /* ────────────────────────────────────────────
+   نافذة الشراء الفوري
+──────────────────────────────────────────── */
+function BuyNowDialog({
+  open,
+  onClose,
+  product,
+  store,
+}: {
+  open: boolean;
+  onClose: () => void;
+  product: Product;
+  store: Store | null;
+}) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [form, setForm] = useState<CheckoutForm>(emptyForm);
+  const [errors, setErrors] = useState<Partial<CheckoutForm>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm({ ...emptyForm, name: user?.name || "" });
+      setErrors({});
+    }
+  }, [open, user?.name]);
+
+  const setField = (field: keyof CheckoutForm, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: undefined }));
+  };
+
+  const validate = () => {
+    const e: Partial<CheckoutForm> = {};
+    if (!form.name.trim())       e.name       = "مطلوب";
+    if (!form.phone.trim())      e.phone      = "مطلوب";
+    if (!form.governorate)       e.governorate= "مطلوب";
+    if (!form.address.trim())    e.address    = "مطلوب";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+
+    let whatsapp = store?.whatsappNumber?.trim() || "";
+    if (!whatsapp) {
+      toast({ variant: "destructive", title: "خطأ", description: "رقم واتساب المتجر غير متوفر." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const unitPrice  = getEffectivePrice(product);
+      const orderItems: OrderItem[] = [{
+        productId: product.id,
+        productName: product.name,
+        quantity: 1,
+        unitPrice,
+        totalPrice: unitPrice,
+      }];
+
+      const order = await createOrder(
+        product.storeId,
+        store?.name || "",
+        user?.id ?? null,
+        form.name.trim(),
+        form.phone.trim(),
+        orderItems,
+        unitPrice,
+        form.notes.trim() || undefined,
+        "whatsapp",
+        form.phoneBackup.trim() || undefined,
+        form.governorate || undefined,
+        form.address.trim() || undefined,
+      );
+
+      if (!order) throw new Error("فشل إنشاء الطلب.");
+
+      let msg = `*طلب جديد — منصة مركزي*\n`;
+      msg += `────────────────────\n`;
+      msg += `*رقم الطلب:* ${order.id.slice(0, 8).toUpperCase()}\n\n`;
+      msg += `*المنتج:*\n`;
+      msg += `• ${product.name} × 1 = ${unitPrice.toLocaleString()} د.ع\n`;
+      msg += `────────────────────\n`;
+      msg += `*الإجمالي:* ${unitPrice.toLocaleString()} د.ع\n\n`;
+      msg += `*معلومات العميل:*\n`;
+      msg += `• الاسم: ${form.name.trim()}\n`;
+      msg += `• الهاتف: ${form.phone.trim()}\n`;
+      if (form.phoneBackup.trim()) msg += `• هاتف احتياطي: ${form.phoneBackup.trim()}\n`;
+      msg += `\n*عنوان التوصيل:*\n`;
+      msg += `• المحافظة: ${form.governorate}\n`;
+      msg += `• العنوان: ${form.address.trim()}\n`;
+      msg += `*الدفع:* عند الاستلام\n`;
+      if (form.notes.trim()) msg += `\n*ملاحظات:* ${form.notes.trim()}\n`;
+      msg += `\n📱 منصة مركزي`;
+
+      window.open(
+        `https://wa.me/${whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
+        "_blank",
+      );
+
+      onClose();
+      toast({ title: "تم إرسال الطلب ✓", description: "سيتواصل معك المتجر عبر واتساب." });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: err instanceof Error ? err.message : "حدث خطأ أثناء إرسال الطلب.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const price = getEffectivePrice(product);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* خلفية معتمة */}
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+
+          {/* نافذة الشراء */}
+          <motion.div
+            key="dialog"
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", stiffness: 380, damping: 36 }}
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl"
+            dir="rtl"
+          >
+            {/* مقبض */}
+            <div className="sticky top-0 bg-white z-10 pt-3 pb-2">
+              <div className="mx-auto w-10 h-1 rounded-full bg-slate-200" />
+            </div>
+
+            {/* رأس النافذة */}
+            <div className="flex items-center justify-between px-5 pb-4 pt-1">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">اشتري الآن</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {store?.name ? `الطلب من: ${store.name}` : "إتمام الطلب"}
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="px-5 space-y-5 pb-8">
+
+              {/* ملخص المنتج */}
+              <div className="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white border border-slate-100 flex-shrink-0">
+                  {product.imageUrl ? (
+                    product.imageUrl.startsWith("data:") ? (
+                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="64px" />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-7 h-7 text-slate-200" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">{product.name}</p>
+                  <p className="text-lg font-black text-primary mt-1">
+                    {price.toLocaleString()}
+                    <span className="text-xs font-bold text-slate-400 mr-1">د.ع</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* معلومات التواصل */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <User className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">معلومات التواصل</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="bn-name" className="text-xs font-semibold text-slate-600">
+                      الاسم الكامل <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="bn-name"
+                      placeholder="مثال: أحمد محمد"
+                      value={form.name}
+                      onChange={(e) => setField("name", e.target.value)}
+                      className={`h-11 rounded-xl text-sm ${errors.name ? "border-rose-400 focus-visible:ring-rose-300" : ""}`}
+                    />
+                    {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label htmlFor="bn-phone" className="text-xs font-semibold text-slate-600">
+                        الهاتف <span className="text-rose-500">*</span>
+                      </Label>
+                      <Input
+                        id="bn-phone"
+                        placeholder="07xxxxxxxxx"
+                        value={form.phone}
+                        onChange={(e) => setField("phone", e.target.value)}
+                        dir="ltr"
+                        className={`h-11 rounded-xl text-sm ${errors.phone ? "border-rose-400" : ""}`}
+                      />
+                      {errors.phone && <p className="text-[11px] text-rose-500">{errors.phone}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="bn-phone2" className="text-xs font-semibold text-slate-400">
+                        هاتف احتياطي
+                      </Label>
+                      <Input
+                        id="bn-phone2"
+                        placeholder="07xxxxxxxxx"
+                        value={form.phoneBackup}
+                        onChange={(e) => setField("phoneBackup", e.target.value)}
+                        dir="ltr"
+                        className="h-11 rounded-xl text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* عنوان التوصيل */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">عنوان التوصيل</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="bn-gov" className="text-xs font-semibold text-slate-600">
+                      المحافظة <span className="text-rose-500">*</span>
+                    </Label>
+                    <Select value={form.governorate} onValueChange={(v) => setField("governorate", v)}>
+                      <SelectTrigger
+                        id="bn-gov"
+                        className={`h-11 rounded-xl text-sm ${errors.governorate ? "border-rose-400" : ""}`}
+                      >
+                        <SelectValue placeholder="اختر محافظتك" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {IRAQI_GOVERNORATES.map((g) => (
+                          <SelectItem key={g} value={g}>{g}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.governorate && <p className="text-[11px] text-rose-500">{errors.governorate}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="bn-addr" className="text-xs font-semibold text-slate-600">
+                      العنوان التفصيلي <span className="text-rose-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="bn-addr"
+                      placeholder="مثال: الكرخ، شارع المتنبي، بناية رقم 12"
+                      value={form.address}
+                      onChange={(e) => setField("address", e.target.value)}
+                      className={`resize-none rounded-xl text-sm ${errors.address ? "border-rose-400" : ""}`}
+                      rows={2}
+                    />
+                    {errors.address && <p className="text-[11px] text-rose-500">{errors.address}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="bn-notes" className="text-xs font-semibold text-slate-400">
+                      ملاحظات إضافية <span className="text-[10px]">(اختياري)</span>
+                    </Label>
+                    <Textarea
+                      id="bn-notes"
+                      placeholder="أي تعليمات خاصة..."
+                      value={form.notes}
+                      onChange={(e) => setField("notes", e.target.value)}
+                      className="resize-none rounded-xl text-sm"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* إشعار الدفع */}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Wallet className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-emerald-800">الدفع عند الاستلام</p>
+                  <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
+                    سيتم التنسيق النهائي مع المتجر عبر واتساب بعد إرسال الطلب.
+                  </p>
+                </div>
+              </div>
+
+              {/* أزرار الإجراء */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <button
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="h-13 rounded-2xl font-bold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                  style={{ height: "52px" }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="h-13 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 transition-all disabled:opacity-70"
+                  style={{
+                    height: "52px",
+                    background: isSubmitting
+                      ? "#64748b"
+                      : "linear-gradient(135deg,#1d4ed8 0%,#2563eb 60%,#3b82f6 100%)",
+                    boxShadow: isSubmitting ? "none" : "0 6px 20px rgba(37,99,235,0.35)",
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="w-4 h-4" />
+                      إرسال عبر واتساب
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ────────────────────────────────────────────
    صفحة تفاصيل المنتج الرئيسية
 ──────────────────────────────────────────── */
 export default function ProductPageClient() {
@@ -151,6 +544,7 @@ export default function ProductPageClient() {
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState(false);
+  const [buyNowOpen, setBuyNowOpen] = useState(false);
   const { addItem } = useCart();
   const { toast } = useToast();
 
@@ -168,7 +562,6 @@ export default function ProductPageClient() {
 
         if (error || !data) throw new Error("المنتج غير موجود");
 
-        // بناء قائمة الصور: الصورة الرئيسية + الصور الإضافية
         let extraImages: string[] = [];
         const rawImages = data.images;
         if (Array.isArray(rawImages)) {
@@ -240,7 +633,6 @@ export default function ProductPageClient() {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
 
-  // بناء مصفوفة الصور للمعرض
   const galleryImages: string[] = [];
   if (product.imageUrl) galleryImages.push(product.imageUrl);
   if (product.images) {
@@ -259,12 +651,11 @@ export default function ProductPageClient() {
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    addItem(product);
-    router.push("/cart");
+    setBuyNowOpen(true);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28" dir="rtl">
+    <div className="min-h-screen bg-slate-50 pb-32" dir="rtl">
 
       {/* ───── معرض الصور ───── */}
       <ProductGallery images={galleryImages} alt={product.name} priority>
@@ -386,7 +777,7 @@ export default function ProductPageClient() {
         )}
       </motion.div>
 
-      {/* ───── شريط الإجراءات الثابت (أضف / اشتري الآن) ───── */}
+      {/* ───── شريط الإجراءات الثابت ───── */}
       <div className="fixed bottom-0 right-0 left-0 z-40 p-4 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.07)]">
         {isOutOfStock ? (
           <button
@@ -427,8 +818,11 @@ export default function ProductPageClient() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleBuyNow}
-              className="flex-[1.4] h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 transition-all"
-              style={{ boxShadow: "0 8px 24px rgba(37,99,235,0.38)" }}
+              className="flex-[1.4] h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 transition-all"
+              style={{
+                background: "linear-gradient(135deg,#1d4ed8 0%,#2563eb 60%,#3b82f6 100%)",
+                boxShadow: "0 8px 24px rgba(37,99,235,0.38)",
+              }}
             >
               <CreditCard className="w-5 h-5" />
               اشتري الآن
@@ -436,6 +830,14 @@ export default function ProductPageClient() {
           </div>
         )}
       </div>
+
+      {/* ───── نافذة الشراء الفوري ───── */}
+      <BuyNowDialog
+        open={buyNowOpen}
+        onClose={() => setBuyNowOpen(false)}
+        product={product}
+        store={store}
+      />
     </div>
   );
 }

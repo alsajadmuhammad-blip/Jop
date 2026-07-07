@@ -45,6 +45,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { LogoUploader } from "@/components/dashboard/logo-uploader";
+import { CoverImageUploader } from "@/components/dashboard/cover-image-uploader";
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 import { FlashSalesTab } from "@/components/dashboard/flash-sales-tab";
 import { DiscountCodesTab } from "@/components/dashboard/discount-codes-tab";
@@ -151,10 +152,11 @@ function DashboardProductCard({
 
 
 // ===== Store Settings Tab Content =====
-function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
+function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
     store: Store;
     onSettingChange: (key: keyof Store, value: any) => void;
     onLogoSave: (newLogoUrl: string) => Promise<void>;
+    onCoverSave: (newCoverUrl: string) => Promise<void>;
 }) {
     const getBusinessHourValue = (hour: number) => `${hour.toString().padStart(2, '0')}:00`;
     const businessHours = store.businessHours ?? { open: 9, close: 23 };
@@ -188,14 +190,53 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
 
     return (
         <div className="space-y-4">
-            {/* شعار المتجر */}
+            {/* هوية المتجر — الشعار + صورة الغلاف */}
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100">
                     <h3 className="text-base font-bold text-slate-900">هوية المتجر</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">شعار المتجر الظاهر للعملاء.</p>
+                    <p className="text-sm text-slate-500 mt-0.5">الشعار وصورة الغلاف الظاهران للعملاء.</p>
                 </div>
-                <div className="p-5">
-                    <LogoUploader store={store} onSave={onLogoSave} />
+                <div className="p-5 space-y-5">
+                    {/* معاينة صورة الغلاف */}
+                    <div>
+                        <p className="text-sm font-semibold text-slate-700 mb-2">صورة الغلاف</p>
+                        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 mb-3">
+                            {store.coverImageUrl ? (
+                                <Image
+                                    src={store.coverImageUrl}
+                                    alt="غلاف المتجر"
+                                    fill
+                                    className="object-cover"
+                                    sizes="100vw"
+                                />
+                            ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-1.5">
+                                    <ImageIcon className="w-8 h-8" />
+                                    <span className="text-xs">لا توجد صورة غلاف</span>
+                                </div>
+                            )}
+                        </div>
+                        <CoverImageUploader store={store} onSave={onCoverSave} />
+                    </div>
+
+                    <div className="border-t border-slate-100" />
+
+                    {/* معاينة الشعار */}
+                    <div>
+                        <p className="text-sm font-semibold text-slate-700 mb-2">شعار المتجر</p>
+                        {store.logoUrl && (
+                            <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 mb-3">
+                                <Image
+                                    src={store.logoUrl}
+                                    alt="شعار المتجر"
+                                    fill
+                                    className="object-cover"
+                                    sizes="80px"
+                                />
+                            </div>
+                        )}
+                        <LogoUploader store={store} onSave={onLogoSave} />
+                    </div>
                 </div>
             </div>
 
@@ -269,25 +310,15 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave }: {
                         </div>
                     </div>
                     {store.latitude && store.longitude ? (
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">خط العرض</p>
-                                <p className="text-sm font-medium text-slate-800">{store.latitude}</p>
-                            </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">خط الطول</p>
-                                <p className="text-sm font-medium text-slate-800">{store.longitude}</p>
-                            </div>
-                            <a
-                                href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                            >
-                                <Globe className="h-4 w-4" />
-                                عرض الموقع على الخريطة
-                            </a>
-                        </div>
+                        <a
+                            href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                            <Globe className="h-4 w-4 text-primary" />
+                            عرض الموقع على الخريطة
+                        </a>
                     ) : (
                         <p className="text-xs text-slate-400 text-center py-2">لم يتم تحديد الموقع بعد.</p>
                     )}
@@ -789,6 +820,19 @@ export default function StoreDashboardPage() {
     } catch (err) {
       console.error("Failed to save logo:", err);
       toast({ title: "فشل تحديث الشعار", variant: "destructive" });
+    }
+  };
+
+  const handleCoverSave = async (newCoverUrl: string): Promise<void> => {
+    if (!store) return;
+    try {
+      await updateStore(store.id, { coverImageUrl: newCoverUrl });
+      setStore({ ...store, coverImageUrl: newCoverUrl });
+      toast({ title: "تم تحديث صورة الغلاف بنجاح." });
+      if (user?.id) clearStoreCache(user.id);
+    } catch (err) {
+      console.error("Failed to save cover:", err);
+      toast({ title: "فشل تحديث صورة الغلاف", variant: "destructive" });
     }
   };
   
@@ -1363,6 +1407,7 @@ export default function StoreDashboardPage() {
               store={fullStoreData}
               onSettingChange={handleStoreSettingChange}
               onLogoSave={handleLogoSave}
+              onCoverSave={handleCoverSave}
             />
           </motion.div>
         )}

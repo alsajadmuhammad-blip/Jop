@@ -77,7 +77,7 @@ function OrderCard({
   isUpdating,
 }: {
   order: Order;
-  orderNumber: number;
+  orderNumber: string;
   onStatusChange: (id: string, status: OrderStatus) => void;
   isUpdating: boolean;
 }) {
@@ -562,7 +562,7 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
             <OrderCard
               key={order.id}
               order={order}
-              orderNumber={visibleOrders.length - idx}
+              orderNumber={order.id.slice(0, 8).toUpperCase()}
               onStatusChange={handleStatusChange}
               isUpdating={updatingOrderId === order.id}
             />

@@ -108,17 +108,23 @@ export default function StorePageClient() {
       {/* هيرو المتجر */}
       <StoreHero store={store} productCount={products.length} />
 
-      {/* أقسام المتجر */}
-      {sections.length > 0 && (
-        <StoreSectionsGrid sections={sections} storeId={storeId!} />
-      )}
+      {/* كل المحتوى أسفل الهيرو يجب أن يكون z-index > 0
+          لضمان ظهوره فوق صورة الغلاف الثابتة */}
+      <div className="relative" style={{ zIndex: 10, background: "#f8fafc" }}>
 
-      {/* المنتجات + الشريط الجانبي */}
-      <div className="mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 pt-3">
-        <div className="grid gap-3 lg:grid-cols-[1fr_268px]">
-          <StoreProductsSection products={products} sections={sections} storeId={storeId!} />
-          <StoreInfoSidebar store={store} />
+        {/* أقسام المتجر */}
+        {sections.length > 0 && (
+          <StoreSectionsGrid sections={sections} storeId={storeId!} />
+        )}
+
+        {/* المنتجات + الشريط الجانبي */}
+        <div className="mx-auto max-w-5xl px-3 sm:px-4 lg:px-6 pt-3">
+          <div className="grid gap-3 lg:grid-cols-[1fr_268px]">
+            <StoreProductsSection products={products} sections={sections} storeId={storeId!} />
+            <StoreInfoSidebar store={store} />
+          </div>
         </div>
+
       </div>
 
     </div>
