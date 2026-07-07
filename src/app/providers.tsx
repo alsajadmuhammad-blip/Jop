@@ -21,7 +21,7 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
       initial={{ opacity: 0, y: 7 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.16, ease: "easeOut" }}
-      className="flex-1 min-w-0 pb-28 md:pb-0"
+      className="flex-1 min-w-0 pt-14 pb-28 md:pb-0"
     >
       {children}
     </motion.main>
