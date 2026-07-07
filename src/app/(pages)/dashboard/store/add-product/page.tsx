@@ -330,7 +330,7 @@ function AddProductPageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       {/* Header */}
-      <div className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md shadow-sm">
+      <div className="sticky top-14 z-40 border-b bg-white/80 backdrop-blur-md shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <BackButton href="/dashboard/store?tab=products" />

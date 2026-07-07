@@ -97,7 +97,7 @@
     font-family: 'Almarai', sans-serif;
     min-width: 0;
     width: 100%;
-    overflow-x: clip;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     /* iOS safe area — extends content under notch / Dynamic Island */

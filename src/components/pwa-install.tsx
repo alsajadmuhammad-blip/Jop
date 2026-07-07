@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -9,11 +10,14 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function PwaInstall() {
+  const { user, loading: authLoading } = useAuth();
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
+    // لا تُظهر للضيوف غير المسجّلين
+    if (authLoading || !user) return;
     // لا تُظهر البانر إذا التطبيق مثبّت مسبقاً (standalone mode)
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     if ((window.navigator as any).standalone === true) return;

@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Bell, BellOff, X } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function PushNotificationPrompt() {
+  const { user, loading: authLoading } = useAuth();
   const { permission, isSubscribed, isLoading, isSupported, subscribe, unsubscribe, registerPeriodicSync } =
     usePushNotifications();
   const [visible, setVisible] = useState(false);
@@ -12,6 +14,8 @@ export default function PushNotificationPrompt() {
 
   // أظهر البانر بعد 5 ثوان إذا لم يُمنح الإذن بعد ولم يُرفض
   useEffect(() => {
+    // لا تُظهر للضيوف غير المسجّلين
+    if (authLoading || !user) return;
     if (!isSupported) return;
     if (permission === 'granted' || permission === 'denied') return;
 
@@ -22,7 +26,7 @@ export default function PushNotificationPrompt() {
 
     const timer = setTimeout(() => setVisible(true), 5000);
     return () => clearTimeout(timer);
-  }, [isSupported, permission]);
+  }, [isSupported, permission, user, authLoading]);
 
   // سجّل Periodic Sync بمجرد منح الإذن
   useEffect(() => {
