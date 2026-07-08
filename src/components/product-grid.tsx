@@ -76,7 +76,7 @@ function ProductGridContent({ products }: ProductGridProps) {
         <motion.div
           key={product.id}
           variants={idx < STAGGER_LIMIT ? cardVariants : cardVariantsInstant}
-          className="h-full"
+          className="h-full product-card-wrapper"
         >
           <ProductCard product={product} smartBadge={smartBadges.get(product.id)} />
         </motion.div>

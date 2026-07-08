@@ -63,7 +63,7 @@ function ProductCardContent({ product, smartBadge }: ProductCardProps) {
       onClick={() => router.push(`/store/product?id=${product.storeId}&product=${product.id}`)}
       className="group cursor-pointer h-full select-none"
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-250">
+      <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200">
 
         {/* صورة */}
         <div className="relative overflow-hidden bg-slate-50 flex-shrink-0" style={{ aspectRatio: "1/1" }}>

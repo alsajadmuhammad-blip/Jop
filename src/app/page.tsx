@@ -82,7 +82,7 @@ function SearchBar() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="ابحث عن متجر أو منتج..."
-        className="w-full h-11 pr-11 pl-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-transparent text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+        className="w-full h-11 pr-11 pl-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-transparent text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-[background-color,border-color,box-shadow] duration-200"
       />
     </form>
   );
@@ -220,7 +220,7 @@ export default function Home() {
                   onClick={() => { setActiveCategory("all"); setFilterType("all"); }}
                   className="group flex flex-col items-center gap-1.5"
                 >
-                  <div className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                  <div className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-[transform,background-color,box-shadow] duration-200 shadow-sm ${
                     activeCategory === "all"
                       ? "bg-primary text-white shadow-primary/25 scale-95"
                       : "bg-white dark:bg-slate-800 text-slate-500 hover:bg-primary/5 border border-slate-100 dark:border-slate-700"
@@ -235,24 +235,21 @@ export default function Home() {
                 </button>
 
                 {/* بطاقات الأقسام */}
-                {marketTypes.map((type, i) => {
+                {marketTypes.map((type) => {
                   const Icon = CATEGORY_ICONS[type] ?? ShoppingBag;
                   const isActive = activeCategory === type;
                   const idleClass   = CATEGORY_BG[type]     ?? "bg-slate-50 text-slate-500";
                   const activeClass = CATEGORY_ACTIVE[type] ?? "bg-primary text-white";
                   return (
-                    <motion.button
+                    <button
                       key={type}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.04 }}
                       onClick={() => {
                         setActiveCategory(isActive ? "all" : type);
                         setFilterType("all");
                       }}
                       className="group flex flex-col items-center gap-1.5"
                     >
-                      <div className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                      <div className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-[transform,background-color,box-shadow] duration-200 shadow-sm ${
                         isActive
                           ? `${activeClass} scale-95`
                           : `${idleClass} hover:scale-95 border border-white dark:border-slate-700`
@@ -264,7 +261,7 @@ export default function Home() {
                       }`}>
                         {type}
                       </span>
-                    </motion.button>
+                    </button>
                   );
                 })}
               </div>
@@ -320,7 +317,7 @@ export default function Home() {
                 <button
                   key={f.key}
                   onClick={() => setFilterType(f.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-[background-color,color,border-color] duration-200 ${
                     filterType === f.key
                       ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
                       : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700"
@@ -343,21 +340,14 @@ export default function Home() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${filterType}-${activeCategory}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: 0.15 }}
                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
               >
-                {filteredStores.map((store, i) => (
-                  <motion.div
-                    key={store.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, delay: Math.min(i * 0.03, 0.3) }}
-                  >
-                    <StoreCard store={store} />
-                  </motion.div>
+                {filteredStores.map((store) => (
+                  <StoreCard key={store.id} store={store} />
                 ))}
               </motion.div>
             </AnimatePresence>

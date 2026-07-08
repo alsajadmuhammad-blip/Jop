@@ -11,7 +11,7 @@ export function StoreCard({ store, distance }: { store: StoreType; distance?: nu
 
   return (
     <Link href={`/store?id=${store.id}`} className="group block h-full">
-      <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+      <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-[transform,box-shadow] duration-300">
 
         {/* صورة الغلاف مع تدرج */}
         <div className="relative h-28 sm:h-32 w-full overflow-hidden flex-shrink-0">

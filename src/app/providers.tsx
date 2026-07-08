@@ -18,9 +18,9 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
     <motion.main
       key={pathname}
-      initial={{ opacity: 0, y: 7 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.16, ease: "easeOut" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
       style={{ paddingTop: 'var(--header-h, 56px)' }}
       className="flex-1 min-w-0 pb-28 md:pb-0"
     >

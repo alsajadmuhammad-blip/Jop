@@ -209,48 +209,45 @@
       linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
   }
 
-  /* Performance optimizations */
+  /* ── تحسين الصور: منع مشاكل texture upload أثناء الـ transform ── */
   img {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
 
-  /* Smooth scrolling for better scroll performance */
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* Optimize scroll event performance */
-  body {
-    scroll-behavior: smooth;
-  }
-
-  /* Reduce repaints on animations */
-  * {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
-  /* Transform optimizations */
-  button, a, .transition-all, [class*="transition"] {
+  /* ── الـ header الثابت: طبقة compositor خاصة بها لعزل الـ repaint ── */
+  header[class*="fixed"],
+  nav[class*="fixed"],
+  [class*="fixed"][class*="top-0"] {
+    will-change: transform;
     transform: translateZ(0);
-    -webkit-transform: translateZ(0);
   }
 
-  /* Contain layout for large lists */
-  [class*="grid"] {
-    contain: layout style paint;
+  /* ── تحسين الأداء للعناصر المتكررة (بطاقات المنتجات) ── */
+  /* content-visibility:auto تخطي render ما هو خارج الشاشة تماماً */
+  .product-card-wrapper {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 280px;
   }
 
-  /* Smooth transitions by default */
+  /* ── تحسين الـ transitions: بدل transition-all استخدم خصائص محددة ── */
+  /* هذا يمنع المتصفح من مراقبة تغيير كل خاصية CSS عند كل frame */
+  .hover-card-transition {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+
+  /* ── إزالة تعريفات smooth-scroll المكررة — تعريف واحد فقط ── */
+
+  /* ── تحسين الـ transitions: تحديد الخصائص بدقة بدل "all" ── */
+  /* transition:all مكلفة جداً لأنها تراقب كل خاصية CSS */
   button, a {
-    transition: all 0.15s ease-out;
-  }
-
-  /* Smooth scrolling with performance optimization */
-  html {
-    scroll-behavior: smooth;
-    scroll-padding-top: 2rem;
+    transition:
+      color 0.15s ease-out,
+      background-color 0.15s ease-out,
+      border-color 0.15s ease-out,
+      opacity 0.15s ease-out,
+      box-shadow 0.15s ease-out,
+      transform 0.15s ease-out;
   }
 
   /* Performance optimizations */
