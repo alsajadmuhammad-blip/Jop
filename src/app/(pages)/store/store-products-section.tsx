@@ -91,9 +91,9 @@ function FeaturedProductCard({ product }: { product: Product }) {
         <div className="relative bg-slate-50 overflow-hidden" style={{ aspectRatio: "1/1" }}>
           {product.imageUrl ? (
             product.imageUrl.startsWith("data:") ? (
-              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" />
             ) : (
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="160px" />
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="160px" quality={65} decoding="async" />
             )
           ) : (
             <div className="flex items-center justify-center w-full h-full">

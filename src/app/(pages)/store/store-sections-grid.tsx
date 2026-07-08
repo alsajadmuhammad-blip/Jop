@@ -74,6 +74,8 @@ export function StoreSectionsGrid({ sections, storeId }: StoreSectionsGridProps)
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     sizes="(max-width: 640px) 50vw, 33vw"
+                    quality={65}
+                    decoding="async"
                   />
                 ) : (
                   <div className={`w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center`}>

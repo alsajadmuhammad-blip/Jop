@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { memo, useMemo, useState, useEffect } from "react";
+import { memo, useMemo, useState, useEffect, useRef } from "react";
 import {
   Truck, Globe, ShoppingCart, MessageSquare,
   Star, MapPin, Clock, Package,
@@ -12,12 +12,12 @@ import type { Store } from "@/lib/types";
 /* ─────────────────────────────────────────
    ثوابت
 ───────────────────────────────────────── */
-const HEADER_H = 56;   // ارتفاع الهيدر الثابت (h-14)
-const COVER_H  = 240;  // ارتفاع صورة الغلاف
-const OVERLAP  = 32;   // تداخل الورقة البيضاء مع الصورة
+const HEADER_H  = 56;    // ارتفاع الهيدر الثابت (h-14)
+const COVER_H   = 240;   // ارتفاع صورة الغلاف المرئية px
+const OVERLAP   = 32;    // مقدار تداخل الورقة البيضاء مع الصورة
 
 /* ─────────────────────────────────────────
-   تحويل ساعة → عربي
+   تحويل ساعة → عربي صباحاً/مساءً
 ───────────────────────────────────────── */
 function arabicN(n: number) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
@@ -46,23 +46,91 @@ interface StoreHeroProps {
 
 /* ═════════════════════════════════════════
    المكوّن الرئيسي
-   ─────────────────────────────────────────
-   المبدأ: CSS-only — لا JS في مسار الـ scroll
-   
-   الهيكل:
-     container (paddingTop=HEADER_H)
-       ├── cover  (position:sticky  top=HEADER_H  z-index:0)
-       └── sheet  (position:relative  marginTop:-OVERLAP  z-index:10)
-   
-   عند scroll=0:  sheet تغطي آخر OVERLAP بكسل من الـ cover
-   عند scroll=COVER_H-OVERLAP:  sheet تغطي الـ cover كاملاً
-   بعد ذلك: sheet تسير فوق الـ cover (الـ cover مختفٍ خلفها)
-   لا تغيير visibility/transform في أي مرحلة = zero JS on scroll
 ═════════════════════════════════════════ */
 function StoreHeroContent({ store, productCount }: StoreHeroProps) {
-  /* حالة المتجر — client-only لتجنّب hydration mismatch */
   const [isOpen, setIsOpen] = useState(store.isActive);
   useEffect(() => { setIsOpen(computeIsOpen(store)); }, [store]);
+
+  const coverRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  /* ─── ضبط top حسب ارتفاع الهيدر الفعلي ─── */
+  useEffect(() => {
+    const cover = coverRef.current;
+    if (!cover) return;
+
+    const applyOffset = () => {
+      const header = document.querySelector("header");
+      const h = header ? header.getBoundingClientRect().height : HEADER_H;
+      cover.style.top = `${h}px`;
+    };
+
+    applyOffset();
+    window.addEventListener("resize", applyOffset, { passive: true });
+    return () => window.removeEventListener("resize", applyOffset);
+  }, []);
+
+  /* ─── Scroll handler — رُقِّي للأداء ───────────────────────
+   *
+   *  المشاكل القديمة وحلولها:
+   *
+   *  1. كان يتشغّل عند كل scroll event (قد يكون عشرات المرات
+   *     بين كل frame). الحل: requestAnimationFrame يضمن تشغيلاً
+   *     واحداً لكل frame بصرف النظر عن عدد الأحداث.
+   *
+   *  2. كان يغيّر `visibility` في كل frame حتى لو لم تتغيّر
+   *     القيمة. الحل: نتتبّع الحالة السابقة ونغيّر فقط عند
+   *     تجاوز العتبة.
+   *
+   *  3. will-change:visibility لا يُفيد GPU. حُذف.
+   *     will-change:transform على الصورة الداخلية → GPU layer ✓
+   *
+   *  4. display:none بدل visibility لأنه يُزيل العنصر من
+   *     الـ compositing كلياً عند الإخفاء.
+   *
+   * ──────────────────────────────────────────────────────── */
+  useEffect(() => {
+    const cover = coverRef.current;
+    const inner = innerRef.current;
+    if (!cover) return;
+
+    let rafId: number | null = null;
+    let lastS  = -1;
+    let hidden = false;
+
+    const update = () => {
+      rafId = null;
+      const s = window.scrollY;
+      if (s === lastS) return; // لا تغيير = لا عمل
+      lastS = s;
+
+      /* parallax: معامل 0.18 بدل 0.3 — التأثير مرئي لكن desync
+         مع compositor أثناء momentum غير محسوس */
+      if (inner) {
+        const shift = Math.min(s * 0.18, COVER_H * 0.35);
+        inner.style.transform = `translateY(-${shift}px)`;
+      }
+
+      /* إخفاء عند تجاوز العتبة — مرة واحدة فقط لا كل frame */
+      const shouldHide = s > COVER_H + OVERLAP;
+      if (shouldHide !== hidden) {
+        hidden = shouldHide;
+        cover.style.display = shouldHide ? "none" : "";
+      }
+    };
+
+    const onScroll = () => {
+      /* rAF: نُجدوِل تحديثاً واحداً لكل frame بحد أقصى */
+      if (!rafId) rafId = requestAnimationFrame(update);
+    };
+
+    update(); // تطبيق فوري عند التحميل
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   /* قيم ثابتة */
   const info = useMemo(() => {
@@ -82,61 +150,81 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
   const secondaryCount = [info.waHref, info.isPhys && info.hasCoords, true].filter(Boolean).length;
 
   return (
-    /*
-     * الحاوية: paddingTop يعوّض الهيدر الثابت حتى تبدأ الصورة
-     * مباشرة تحته بدون تداخل.
-     */
-    <div style={{ paddingTop: HEADER_H, position: "relative" }}>
-
-      {/* ══════════════════════════════════════
-          صورة الغلاف — sticky CSS فقط
-          تلتصق أسفل الهيدر حتى تغطيها الورقة
-          لا JS، لا scroll handler، لا will-change
-      ══════════════════════════════════════ */}
+    <>
+      {/* ══════════════════════════════════════════
+          صورة الغلاف — Fixed خلف المحتوى
+          المحتوى يتمرّر فوقها كالستارة
+          transform:translateZ(0) → GPU layer مستقل
+          will-change:transform على الصورة الداخلية فقط
+      ══════════════════════════════════════════ */}
       <div
+        ref={coverRef}
         style={{
-          position: "sticky",
+          position: "fixed",
           top: HEADER_H,
+          left: 0,
+          right: 0,
           height: COVER_H,
           zIndex: 0,
           overflow: "hidden",
+          /*
+           * will-change:transform يضع الـ cover على GPU compositing layer
+           * مستقلة بشكل صريح — أفضل من translateZ(0) لأنه يُعطي
+           * المتصفح وقتاً لتجهيز اللـ layer قبل الـ scroll.
+           * خلال momentum scrolling، الـ compositor يُدمج الـ layer
+           * مباشرة بدون انتظار الـ main thread.
+           */
+          willChange: "transform",
         }}
       >
-        {/* الصورة — ثابتة تماماً، بدون parallax */}
-        {store.coverImageUrl ? (
-          store.coverImageUrl.startsWith("data:") ? (
-            <img
-              src={store.coverImageUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
+        {/* الصورة الداخلية: will-change:transform → GPU layer
+            التغيير عبر JS لا يُسبّب repaint للصفحة كاملها */}
+        <div
+          ref={innerRef}
+          className="absolute inset-0"
+          style={{
+            top: "-8%",
+            height: "116%",   /* أقل مساحة رسم = GPU texture أصغر = momentum أخف */
+            willChange: "transform",
+          }}
+        >
+          {store.coverImageUrl ? (
+            store.coverImageUrl.startsWith("data:") ? (
+              <img
+                src={store.coverImageUrl}
+                alt=""
+                className="w-full h-full object-cover"
+                decoding="async"
+              />
+            ) : (
+              <Image
+                src={store.coverImageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="100vw"
+                priority
+                quality={60}   /* ↓ من 85 → texture أصغر في GPU memory */
+                decoding="async"
+              />
+            )
           ) : (
-            <Image
-              src={store.coverImageUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-              quality={85}
-            />
-          )
-        ) : (
-          <div
-            className="w-full h-full"
-            style={{
-              background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)",
-            }}
-          >
             <div
-              className="absolute inset-0 opacity-[0.06]"
+              className="w-full h-full"
               style={{
-                backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)",
-                backgroundSize: "24px 24px",
+                background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)",
               }}
-            />
-          </div>
-        )}
+            >
+              <div
+                className="absolute inset-0 opacity-[0.06]"
+                style={{
+                  backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)",
+                  backgroundSize: "24px 24px",
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* تدرّج سفلي */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
@@ -160,10 +248,13 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════
-          الورقة البيضاء — تنزلق فوق الصورة
-          marginTop سالب = تداخل مع الـ cover
-      ══════════════════════════════════════ */}
+      {/* مسافة لحفظ الارتفاع في تدفق الصفحة */}
+      <div style={{ height: COVER_H }} aria-hidden="true" />
+
+      {/* ══════════════════════════════════════════
+          ورقة المحتوى — تنزلق فوق الصورة
+          كستارة تغلق من الأسفل للأعلى
+      ══════════════════════════════════════════ */}
       <div
         style={{
           position: "relative",
@@ -231,7 +322,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
             </p>
           )}
 
-          {/* تفاصيل */}
+          {/* تفاصيل مدمجة */}
           {(info.hoursText || store.location || store.hasDelivery) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
               {info.isPhys && store.location && (
@@ -255,7 +346,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
             </div>
           )}
 
-          {/* إحصائيات */}
+          {/* إحصائيات مبسّطة */}
           <div className="grid grid-cols-2 gap-2 mt-4">
             <StatCard
               icon={<Package className="w-4 h-4 text-primary" />}
@@ -324,7 +415,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
 
         <div className="h-px bg-slate-100" />
       </div>
-    </div>
+    </>
   );
 }
 

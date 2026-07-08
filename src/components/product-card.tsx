@@ -76,7 +76,7 @@ function ProductCardContent({ product, smartBadge }: ProductCardProps) {
               <Image src={product.imageUrl} alt={product.name} fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                 sizes="(max-width:640px) 50vw,(max-width:1024px) 33vw,25vw"
-                loading="lazy" decoding="async" />
+                quality={65} loading="lazy" decoding="async" />
             )
           ) : (
             <div className="flex items-center justify-center w-full h-full">
