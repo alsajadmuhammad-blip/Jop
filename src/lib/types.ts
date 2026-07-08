@@ -21,6 +21,10 @@ export type Product = {
   /** فلاش سيل — يُضاف عند جلب المنتجات إذا كان هناك عرض نشط */
   flashPrice?: number;
   flashEndsAt?: string; // ISO string
+  /** تقييم المنتج (0–5) */
+  rating?: number;
+  /** عدد المقيّمين */
+  reviews?: number;
 };
 
 /** يحسب السعر بعد الخصم العادي */

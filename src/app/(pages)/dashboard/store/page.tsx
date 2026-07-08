@@ -49,6 +49,7 @@ import { CoverImageUploader } from "@/components/dashboard/cover-image-uploader"
 import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 import { FlashSalesTab } from "@/components/dashboard/flash-sales-tab";
 import { DiscountCodesTab } from "@/components/dashboard/discount-codes-tab";
+import { ProductAnalyticsTab } from "@/components/dashboard/product-analytics-tab";
 
 // ===== Dashboard Product Card =====
 // Lightweight card — no portals, no GPU-layer transforms. Confirm dialog is shared at the grid level.
@@ -675,7 +676,7 @@ export default function StoreDashboardPage() {
     }
   }, [user, toast]);
 
-  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'subscription', 'settings'];
+  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings'];
 
   const handleViewChange = (view: string) => {
     if (!validViews.includes(view)) return;
@@ -1258,6 +1259,13 @@ export default function StoreDashboardPage() {
         {activeView === 'coupons' && fullStoreData && (
           <motion.div key="coupons" {...tabMotion}>
             <DiscountCodesTab storeId={fullStoreData.id} />
+          </motion.div>
+        )}
+
+        {/* ─── تبويب التقييمات والإحصائيات ─── */}
+        {activeView === 'analytics' && fullStoreData && (
+          <motion.div key="analytics" {...tabMotion}>
+            <ProductAnalyticsTab storeId={fullStoreData.id} products={products} />
           </motion.div>
         )}
 

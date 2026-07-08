@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Package, ShoppingBag, LayoutGrid, Settings, CreditCard, Zap, Tag } from "lucide-react";
+import { Package, ShoppingBag, LayoutGrid, Settings, CreditCard, Zap, Tag, Star } from "lucide-react";
 
 const navLinks = [
   { tab: "products",     label: "المنتجات",  icon: Package },
@@ -9,6 +9,7 @@ const navLinks = [
   { tab: "flash",        label: "عروض",      icon: Zap },
   { tab: "coupons",      label: "كودات",     icon: Tag },
   { tab: "sections",     label: "الأقسام",   icon: LayoutGrid },
+  { tab: "analytics",    label: "التقييمات", icon: Star },
   { tab: "subscription", label: "الاشتراك",  icon: CreditCard },
   { tab: "settings",     label: "الإعدادات", icon: Settings },
 ];

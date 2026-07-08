@@ -934,6 +934,8 @@ export function mapProductRow(row: any): Product {
     flashPrice: getRowValue<number>(row, 'flash_price', 'flashPrice') ?? undefined,
     flashEndsAt: getRowValue<string>(row, 'flash_ends_at', 'flashEndsAt') ?? undefined,
     isFeatured: getRowValue<boolean>(row, 'is_featured', 'isFeatured') ?? false,
+    rating: typeof row.rating === 'number' ? row.rating : Number(row.rating ?? 0),
+    reviews: typeof row.reviews === 'number' ? row.reviews : Number(row.reviews ?? 0),
   };
 }
 

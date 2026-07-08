@@ -3,7 +3,7 @@
 import { useState, memo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Check, ImageIcon, Zap, Clock, Sparkles, TrendingUp, BadgePercent } from "lucide-react";
+import { ShoppingCart, Check, ImageIcon, Zap, Clock, Sparkles, TrendingUp, BadgePercent, Star } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { hasActiveDiscount, hasActiveFlashSale, getDiscountedPrice } from "@/lib/types";
 import { useCart } from "@/hooks/use-cart";
@@ -184,6 +184,15 @@ function ProductCardContent({ product, smartBadge }: ProductCardProps) {
               </AnimatePresence>
             </motion.button>
           </div>
+          {/* تقييم المنتج */}
+          {(product.reviews ?? 0) > 0 && (
+            <div className="flex items-center gap-0.5" dir="ltr">
+              {[1,2,3,4,5].map((s) => (
+                <Star key={s} className={`h-2.5 w-2.5 ${s <= Math.round(product.rating ?? 0) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+              ))}
+              <span className="text-[9px] text-slate-400 mr-0.5 ml-0.5">({product.reviews})</span>
+            </div>
+          )}
           {isLowStock && (
             <p className="text-[10px] font-bold text-amber-500">⚡ آخر {product.stock} قطع</p>
           )}

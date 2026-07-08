@@ -8,6 +8,7 @@ import {
   Globe, MessageSquare, CreditCard,
   User, Phone, Wallet, Loader2, X,
 } from "lucide-react";
+import { ProductRatingWrapper } from "@/components/product-rating-wrapper";
 import { supabase } from "@/services/supabase";
 import { fetchStoreById } from "@/services/supabase-db";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -545,6 +546,10 @@ export default function ProductPageClient() {
   const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState(false);
   const [buyNowOpen, setBuyNowOpen] = useState(false);
+
+  // live rating state — updates after successful submit without page reload
+  const [liveRating, setLiveRating] = useState<number | null>(null);
+  const [liveReviews, setLiveReviews] = useState<number | null>(null);
   const { addItem } = useCart();
   const { toast } = useToast();
 
@@ -589,6 +594,8 @@ export default function ProductPageClient() {
           updatedAt: data.updated_at ?? data.updatedAt,
           flashPrice: data.flash_price ?? data.flashPrice,
           flashEndsAt: data.flash_ends_at ?? data.flashEndsAt,
+          rating: typeof data.rating === "number" ? data.rating : Number(data.rating ?? 0),
+          reviews: typeof data.reviews === "number" ? data.reviews : Number(data.reviews ?? 0),
         };
 
         setProduct(p);
@@ -708,7 +715,7 @@ export default function ProductPageClient() {
         transition={{ duration: 0.3 }}
         className="px-4 pt-5 space-y-4"
       >
-        {/* الاسم */}
+        {/* الاسم + التقييم */}
         <div>
           <h1 className="text-xl font-black text-slate-900 leading-tight">{product.name}</h1>
           {product.sectionName && (
@@ -716,6 +723,24 @@ export default function ProductPageClient() {
               {product.sectionName}
             </span>
           )}
+          {/* عرض التقييم الحالي */}
+          {(() => {
+            const r = liveRating ?? product.rating ?? 0;
+            const n = liveReviews ?? product.reviews ?? 0;
+            return n > 0 ? (
+              <div className="flex items-center gap-1.5 mt-2">
+                <div className="flex gap-0.5" dir="ltr">
+                  {[1,2,3,4,5].map((s) => (
+                    <Star key={s} className={`h-4 w-4 ${s <= Math.round(r) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+                  ))}
+                </div>
+                <span className="text-sm font-bold text-amber-700">{r.toFixed(1)}</span>
+                <span className="text-xs text-slate-400">({n} تقييم)</span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 mt-2">لا توجد تقييمات بعد — كن أول من يُقيّم!</p>
+            );
+          })()}
         </div>
 
         {/* السعر */}
@@ -775,6 +800,16 @@ export default function ProductPageClient() {
         {product.sku && (
           <p className="text-[11px] text-slate-400 font-medium">رمز المنتج: {product.sku}</p>
         )}
+
+        {/* زر التقييم */}
+        <div className="flex justify-center pt-1">
+          <ProductRatingWrapper
+            productId={product.id}
+            productName={product.name}
+            storeOwnerId={store?.ownerId ?? null}
+            onRated={(r, n) => { setLiveRating(r); setLiveReviews(n); }}
+          />
+        </div>
       </motion.div>
 
       {/* ───── شريط الإجراءات الثابت ───── */}
