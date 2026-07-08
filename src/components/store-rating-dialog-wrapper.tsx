@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquarePlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageSquarePlus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoreRatingDialog } from "@/components/store-rating-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/services/supabase";
+import {
+  getStoredStoreRating,
+  setStoredStoreRating,
+} from "@/lib/rating-storage";
 
 interface StoreRatingDialogWrapperProps {
   storeId: string;
@@ -23,12 +27,18 @@ export function StoreRatingDialogWrapper({
   buttonClassName,
 }: StoreRatingDialogWrapperProps) {
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [previousRating, setPreviousRating] = useState<number | null>(null);
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
   const isOwner = user?.id === ownerId;
   const isAdmin = userRole === "admin";
+
+  // اقرأ من localStorage بعد mount لتجنب hydration mismatch
+  useEffect(() => {
+    setPreviousRating(getStoredStoreRating(storeId));
+  }, [storeId]);
 
   if (isOwner) return null;
 
@@ -54,7 +64,6 @@ export function StoreRatingDialogWrapper({
       throw new Error("تقييم غير صحيح");
     }
 
-    // Fetch current rating and reviews from Supabase directly (static export compatible)
     const { data: storeData, error: fetchError } = await supabase
       .from("stores")
       .select("rating, reviews")
@@ -72,8 +81,22 @@ export function StoreRatingDialogWrapper({
 
     const currentRating: number = storeData.rating ?? 0;
     const currentReviews: number = storeData.reviews ?? 0;
-    const newReviews = currentReviews + 1;
-    const newRating = (currentRating * currentReviews + rating) / newReviews;
+
+    let newRating: number;
+    let newReviews: number;
+
+    if (previousRating !== null && currentReviews > 0) {
+      // وضع التعديل: استبدل القيمة القديمة دون تغيير عدد المراجعات
+      newReviews = currentReviews;
+      newRating = (currentRating * currentReviews - previousRating + rating) / currentReviews;
+    } else {
+      // تقييم جديد
+      newReviews = currentReviews + 1;
+      newRating = (currentRating * currentReviews + rating) / newReviews;
+    }
+
+    // Clamp
+    newRating = Math.max(1, Math.min(5, newRating));
 
     const { error: updateError } = await supabase
       .from("stores")
@@ -89,14 +112,20 @@ export function StoreRatingDialogWrapper({
       throw new Error(updateError.message || "فشل الإرسال");
     }
 
+    // احفظ في localStorage
+    setStoredStoreRating(storeId, rating);
+    setPreviousRating(rating);
+
     toast({
-      title: "شكراً لتقييمك! ⭐",
-      description: `تم إرسال تقييمك لمتجر "${storeName}" بنجاح.`,
+      title: previousRating ? "تم تعديل تقييمك ⭐" : "شكراً لتقييمك! ⭐",
+      description: `تم ${previousRating ? "تحديث" : "إرسال"} تقييمك لمتجر "${storeName}" بنجاح.`,
     });
 
     setIsRatingDialogOpen(false);
     router.refresh();
   };
+
+  const hasRated = previousRating !== null;
 
   return (
     <>
@@ -104,12 +133,29 @@ export function StoreRatingDialogWrapper({
         onClick={handleOpenDialog}
         size="lg"
         variant={isAdmin ? "secondary" : "default"}
-        className={`font-semibold flex items-center justify-center gap-2 ${isAdmin ? "" : "bg-accent text-accent-foreground hover:bg-accent/90"} ${buttonClassName ?? ""}`.trim()}
+        className={`font-semibold flex items-center justify-center gap-2 ${
+          isAdmin ? "" : "bg-accent text-accent-foreground hover:bg-accent/90"
+        } ${buttonClassName ?? ""}`.trim()}
         disabled={isAdmin}
-        aria-label="تقييم المتجر"
+        aria-label={hasRated ? "تعديل تقييم المتجر" : "تقييم المتجر"}
       >
-        <MessageSquarePlus className="h-5 w-5" />
-        <span>تقييم</span>
+        {hasRated ? (
+          <span className="flex items-center gap-0.5" dir="ltr">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                className={`h-4 w-4 ${
+                  s <= previousRating
+                    ? "fill-current"
+                    : "opacity-30"
+                }`}
+              />
+            ))}
+          </span>
+        ) : (
+          <MessageSquarePlus className="h-5 w-5" />
+        )}
+        <span>{hasRated ? "تعديل التقييم" : "تقييم"}</span>
       </Button>
 
       <StoreRatingDialog

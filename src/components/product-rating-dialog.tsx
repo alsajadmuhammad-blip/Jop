@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -18,6 +18,8 @@ interface ProductRatingDialogProps {
   onClose: () => void;
   onSubmit: (rating: number) => Promise<void>;
   productName: string;
+  /** التقييم السابق للمستخدم — يُفعِّل وضع التعديل */
+  initialRating?: number;
 }
 
 export function ProductRatingDialog({
@@ -25,10 +27,21 @@ export function ProductRatingDialog({
   onClose,
   onSubmit,
   productName,
+  initialRating,
 }: ProductRatingDialogProps) {
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialRating ?? 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // عند فتح الـ dialog نضبط التقييم على القيمة السابقة (إن وُجدت)
+  useEffect(() => {
+    if (isOpen) {
+      setRating(initialRating ?? 0);
+      setHoverRating(0);
+    }
+  }, [isOpen, initialRating]);
+
+  const isEditMode = (initialRating ?? 0) > 0;
 
   const handleSubmit = async () => {
     if (rating === 0 || isSubmitting) return;
@@ -63,9 +76,13 @@ export function ProductRatingDialog({
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>تقييم المنتج</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? "تعديل تقييمك" : "تقييم المنتج"}
+          </DialogTitle>
           <DialogDescription>
-            شاركنا رأيك في &quot;{productName}&quot;. اختر تقييمك من 1 إلى 5 نجوم.
+            {isEditMode
+              ? `تقييمك الحالي ${initialRating} نجوم — اختر تقييماً جديداً لـ "${productName}".`
+              : `شاركنا رأيك في "${productName}". اختر تقييمك من 1 إلى 5 نجوم.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -106,9 +123,14 @@ export function ProductRatingDialog({
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             إلغاء
           </Button>
-          <Button onClick={handleSubmit} disabled={rating === 0 || isSubmitting}>
+          <Button
+            onClick={handleSubmit}
+            disabled={rating === 0 || isSubmitting || (isEditMode && rating === initialRating)}
+          >
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</>
+            ) : isEditMode ? (
+              "تحديث التقييم"
             ) : (
               "إرسال التقييم"
             )}
