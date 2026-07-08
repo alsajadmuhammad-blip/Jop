@@ -10,7 +10,6 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCountdown } from "@/hooks/use-countdown";
-import { motion, AnimatePresence } from "framer-motion";
 import type { SmartBadge } from "./product-grid";
 
 interface ProductCardProps {
@@ -30,8 +29,8 @@ function FlashCountdown({ endsAt }: { endsAt: string }) {
 }
 
 const SMART_BADGE_CONFIG: Record<SmartBadge, { label: string; icon: React.ReactNode; className: string }> = {
-  new:       { label: "جديد",          icon: <Sparkles  className="w-2.5 h-2.5" />, className: "bg-violet-500 text-white" },
-  trending:  { label: "الأكثر طلباً", icon: <TrendingUp className="w-2.5 h-2.5" />, className: "bg-sky-500 text-white" },
+  new:       { label: "جديد",          icon: <Sparkles   className="w-2.5 h-2.5" />, className: "bg-violet-500 text-white" },
+  trending:  { label: "الأكثر طلباً", icon: <TrendingUp  className="w-2.5 h-2.5" />, className: "bg-sky-500 text-white" },
   best_deal: { label: "أفضل صفقة",    icon: <BadgePercent className="w-2.5 h-2.5" />, className: "bg-emerald-500 text-white" },
 };
 
@@ -41,8 +40,8 @@ function ProductCardContent({ product, smartBadge }: ProductCardProps) {
   const { toast } = useToast();
   const [isAdded, setIsAdded] = useState(false);
 
-  const flash = hasActiveFlashSale(product);
-  const isOnSale = flash || hasActiveDiscount(product);
+  const flash        = hasActiveFlashSale(product);
+  const isOnSale     = flash || hasActiveDiscount(product);
   const displayPrice = flash
     ? product.flashPrice!
     : hasActiveDiscount(product) ? getDiscountedPrice(product) : product.price;
@@ -110,20 +109,16 @@ function ProductCardContent({ product, smartBadge }: ProductCardProps) {
             </div>
           )}
 
-          {/* شارة ذكية */}
+          {/* شارة ذكية — CSS animation بدل Framer Motion */}
           {smartBadge && !flash && !hasActiveDiscount(product) && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.12, duration: 0.22 }}
-              className={cn(
-                "absolute top-2 right-2 flex items-center gap-1 rounded-full px-2.5 py-1 shadow-sm text-[10px] font-black",
-                SMART_BADGE_CONFIG[smartBadge].className
-              )}
-            >
+            <div className={cn(
+              "absolute top-2 right-2 flex items-center gap-1 rounded-full px-2.5 py-1 shadow-sm text-[10px] font-black",
+              "animate-in fade-in zoom-in-90 duration-300",
+              SMART_BADGE_CONFIG[smartBadge].className
+            )}>
               {SMART_BADGE_CONFIG[smartBadge].icon}
               {SMART_BADGE_CONFIG[smartBadge].label}
-            </motion.div>
+            </div>
           )}
 
           {isOutOfStock && (
@@ -155,40 +150,36 @@ function ProductCardContent({ product, smartBadge }: ProductCardProps) {
                 <span className="text-[10px] font-normal text-slate-400 mr-0.5">د.ع</span>
               </p>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.88 }}
+
+            {/* زر السلة — CSS فقط، بدون Framer Motion */}
+            <button
               onClick={handleAdd}
               disabled={isOutOfStock}
               className={cn(
-                "flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm",
-                isAdded ? "bg-emerald-500 text-white" : "bg-primary text-white hover:bg-primary/90",
+                "flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center",
+                "transition-all duration-150 shadow-sm active:scale-90",
+                isAdded
+                  ? "bg-emerald-500 text-white"
+                  : "bg-primary text-white hover:bg-primary/90",
                 isOutOfStock && "opacity-30 cursor-not-allowed"
               )}
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {isAdded ? (
-                  <motion.span key="check"
-                    initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }}
-                    transition={{ duration: 0.2, type: "spring", stiffness: 300 }}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </motion.span>
-                ) : (
-                  <motion.span key="cart"
-                    initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
+              {isAdded
+                ? <Check    className="h-3.5 w-3.5 transition-all duration-150" />
+                : <ShoppingCart className="h-3.5 w-3.5 transition-all duration-150" />
+              }
+            </button>
           </div>
+
           {/* تقييم المنتج */}
           {(product.reviews ?? 0) > 0 && (
             <div className="flex items-center gap-0.5" dir="ltr">
               {[1,2,3,4,5].map((s) => (
-                <Star key={s} className={`h-2.5 w-2.5 ${s <= Math.round(product.rating ?? 0) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+                <Star key={s} className={`h-2.5 w-2.5 ${
+                  s <= Math.round(product.rating ?? 0)
+                    ? "text-amber-400 fill-amber-400"
+                    : "text-slate-200 fill-slate-200"
+                }`} />
               ))}
               <span className="text-[9px] text-slate-400 mr-0.5 ml-0.5">({product.reviews})</span>
             </div>

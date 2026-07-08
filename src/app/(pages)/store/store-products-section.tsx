@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useMemo, memo, useState, useRef, useCallback,
+  useMemo, memo, useState, useRef, useCallback, useEffect,
 } from "react";
 import Image from "next/image";
 import { ProductGrid } from "@/components/product-grid";
@@ -271,7 +271,6 @@ function FilterBar({
           <AnimatePresence>
             {showSort && (
               <>
-                {/* طبقة الإغلاق */}
                 <div
                   className="fixed inset-0 z-20"
                   onClick={() => setShowSort(false)}
@@ -284,7 +283,6 @@ function FilterBar({
                   className="absolute left-0 top-12 z-30 bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden min-w-[185px]"
                   dir="rtl"
                 >
-                  {/* رأس القائمة */}
                   <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-wide">ترتيب حسب</p>
                   </div>
@@ -358,8 +356,17 @@ function FilterBar({
 function StoreProductsSectionContent({
   products, storeId,
 }: StoreProductsSectionProps) {
+  /* إدخال البحث (يتغير بكل حرف) */
+  const [searchInput, setSearchInput] = useState("");
+  /* البحث الفعلي المطبّق على الفلتر — مع debounce 180ms */
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("default");
+
+  /* debounce البحث: لا إعادة حساب useMemo عند كل ضغطة */
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 180);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   /* الترتيب الأساسي: مميز أولاً */
   const base = useMemo(() =>
@@ -370,14 +377,13 @@ function StoreProductsSectionContent({
     [products]
   );
 
-  const featured = useMemo(() => base.filter(p => p.isFeatured), [base]);
+  const featured     = useMemo(() => base.filter(p => p.isFeatured), [base]);
   const flashProducts = useMemo(() => base.filter(p => hasActiveFlashSale(p)), [base]);
 
   /* تطبيق البحث والترتيب المتقدم */
   const filtered = useMemo(() => {
     let result = [...base];
 
-    /* بحث نصي — يبحث في الاسم والوصف */
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter(p =>
@@ -386,7 +392,6 @@ function StoreProductsSectionContent({
       );
     }
 
-    /* الترتيب */
     switch (sortBy) {
       case "price_asc":
         result.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
@@ -410,12 +415,8 @@ function StoreProductsSectionContent({
         break;
       case "offers_first":
         result.sort((a, b) => {
-          const aScore =
-            (hasActiveFlashSale(a) ? 2 : 0) +
-            (hasActiveDiscount(a) ? 1 : 0);
-          const bScore =
-            (hasActiveFlashSale(b) ? 2 : 0) +
-            (hasActiveDiscount(b) ? 1 : 0);
+          const aScore = (hasActiveFlashSale(a) ? 2 : 0) + (hasActiveDiscount(a) ? 1 : 0);
+          const bScore = (hasActiveFlashSale(b) ? 2 : 0) + (hasActiveDiscount(b) ? 1 : 0);
           return bScore - aScore;
         });
         break;
@@ -451,8 +452,8 @@ function StoreProductsSectionContent({
 
       {/* شريط البحث والترتيب */}
       <FilterBar
-        search={search}
-        onSearchChange={setSearch}
+        search={searchInput}
+        onSearchChange={setSearchInput}
         sortBy={sortBy}
         onSortChange={setSortBy}
         totalCount={base.length}
@@ -475,11 +476,11 @@ function StoreProductsSectionContent({
                 <Search className="w-7 h-7 text-slate-300" />
               </div>
               <p className="text-sm font-bold text-slate-500 mb-1">
-                لا توجد نتائج لـ &ldquo;{search}&rdquo;
+                لا توجد نتائج لـ &ldquo;{searchInput}&rdquo;
               </p>
               <p className="text-xs text-slate-400 mb-3">جرّب كلمة مختلفة</p>
               <button
-                onClick={() => setSearch("")}
+                onClick={() => setSearchInput("")}
                 className="text-xs font-bold text-primary hover:underline"
               >
                 مسح البحث
@@ -490,7 +491,7 @@ function StoreProductsSectionContent({
               key={`grid-${sortBy}-${search}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.22 }}
+              transition={{ duration: 0.18 }}
             >
               <ProductGrid products={filtered} />
             </motion.div>

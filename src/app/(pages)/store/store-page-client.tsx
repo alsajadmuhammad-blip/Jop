@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
 import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
+import { getStorePage, setStorePage } from "@/services/store-page-cache";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
 import { StoreSectionsGrid } from "./store-sections-grid";
-
 import { StoreProductsSection } from "./store-products-section";
 import { StoreInfoSidebar } from "./store-info-sidebar";
 import type { Product, Store, Section } from "@/lib/types";
@@ -39,20 +39,89 @@ function LoadingSkeleton() {
   );
 }
 
-export default function StorePageClient() {
-  const searchParams = useSearchParams();
-  const storeId = searchParams.get("id");
+/** دمج بيانات المنتجات مع الفلاش سيل */
+function mergeFlash(
+  products: Product[],
+  flashData: Awaited<ReturnType<typeof fetchActiveFlashSalesByStore>>,
+): Product[] {
+  if (!flashData.length) return products;
+  const flashMap = new Map(flashData.map(fs => [fs.productId, fs]));
+  return products.map(p => {
+    const fs = flashMap.get(p.id);
+    return fs ? { ...p, flashPrice: fs.flashPrice, flashEndsAt: fs.endsAt } : p;
+  });
+}
 
-  const [store, setStore] = useState<Store | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function StorePageClient() {
+  const searchParams  = useSearchParams();
+  const storeId       = searchParams.get("id");
+
+  const [store, setStore]               = useState<Store | null>(null);
+  const [products, setProducts]         = useState<Product[]>([]);
+  const [sections, setSections]         = useState<Section[]>([]);
+  const [loading, setLoading]           = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  /**
+   * Ref يتتبع أي storeIds لها refresh جارٍ في الخلفية.
+   * مُفصَّل حسب storeId لمنع تداخل المتاجر عند التنقل السريع.
+   */
+  const refreshingStores = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!storeId) { setLoading(false); return; }
-    setLoading(true);
+
     setErrorMessage(null);
+
+    /* ─── إلغاء أي timeout معلّق إذا تغيّر storeId قبل تنفيذه ─── */
+    let cancelled = false;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /* ─── Cache hit: عرض فوري + refresh صامت في الخلفية ─── */
+    const cached = getStorePage(storeId);
+    if (cached) {
+      setStore(cached.store);
+      setProducts(cached.products);
+      setSections(cached.sections);
+      setLoading(false);
+
+      /* refresh صامت — مرة واحدة فقط لكل متجر في نفس الوقت */
+      if (!refreshingStores.current.has(storeId)) {
+        refreshingStores.current.add(storeId);
+
+        refreshTimer = setTimeout(async () => {
+          if (cancelled) {
+            refreshingStores.current.delete(storeId);
+            return;
+          }
+          try {
+            const [productsData, flashSalesData] = await Promise.all([
+              fetchProductsByStore(storeId),
+              fetchActiveFlashSalesByStore(storeId),
+            ]);
+            if (!cancelled) {
+              const updated = mergeFlash(productsData, flashSalesData);
+              setProducts(updated);
+              setStorePage(storeId, {
+                store: cached.store,
+                products: updated,
+                sections: cached.sections,
+              });
+            }
+          } catch { /* silent */ } finally {
+            refreshingStores.current.delete(storeId);
+          }
+        }, 300);
+      }
+
+      return () => {
+        cancelled = true;
+        if (refreshTimer) clearTimeout(refreshTimer);
+      };
+    }
+
+    /* ─── Cache miss: تحميل كامل ─── */
+    setLoading(true);
 
     (async () => {
       try {
@@ -63,28 +132,35 @@ export default function StorePageClient() {
           fetchActiveFlashSalesByStore(storeId),
         ]);
 
-        if (!fetchedStore) throw new Error("لم يتم العثور على المتجر.");
+        if (cancelled) return;
+
+        if (!fetchedStore)          throw new Error("لم يتم العثور على المتجر.");
         if (!fetchedStore.isActive) throw new Error("هذا المتجر غير متاح حالياً.");
 
-        const flashMap = new Map(flashSalesData.map(fs => [fs.productId, fs]));
-        const productsWithFlash = productsData.map(p => {
-          const fs = flashMap.get(p.id);
-          return fs ? { ...p, flashPrice: fs.flashPrice, flashEndsAt: fs.endsAt } : p;
-        });
+        const productsWithFlash = mergeFlash(productsData, flashSalesData);
 
+        setStorePage(storeId, {
+          store: fetchedStore,
+          products: productsWithFlash,
+          sections: sectionsData,
+        });
         setStore(fetchedStore);
         setProducts(productsWithFlash);
         setSections(sectionsData);
       } catch (err: any) {
-        setErrorMessage(err?.message || "حدث خطأ أثناء تحميل المتجر.");
+        if (!cancelled) setErrorMessage(err?.message || "حدث خطأ أثناء تحميل المتجر.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [storeId]);
 
   if (!storeId) return <div className="min-h-screen bg-slate-50" />;
-  if (loading) return <LoadingSkeleton />;
+  if (loading)  return <LoadingSkeleton />;
 
   if (errorMessage) {
     return (
@@ -108,8 +184,6 @@ export default function StorePageClient() {
       {/* هيرو المتجر */}
       <StoreHero store={store} productCount={products.length} />
 
-      {/* كل المحتوى أسفل الهيرو يجب أن يكون z-index > 0
-          لضمان ظهوره فوق صورة الغلاف الثابتة */}
       <div className="relative" style={{ zIndex: 10, background: "#f8fafc" }}>
 
         {/* أقسام المتجر */}

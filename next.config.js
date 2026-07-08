@@ -53,40 +53,6 @@ const nextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Webpack optimization
-  webpack: (config, { isServer }) => {
-    config.optimization = {
-      ...config.optimization,
-      minimize: true,
-      usedExports: true,
-      sideEffects: false,
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-          // Vendor chunk for external dependencies
-          vendor: {
-            filename: 'chunks/vendor.js',
-            test: /node_modules/,
-            name: 'vendor',
-            priority: 10,
-            reuseExistingChunk: true,
-            enforce: true,
-          },
-          // Common chunk for shared code
-          common: {
-            minChunks: 2,
-            priority: 5,
-            reuseExistingChunk: true,
-            name: 'common',
-          },
-        },
-      },
-    };
-    return config;
-  },
-
   // Environment variables
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

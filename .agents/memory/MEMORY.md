@@ -1,4 +1,5 @@
 - [Store dashboard cache strategy](store-dashboard-cache.md) — stale-while-revalidate: useLayoutEffect shows localStorage cache before first paint, loadStore() always refreshes silently in background.
+- [Store page performance](store-page-perf.md) — in-memory SWR cache + animation caps + CSS-only card interactions + search debounce; webpack custom splitChunks removed.
 - [Product ratings feature](product-ratings-feature.md) — weighted-average on products table; requires ALTER TABLE to add rating+reviews columns; auth: owner hidden, admin gets toast, guests allowed.
 - [Flash sales & discount codes](flash-discount-features.md) — two new features added; flash price takes priority over regular discount in ALL pricing paths via getEffectivePrice().
 - [Partner earnings system](partner-earnings-system.md) — centralized in /api/partner-activation; salary goal uses package_points JSONB per-partner; auth via Supabase JWT + idempotency window.
