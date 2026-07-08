@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { memo, useMemo, useState, useEffect, useRef } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import {
   Truck, Globe, ShoppingCart, MessageSquare,
   Star, MapPin, Clock, Package,
@@ -12,12 +12,12 @@ import type { Store } from "@/lib/types";
 /* ─────────────────────────────────────────
    ثوابت
 ───────────────────────────────────────── */
-const HEADER_H  = 56;    // ارتفاع الهيدر الثابت (h-14)
-const COVER_H   = 240;   // ارتفاع صورة الغلاف المرئية px
-const OVERLAP   = 32;    // مقدار تداخل الورقة البيضاء مع الصورة
+const HEADER_H = 56;   // ارتفاع الهيدر الثابت (h-14)
+const COVER_H  = 240;  // ارتفاع صورة الغلاف
+const OVERLAP  = 32;   // تداخل الورقة البيضاء مع الصورة
 
 /* ─────────────────────────────────────────
-   تحويل ساعة → عربي صباحاً/مساءً
+   تحويل ساعة → عربي
 ───────────────────────────────────────── */
 function arabicN(n: number) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
@@ -39,9 +39,6 @@ function computeIsOpen(store: Store): boolean {
   return close > open ? (h >= open && h < close) : (h >= open || h < close);
 }
 
-/* ─────────────────────────────────────────
-   Props
-───────────────────────────────────────── */
 interface StoreHeroProps {
   store: Store;
   productCount: number;
@@ -49,58 +46,25 @@ interface StoreHeroProps {
 
 /* ═════════════════════════════════════════
    المكوّن الرئيسي
+   ─────────────────────────────────────────
+   المبدأ: CSS-only — لا JS في مسار الـ scroll
+   
+   الهيكل:
+     container (paddingTop=HEADER_H)
+       ├── cover  (position:sticky  top=HEADER_H  z-index:0)
+       └── sheet  (position:relative  marginTop:-OVERLAP  z-index:10)
+   
+   عند scroll=0:  sheet تغطي آخر OVERLAP بكسل من الـ cover
+   عند scroll=COVER_H-OVERLAP:  sheet تغطي الـ cover كاملاً
+   بعد ذلك: sheet تسير فوق الـ cover (الـ cover مختفٍ خلفها)
+   لا تغيير visibility/transform في أي مرحلة = zero JS on scroll
 ═════════════════════════════════════════ */
 function StoreHeroContent({ store, productCount }: StoreHeroProps) {
   /* حالة المتجر — client-only لتجنّب hydration mismatch */
   const [isOpen, setIsOpen] = useState(store.isActive);
   useEffect(() => { setIsOpen(computeIsOpen(store)); }, [store]);
 
-  /* refs للتحكم المباشر بـ DOM بدون re-render */
-  const coverRef  = useRef<HTMLDivElement>(null);
-  const innerRef  = useRef<HTMLDivElement>(null); // الصورة الداخلية للـ parallax
-
-  /* ─── ضبط top الصورة ديناميكياً حسب ارتفاع الهيدر الفعلي ─── */
-  useEffect(() => {
-    const cover = coverRef.current;
-    if (!cover) return;
-
-    const applyHeaderOffset = () => {
-      const header = document.querySelector("header");
-      const h = header ? header.getBoundingClientRect().height : HEADER_H;
-      cover.style.top = `${h}px`;
-    };
-
-    applyHeaderOffset();
-    window.addEventListener("resize", applyHeaderOffset);
-    return () => window.removeEventListener("resize", applyHeaderOffset);
-  }, []);
-
-  /* ─── تأثير السكرول — parallax + إخفاء ─── */
-  useEffect(() => {
-    const cover = coverRef.current;
-    const inner = innerRef.current;
-    if (!cover) return;
-
-    const onScroll = () => {
-      const s = window.scrollY;
-
-      /* parallax: الصورة ترتفع للأعلى أبطأ من المحتوى — تعطي عمقاً */
-      if (inner) {
-        const shift = Math.min(s * 0.3, COVER_H * 0.5);
-        inner.style.transform = `translateY(-${shift}px)`;
-      }
-
-      /* أخفِ الصورة عندما تُغطّيها الورقة البيضاء تماماً */
-      cover.style.visibility = s > COVER_H ? "hidden" : "visible";
-    };
-
-    /* نفّذ مباشرة عند التحميل (قد يكون الصفحة مُمرَّرة مسبقاً) */
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  /* قيم ثابتة لا تتغير */
+  /* قيم ثابتة */
   const info = useMemo(() => {
     const cleanWA   = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
     const waHref    = cleanWA ? `https://wa.me/${cleanWA.replace(/^\+/, "")}` : undefined;
@@ -118,65 +82,61 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
   const secondaryCount = [info.waHref, info.isPhys && info.hasCoords, true].filter(Boolean).length;
 
   return (
-    <>
-      {/* ══════════════════════════════════════════
-          صورة الغلاف — Fixed خلف المحتوى
-          المحتوى يتمرّر فوقها كالستارة
-      ══════════════════════════════════════════ */}
+    /*
+     * الحاوية: paddingTop يعوّض الهيدر الثابت حتى تبدأ الصورة
+     * مباشرة تحته بدون تداخل.
+     */
+    <div style={{ paddingTop: HEADER_H, position: "relative" }}>
+
+      {/* ══════════════════════════════════════
+          صورة الغلاف — sticky CSS فقط
+          تلتصق أسفل الهيدر حتى تغطيها الورقة
+          لا JS، لا scroll handler، لا will-change
+      ══════════════════════════════════════ */}
       <div
-        ref={coverRef}
         style={{
-          position: "fixed",
+          position: "sticky",
           top: HEADER_H,
-          left: 0,
-          right: 0,
           height: COVER_H,
           zIndex: 0,
           overflow: "hidden",
-          willChange: "visibility",
         }}
       >
-        {/* الصورة مع parallax */}
-        <div
-          ref={innerRef}
-          className="absolute inset-0 will-change-transform"
-          style={{ top: "-20%", height: "140%" }} /* مساحة إضافية لـ parallax */
-        >
-          {store.coverImageUrl ? (
-            store.coverImageUrl.startsWith("data:") ? (
-              <img
-                src={store.coverImageUrl}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Image
-                src={store.coverImageUrl}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority
-                quality={85}
-              />
-            )
+        {/* الصورة — ثابتة تماماً، بدون parallax */}
+        {store.coverImageUrl ? (
+          store.coverImageUrl.startsWith("data:") ? (
+            <img
+              src={store.coverImageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
           ) : (
+            <Image
+              src={store.coverImageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+              quality={85}
+            />
+          )
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{
+              background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)",
+            }}
+          >
             <div
-              className="w-full h-full"
+              className="absolute inset-0 opacity-[0.06]"
               style={{
-                background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)",
+                backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)",
+                backgroundSize: "24px 24px",
               }}
-            >
-              <div
-                className="absolute inset-0 opacity-[0.06]"
-                style={{
-                  backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)",
-                  backgroundSize: "24px 24px",
-                }}
-              />
-            </div>
-          )}
-        </div>
+            />
+          </div>
+        )}
 
         {/* تدرّج سفلي */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
@@ -200,13 +160,10 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
         </div>
       </div>
 
-      {/* مسافة لحفظ الارتفاع في تدفق الصفحة */}
-      <div style={{ height: COVER_H }} aria-hidden="true" />
-
-      {/* ══════════════════════════════════════════
-          ورقة المحتوى — تنزلق فوق الصورة
-          كستارة تغلق من الأسفل للأعلى
-      ══════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════
+          الورقة البيضاء — تنزلق فوق الصورة
+          marginTop سالب = تداخل مع الـ cover
+      ══════════════════════════════════════ */}
       <div
         style={{
           position: "relative",
@@ -274,7 +231,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
             </p>
           )}
 
-          {/* تفاصيل مدمجة — سطر واحد هادئ */}
+          {/* تفاصيل */}
           {(info.hoursText || store.location || store.hasDelivery) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
               {info.isPhys && store.location && (
@@ -298,7 +255,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
             </div>
           )}
 
-          {/* إحصائيات مبسّطة */}
+          {/* إحصائيات */}
           <div className="grid grid-cols-2 gap-2 mt-4">
             <StatCard
               icon={<Package className="w-4 h-4 text-primary" />}
@@ -367,7 +324,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
 
         <div className="h-px bg-slate-100" />
       </div>
-    </>
+    </div>
   );
 }
 
