@@ -817,26 +817,34 @@ export async function fetchUserOrders(userId: string): Promise<any[]> {
 }
 
 export async function createOrder(order: any): Promise<string | null> {
-  // Ensure all fields with dual naming are saved in both formats
-  const dbOrder: any = {
-    store_id: order.storeId || order.store_id,
-    storeId: order.storeId || order.store_id,
-    store_name: order.storeName || order.store_name,
-    storeName: order.storeName || order.store_name,
-    customer_id: order.customerId || order.customer_id,
-    customerId: order.customerId || order.customer_id,
-    customer_name: order.customerName || order.customer_name,
-    customerName: order.customerName || order.customer_name,
-    customer_phone: order.customerPhone || order.customer_phone,
-    customerPhone: order.customerPhone || order.customer_phone,
-    items: order.items,
-    total_amount: order.totalAmount || order.total_amount,
-    totalAmount: order.totalAmount || order.total_amount,
-    status: order.status || 'pending',
-    notes: order.notes,
-    payment_method: order.paymentMethod || order.payment_method || 'whatsapp',
-    paymentMethod: order.paymentMethod || order.payment_method || 'whatsapp',
+  /* بناء الـ payload بشكل انتقائي — نُضيف فقط القيم الموجودة
+     لتجنب إرسال undefined إلى Supabase مما قد يتعارض مع قيود NOT NULL */
+  const storeId   = order.storeId   || order.store_id   || null;
+  const storeName = order.storeName || order.store_name  || null;
+  const custId    = order.customerId  || order.customer_id  || null;
+  const custName  = order.customerName || order.customer_name || null;
+  const custPhone = order.customerPhone || order.customer_phone || null;
+  const pmMethod  = order.paymentMethod || order.payment_method || 'cash';
+
+  const dbOrder: Record<string, unknown> = {
+    store_id:     storeId,
+    storeId:      storeId,
+    store_name:   storeName,
+    storeName:    storeName,
+    items:        order.items,
+    total_amount: order.totalAmount || order.total_amount || 0,
+    totalAmount:  order.totalAmount || order.total_amount || 0,
+    status:       order.status || 'pending',
+    payment_method: pmMethod,
+    paymentMethod:  pmMethod,
+    source:       order.source || 'pos',
   };
+
+  /* الحقول الاختيارية — لا نُضيفها إلا إذا كانت موجودة */
+  if (custId)    { dbOrder.customer_id = custId;   dbOrder.customerId   = custId; }
+  if (custName)  { dbOrder.customer_name = custName; dbOrder.customerName = custName; }
+  if (custPhone) { dbOrder.customer_phone = custPhone; dbOrder.customerPhone = custPhone; }
+  if (order.notes != null) { dbOrder.notes = order.notes; }
 
   const { data, error } = await supabase
     .from('orders')
@@ -845,7 +853,7 @@ export async function createOrder(order: any): Promise<string | null> {
     .single();
 
   if (error) {
-    console.error('Error creating order:', error.message);
+    console.error('createOrder error:', error.message, error.details, error.hint);
     return null;
   }
 

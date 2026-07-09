@@ -3,35 +3,28 @@
 import Image from "next/image";
 import { memo, useMemo, useState, useEffect, useRef } from "react";
 import {
-  Truck, Globe, ShoppingCart, MessageSquare,
-  Star, MapPin, Clock, Package,
+  Truck, Globe, MessageSquare,
+  Star, MapPin, Clock,
 } from "lucide-react";
 import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapper";
 import type { Store } from "@/lib/types";
 
-/* ─────────────────────────────────────────
-   ثوابت
-───────────────────────────────────────── */
-const HEADER_H  = 56;    // ارتفاع الهيدر الثابت (h-14)
-const COVER_H   = 240;   // ارتفاع صورة الغلاف المرئية px
-const OVERLAP   = 32;    // مقدار تداخل الورقة البيضاء مع الصورة
+const HEADER_H = 56;
+const COVER_H  = 240;
+const OVERLAP  = 32;
 
-/* ─────────────────────────────────────────
-   تحويل ساعة → عربي صباحاً/مساءً
-───────────────────────────────────────── */
 function arabicN(n: number) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
 }
+
+/* تنسيق الساعة مختصر: ص / م / ظ */
 function fmtHour(h: number): string {
-  if (h === 0)  return "١٢ م.ليل";
-  if (h === 12) return "١٢ ظهراً";
-  if (h < 12)   return `${arabicN(h)} صباحاً`;
-  return `${arabicN(h - 12)} مساءً`;
+  if (h === 0)  return "١٢ م";
+  if (h === 12) return "١٢ ظ";
+  if (h < 12)   return `${arabicN(h)} ص`;
+  return `${arabicN(h - 12)} م`;
 }
 
-/* ─────────────────────────────────────────
-   هل المتجر مفتوح الآن؟
-───────────────────────────────────────── */
 function computeIsOpen(store: Store): boolean {
   if (!store.businessHours) return store.isActive;
   const h = new Date().getHours();
@@ -44,47 +37,31 @@ interface StoreHeroProps {
   productCount: number;
 }
 
-/* ═════════════════════════════════════════
-   المكوّن الرئيسي
-═════════════════════════════════════════ */
-function StoreHeroContent({ store, productCount }: StoreHeroProps) {
+function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps) {
   const [isOpen, setIsOpen] = useState(store.isActive);
   useEffect(() => { setIsOpen(computeIsOpen(store)); }, [store]);
 
   const coverRef = useRef<HTMLDivElement>(null);
 
-  /* ─── ضبط top حسب ارتفاع الهيدر الفعلي ─── */
+  /* ضبط top حسب ارتفاع الهيدر الفعلي */
   useEffect(() => {
     const cover = coverRef.current;
     if (!cover) return;
-
     const applyOffset = () => {
       const header = document.querySelector("header");
       const h = header ? header.getBoundingClientRect().height : HEADER_H;
       cover.style.top = `${h}px`;
     };
-
     applyOffset();
     window.addEventListener("resize", applyOffset, { passive: true });
     return () => window.removeEventListener("resize", applyOffset);
   }, []);
 
-  /*
-   * إخفاء الغلاف بعد تجاوز العتبة — بدون parallax.
-   *
-   * سبب إزالة الـ parallax:
-   * كروم يُنفّذ الـ scroll على compositor thread منفصل عن main thread.
-   * أي تعديل JS على transform أثناء momentum scroll يُجبر كروم على
-   * مزامنة الـ threads مما يُسبّب الارتعاش (jank). الحل: نوقف كل JS
-   * transform تماماً ونكتفي بـ display toggle عند عتبة واحدة فقط.
-   * الصورة تبقى ثابتة خلف المحتوى بدون أي تحريك — تأثير بصري نظيف.
-   */
+  /* إخفاء الغلاف بعد تجاوز العتبة — بدون parallax لمنع jank في كروم */
   useEffect(() => {
     const cover = coverRef.current;
     if (!cover) return;
-
     let hidden = false;
-
     const onScroll = () => {
       const shouldHide = window.scrollY > COVER_H + OVERLAP;
       if (shouldHide !== hidden) {
@@ -92,13 +69,11 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
         cover.style.display = shouldHide ? "none" : "";
       }
     };
-
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* قيم ثابتة */
   const info = useMemo(() => {
     const cleanWA   = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
     const waHref    = cleanWA ? `https://wa.me/${cleanWA.replace(/^\+/, "")}` : undefined;
@@ -113,14 +88,9 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
     return { waHref, isPhys, hasCoords, mapsUrl, hoursText };
   }, [store]);
 
-  const secondaryCount = [info.waHref, info.isPhys && info.hasCoords, true].filter(Boolean).length;
-
   return (
     <>
-      {/* ══════════════════════════════════════════
-          صورة الغلاف — Fixed خلف المحتوى
-          بدون parallax → لا jank في كروم
-      ══════════════════════════════════════════ */}
+      {/* ══ صورة الغلاف Fixed ══ */}
       <div
         ref={coverRef}
         style={{
@@ -136,141 +106,69 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
         <div className="absolute inset-0">
           {store.coverImageUrl ? (
             store.coverImageUrl.startsWith("data:") ? (
-              <img
-                src={store.coverImageUrl}
-                alt=""
-                className="w-full h-full object-cover"
-                decoding="async"
-              />
+              <img src={store.coverImageUrl} alt="" className="w-full h-full object-cover" decoding="async" />
             ) : (
-              <Image
-                src={store.coverImageUrl}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority
-                quality={70}
-                decoding="async"
-              />
+              <Image src={store.coverImageUrl} alt="" fill className="object-cover" sizes="100vw" priority quality={70} decoding="async" />
             )
           ) : (
-            <div
-              className="w-full h-full"
-              style={{
-                background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)",
-              }}
-            >
-              <div
-                className="absolute inset-0 opacity-[0.06]"
-                style={{
-                  backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)",
-                  backgroundSize: "24px 24px",
-                }}
-              />
+            <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)" }}>
+              <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "24px 24px" }} />
             </div>
           )}
         </div>
-
-        {/* تدرّج سفلي */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
         {/* شارة الحالة */}
-        <div className="absolute bottom-5 left-4 z-10">
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold backdrop-blur-md border ${
-              isOpen
-                ? "bg-emerald-500/30 border-emerald-400/40 text-emerald-100"
-                : "bg-black/40 border-white/20 text-white/55"
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isOpen ? "bg-emerald-400 animate-pulse" : "bg-slate-400"
-              }`}
-            />
-            {isOpen ? "مفتوح الآن" : "مغلق الآن"}
+        <div className="absolute bottom-4 left-4 z-10">
+          <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md border ${
+            isOpen ? "bg-emerald-500/25 border-emerald-400/30 text-emerald-100" : "bg-black/35 border-white/15 text-white/50"
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
+            {isOpen ? "مفتوح" : "مغلق"}
           </div>
         </div>
       </div>
 
-      {/* مسافة لحفظ الارتفاع في تدفق الصفحة */}
+      {/* مسافة */}
       <div style={{ height: COVER_H }} aria-hidden="true" />
 
-      {/* ══════════════════════════════════════════
-          ورقة المحتوى — تنزلق فوق الصورة
-          كستارة تغلق من الأسفل للأعلى
-      ══════════════════════════════════════════ */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 10,
-          marginTop: -OVERLAP,
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          background: "white",
-          boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
-        }}
-      >
-        {/* ── هوية المتجر ── */}
-        <div className="px-4 sm:px-5 pt-5 pb-5">
+      {/* ══ ورقة المحتوى ══ */}
+      <div style={{ position: "relative", zIndex: 10, marginTop: -OVERLAP, borderTopLeftRadius: 24, borderTopRightRadius: 24, background: "white", boxShadow: "0 -6px 28px rgba(0,0,0,0.10)" }}>
 
-          {/* اللوغو + التقييم */}
-          <div className="flex items-start justify-between mb-3">
+        <div className="px-4 sm:px-5 pt-4 pb-4">
+
+          {/* صف اللوغو + اسم المتجر */}
+          <div className="flex items-end gap-3 mb-3">
+            {/* اللوغو */}
             <div
-              className="relative w-20 h-20 rounded-2xl border-4 border-white bg-white overflow-hidden flex-shrink-0 -mt-14"
-              style={{ boxShadow: "0 8px 28px rgba(0,0,0,0.18)" }}
+              className="relative w-[68px] h-[68px] rounded-2xl border-[3px] border-white bg-white overflow-hidden flex-shrink-0 -mt-12"
+              style={{ boxShadow: "0 6px 22px rgba(0,0,0,0.16)" }}
             >
               {store.logoUrl ? (
                 store.logoUrl.startsWith("data:") ? (
-                  <img
-                    src={store.logoUrl}
-                    alt={store.name}
-                    className="w-full h-full object-contain p-1.5"
-                  />
+                  <img src={store.logoUrl} alt={store.name} className="w-full h-full object-contain p-1.5" />
                 ) : (
-                  <Image
-                    src={store.logoUrl}
-                    alt={store.name}
-                    fill
-                    className="object-contain p-1.5"
-                    sizes="80px"
-                    priority
-                  />
+                  <Image src={store.logoUrl} alt={store.name} fill className="object-contain p-1.5" sizes="68px" priority />
                 )
               ) : (
                 <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100">
-                  <Globe className="w-8 h-8 text-primary/40" />
+                  <Globe className="w-7 h-7 text-primary/40" />
                 </div>
               )}
             </div>
 
-            {store.reviews > 0 && (
-              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5 mt-1">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span className="text-sm font-black text-amber-700">
-                  {store.rating.toFixed(1)}
-                </span>
-                <span className="text-[11px] text-amber-500 font-medium">
-                  ({store.reviews})
-                </span>
-              </div>
-            )}
+            {/* الاسم + التصنيف */}
+            <div className="flex-1 min-w-0 pb-0.5">
+              <h1 className="text-xl font-black text-slate-900 leading-tight truncate">{store.name}</h1>
+              {store.marketType && (
+                <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">{store.marketType}</p>
+              )}
+            </div>
           </div>
 
-          {/* اسم المتجر + التصنيف */}
-          <h1 className="text-2xl font-black text-slate-900 leading-tight">
-            {store.name}
-          </h1>
-          {store.marketType && (
-            <p className="text-sm text-slate-400 font-medium mt-0.5">
-              {store.marketType}
-            </p>
-          )}
-
-          {/* تفاصيل مدمجة */}
-          {(info.hoursText || store.location || store.hasDelivery) && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+          {/* معلومات المتجر — صف واحد خفيف */}
+          {(info.hoursText || (info.isPhys && store.location) || store.hasDelivery || store.reviews > 0) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4">
               {info.isPhys && store.location && (
                 <span className="flex items-center gap-1 text-[12px] text-slate-500">
                   <MapPin className="w-3 h-3 text-rose-400 flex-shrink-0" />
@@ -289,52 +187,27 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
                   توصيل
                 </span>
               )}
+              {store.reviews > 0 && (
+                <span className="flex items-center gap-1 text-[12px] text-amber-600 font-semibold">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400 flex-shrink-0" />
+                  {store.rating.toFixed(1)}
+                  <span className="text-slate-400 font-normal">({store.reviews})</span>
+                </span>
+              )}
             </div>
           )}
 
-          {/* إحصائيات مبسّطة */}
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <StatCard
-              icon={<Package className="w-4 h-4 text-primary" />}
-              value={String(productCount)}
-              label="منتج"
-            />
-            <StatCard
-              icon={<Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
-              value={store.reviews > 0 ? store.rating.toFixed(1) : "—"}
-              label="تقييم"
-            />
-          </div>
-        </div>
-
-        {/* ── أزرار التفاعل ── */}
-        <div className="px-4 sm:px-5 pb-6">
-          <a
-            href="#store-products"
-            className="flex items-center justify-center gap-2.5 w-full rounded-2xl font-black text-base text-white mb-2.5"
-            style={{
-              height: 52,
-              background: "linear-gradient(135deg,#1e40af 0%,#2563eb 60%,#3b82f6 100%)",
-              boxShadow: "0 6px 24px rgba(37,99,235,0.30)",
-            }}
-          >
-            <ShoppingCart className="w-5 h-5" />
-            تسوق الآن
-          </a>
-
-          <div
-            className="grid gap-2"
-            style={{ gridTemplateColumns: `repeat(${secondaryCount}, 1fr)` }}
-          >
+          {/* أزرار التفاعل */}
+          <div className="flex gap-2">
             {info.waHref && (
               <a
                 href={info.waHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 h-11 rounded-2xl font-bold text-[13px] text-white"
-                style={{ background: "#25D366", boxShadow: "0 4px 14px rgba(37,211,102,0.25)" }}
+                className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl font-bold text-[13px] text-white"
+                style={{ background: "#25D366", boxShadow: "0 3px 10px rgba(37,211,102,0.22)" }}
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-3.5 h-3.5" />
                 واتساب
               </a>
             )}
@@ -343,10 +216,10 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
                 href={info.mapsUrl!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 h-11 rounded-2xl font-bold text-[13px] text-white bg-slate-800"
-                style={{ boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}
+                className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl font-bold text-[13px] text-white bg-slate-800"
+                style={{ boxShadow: "0 3px 10px rgba(0,0,0,0.10)" }}
               >
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-3.5 h-3.5" />
                 الخريطة
               </a>
             )}
@@ -354,7 +227,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
               storeId={store.id}
               storeName={store.name}
               ownerId={store.ownerId}
-              buttonClassName="w-full h-11 rounded-2xl font-bold text-[13px]"
+              buttonClassName={`h-10 rounded-xl font-bold text-[13px] ${!info.waHref && !(info.isPhys && info.hasCoords) ? "w-full" : "flex-1"}`}
             />
           </div>
         </div>
@@ -362,21 +235,6 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
         <div className="h-px bg-slate-100" />
       </div>
     </>
-  );
-}
-
-/* ─── بطاقة إحصائية صغيرة ─── */
-function StatCard({
-  icon, value, label,
-}: { icon: React.ReactNode; value: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
-      {icon}
-      <div>
-        <p className="text-base font-black text-slate-900 leading-none">{value}</p>
-        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{label}</p>
-      </div>
-    </div>
   );
 }
 
