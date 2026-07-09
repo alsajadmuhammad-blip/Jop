@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   Package, ShoppingBag, LayoutGrid, Settings,
   CreditCard, Zap, Tag, Star, ShoppingCart,
-  Store, Megaphone, SlidersHorizontal,
+  Store, Megaphone, SlidersHorizontal, Boxes,
 } from "lucide-react";
 
 /* ─── هيكل التبويبات ─── */
@@ -17,6 +17,7 @@ const NAV_GROUPS = [
       { tab: "products", label: "المنتجات", icon: Package },
       { tab: "orders",   label: "الطلبات",  icon: ShoppingBag },
       { tab: "pos",      label: "الكاشير",  icon: ShoppingCart },
+      { tab: "inventory", label: "المخزون", icon: Boxes },
       { tab: "sections", label: "الأقسام",  icon: LayoutGrid },
     ],
   },

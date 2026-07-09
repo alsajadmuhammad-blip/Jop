@@ -25,6 +25,8 @@ export type Product = {
   rating?: number;
   /** عدد المقيّمين */
   reviews?: number;
+  /** حد التنبيه لانخفاض المخزون (افتراضي 5) */
+  lowStockThreshold?: number;
 };
 
 /** يحسب السعر بعد الخصم العادي */

@@ -963,6 +963,7 @@ export function mapProductRow(row: any): Product {
     isFeatured: getRowValue<boolean>(row, 'is_featured', 'isFeatured') ?? false,
     rating: typeof row.rating === 'number' ? row.rating : Number(row.rating ?? 0),
     reviews: typeof row.reviews === 'number' ? row.reviews : Number(row.reviews ?? 0),
+    lowStockThreshold: getRowValue<number>(row, 'low_stock_threshold', 'lowStockThreshold') ?? 5,
   };
 }
 

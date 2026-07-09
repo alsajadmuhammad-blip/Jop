@@ -50,6 +50,7 @@ import { FlashSalesTab } from "@/components/dashboard/flash-sales-tab";
 import { DiscountCodesTab } from "@/components/dashboard/discount-codes-tab";
 import { ProductAnalyticsTab } from "@/components/dashboard/product-analytics-tab";
 import { PosTab } from "@/components/dashboard/pos-tab";
+import { InventoryTab } from "@/components/dashboard/inventory-tab";
 
 // ===== Dashboard Product Card =====
 // Lightweight card — no portals, no GPU-layer transforms. Confirm dialog is shared at the grid level.
@@ -676,7 +677,7 @@ export default function StoreDashboardPage() {
     }
   }, [user, toast]);
 
-  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings', 'pos'];
+  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings', 'pos', 'inventory'];
 
   const handleViewChange = (view: string) => {
     if (!validViews.includes(view)) return;
@@ -1404,6 +1405,19 @@ export default function StoreDashboardPage() {
             storeName={fullStoreData.name}
             products={products}
             sections={sections}
+            onStockUpdate={(productId, newStock) =>
+              setProducts((prev) =>
+                prev.map((p) => p.id === productId ? { ...p, stock: newStock } : p)
+              )
+            }
+          />
+        )}
+
+        {/* ─── تبويب المخزون ─── */}
+        {activeView === 'inventory' && fullStoreData && (
+          <InventoryTab
+            storeId={fullStoreData.id}
+            products={products}
             onStockUpdate={(productId, newStock) =>
               setProducts((prev) =>
                 prev.map((p) => p.id === productId ? { ...p, stock: newStock } : p)

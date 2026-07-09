@@ -52,63 +52,55 @@ function ProductCard({ product, inCart, maxed, onAdd }: ProductCardProps) {
       onClick={onAdd}
       disabled={maxed}
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border bg-white text-right",
-        "shadow-sm transition-all duration-150 active:scale-[0.97]",
-        inCart
-          ? "border-primary/40 ring-2 ring-primary/15 shadow-primary/10"
-          : "border-slate-200 hover:border-primary/30 hover:shadow-md",
+        "flex items-center gap-2.5 rounded-xl border bg-white text-right p-2",
+        "transition-colors active:bg-slate-50",
+        inCart ? "border-primary bg-primary/[0.04]" : "border-slate-200",
         maxed && "opacity-40 cursor-not-allowed"
       )}
     >
       {/* صورة */}
-      <div className="relative w-full aspect-[4/3] bg-slate-50 overflow-hidden">
+      <div className="relative w-12 h-12 shrink-0 rounded-lg bg-slate-50 overflow-hidden">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
             className="object-cover"
-            sizes="(max-width:640px) 50vw, 200px"
+            sizes="48px"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ImageIcon className="w-8 h-8 text-slate-200" />
+            <ImageIcon className="w-4 h-4 text-slate-200" />
           </div>
         )}
-
-        {/* كمية في السلة */}
-        {inCart && (
-          <div className="absolute inset-0 bg-primary/10 flex items-end justify-end p-2">
-            <span className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-black shadow">
-              {inCart.qty}
-            </span>
-          </div>
-        )}
-
-        {/* شارة فلاش */}
         {isFlash && (
-          <span className="absolute top-1.5 right-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 flex items-center gap-0.5">
-            <Zap className="w-2.5 h-2.5 text-white" />
-            <span className="text-[9px] font-bold text-white">فلاش</span>
+          <span className="absolute -top-1 -right-1 rounded-full bg-rose-500 p-0.5">
+            <Zap className="w-2 h-2 text-white" />
           </span>
         )}
-
-        {/* المخزون */}
-        <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/50 backdrop-blur-sm px-1.5 py-0.5 text-[10px] text-white font-medium">
-          {product.stock}
-        </span>
       </div>
 
       {/* معلومات */}
-      <div className="p-2.5">
-        <p className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug mb-1.5">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-slate-800 line-clamp-1 leading-snug">
           {product.name}
         </p>
-        <p className="text-sm font-black text-primary leading-none">
-          {price.toLocaleString()}
-          <span className="text-[10px] font-medium"> د.ع</span>
-        </p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm font-black text-primary leading-none">
+            {price.toLocaleString()}
+            <span className="text-[10px] font-medium"> د.ع</span>
+          </p>
+          <span className="text-[10px] text-slate-400">مخزون {product.stock}</span>
+        </div>
       </div>
+
+      {/* كمية في السلة */}
+      {inCart && (
+        <span className="shrink-0 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-black">
+          {inCart.qty}
+        </span>
+      )}
     </button>
   );
 }
@@ -379,12 +371,21 @@ export function PosTab({
       setCartOpen(false);
       setPosView("receipt");
 
-      if (result.stock_warnings?.length) {
+      /* نُظهر فقط تنبيهات مخزون حقيقية — نتجاهل أي رسائل تقنية/أخطاء قاعدة بيانات
+         قد تُرسلها الدالة السحابية بالخطأ (مثل "column ... does not exist") لأن
+         عملية البيع نجحت فعلاً ولا يجب تخويف الكاشير برسالة تقنية غير مفهومة */
+      const realWarnings = (result.stock_warnings ?? []).filter(
+        (w) => !/column|does not exist|relation|syntax error|SQL/i.test(w)
+      );
+      if (realWarnings.length) {
         toast({
           title: "تنبيه مخزون",
-          description: result.stock_warnings.join(" | "),
+          description: realWarnings.join(" | "),
           variant: "destructive",
         });
+      }
+      if (result.stock_warnings?.length && !realWarnings.length) {
+        console.warn("POS checkout returned a non-user-facing warning:", result.stock_warnings);
       }
     } catch (err: any) {
       toast({
@@ -486,7 +487,7 @@ export function PosTab({
     <div className="relative">
 
       {/* ══ شريط البحث والأقسام (ثابت أعلى الصفحة) ══ */}
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-3 sm:px-4 pt-3 pb-2.5 space-y-2">
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-100 px-3 sm:px-4 pt-3 pb-2.5 space-y-2">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
@@ -539,7 +540,7 @@ export function PosTab({
               <p className="text-sm text-slate-400">لا توجد منتجات متاحة</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
               {filteredProducts.map((product) => {
                 const inCart = cart.find((i) => i.product.id === product.id);
                 const maxed  = inCart ? inCart.qty >= product.stock : false;

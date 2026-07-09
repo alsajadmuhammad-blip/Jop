@@ -60,6 +60,17 @@ const FILTER_TABS: { id: OrderStatus | "all"; label: string }[] = [
   { id: "cancelled",    label: "ملغى" },
 ];
 
+/* ─── مصدر الطلب: طلب تطبيق (واتساب) أو بيع فوري من الكاشير (كاش/تحويل) ─── */
+type SourceFilter = "all" | "app" | "pos";
+const SOURCE_TABS: { id: SourceFilter; label: string }[] = [
+  { id: "all", label: "الكل" },
+  { id: "app", label: "طلبات التطبيق" },
+  { id: "pos", label: "مبيعات الكاشير" },
+];
+function isPosOrder(order: Order): boolean {
+  return order.paymentMethod === "cash" || order.paymentMethod === "transfer";
+}
+
 /* ─────────────── Sort options ────────────────────────────── */
 type SortKey = "newest" | "oldest" | "highest" | "lowest";
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -104,6 +115,15 @@ function OrderCard({
             >
               {statusLabels[order.status]}
             </Badge>
+            <span
+              className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${
+                isPosOrder(order)
+                  ? "bg-violet-50 text-violet-700 border-violet-200"
+                  : "bg-sky-50 text-sky-700 border-sky-200"
+              }`}
+            >
+              {isPosOrder(order) ? "بيع فوري (كاشير)" : "طلب من التطبيق"}
+            </span>
             {order.status === "pending" && (
               <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
@@ -339,6 +359,7 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
   const [loading, setLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "all">("all");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [search, setSearch] = useState("");
   const { toast } = useToast();
@@ -382,12 +403,18 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     const revenue   = orders
       .filter((o) => o.status === "delivered")
       .reduce((sum, o) => sum + o.totalAmount, 0);
-    return { pending, delivered, cancelled, revenue };
+    const appCount = orders.filter((o) => !isPosOrder(o)).length;
+    const posCount = orders.filter((o) => isPosOrder(o)).length;
+    return { pending, delivered, cancelled, revenue, appCount, posCount };
   }, [orders]);
 
   /* ── Filter + Search + Sort ── */
   const visibleOrders = useMemo(() => {
     let list = [...orders];
+
+    // filter by source: app orders vs. in-store POS sales
+    if (sourceFilter === "app") list = list.filter((o) => !isPosOrder(o));
+    if (sourceFilter === "pos") list = list.filter((o) => isPosOrder(o));
 
     // filter by status
     if (filterStatus !== "all") {
@@ -413,7 +440,7 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     }
 
     return list;
-  }, [orders, filterStatus, search, sortKey]);
+  }, [orders, sourceFilter, filterStatus, search, sortKey]);
 
   /* ── Sequential order numbers: oldest = #1, sorted by (createdAt, id) for determinism ── */
   const orderNumberMap = useMemo(() => {
@@ -503,6 +530,34 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
             <span className="text-xs font-semibold"> د.ع</span>
           </p>
         </div>
+      </div>
+
+      {/* ─── مصدر الطلب: تطبيق أو كاشير ── */}
+      <div className="flex overflow-x-auto no-scrollbar gap-2">
+        {SOURCE_TABS.map((tab) => {
+          const isActive = sourceFilter === tab.id;
+          const count = tab.id === "all" ? orders.length : tab.id === "app" ? stats.appCount : stats.posCount;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSourceFilter(tab.id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold border transition-colors ${
+                isActive
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-slate-200 text-slate-500"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`text-[10px] rounded-full px-1.5 py-0.5 font-semibold ${
+                  isActive ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ─── Search + Sort ── */}
