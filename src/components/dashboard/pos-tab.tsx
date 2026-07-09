@@ -4,60 +4,298 @@ import React, { useState, useMemo, useCallback } from "react";
 import Image from "next/image";
 import {
   Search, Plus, Minus, X, ShoppingCart, CheckCircle2,
-  Banknote, CreditCard, Package, ReceiptText, ImageIcon,
-  Zap, ChevronRight,
+  Banknote, CreditCard, Package, ReceiptText, ImageIcon, Zap,
 } from "lucide-react";
 import {
-  Product, Section, OrderItem,
+  Product, Section,
   getEffectivePrice, hasActiveFlashSale,
 } from "@/lib/types";
-import { createOrder, updateProduct } from "@/services/supabase-db";
+import { posCheckout } from "@/services/pos-checkout";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 /* ─── أنواع ─── */
 interface CartItem {
-  product: Product;
-  qty: number;
+  product:   Product;
+  qty:       number;
   unitPrice: number;
 }
-
 type PaymentMethod = "cash" | "transfer";
-type PosView = "pos" | "receipt";
+type PosView       = "pos" | "receipt";
 
 export interface PosTabProps {
-  storeId: string;
-  storeName: string;
-  products: Product[];
-  sections: Section[];
+  storeId:       string;
+  storeName:     string;
+  products:      Product[];
+  sections:      Section[];
   onStockUpdate: (productId: string, newStock: number) => void;
 }
 
-/* ══════════════════════════════════════════════
-   مكوّن الكاشير — نقطة البيع الفوري
-══════════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   بطاقة المنتج
+════════════════════════════════════════ */
+interface ProductCardProps {
+  product: Product;
+  inCart:  CartItem | undefined;
+  maxed:   boolean;
+  onAdd:   () => void;
+}
+function ProductCard({ product, inCart, maxed, onAdd }: ProductCardProps) {
+  const price   = getEffectivePrice(product);
+  const isFlash = hasActiveFlashSale(product);
+  return (
+    <button
+      onClick={onAdd}
+      disabled={maxed}
+      className={cn(
+        "flex flex-col overflow-hidden rounded-2xl border bg-white text-right",
+        "shadow-sm transition-all duration-150 active:scale-[0.97]",
+        inCart
+          ? "border-primary/40 ring-2 ring-primary/15 shadow-primary/10"
+          : "border-slate-200 hover:border-primary/30 hover:shadow-md",
+        maxed && "opacity-40 cursor-not-allowed"
+      )}
+    >
+      {/* صورة */}
+      <div className="relative w-full aspect-[4/3] bg-slate-50 overflow-hidden">
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover"
+            sizes="(max-width:640px) 50vw, 200px"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon className="w-8 h-8 text-slate-200" />
+          </div>
+        )}
+
+        {/* كمية في السلة */}
+        {inCart && (
+          <div className="absolute inset-0 bg-primary/10 flex items-end justify-end p-2">
+            <span className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-black shadow">
+              {inCart.qty}
+            </span>
+          </div>
+        )}
+
+        {/* شارة فلاش */}
+        {isFlash && (
+          <span className="absolute top-1.5 right-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 flex items-center gap-0.5">
+            <Zap className="w-2.5 h-2.5 text-white" />
+            <span className="text-[9px] font-bold text-white">فلاش</span>
+          </span>
+        )}
+
+        {/* المخزون */}
+        <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/50 backdrop-blur-sm px-1.5 py-0.5 text-[10px] text-white font-medium">
+          {product.stock}
+        </span>
+      </div>
+
+      {/* معلومات */}
+      <div className="p-2.5">
+        <p className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug mb-1.5">
+          {product.name}
+        </p>
+        <p className="text-sm font-black text-primary leading-none">
+          {price.toLocaleString()}
+          <span className="text-[10px] font-medium"> د.ع</span>
+        </p>
+      </div>
+    </button>
+  );
+}
+
+/* ════════════════════════════════════════
+   محتوى السلة (يُستخدم في الـ sidebar والـ Sheet)
+════════════════════════════════════════ */
+interface CartContentProps {
+  cart:          CartItem[];
+  cartCount:     number;
+  cartTotal:     number;
+  customerName:  string;
+  notes:         string;
+  payment:       PaymentMethod;
+  completing:    boolean;
+  onRemove:      (id: string) => void;
+  onChangeQty:   (id: string, delta: number) => void;
+  onClearAll:    () => void;
+  onCustomer:    (v: string) => void;
+  onNotes:       (v: string) => void;
+  onPayment:     (v: PaymentMethod) => void;
+  onComplete:    () => void;
+}
+function CartContent({
+  cart, cartCount, cartTotal,
+  customerName, notes, payment, completing,
+  onRemove, onChangeQty, onClearAll,
+  onCustomer, onNotes, onPayment, onComplete,
+}: CartContentProps) {
+  return (
+    <div className="flex flex-col h-full">
+
+      {/* رأس */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="w-4 h-4 text-primary" />
+          <span className="text-sm font-bold text-slate-900">السلة</span>
+          {cartCount > 0 && (
+            <span className="rounded-full bg-primary/10 text-primary text-xs font-black px-2 py-0.5">
+              {cartCount}
+            </span>
+          )}
+        </div>
+        {cart.length > 0 && (
+          <button
+            onClick={onClearAll}
+            className="text-xs text-rose-400 hover:text-rose-600 font-semibold transition-colors"
+          >
+            مسح الكل
+          </button>
+        )}
+      </div>
+
+      {/* عناصر */}
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-36 text-center px-4">
+            <ShoppingCart className="w-8 h-8 text-slate-200 mb-2" />
+            <p className="text-xs text-slate-400">اضغط على أي منتج لإضافته</p>
+          </div>
+        ) : (
+          cart.map((item) => (
+            <div key={item.product.id} className="flex items-center gap-2 px-3 py-2.5">
+              <button
+                onClick={() => onRemove(item.product.id)}
+                className="shrink-0 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-800 truncate">{item.product.name}</p>
+                <p className="text-[11px] text-slate-400">{item.unitPrice.toLocaleString()} × {item.qty}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => onChangeQty(item.product.id, -1)}
+                  className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="w-5 text-center text-xs font-bold text-slate-800">{item.qty}</span>
+                <button
+                  onClick={() => onChangeQty(item.product.id, 1)}
+                  disabled={item.qty >= item.product.stock}
+                  className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center disabled:opacity-40 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              <p className="text-xs font-black text-slate-900 w-16 text-left shrink-0 tabular-nums">
+                {(item.unitPrice * item.qty).toLocaleString()}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* تذييل */}
+      <div className="border-t border-slate-100 p-4 space-y-3 shrink-0">
+        <input
+          value={customerName}
+          onChange={(e) => onCustomer(e.target.value)}
+          placeholder="اسم العميل (اختياري)"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all"
+        />
+        <input
+          value={notes}
+          onChange={(e) => onNotes(e.target.value)}
+          placeholder="ملاحظات (اختياري)"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all"
+        />
+
+        {/* طريقة الدفع */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => onPayment("cash")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border transition-all",
+              payment === "cash"
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 text-slate-500 hover:border-slate-300"
+            )}
+          >
+            <Banknote className="w-3.5 h-3.5" /> كاش
+          </button>
+          <button
+            onClick={() => onPayment("transfer")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border transition-all",
+              payment === "transfer"
+                ? "border-blue-500 bg-blue-50 text-blue-700"
+                : "border-slate-200 text-slate-500 hover:border-slate-300"
+            )}
+          >
+            <CreditCard className="w-3.5 h-3.5" /> تحويل
+          </button>
+        </div>
+
+        {/* المجموع */}
+        <div className="flex items-center justify-between py-1">
+          <span className="text-sm text-slate-500 font-medium">المجموع</span>
+          <span className="text-xl font-black text-primary tabular-nums">
+            {cartTotal.toLocaleString()}
+            <span className="text-xs font-medium"> د.ع</span>
+          </span>
+        </div>
+
+        {/* زر إتمام البيع */}
+        <Button
+          onClick={onComplete}
+          disabled={cart.length === 0 || completing}
+          className="w-full rounded-xl font-black text-sm py-5 gap-2 shadow-sm shadow-primary/20"
+        >
+          {completing ? (
+            "جاري المعالجة..."
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4" />
+              إتمام البيع — {cartTotal.toLocaleString()} د.ع
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════
+   الكاشير الرئيسي
+════════════════════════════════════════ */
 export function PosTab({
-  storeId,
-  storeName,
-  products,
-  sections,
-  onStockUpdate,
+  storeId, storeName, products, sections, onStockUpdate,
 }: PosTabProps) {
   const { toast } = useToast();
 
-  /* ── حالة ── */
-  const [search, setSearch]           = useState("");
+  const [search,       setSearch]       = useState("");
   const [sectionFilter, setSectionFilter] = useState("all");
-  const [cart, setCart]               = useState<CartItem[]>([]);
+  const [cart,         setCart]         = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes]             = useState("");
-  const [payment, setPayment]         = useState<PaymentMethod>("cash");
-  const [completing, setCompleting]   = useState(false);
-  const [posView, setPosView]         = useState<PosView>("pos");
-  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
-  const [lastCart, setLastCart]       = useState<CartItem[]>([]);
-  const [mobileSide, setMobileSide]   = useState<"products" | "cart">("products");
+  const [notes,        setNotes]        = useState("");
+  const [payment,      setPayment]      = useState<PaymentMethod>("cash");
+  const [completing,   setCompleting]   = useState(false);
+  const [posView,      setPosView]      = useState<PosView>("pos");
+  const [lastOrderId,  setLastOrderId]  = useState<string | null>(null);
+  const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
+  const [lastCart,     setLastCart]     = useState<CartItem[]>([]);
+  const [cartOpen,     setCartOpen]     = useState(false);
 
   /* ── منتجات مصفاة ── */
   const filteredProducts = useMemo(() => {
@@ -73,15 +311,8 @@ export function PosTab({
     return pool;
   }, [products, sectionFilter, search]);
 
-  /* ── إجماليات ── */
-  const cartTotal = useMemo(
-    () => cart.reduce((s, i) => s + i.unitPrice * i.qty, 0),
-    [cart]
-  );
-  const cartCount = useMemo(
-    () => cart.reduce((s, i) => s + i.qty, 0),
-    [cart]
-  );
+  const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.unitPrice * i.qty, 0), [cart]);
+  const cartCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
 
   /* ── عمليات السلة ── */
   const addToCart = useCallback((product: Product) => {
@@ -98,9 +329,10 @@ export function PosTab({
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((i) => i.product.id !== productId));
-  }, []);
+  const removeFromCart = useCallback(
+    (productId: string) => setCart((prev) => prev.filter((i) => i.product.id !== productId)),
+    []
+  );
 
   const changeQty = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
@@ -114,78 +346,54 @@ export function PosTab({
     );
   }, []);
 
-  /* ── إتمام البيع ── */
+  /* ── إتمام البيع عبر الدالة السحابية ── */
   const completeSale = async () => {
     if (cart.length === 0) return;
     setCompleting(true);
-
-    /* ① إنشاء الطلب في قاعدة البيانات */
-    let orderId: string | null = null;
     try {
-      const items: OrderItem[] = cart.map((i) => ({
-        productId: i.product.id,
-        productName: i.product.name,
-        quantity: i.qty,
-        unitPrice: i.unitPrice,
-        totalPrice: i.unitPrice * i.qty,
-      }));
-
-      orderId = await createOrder({
-        storeId,
-        storeName,
-        customerName: customerName.trim() || "عميل نقدي",
-        items,
-        totalAmount: cartTotal,
-        status: "delivered",
-        paymentMethod: payment,
-        notes: notes.trim() || null,
+      const result = await posCheckout({
+        store_id:       storeId,
+        store_name:     storeName,
+        customer_name:  customerName.trim() || undefined,
+        items:          cart.map((i) => ({
+          product_id:   i.product.id,
+          product_name: i.product.name,
+          qty:          i.qty,
+          unit_price:   i.unitPrice,
+        })),
+        total_amount:   cartTotal,
+        payment_method: payment,
+        notes:          notes.trim() || undefined,
       });
-    } catch (err) {
-      console.error("createOrder threw:", err);
-    }
 
-    if (!orderId) {
+      const saleCart = [...cart];
+      setLastCart(saleCart);
+      setLastOrderId(result.order_id);
+      setLastOrderNum(result.order_number);
+
+      /* تحديث الحالة المحلية */
+      saleCart.forEach((item) => {
+        onStockUpdate(item.product.id, Math.max(0, item.product.stock - item.qty));
+      });
+
+      setCartOpen(false);
+      setPosView("receipt");
+
+      if (result.stock_warnings?.length) {
+        toast({
+          title: "تنبيه مخزون",
+          description: result.stock_warnings.join(" | "),
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
       toast({
-        title: "فشل تسجيل الطلب",
-        description: "تحقق من الاتصال بالإنترنت وحاول مرة أخرى",
+        title: "فشل إتمام البيع",
+        description: err?.message || "تحقق من الاتصال وحاول مجدداً",
         variant: "destructive",
       });
+    } finally {
       setCompleting(false);
-      return;
-    }
-
-    /* ② الطلب نجح — انتقل لشاشة الفاتورة فوراً */
-    const saleCart = [...cart];
-    setLastCart(saleCart);
-    setLastOrderId(orderId);
-    setCompleting(false);
-    setPosView("receipt");
-
-    /* ③ تحديث المخزون — يستخدم updateProduct المثبتة */
-    const stockResults = await Promise.allSettled(
-      saleCart.map(async (item) => {
-        const newStock = Math.max(0, item.product.stock - item.qty);
-        try {
-          await updateProduct(item.product.id, { stock: newStock });
-          onStockUpdate(item.product.id, newStock);
-          return { ok: true, item, newStock };
-        } catch (err) {
-          console.error("فشل تحديث مخزون:", item.product.name, err);
-          return { ok: false, item, newStock };
-        }
-      })
-    );
-
-    const failures = stockResults.filter(
-      (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)
-    );
-    if (failures.length > 0) {
-      console.warn("بعض تحديثات المخزون لم تكتمل:", failures.length, "منتج");
-      toast({
-        title: "تنبيه: المخزون",
-        description: "تمّت عملية البيع لكن تعذّر تحديث مخزون بعض المنتجات. راجعه يدوياً.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -196,28 +404,34 @@ export function PosTab({
     setPayment("cash");
     setPosView("pos");
     setLastOrderId(null);
-    setMobileSide("products");
+    setLastOrderNum(null);
+    setCartOpen(false);
   };
 
-  /* ══ شاشة الفاتورة ══ */
+  /* ══════════════════════════════════════
+     شاشة الفاتورة
+  ══════════════════════════════════════ */
   if (posView === "receipt") {
     const total = lastCart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
     return (
-      <div className="flex flex-col items-center justify-center py-10 px-4 text-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center py-12 px-4 min-h-[520px]">
+        {/* أيقونة النجاح */}
         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 shadow-sm">
           <CheckCircle2 className="w-9 h-9 text-emerald-500" />
         </div>
-        <h2 className="text-xl font-black text-slate-900 mb-1">تمت عملية البيع!</h2>
-        <p className="text-sm text-slate-500 mb-6">
-          رقم الطلب:{" "}
-          <span className="font-mono font-bold text-slate-700">
-            #{lastOrderId?.slice(-8).toUpperCase()}
-          </span>
+
+        {/* رقم الطلب المتسلسل */}
+        <p className="text-5xl font-black text-primary mb-1 tabular-nums">
+          #{lastOrderNum ?? "—"}
+        </p>
+        <h2 className="text-lg font-black text-slate-800 mb-1">تمت عملية البيع</h2>
+        <p className="text-xs text-slate-400 font-mono mb-8">
+          {lastOrderId?.slice(-10).toUpperCase()}
         </p>
 
-        {/* فاتورة */}
+        {/* الفاتورة */}
         <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6 text-right">
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
             <ReceiptText className="w-4 h-4 text-slate-400" />
             <span className="text-sm font-bold text-slate-700">ملخص الفاتورة</span>
           </div>
@@ -238,344 +452,160 @@ export function PosTab({
           </div>
           <div className="px-5 py-4 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <span className="text-sm font-bold text-slate-600">المجموع الكلي</span>
-            <span className="text-xl font-black text-primary">
-              {total.toLocaleString()} د.ع
+            <span className="text-2xl font-black text-primary tabular-nums">
+              {total.toLocaleString()}
+              <span className="text-sm font-medium"> د.ع</span>
             </span>
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <Button onClick={resetPos} className="rounded-xl gap-2 font-bold px-8 py-5">
-            <Plus className="w-4 h-4" />
-            بيع جديد
-          </Button>
-        </div>
+        <Button onClick={resetPos} className="rounded-xl gap-2 font-bold px-10 py-5">
+          <Plus className="w-4 h-4" />
+          بيع جديد
+        </Button>
       </div>
     );
   }
 
-  /* ══ شاشة الكاشير الرئيسية ══ */
+  /* ══════════════════════════════════════
+     شاشة الكاشير الرئيسية
+  ══════════════════════════════════════ */
+  const cartContentProps: CartContentProps = {
+    cart, cartCount, cartTotal,
+    customerName, notes, payment, completing,
+    onRemove:   removeFromCart,
+    onChangeQty: changeQty,
+    onClearAll:  () => setCart([]),
+    onCustomer:  setCustomerName,
+    onNotes:     setNotes,
+    onPayment:   setPayment,
+    onComplete:  completeSale,
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] min-h-[520px]">
+    <div className="relative">
 
-      {/* ── مبدّل الجوال ── */}
-      <div className="flex sm:hidden mb-3 rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-        <button
-          onClick={() => setMobileSide("products")}
-          className={cn(
-            "flex-1 py-2.5 text-xs font-bold transition-colors",
-            mobileSide === "products" ? "bg-primary text-white" : "text-slate-500"
-          )}
-        >
-          المنتجات
-        </button>
-        <button
-          onClick={() => setMobileSide("cart")}
-          className={cn(
-            "flex-1 py-2.5 text-xs font-bold transition-colors relative",
-            mobileSide === "cart" ? "bg-primary text-white" : "text-slate-500"
-          )}
-        >
-          السلة
-          {cartCount > 0 && (
-            <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-[10px] text-white font-black">
-              {cartCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      <div className="flex gap-4 flex-1 min-h-0">
-
-        {/* ════════════════ لوحة المنتجات ════════════════ */}
+      {/* ══ شريط البحث والأقسام (ثابت أعلى الصفحة) ══ */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-3 sm:px-4 pt-3 pb-2.5 space-y-2">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ابحث عن منتج..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 pr-10 pl-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all"
+          />
+        </div>
         <div
-          className={cn(
-            "flex flex-col flex-1 min-w-0 min-h-0",
-            mobileSide === "cart" ? "hidden sm:flex" : "flex"
-          )}
+          className="flex gap-1.5 overflow-x-auto pb-0.5"
+          style={{ scrollbarWidth: "none" }}
         >
-          {/* بحث */}
-          <div className="relative mb-2.5">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن منتج..."
-              className="w-full rounded-xl border border-slate-200 bg-white pr-10 pl-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-            />
-          </div>
-
-          {/* فلتر الأقسام */}
-          <div
-            className="flex gap-1.5 overflow-x-auto pb-2.5 mb-2.5"
-            style={{ scrollbarWidth: "none" }}
+          <button
+            onClick={() => setSectionFilter("all")}
+            className={cn(
+              "flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors",
+              sectionFilter === "all"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            )}
           >
+            الكل
+          </button>
+          {sections.map((s) => (
             <button
-              onClick={() => setSectionFilter("all")}
+              key={s.id}
+              onClick={() => setSectionFilter(s.id)}
               className={cn(
                 "flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors",
-                sectionFilter === "all"
+                sectionFilter === s.id
                   ? "bg-primary text-white shadow-sm"
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               )}
             >
-              الكل
+              {s.name}
             </button>
-            {sections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSectionFilter(s.id)}
-                className={cn(
-                  "flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors",
-                  sectionFilter === s.id
-                    ? "bg-primary text-white shadow-sm"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                )}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* شبكة المنتجات */}
-          <div className="flex-1 overflow-y-auto">
-            {filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40">
-                <Package className="w-10 h-10 text-slate-200 mb-2" />
-                <p className="text-sm text-slate-400">لا توجد منتجات متاحة</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 pb-4">
-                {filteredProducts.map((product) => {
-                  const price = getEffectivePrice(product);
-                  const isFlash = hasActiveFlashSale(product);
-                  const inCart = cart.find((i) => i.product.id === product.id);
-                  const maxed = inCart ? inCart.qty >= product.stock : false;
+      {/* ══ منطقة المحتوى ══ */}
+      <div className="flex items-start">
 
-                  return (
-                    <button
-                      key={product.id}
-                      onClick={() => addToCart(product)}
-                      disabled={maxed}
-                      className={cn(
-                        "flex flex-col overflow-hidden rounded-xl border bg-white text-right shadow-sm transition-all duration-150",
-                        "hover:shadow-md active:scale-[0.98]",
-                        inCart
-                          ? "border-primary/50 ring-1 ring-primary/20"
-                          : "border-slate-200 hover:border-primary/30",
-                        maxed && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      {/* صورة المنتج */}
-                      <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
-                        {product.imageUrl ? (
-                          <Image
-                            src={product.imageUrl}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                            sizes="160px"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon className="w-7 h-7 text-slate-200" />
-                          </div>
-                        )}
-                        {/* عدد في السلة */}
-                        {inCart && (
-                          <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                            <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-black shadow-md">
-                              {inCart.qty}
-                            </span>
-                          </div>
-                        )}
-                        {/* شارة فلاش */}
-                        {isFlash && (
-                          <span className="absolute top-1.5 right-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 flex items-center gap-0.5">
-                            <Zap className="w-2.5 h-2.5 text-white" />
-                            <span className="text-[9px] font-bold text-white">فلاش</span>
-                          </span>
-                        )}
-                        {/* المخزون */}
-                        <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/50 backdrop-blur-sm px-1.5 py-0.5 text-[10px] text-white font-semibold">
-                          {product.stock} قطعة
-                        </span>
-                      </div>
-
-                      {/* معلومات */}
-                      <div className="p-2">
-                        <p className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug mb-1">
-                          {product.name}
-                        </p>
-                        <p className="text-sm font-black text-primary leading-none">
-                          {price.toLocaleString()}{" "}
-                          <span className="text-[10px] font-medium">د.ع</span>
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        {/* ─── شبكة المنتجات ─── */}
+        <div className="flex-1 min-w-0 p-3 sm:p-4">
+          {filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <Package className="w-12 h-12 text-slate-200 mb-3" />
+              <p className="text-sm text-slate-400">لا توجد منتجات متاحة</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
+              {filteredProducts.map((product) => {
+                const inCart = cart.find((i) => i.product.id === product.id);
+                const maxed  = inCart ? inCart.qty >= product.stock : false;
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    inCart={inCart}
+                    maxed={maxed}
+                    onAdd={() => addToCart(product)}
+                  />
+                );
+              })}
+            </div>
+          )}
+          {/* مساحة سفلية على الجوال فوق الـ FAB */}
+          <div className="lg:hidden h-24" />
         </div>
 
-        {/* ════════════════ لوحة السلة ════════════════ */}
-        <div
-          className={cn(
-            "flex flex-col w-full sm:w-72 lg:w-80 shrink-0 min-h-0",
-            mobileSide === "products" ? "hidden sm:flex" : "flex"
-          )}
-        >
-          <div className="flex flex-col flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-
-            {/* رأس السلة */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-primary" />
-                <span className="text-sm font-bold text-slate-900">السلة</span>
-                {cartCount > 0 && (
-                  <span className="rounded-full bg-primary/10 text-primary text-xs font-black px-2 py-0.5">
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-              {cart.length > 0 && (
-                <button
-                  onClick={() => setCart([])}
-                  className="text-xs text-rose-400 hover:text-rose-600 font-semibold transition-colors"
-                >
-                  مسح الكل
-                </button>
-              )}
-            </div>
-
-            {/* عناصر السلة */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-              {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-32 text-center px-4">
-                  <ShoppingCart className="w-8 h-8 text-slate-200 mb-2" />
-                  <p className="text-xs text-slate-400">اضغط على أي منتج لإضافته</p>
-                </div>
-              ) : (
-                cart.map((item) => (
-                  <div key={item.product.id} className="flex items-center gap-2 px-3 py-2.5">
-                    <button
-                      onClick={() => removeFromCart(item.product.id)}
-                      className="shrink-0 text-slate-300 hover:text-rose-500 transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 truncate">
-                        {item.product.name}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        {item.unitPrice.toLocaleString()} × {item.qty}
-                      </p>
-                    </div>
-                    {/* أزرار الكمية */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => changeQty(item.product.id, -1)}
-                        className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-5 text-center text-xs font-bold text-slate-800">
-                        {item.qty}
-                      </span>
-                      <button
-                        onClick={() => changeQty(item.product.id, 1)}
-                        disabled={item.qty >= item.product.stock}
-                        className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 disabled:opacity-40 transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <p className="text-xs font-black text-slate-900 w-16 text-left shrink-0 tabular-nums">
-                      {(item.unitPrice * item.qty).toLocaleString()}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* تذييل السلة */}
-            <div className="border-t border-slate-100 p-4 space-y-3 shrink-0">
-              {/* اسم العميل */}
-              <input
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="اسم العميل (اختياري)"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all"
-              />
-
-              {/* ملاحظات */}
-              <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="ملاحظات (اختياري)"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all"
-              />
-
-              {/* طريقة الدفع */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPayment("cash")}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border transition-all",
-                    payment === "cash"
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300"
-                  )}
-                >
-                  <Banknote className="w-3.5 h-3.5" />
-                  كاش
-                </button>
-                <button
-                  onClick={() => setPayment("transfer")}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border transition-all",
-                    payment === "transfer"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300"
-                  )}
-                >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  تحويل
-                </button>
-              </div>
-
-              {/* المجموع */}
-              <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                <span className="text-sm text-slate-500 font-medium">المجموع</span>
-                <span className="text-xl font-black text-primary tabular-nums">
-                  {cartTotal.toLocaleString()}{" "}
-                  <span className="text-xs font-medium">د.ع</span>
-                </span>
-              </div>
-
-              {/* زر إتمام البيع */}
-              <Button
-                onClick={completeSale}
-                disabled={cart.length === 0 || completing}
-                className="w-full rounded-xl font-black text-sm py-5 gap-2 shadow-sm shadow-primary/20 transition-all"
-              >
-                {completing ? (
-                  <span>جاري المعالجة...</span>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    إتمام البيع — {cartTotal.toLocaleString()} د.ع
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+        {/* ─── Sidebar السلة (سطح المكتب فقط) ─── */}
+        <div className="hidden lg:flex flex-col w-80 shrink-0 border-r border-slate-100 sticky top-[108px] max-h-[calc(100vh-108px)] bg-white">
+          <CartContent {...cartContentProps} />
         </div>
 
       </div>
+
+      {/* ══ زر السلة العائم (جوال) ══ */}
+      <button
+        onClick={() => setCartOpen(true)}
+        className={cn(
+          "lg:hidden fixed bottom-[88px] left-4 z-40",
+          "flex items-center gap-2.5 rounded-2xl px-4 py-3 shadow-xl transition-all",
+          cart.length > 0
+            ? "bg-primary text-white"
+            : "bg-slate-200 text-slate-400 cursor-default pointer-events-none"
+        )}
+      >
+        <div className="relative">
+          <ShoppingCart className="w-5 h-5" />
+          {cartCount > 0 && (
+            <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
+              {cartCount > 9 ? "9+" : cartCount}
+            </span>
+          )}
+        </div>
+        {cart.length > 0 ? (
+          <span className="text-sm font-bold">
+            {cartCount} منتج — {cartTotal.toLocaleString()} د.ع
+          </span>
+        ) : (
+          <span className="text-sm font-medium">السلة فارغة</span>
+        )}
+      </button>
+
+      {/* ══ Sheet السلة (جوال) ══ */}
+      <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+        <SheetContent side="bottom" className="h-[88vh] p-0 rounded-t-2xl overflow-hidden">
+          <SheetHeader className="sr-only">
+            <SheetTitle>سلة الكاشير</SheetTitle>
+          </SheetHeader>
+          {/* مقبض بصري */}
+          <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mt-2.5 mb-0 shrink-0" />
+          <CartContent {...cartContentProps} />
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 }
