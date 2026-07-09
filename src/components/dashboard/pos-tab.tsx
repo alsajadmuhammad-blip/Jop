@@ -11,7 +11,7 @@ import {
   Product, Section, OrderItem,
   getEffectivePrice, hasActiveFlashSale,
 } from "@/lib/types";
-import { createOrder, updateProductStock } from "@/services/supabase-db";
+import { createOrder, updateProduct } from "@/services/supabase-db";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -161,13 +161,18 @@ export function PosTab({
     setCompleting(false);
     setPosView("receipt");
 
-    /* ③ تحديث المخزون في الخلفية — منفصل عن نجاح البيع */
+    /* ③ تحديث المخزون — يستخدم updateProduct المثبتة */
     const stockResults = await Promise.allSettled(
       saleCart.map(async (item) => {
         const newStock = Math.max(0, item.product.stock - item.qty);
-        const ok = await updateProductStock(item.product.id, newStock);
-        if (ok) onStockUpdate(item.product.id, newStock);
-        return { ok, item, newStock };
+        try {
+          await updateProduct(item.product.id, { stock: newStock });
+          onStockUpdate(item.product.id, newStock);
+          return { ok: true, item, newStock };
+        } catch (err) {
+          console.error("فشل تحديث مخزون:", item.product.name, err);
+          return { ok: false, item, newStock };
+        }
       })
     );
 

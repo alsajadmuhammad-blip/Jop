@@ -3,21 +3,20 @@
 import Image from "next/image";
 import { memo, useMemo, useState, useEffect, useRef } from "react";
 import {
-  Truck, Globe, MessageSquare,
-  Star, MapPin, Clock,
+  Truck, Globe, Star, MapPin, Clock,
 } from "lucide-react";
 import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapper";
+import { useStoreContact } from "@/contexts/store-contact-context";
 import type { Store } from "@/lib/types";
 
 const HEADER_H = 56;
-const COVER_H  = 240;
-const OVERLAP  = 32;
+const COVER_H  = 220;
+const OVERLAP  = 28;
 
 function arabicN(n: number) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
 }
 
-/* تنسيق الساعة مختصر: ص / م / ظ */
 function fmtHour(h: number): string {
   if (h === 0)  return "١٢ م";
   if (h === 12) return "١٢ ظ";
@@ -42,6 +41,7 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
   useEffect(() => { setIsOpen(computeIsOpen(store)); }, [store]);
 
   const coverRef = useRef<HTMLDivElement>(null);
+  const { setContact, clearContact } = useStoreContact();
 
   /* ضبط top حسب ارتفاع الهيدر الفعلي */
   useEffect(() => {
@@ -57,7 +57,7 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
     return () => window.removeEventListener("resize", applyOffset);
   }, []);
 
-  /* إخفاء الغلاف بعد تجاوز العتبة — بدون parallax لمنع jank في كروم */
+  /* إخفاء الغلاف بعد تجاوز العتبة */
   useEffect(() => {
     const cover = coverRef.current;
     if (!cover) return;
@@ -88,6 +88,12 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
     return { waHref, isPhys, hasCoords, mapsUrl, hoursText };
   }, [store]);
 
+  /* رفع بيانات التواصل للـ context ليستخدمها الهيدر السفلي */
+  useEffect(() => {
+    setContact({ waHref: info.waHref, mapsUrl: info.mapsUrl });
+    return () => clearContact();
+  }, [info.waHref, info.mapsUrl, setContact, clearContact]);
+
   return (
     <>
       {/* ══ صورة الغلاف Fixed ══ */}
@@ -116,10 +122,10 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
             </div>
           )}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
 
         {/* شارة الحالة */}
-        <div className="absolute bottom-4 left-4 z-10">
+        <div className="absolute bottom-3 left-3 z-10">
           <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md border ${
             isOpen ? "bg-emerald-500/25 border-emerald-400/30 text-emerald-100" : "bg-black/35 border-white/15 text-white/50"
           }`}>
@@ -133,42 +139,52 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
       <div style={{ height: COVER_H }} aria-hidden="true" />
 
       {/* ══ ورقة المحتوى ══ */}
-      <div style={{ position: "relative", zIndex: 10, marginTop: -OVERLAP, borderTopLeftRadius: 24, borderTopRightRadius: 24, background: "white", boxShadow: "0 -6px 28px rgba(0,0,0,0.10)" }}>
+      <div style={{ position: "relative", zIndex: 10, marginTop: -OVERLAP, borderTopLeftRadius: 20, borderTopRightRadius: 20, background: "white", boxShadow: "0 -4px 24px rgba(0,0,0,0.09)" }}>
 
-        <div className="px-4 sm:px-5 pt-4 pb-4">
+        <div className="px-4 sm:px-5 pt-4 pb-3">
 
-          {/* صف اللوغو + اسم المتجر */}
+          {/* صف اللوغو + اسم المتجر + زر التقييم */}
           <div className="flex items-end gap-3 mb-3">
             {/* اللوغو */}
             <div
-              className="relative w-[68px] h-[68px] rounded-2xl border-[3px] border-white bg-white overflow-hidden flex-shrink-0 -mt-12"
-              style={{ boxShadow: "0 6px 22px rgba(0,0,0,0.16)" }}
+              className="relative w-[62px] h-[62px] rounded-2xl border-[3px] border-white bg-white overflow-hidden flex-shrink-0 -mt-10"
+              style={{ boxShadow: "0 4px 18px rgba(0,0,0,0.14)" }}
             >
               {store.logoUrl ? (
                 store.logoUrl.startsWith("data:") ? (
                   <img src={store.logoUrl} alt={store.name} className="w-full h-full object-contain p-1.5" />
                 ) : (
-                  <Image src={store.logoUrl} alt={store.name} fill className="object-contain p-1.5" sizes="68px" priority />
+                  <Image src={store.logoUrl} alt={store.name} fill className="object-contain p-1.5" sizes="62px" priority />
                 )
               ) : (
                 <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100">
-                  <Globe className="w-7 h-7 text-primary/40" />
+                  <Globe className="w-6 h-6 text-primary/40" />
                 </div>
               )}
             </div>
 
             {/* الاسم + التصنيف */}
             <div className="flex-1 min-w-0 pb-0.5">
-              <h1 className="text-xl font-black text-slate-900 leading-tight truncate">{store.name}</h1>
+              <h1 className="text-lg font-black text-slate-900 leading-tight truncate">{store.name}</h1>
               {store.marketType && (
                 <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">{store.marketType}</p>
               )}
             </div>
+
+            {/* زر التقييم — أيقونة مدمجة */}
+            <div className="pb-0.5 flex-shrink-0">
+              <StoreRatingDialogWrapper
+                storeId={store.id}
+                storeName={store.name}
+                ownerId={store.ownerId}
+                buttonClassName="h-8 px-3 rounded-xl font-bold text-xs"
+              />
+            </div>
           </div>
 
-          {/* معلومات المتجر — صف واحد خفيف */}
+          {/* معلومات المتجر — شرائح خفيفة */}
           {(info.hoursText || (info.isPhys && store.location) || store.hasDelivery || store.reviews > 0) && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               {info.isPhys && store.location && (
                 <span className="flex items-center gap-1 text-[12px] text-slate-500">
                   <MapPin className="w-3 h-3 text-rose-400 flex-shrink-0" />
@@ -197,39 +213,6 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
             </div>
           )}
 
-          {/* أزرار التفاعل */}
-          <div className="flex gap-2">
-            {info.waHref && (
-              <a
-                href={info.waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl font-bold text-[13px] text-white"
-                style={{ background: "#25D366", boxShadow: "0 3px 10px rgba(37,211,102,0.22)" }}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                واتساب
-              </a>
-            )}
-            {info.isPhys && info.hasCoords && (
-              <a
-                href={info.mapsUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl font-bold text-[13px] text-white bg-slate-800"
-                style={{ boxShadow: "0 3px 10px rgba(0,0,0,0.10)" }}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                الخريطة
-              </a>
-            )}
-            <StoreRatingDialogWrapper
-              storeId={store.id}
-              storeName={store.name}
-              ownerId={store.ownerId}
-              buttonClassName={`h-10 rounded-xl font-bold text-[13px] ${!info.waHref && !(info.isPhys && info.hasCoords) ? "w-full" : "flex-1"}`}
-            />
-          </div>
         </div>
 
         <div className="h-px bg-slate-100" />

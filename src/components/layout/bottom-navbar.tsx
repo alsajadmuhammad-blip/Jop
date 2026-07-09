@@ -2,10 +2,11 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ShoppingCart, Store, User, Search, Shield, Phone, type LucideIcon } from "lucide-react";
+import { Home, ShoppingCart, Store, User, Search, Shield, Phone, MessageSquare, MapPin, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
+import { useStoreContact } from "@/contexts/store-contact-context";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -22,25 +23,29 @@ const navItems = [
   { href: "/login", icon: User, label: "الحساب", roles: ["customer", "store", "representative", "admin"] },
 ];
 
-// عناصر خاصة بدور الشريك — الترتيب: يسار، وسط (دائري)، يمين
 const repNavItems = [
   { href: WHATSAPP_CONTACT, icon: Phone, label: "تواصل", isCenter: false, external: true },
   { href: "/dashboard/representative", icon: Home, label: "الرئيسية", isCenter: true, external: false },
   { href: "/dashboard/representative", icon: User, label: "حسابي", isCenter: false, external: false },
 ];
 
-// صفحات تخفي الـ bottom navbar (لها شريط إجراءات خاص بها)
 const HIDE_ON_PATHS = ["/store/product"];
 
 export function BottomNavbar() {
   const pathname = usePathname();
   const { items } = useCart();
   const { user, userRole } = useAuth();
+  const { contact } = useStoreContact();
   const totalCartItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const isGuest = !user;
 
-  // أخفِ الـ navbar على صفحات المنتج لأن لديها أزرار إجراء خاصة
   if (HIDE_ON_PATHS.some(p => pathname?.startsWith(p))) return null;
+
+  /* هل نحن في صفحة متجر وعندنا بيانات تواصل؟ */
+  const isStorePage = pathname?.startsWith("/store") && !pathname.startsWith("/store/product");
+  const hasWA       = isStorePage && Boolean(contact.waHref);
+  const hasMap      = isStorePage && Boolean(contact.mapsUrl);
+  const hasContact  = hasWA || hasMap;
 
   const getHref = (itemLabel: string) => {
     if (itemLabel === "الحساب") {
@@ -48,23 +53,21 @@ export function BottomNavbar() {
       if (userRole === "admin") return "/admin";
       if (userRole === "store") return "/dashboard/store";
       if (userRole === "representative") return "/dashboard/representative";
-      return "/"; // Default for customer or other roles
+      return "/";
     }
-
     if (itemLabel === "الرئيسية" && userRole === "store") {
       return "/dashboard/store";
     }
-
     return null;
   };
-  
+
   const renderCircleButton = (Icon: LucideIcon, label: string, badgeCount?: number) => (
     <button
       type="button"
       aria-label={label}
-      className="relative inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/70"
+      className="relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/70"
     >
-      <Icon className="h-7 w-7 text-white" strokeWidth={2} />
+      <Icon className="h-6 w-6 text-white" strokeWidth={2} />
       {badgeCount && badgeCount > 0 ? (
         <Badge
           variant="destructive"
@@ -113,7 +116,7 @@ export function BottomNavbar() {
     );
   };
 
-  // ── شريط الشريك — مستقل تماماً ──
+  /* ── شريط الشريك — مستقل تماماً ── */
   const renderRepNavbar = () => (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-transparent z-50 flex justify-center">
       <div className="absolute bottom-4 mx-auto w-[calc(100%-2rem)] max-w-sm h-16 bg-card/80 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center justify-around">
@@ -160,6 +163,61 @@ export function BottomNavbar() {
   );
 
   if (userRole === 'representative') return renderRepNavbar();
+
+  /* ── شريط المتجر: إذا كان فيه بيانات تواصل، اعرضها بدل بعض الأزرار ── */
+  if (hasContact) {
+    return (
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-transparent z-50 flex justify-center">
+        <div className="absolute bottom-4 mx-auto w-[calc(100%-2rem)] max-w-sm h-16 bg-card/80 backdrop-blur-xl rounded-2xl shadow-lg border flex items-center justify-around px-2">
+
+          {/* واتساب */}
+          {hasWA && (
+            <a
+              href={contact.waHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-1 p-2 rounded-lg text-emerald-600 transition-colors"
+            >
+              <MessageSquare className="h-6 w-6" strokeWidth={2} />
+              <span className="text-xs font-semibold">واتساب</span>
+            </a>
+          )}
+
+          {/* السلة — مركز دائري */}
+          <div className="-mt-7 z-20 inline-flex">
+            <CartSheet>
+              {renderCircleButton(ShoppingCart, 'السلة', totalCartItems)}
+            </CartSheet>
+          </div>
+
+          {/* الخريطة */}
+          {hasMap && (
+            <a
+              href={contact.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-1 p-2 rounded-lg text-slate-600 transition-colors"
+            >
+              <MapPin className="h-6 w-6" strokeWidth={2} />
+              <span className="text-xs font-semibold">الخريطة</span>
+            </a>
+          )}
+
+          {/* إذا ما فيه خريطة أو واتساب، نملأ بالحساب */}
+          {!hasWA && !hasMap && (
+            <Link
+              href={!user ? "/login" : "/"}
+              className="flex flex-col items-center gap-1 p-2 rounded-lg text-muted-foreground"
+            >
+              <User className="h-6 w-6" strokeWidth={2} />
+              <span className="text-xs font-medium">الحساب</span>
+            </Link>
+          )}
+
+        </div>
+      </div>
+    );
+  }
 
   const navItemsToRender = isGuest
     ? navItems.filter((item) => item.label === 'السلة')

@@ -9,6 +9,7 @@ import PwaInstall from "@/components/pwa-install";
 import PushNotificationPrompt from "@/components/push-notification-prompt";
 import { ThemeProvider } from "next-themes";
 import { NavProgress } from "@/components/nav-progress";
+import { StoreContactProvider } from "@/contexts/store-contact-context";
 
 /* ─── غلاف الصفحة ─── */
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <AuthProvider>
+        <StoreContactProvider>
         <CartProvider>
           <div className="flex min-h-screen min-w-0 flex-col bg-background text-foreground overflow-x-hidden">
             {/* شريط تقدم التنقل — داخل Suspense لأنه يستخدم useSearchParams */}
@@ -49,6 +51,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
             <PushNotificationPrompt />
           </div>
         </CartProvider>
+        </StoreContactProvider>
       </AuthProvider>
     </ThemeProvider>
   );
