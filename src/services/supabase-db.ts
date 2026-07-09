@@ -637,6 +637,26 @@ export async function updateProduct(productId: string, updates: Partial<Product>
   return data ? mapProductRow(data) : null;
 }
 
+/**
+ * تحديث مخزون منتج واحد فقط — بدون SELECT لتجنب مشاكل RLS
+ * تُعيد true عند النجاح، false عند الفشل (لا ترمي exception)
+ */
+export async function updateProductStock(
+  productId: string,
+  newStock: number
+): Promise<boolean> {
+  if (!productId) return false;
+  const { error } = await supabase
+    .from('products')
+    .update({ stock: newStock })
+    .eq('id', productId);
+  if (error) {
+    console.error('updateProductStock error:', error.message);
+    return false;
+  }
+  return true;
+}
+
 export async function deleteProduct(productId: string, storeId: string): Promise<boolean> {
   if (!productId || !storeId) return false;
   

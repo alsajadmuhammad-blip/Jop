@@ -11,7 +11,7 @@ import {
   Product, Section, OrderItem,
   getEffectivePrice, hasActiveFlashSale,
 } from "@/lib/types";
-import { createOrder, updateProduct } from "@/services/supabase-db";
+import { createOrder, updateProductStock } from "@/services/supabase-db";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -118,6 +118,9 @@ export function PosTab({
   const completeSale = async () => {
     if (cart.length === 0) return;
     setCompleting(true);
+
+    /* ① إنشاء الطلب في قاعدة البيانات */
+    let orderId: string | null = null;
     try {
       const items: OrderItem[] = cart.map((i) => ({
         productId: i.product.id,
@@ -127,7 +130,7 @@ export function PosTab({
         totalPrice: i.unitPrice * i.qty,
       }));
 
-      const orderId = await createOrder({
+      orderId = await createOrder({
         storeId,
         storeName,
         customerName: customerName.trim() || "عميل نقدي",
@@ -137,25 +140,47 @@ export function PosTab({
         paymentMethod: payment,
         notes: notes.trim() || null,
       });
+    } catch (err) {
+      console.error("createOrder threw:", err);
+    }
 
-      if (!orderId) throw new Error("فشل إنشاء الطلب");
-
-      /* تخفيض المخزون */
-      await Promise.all(
-        cart.map(async (item) => {
-          const newStock = item.product.stock - item.qty;
-          await updateProduct(item.product.id, { stock: newStock });
-          onStockUpdate(item.product.id, newStock);
-        })
-      );
-
-      setLastCart([...cart]);
-      setLastOrderId(orderId);
-      setPosView("receipt");
-    } catch {
-      toast({ title: "حدث خطأ أثناء إتمام البيع", description: "حاول مرة أخرى", variant: "destructive" });
-    } finally {
+    if (!orderId) {
+      toast({
+        title: "فشل تسجيل الطلب",
+        description: "تحقق من الاتصال بالإنترنت وحاول مرة أخرى",
+        variant: "destructive",
+      });
       setCompleting(false);
+      return;
+    }
+
+    /* ② الطلب نجح — انتقل لشاشة الفاتورة فوراً */
+    const saleCart = [...cart];
+    setLastCart(saleCart);
+    setLastOrderId(orderId);
+    setCompleting(false);
+    setPosView("receipt");
+
+    /* ③ تحديث المخزون في الخلفية — منفصل عن نجاح البيع */
+    const stockResults = await Promise.allSettled(
+      saleCart.map(async (item) => {
+        const newStock = Math.max(0, item.product.stock - item.qty);
+        const ok = await updateProductStock(item.product.id, newStock);
+        if (ok) onStockUpdate(item.product.id, newStock);
+        return { ok, item, newStock };
+      })
+    );
+
+    const failures = stockResults.filter(
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)
+    );
+    if (failures.length > 0) {
+      console.warn("بعض تحديثات المخزون لم تكتمل:", failures.length, "منتج");
+      toast({
+        title: "تنبيه: المخزون",
+        description: "تمّت عملية البيع لكن تعذّر تحديث مخزون بعض المنتجات. راجعه يدوياً.",
+        variant: "destructive",
+      });
     }
   };
 
