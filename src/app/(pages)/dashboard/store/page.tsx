@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { StoreOwnerNavbar } from "./navbar";
 import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag, Camera, Loader2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -50,6 +49,7 @@ import { StoreOrdersTab } from "@/components/dashboard/store-orders-tab";
 import { FlashSalesTab } from "@/components/dashboard/flash-sales-tab";
 import { DiscountCodesTab } from "@/components/dashboard/discount-codes-tab";
 import { ProductAnalyticsTab } from "@/components/dashboard/product-analytics-tab";
+import { PosTab } from "@/components/dashboard/pos-tab";
 
 // ===== Dashboard Product Card =====
 // Lightweight card — no portals, no GPU-layer transforms. Confirm dialog is shared at the grid level.
@@ -981,8 +981,6 @@ export default function StoreDashboardPage() {
       )
   }
 
-  const tabMotion = { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18 } };
-
   return (
     <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
 
@@ -1061,7 +1059,7 @@ export default function StoreDashboardPage() {
 
         {/* ─── تبويب المنتجات ─── */}
         {activeView === 'products' && (
-          <motion.div key="products" {...tabMotion} className="space-y-5">
+          <div className="space-y-5">
 
             {/* Stats strip */}
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
@@ -1095,11 +1093,8 @@ export default function StoreDashboardPage() {
                   color: (remainingDays ?? 0) > 5 ? 'text-purple-600 bg-purple-50' : 'text-red-500 bg-red-50',
                 },
               ] as const).map((stat, i) => (
-                <motion.div
+                <div
                   key={stat.label}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06 }}
                   className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
                 >
                   <div className={`inline-flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${stat.color}`}>
@@ -1108,7 +1103,7 @@ export default function StoreDashboardPage() {
                   <p className="text-lg font-bold text-slate-900 leading-none">{stat.value}</p>
                   <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">{stat.sub}</p>
                   <p className="text-[11px] font-medium text-slate-500 mt-1.5">{stat.label}</p>
-                </motion.div>
+                </div>
               ))}
             </div>
 
@@ -1121,19 +1116,19 @@ export default function StoreDashboardPage() {
               onEdit={handleEditProduct}
               onDelete={handleDeleteProduct}
             />
-          </motion.div>
+          </div>
         )}
 
         {/* ─── تبويب الطلبات ─── */}
         {activeView === 'orders' && (
-          <motion.div key="orders" {...tabMotion}>
+          <div>
             <StoreOrdersTab storeId={fullStoreData.id} />
-          </motion.div>
+          </div>
         )}
 
         {/* ─── تبويب الأقسام ─── */}
         {activeView === 'sections' && (
-          <motion.div key="sections" {...tabMotion} className="space-y-4">
+          <div className="space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div>
@@ -1164,12 +1159,9 @@ export default function StoreDashboardPage() {
             {sections.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2">
                 {sections.map((section, i) => (
-                  <motion.div
+                  <div
                     key={section.id}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:border-primary/30 hover:shadow-md transition-all"
+                    className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:border-primary/30 hover:shadow-md transition-[border-color,box-shadow]"
                   >
                     {/* صورة القسم */}
                     <div className="relative w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-slate-100">
@@ -1233,7 +1225,7 @@ export default function StoreDashboardPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -1245,33 +1237,33 @@ export default function StoreDashboardPage() {
                 <p className="text-xs text-slate-400 mt-1">أضف قسماً من الحقل أعلاه لتنظيم منتجاتك</p>
               </div>
             )}
-          </motion.div>
+          </div>
         )}
 
         {/* ─── تبويب الفلاش سيل ─── */}
         {activeView === 'flash' && fullStoreData && (
-          <motion.div key="flash" {...tabMotion}>
+          <div>
             <FlashSalesTab storeId={fullStoreData.id} products={products} />
-          </motion.div>
+          </div>
         )}
 
         {/* ─── تبويب كودات الخصم ─── */}
         {activeView === 'coupons' && fullStoreData && (
-          <motion.div key="coupons" {...tabMotion}>
+          <div>
             <DiscountCodesTab storeId={fullStoreData.id} />
-          </motion.div>
+          </div>
         )}
 
         {/* ─── تبويب التقييمات والإحصائيات ─── */}
         {activeView === 'analytics' && fullStoreData && (
-          <motion.div key="analytics" {...tabMotion}>
+          <div>
             <ProductAnalyticsTab storeId={fullStoreData.id} products={products} />
-          </motion.div>
+          </div>
         )}
 
         {/* ─── تبويب الاشتراك ─── */}
         {activeView === 'subscription' && (
-          <motion.div key="subscription" {...tabMotion} className="space-y-5">
+          <div className="space-y-5">
 
             {/* Current subscription card */}
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -1354,12 +1346,9 @@ export default function StoreDashboardPage() {
                   {packages.filter((pkg) => pkg.isActive).map((pkg, i) => {
                     const isCurrent = currentPackage?.id === pkg.id;
                     return (
-                      <motion.article
+                      <article
                         key={pkg.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.07 }}
-                        className={`relative flex flex-col rounded-2xl border p-5 transition-all ${
+                        className={`relative flex flex-col rounded-2xl border p-5 transition-[border-color,box-shadow] ${
                           isCurrent
                             ? 'border-primary/40 bg-primary/5 ring-2 ring-primary/20'
                             : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:shadow-md'
@@ -1399,25 +1388,40 @@ export default function StoreDashboardPage() {
                         >
                           {isCurrent ? 'تجديد الاشتراك' : 'طلب الترقية'}
                         </Button>
-                      </motion.article>
+                      </article>
                     );
                   })}
                 </div>
               </div>
             )}
-          </motion.div>
+          </div>
+        )}
+
+        {/* ─── تبويب الكاشير ─── */}
+        {activeView === 'pos' && fullStoreData && (
+          <PosTab
+            storeId={fullStoreData.id}
+            storeName={fullStoreData.name}
+            products={products}
+            sections={sections}
+            onStockUpdate={(productId, newStock) =>
+              setProducts((prev) =>
+                prev.map((p) => p.id === productId ? { ...p, stock: newStock } : p)
+              )
+            }
+          />
         )}
 
         {/* ─── تبويب الإعدادات ─── */}
         {activeView === 'settings' && (
-          <motion.div key="settings" {...tabMotion}>
+          <div>
             <StoreSettingsTab
               store={fullStoreData}
               onSettingChange={handleStoreSettingChange}
               onLogoSave={handleLogoSave}
               onCoverSave={handleCoverSave}
             />
-          </motion.div>
+          </div>
         )}
 
       </main>

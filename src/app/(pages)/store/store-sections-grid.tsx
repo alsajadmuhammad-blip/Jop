@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import type { Section } from "@/lib/types";
 
@@ -56,12 +55,8 @@ export function StoreSectionsGrid({ sections, storeId }: StoreSectionsGridProps)
           const grad = GRADIENT_BG[i % GRADIENT_BG.length];
 
           return (
-            <motion.button
+            <button
               key={section.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.28 }}
-              whileTap={{ scale: 0.96 }}
               onClick={() => router.push(`/store/section?id=${storeId}&section=${section.id}`)}
               className="group flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200 text-right focus:outline-none"
             >
@@ -96,7 +91,7 @@ export function StoreSectionsGrid({ sections, storeId }: StoreSectionsGridProps)
                 </div>
                 <ChevronLeft className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-primary transition-colors" />
               </div>
-            </motion.button>
+            </button>
           );
         })}
       </div>

@@ -21,7 +21,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useCountdown } from "@/hooks/use-countdown";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { ProductGallery } from "@/components/product-gallery";
 import { createOrder } from "@/services/orders";
@@ -287,27 +286,19 @@ function BuyNowDialog({
   const price = getEffectivePrice(product);
 
   return (
-    <AnimatePresence>
+    
       {open && (
         <>
           {/* خلفية معتمة */}
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
+            key="backdrop"}}}}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
 
           {/* نافذة الشراء */}
-          <motion.div
-            key="dialog"
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", stiffness: 380, damping: 36 }}
+          <div
+            key="dialog"}}}}
             className="fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl"
             dir="rtl"
           >
@@ -525,10 +516,10 @@ function BuyNowDialog({
               </div>
 
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
+    
   );
 }
 
@@ -709,10 +700,7 @@ export default function ProductPageClient() {
       </ProductGallery>
 
       {/* ───── تفاصيل المنتج ───── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+      <div}}}
         className="px-4 pt-5 space-y-4"
       >
         {/* الاسم + التقييم */}
@@ -810,7 +798,7 @@ export default function ProductPageClient() {
             onRated={(r, n) => { setLiveRating(r); setLiveReviews(n); }}
           />
         </div>
-      </motion.div>
+      </div>
 
       {/* ───── شريط الإجراءات الثابت ───── */}
       <div className="fixed bottom-0 right-0 left-0 z-40 p-4 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.07)]">
@@ -825,8 +813,7 @@ export default function ProductPageClient() {
         ) : (
           <div className="flex gap-3">
             {/* أضف إلى السلة */}
-            <motion.button
-              whileTap={{ scale: 0.97 }}
+            <button}
               onClick={handleAdd}
               className={cn(
                 "flex-1 h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 transition-all",
@@ -847,11 +834,10 @@ export default function ProductPageClient() {
                   أضف للسلة
                 </>
               )}
-            </motion.button>
+            </button>
 
             {/* اشتري الآن */}
-            <motion.button
-              whileTap={{ scale: 0.97 }}
+            <button}
               onClick={handleBuyNow}
               className="flex-[1.4] h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 transition-all"
               style={{
@@ -861,7 +847,7 @@ export default function ProductPageClient() {
             >
               <CreditCard className="w-5 h-5" />
               اشتري الآن
-            </motion.button>
+            </button>
           </div>
         )}
       </div>

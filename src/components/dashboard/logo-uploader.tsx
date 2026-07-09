@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Upload, AlertCircle, CheckCircle } from "lucide-react";
-import { motion } from "framer-motion";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,14 +87,12 @@ export function LogoUploader({ store, onSave }: LogoUploaderProps) {
     <div className="space-y-2.5">
       <Label className="text-sm font-semibold">شعار المتجر</Label>
       <label htmlFor="logo-upload" className="w-full block">
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
+        <div
           className="inline-flex items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 px-4 py-3 text-sm font-semibold transition-all cursor-pointer w-full gap-2"
         >
           <Upload className="h-4 w-4" />
           تحديث الشعار
-        </motion.div>
+        </div>
       </label>
       <Input
         id="logo-upload"

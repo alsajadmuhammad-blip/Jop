@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ChevronRight, Loader2, Tag } from "lucide-react";
-import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BackButton } from "@/components/layout/back-button";
 
@@ -351,19 +350,14 @@ function AddProductPageContent() {
       {/* Content */}
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         {pageLoading ? (
-          <motion.div
-            className="flex flex-col items-center justify-center py-20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          <div
+            className="flex flex-col items-center justify-center py-20"}}
           >
             <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
             <p className="text-slate-600 font-medium">جاري تحميل البيانات...</p>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+          <div}}}
           >
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -507,11 +501,7 @@ function AddProductPageContent() {
 
                   {/* Discount body */}
                   {discountEnabled && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
+                    <div}}}}
                       className="p-4 space-y-4 border-t border-slate-200 bg-white"
                     >
                       <FormField
@@ -600,7 +590,7 @@ function AddProductPageContent() {
                           );
                         }}
                       />
-                    </motion.div>
+                    </div>
                   )}
                 </div>
 
@@ -674,19 +664,15 @@ function AddProductPageContent() {
                     className="flex-1 h-11 text-base rounded-lg bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80"
                   >
                     {isLoading ? (
-                      <motion.div
-                        className="flex items-center gap-2"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <div
+                        className="flex items-center gap-2"}}
                       >
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        <div}}
                         >
                           <Loader2 className="w-5 h-5" />
-                        </motion.div>
+                        </div>
                         <span>جاري الحفظ...</span>
-                      </motion.div>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <span>حفظ المنتج</span>
@@ -697,7 +683,7 @@ function AddProductPageContent() {
                 </div>
               </form>
             </Form>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

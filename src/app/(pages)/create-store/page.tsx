@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowRight, Check, Zap, Star, Infinity, Tag,
@@ -119,10 +118,7 @@ function PackageCard({ pkg, isSelected, isPopular, index, onSelect, discountPerc
     ? Math.round(pkg.price * (1 - discountPercent / 100)) : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 28 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
+    <div}}}
       className="relative"
     >
       {isPopular && (
@@ -133,9 +129,7 @@ function PackageCard({ pkg, isSelected, isPopular, index, onSelect, discountPerc
         </div>
       )}
       <button onClick={onSelect} className="w-full text-right focus:outline-none group">
-        <motion.div
-          whileHover={{ y: -5, transition: { duration: 0.22 } }}
-          whileTap={{ scale: 0.985 }}
+        <div }}}
           className={`relative h-full rounded-3xl overflow-hidden transition-all duration-300 ${
             isSelected ? "shadow-2xl shadow-primary/20" : "shadow-md hover:shadow-xl"
           }`}
@@ -203,9 +197,9 @@ function PackageCard({ pkg, isSelected, isPopular, index, onSelect, discountPerc
               {isSelected ? "✓ تم الاختيار" : "اختيار"}
             </div>
           </div>
-        </motion.div>
+        </div>
       </button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -228,7 +222,7 @@ function PackageStep({
   const discount     = partnerInfo?.discountPercent ?? 0;
 
   return (
-    <motion.div {...fadeSlide} className="space-y-8">
+    <div {...fadeSlide} className="space-y-8">
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-black text-slate-900">اختر الباقة المناسبة</h2>
         <p className="text-slate-500">حدد الباقة التي تناسب احتياجات متجرك</p>
@@ -300,7 +294,7 @@ function PackageStep({
           </div>
         </>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -347,7 +341,7 @@ function OwnerStep({
   const next = () => { if (validate()) onNext(); };
 
   return (
-    <motion.div {...fadeSlide} className="space-y-6 max-w-lg mx-auto">
+    <div {...fadeSlide} className="space-y-6 max-w-lg mx-auto">
       <div className="text-center space-y-1">
         <h2 className="text-2xl font-black text-slate-900">بيانات المالك</h2>
         <p className="text-slate-500 text-sm">ستستخدم هذه البيانات لتسجيل الدخول لاحقاً</p>
@@ -426,7 +420,7 @@ function OwnerStep({
           <ArrowRight className="w-4 h-4 mr-1 rotate-180" />
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -478,7 +472,7 @@ function StoreStep({
   const isPaid = (selectedPackage?.price ?? 0) > 0;
 
   return (
-    <motion.div {...fadeSlide} className="space-y-6 max-w-lg mx-auto">
+    <div {...fadeSlide} className="space-y-6 max-w-lg mx-auto">
       <div className="text-center space-y-1">
         <h2 className="text-2xl font-black text-slate-900">بيانات المتجر</h2>
         <p className="text-slate-500 text-sm">الخطوة الأخيرة — أكمل تفاصيل متجرك</p>
@@ -655,7 +649,7 @@ function StoreStep({
           <ArrowRight className="w-4 h-4 ml-1" /> رجوع
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -809,7 +803,7 @@ export default function CreateStorePage() {
         <StepIndicator current={step} />
 
         {/* محتوى الخطوة */}
-        <AnimatePresence mode="wait">
+        
           {step === 'package' && (
             <div key="package">
               <PackageStep
@@ -851,7 +845,7 @@ export default function CreateStorePage() {
               />
             </div>
           )}
-        </AnimatePresence>
+        
       </div>
     </div>
   );

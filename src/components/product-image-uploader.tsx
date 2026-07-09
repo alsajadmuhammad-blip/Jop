@@ -2,7 +2,6 @@
 
 import { useRef, useCallback } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Camera, X, Star, Plus, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,12 +37,7 @@ function ImageThumb({
   const isPrimary = index === 0;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.88 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.2, type: "spring", stiffness: 280, damping: 22 }}
+    <div
       className={cn(
         "relative rounded-xl overflow-hidden group select-none bg-slate-100",
         isPrimary ? "row-span-2" : ""
@@ -70,30 +64,28 @@ function ImageThumb({
 
       {/* زر حذف */}
       {!disabled && (
-        <motion.button
+        <button
           type="button"
-          whileTap={{ scale: 0.85 }}
           onClick={onRemove}
           className="absolute top-2 left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
         >
           <X className="w-3.5 h-3.5" />
-        </motion.button>
+        </button>
       )}
 
       {/* زر تعيين رئيسية (للصور غير الرئيسية) */}
       {!isPrimary && !disabled && (
-        <motion.button
+        <button
           type="button"
-          whileTap={{ scale: 0.85 }}
           onClick={onSetPrimary}
           title="تعيين كصورة رئيسية"
           className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
         >
           <Star className="w-2.5 h-2.5" />
           رئيسية
-        </motion.button>
+        </button>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -163,9 +155,8 @@ export function ProductImageUploader({
           onChange={handleFileChange}
           disabled={disabled}
         />
-        <motion.button
+        <button
           type="button"
-          whileTap={{ scale: 0.98 }}
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
           className="w-full h-40 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary/60 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer"
@@ -177,7 +168,7 @@ export function ProductImageUploader({
             <p className="text-sm font-bold text-primary">اضغط لرفع الصور</p>
             <p className="text-[11px] text-slate-400 mt-0.5">JPG · PNG · WEBP · حتى {maxImages} صور · 5MB لكل صورة</p>
           </div>
-        </motion.button>
+        </button>
       </div>
     );
   }
@@ -203,49 +194,45 @@ export function ProductImageUploader({
           gridTemplateRows: value.length <= 3 ? "1fr 1fr" : "1fr 1fr",
         }}
       >
-        <AnimatePresence mode="popLayout">
-          {/* الصورة الرئيسية */}
-          <ImageThumb
-            key={value[0].id}
-            item={value[0]}
-            index={0}
-            onRemove={() => removeImage(0)}
-            onSetPrimary={() => setPrimary(0)}
-            disabled={disabled}
-          />
+        {/* الصورة الرئيسية */}
+        <ImageThumb
+          key={value[0].id}
+          item={value[0]}
+          index={0}
+          onRemove={() => removeImage(0)}
+          onSetPrimary={() => setPrimary(0)}
+          disabled={disabled}
+        />
 
-          {/* الصور الإضافية في grid 2×2 */}
-          {value.length > 1 && (
-            <div className="grid grid-cols-2 gap-2">
-              {value.slice(1, 5).map((item, i) => (
-                <ImageThumb
-                  key={item.id}
-                  item={item}
-                  index={i + 1}
-                  onRemove={() => removeImage(i + 1)}
-                  onSetPrimary={() => setPrimary(i + 1)}
-                  disabled={disabled}
-                />
-              ))}
+        {/* الصور الإضافية في grid 2×2 */}
+        {value.length > 1 && (
+          <div className="grid grid-cols-2 gap-2">
+            {value.slice(1, 5).map((item, i) => (
+              <ImageThumb
+                key={item.id}
+                item={item}
+                index={i + 1}
+                onRemove={() => removeImage(i + 1)}
+                onSetPrimary={() => setPrimary(i + 1)}
+                disabled={disabled}
+              />
+            ))}
 
-              {/* زر الإضافة */}
-              {value.length < maxImages && !disabled && (
-                <motion.button
-                  key="add-btn"
-                  layout
-                  type="button"
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => inputRef.current?.click()}
-                  className="rounded-xl border-2 border-dashed border-slate-200 hover:border-primary/50 bg-slate-50 hover:bg-primary/5 flex flex-col items-center justify-center gap-1 transition-all duration-200"
-                  style={{ aspectRatio: "1 / 1" }}
-                >
-                  <Plus className="w-5 h-5 text-slate-400" />
-                  <span className="text-[10px] font-semibold text-slate-400">إضافة</span>
-                </motion.button>
-              )}
-            </div>
-          )}
-        </AnimatePresence>
+            {/* زر الإضافة */}
+            {value.length < maxImages && !disabled && (
+              <button
+                key="add-btn"
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="rounded-xl border-2 border-dashed border-slate-200 hover:border-primary/50 bg-slate-50 hover:bg-primary/5 flex flex-col items-center justify-center gap-1 transition-all duration-200"
+                style={{ aspectRatio: "1 / 1" }}
+              >
+                <Plus className="w-5 h-5 text-slate-400" />
+                <span className="text-[10px] font-semibold text-slate-400">إضافة</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* شريط معلومات + زر إضافة (عند وجود صورة واحدة فقط) */}
@@ -254,15 +241,14 @@ export function ProductImageUploader({
           {value.length} / {maxImages} صور · اضغط على أي صورة لتعيينها رئيسية
         </p>
         {value.length === 1 && value.length < maxImages && !disabled && (
-          <motion.button
+          <button
             type="button"
-            whileTap={{ scale: 0.95 }}
             onClick={() => inputRef.current?.click()}
             className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:text-primary/80 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             إضافة صورة
-          </motion.button>
+          </button>
         )}
       </div>
     </div>

@@ -1,8 +1,6 @@
 "use client";
 
 import { Suspense } from "react";
-import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { Header } from "@/components/layout/header";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -12,20 +10,15 @@ import PushNotificationPrompt from "@/components/push-notification-prompt";
 import { ThemeProvider } from "next-themes";
 import { NavProgress } from "@/components/nav-progress";
 
-/* ─── غلاف انتقال الصفحة ─── */
+/* ─── غلاف الصفحة ─── */
 function PageWrapper({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   return (
-    <motion.main
-      key={pathname}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.12, ease: "easeOut" }}
+    <main
       style={{ paddingTop: 'var(--header-h, 56px)' }}
       className="flex-1 min-w-0 pb-28 md:pb-0"
     >
       {children}
-    </motion.main>
+    </main>
   );
 }
 

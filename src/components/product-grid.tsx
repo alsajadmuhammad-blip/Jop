@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import { motion } from "framer-motion";
 import type { Product } from "@/lib/types";
 import { ProductCard } from "./product-card";
 
@@ -10,31 +9,6 @@ export type SmartBadge = "new" | "trending" | "best_deal";
 interface ProductGridProps {
   products: Product[];
 }
-
-/**
- * عدد البطاقات التي تحصل على تأثير stagger عند أول عرض.
- * البطاقات بعد هذا العدد تظهر فوراً لتجنب التأخير في القوائم الطويلة.
- */
-const STAGGER_LIMIT = 8;
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.04 } },
-};
-
-/** انيميشن للبطاقات الأولى (ضمن الـ stagger) */
-const cardVariants = {
-  hidden:   { opacity: 0, y: 12, scale: 0.97 },
-  visible:  { opacity: 1, y: 0,  scale: 1,
-    transition: { type: "spring" as const, stiffness: 280, damping: 24 },
-  },
-};
-
-/** ظهور فوري للبطاقات التي تتجاوز حد الـ stagger */
-const cardVariantsInstant = {
-  hidden:  { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.12 } },
-};
 
 function computeSmartBadges(products: Product[]): Map<string, SmartBadge> {
   const badges  = new Map<string, SmartBadge>();
@@ -65,23 +39,19 @@ function ProductGridContent({ products }: ProductGridProps) {
   const smartBadges = useMemo(() => computeSmartBadges(products), [products]);
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+    <div
       className="grid grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-5 auto-rows-fr"
       style={{ contain: "layout style paint" }}
     >
-      {products.map((product, idx) => (
-        <motion.div
+      {products.map((product) => (
+        <div
           key={product.id}
-          variants={idx < STAGGER_LIMIT ? cardVariants : cardVariantsInstant}
           className="h-full product-card-wrapper"
         >
           <ProductCard product={product} smartBadge={smartBadges.get(product.id)} />
-        </motion.div>
+        </div>
       ))}
-    </motion.div>
+    </div>
   );
 }
 

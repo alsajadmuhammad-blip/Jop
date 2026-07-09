@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload } from "lucide-react";
-import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -135,11 +134,8 @@ export function ProductFormDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-y-auto px-4 pr-2 -mr-2">
-              <motion.div
+              <div
                 className="space-y-4 py-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
               >
                 <FormField
                   control={form.control}
@@ -272,9 +268,7 @@ export function ProductFormDialog({
                     <FormItem>
                       <FormLabel className="text-sm">صورة المنتج</FormLabel>
                       {imagePreview && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
+                        <div
                           className="w-full relative aspect-square rounded-lg overflow-hidden border"
                         >
                           <Image
@@ -283,7 +277,7 @@ export function ProductFormDialog({
                             fill
                             className="object-cover"
                           />
-                        </motion.div>
+                        </div>
                       )}
                       <FormControl>
                         <div>
@@ -291,16 +285,14 @@ export function ProductFormDialog({
                             htmlFor="product-image-upload"
                             className="w-full inline-block cursor-pointer"
                           >
-                            <motion.div
-                              whileHover={{ scale: 1.03 }}
-                              whileTap={{ scale: 0.97 }}
+                            <div
                               className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-medium border bg-gray-50 hover:bg-gray-100 h-9 px-3 w-full transition"
                             >
                               <Upload className="ml-1 h-3 w-3" />
                               <span>
                                 {imagePreview ? "تغيير" : "رفع صورة"}
                               </span>
-                            </motion.div>
+                            </div>
                           </Label>
                           <Input
                             id="product-image-upload"
@@ -315,7 +307,7 @@ export function ProductFormDialog({
                     </FormItem>
                   )}
                 />
-              </motion.div>
+              </div>
             </div>
 
             <div className="flex gap-2 pt-3 border-t mt-auto flex-shrink-0 px-4">

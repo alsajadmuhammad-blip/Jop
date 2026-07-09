@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
 import { ImageIcon, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -89,19 +88,12 @@ export function ProductGallery({ images, alt = "", priority, children }: Product
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <AnimatePresence mode="wait" initial={false} custom={direction}>
-          <motion.div
-            key={current}
-            custom={direction}
-            initial={{ opacity: 0, x: -direction * 80 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction * 80 }}
-            transition={{ duration: 0.25, ease: [0.32, 0, 0.67, 0] }}
-            className="absolute inset-0"
-          >
-            <GalleryImage src={images[current]} alt={`${alt} ${current + 1}`} priority={current === 0 && priority} />
-          </motion.div>
-        </AnimatePresence>
+        <div
+          key={current}
+          className="absolute inset-0"
+        >
+          <GalleryImage src={images[current]} alt={`${alt} ${current + 1}`} priority={current === 0 && priority} />
+        </div>
 
         {/* تدرج علوي */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent pointer-events-none" />

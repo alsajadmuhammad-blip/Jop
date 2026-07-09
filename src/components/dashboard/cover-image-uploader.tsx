@@ -4,7 +4,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Upload, Image as ImageIcon, AlertCircle, CheckCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -137,32 +136,27 @@ export function CoverImageUploader({ store, onSave }: CoverImageUploaderProps) {
         <div className="py-4 space-y-4">
           <Label>معاينة الغلاف</Label>
           <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted">
-            <AnimatePresence>
-              {imagePreview && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="w-full h-full"
-                >
-                  {imagePreview.startsWith('data:') ? (
-                    <img
-                      src={imagePreview}
-                      alt="معاينة الغلاف"
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <Image
-                      src={imagePreview}
-                      alt="معاينة الغلاف"
-                      fill
-                      className="object-cover"
-                      sizes="50vw"
-                    />
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {imagePreview && (
+              <div
+                className="w-full h-full"
+              >
+                {imagePreview.startsWith('data:') ? (
+                  <img
+                    src={imagePreview}
+                    alt="معاينة الغلاف"
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <Image
+                    src={imagePreview}
+                    alt="معاينة الغلاف"
+                    fill
+                    className="object-cover"
+                    sizes="50vw"
+                  />
+                )}
+              </div>
+            )}
              {!imagePreview && (
                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                     <ImageIcon className="w-10 h-10"/>

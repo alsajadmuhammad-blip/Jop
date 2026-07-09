@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/services/supabase";
 import { HeroCarouselItem, Store as StoreType } from "@/lib/types";
 import { mapStoreRow } from "@/services/supabase-db";
@@ -274,11 +273,7 @@ export default function Home() {
         ═══════════════════════════════ */}
         <section className="pb-6">
           <Link href="/create-store">
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/75 p-5 flex items-center justify-between gap-4 shadow-md shadow-primary/20 cursor-pointer"
-            >
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary to-primary/75 p-5 flex items-center justify-between gap-4 shadow-md shadow-primary/20 cursor-pointer">
               <div
                 className="absolute inset-0 opacity-[0.07]"
                 style={{
@@ -294,7 +289,7 @@ export default function Home() {
               <div className="relative z-10 w-12 h-12 rounded-xl bg-white/15 flex-shrink-0 flex items-center justify-center">
                 <Store className="w-6 h-6 text-white" />
               </div>
-            </motion.div>
+            </div>
           </Link>
         </section>
 
@@ -337,20 +332,11 @@ export default function Home() {
               ))}
             </div>
           ) : filteredStores.length > 0 ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`${filterType}-${activeCategory}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
-              >
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {filteredStores.map((store) => (
                   <StoreCard key={store.id} store={store} />
                 ))}
-              </motion.div>
-            </AnimatePresence>
+              </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-700">
               <Store className="w-10 h-10 text-slate-300 mb-3" />

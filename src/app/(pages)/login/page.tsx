@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { isSupabaseConfigured } from "@/services/supabase";
-import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Shield } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,23 +77,17 @@ export default function LoginPage() {
       <div className="absolute bottom-20 right-20 w-40 h-40 bg-primary/8 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/4 rounded-full blur-3xl pointer-events-none" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+      <div
         className="relative z-10 w-full max-w-sm px-4"
       >
         <Card className="bg-white/85 dark:bg-card/85 backdrop-blur-xl border-0 shadow-2xl shadow-primary/10 rounded-3xl overflow-hidden">
           <CardHeader className="text-center pb-2 pt-8">
             {/* أيقونة */}
-            <motion.div
-              initial={{ scale: 0, rotate: -10 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.15, type: "spring", stiffness: 220, damping: 14 }}
+            <div
               className="mx-auto mb-5 w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30"
             >
               <Shield className="h-8 w-8 text-white" />
-            </motion.div>
+            </div>
 
             <CardTitle className="text-2xl font-bold font-headline bg-gradient-to-l from-primary to-primary/70 bg-clip-text text-transparent">
               مرحباً بك في مركزي
@@ -117,10 +110,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               {/* البريد الإلكتروني */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
+              <div
                 className="space-y-1.5"
               >
                 <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
@@ -140,13 +130,10 @@ export default function LoginPage() {
                 {errors.email && (
                   <p className="text-xs text-destructive">{errors.email.message}</p>
                 )}
-              </motion.div>
+              </div>
 
               {/* كلمة المرور */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
+              <div
                 className="space-y-1.5"
               >
                 <Label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
@@ -175,13 +162,11 @@ export default function LoginPage() {
                 {errors.password && (
                   <p className="text-xs text-destructive">{errors.password.message}</p>
                 )}
-              </motion.div>
+              </div>
 
               {/* رسالة الخطأ */}
               {authErrorMessage && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div
                   className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive flex items-center justify-between gap-2"
                 >
                   <span>{authErrorMessage}</span>
@@ -197,15 +182,11 @@ export default function LoginPage() {
                   >
                     إعادة المحاولة
                   </button>
-                </motion.div>
+                </div>
               )}
 
               {/* زر تسجيل الدخول */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-              >
+              <div>
                 <Button
                   type="submit"
                   className="w-full h-12 rounded-xl bg-gradient-to-l from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 group"
@@ -223,11 +204,11 @@ export default function LoginPage() {
                     </div>
                   )}
                 </Button>
-              </motion.div>
+              </div>
             </form>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }

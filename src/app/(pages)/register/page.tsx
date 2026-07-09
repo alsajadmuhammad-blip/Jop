@@ -6,7 +6,6 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Store, UserRound, ArrowLeft } from "lucide-react";
-import { motion } from "framer-motion";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -165,10 +164,7 @@ export default function RegisterPage() {
   return (
     <div className="relative flex min-h-[90vh] items-center justify-center overflow-hidden py-12">
       <div className="absolute inset-0 h-full w-full bg-gradient-animation -z-10" />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 24 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+      <div
         className="w-full max-w-md px-4"
       >
         <Tabs defaultValue="customer" className="w-full">
@@ -207,7 +203,7 @@ export default function RegisterPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </motion.div>
+      </div>
     </div>
   );
 }
