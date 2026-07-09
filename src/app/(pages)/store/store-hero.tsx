@@ -52,7 +52,6 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
   useEffect(() => { setIsOpen(computeIsOpen(store)); }, [store]);
 
   const coverRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
 
   /* ─── ضبط top حسب ارتفاع الهيدر الفعلي ─── */
   useEffect(() => {
@@ -70,66 +69,33 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
     return () => window.removeEventListener("resize", applyOffset);
   }, []);
 
-  /* ─── Scroll handler — رُقِّي للأداء ───────────────────────
+  /*
+   * إخفاء الغلاف بعد تجاوز العتبة — بدون parallax.
    *
-   *  المشاكل القديمة وحلولها:
-   *
-   *  1. كان يتشغّل عند كل scroll event (قد يكون عشرات المرات
-   *     بين كل frame). الحل: requestAnimationFrame يضمن تشغيلاً
-   *     واحداً لكل frame بصرف النظر عن عدد الأحداث.
-   *
-   *  2. كان يغيّر `visibility` في كل frame حتى لو لم تتغيّر
-   *     القيمة. الحل: نتتبّع الحالة السابقة ونغيّر فقط عند
-   *     تجاوز العتبة.
-   *
-   *  3. will-change:visibility لا يُفيد GPU. حُذف.
-   *     will-change:transform على الصورة الداخلية → GPU layer ✓
-   *
-   *  4. display:none بدل visibility لأنه يُزيل العنصر من
-   *     الـ compositing كلياً عند الإخفاء.
-   *
-   * ──────────────────────────────────────────────────────── */
+   * سبب إزالة الـ parallax:
+   * كروم يُنفّذ الـ scroll على compositor thread منفصل عن main thread.
+   * أي تعديل JS على transform أثناء momentum scroll يُجبر كروم على
+   * مزامنة الـ threads مما يُسبّب الارتعاش (jank). الحل: نوقف كل JS
+   * transform تماماً ونكتفي بـ display toggle عند عتبة واحدة فقط.
+   * الصورة تبقى ثابتة خلف المحتوى بدون أي تحريك — تأثير بصري نظيف.
+   */
   useEffect(() => {
     const cover = coverRef.current;
-    const inner = innerRef.current;
     if (!cover) return;
 
-    let rafId: number | null = null;
-    let lastS  = -1;
     let hidden = false;
 
-    const update = () => {
-      rafId = null;
-      const s = window.scrollY;
-      if (s === lastS) return; // لا تغيير = لا عمل
-      lastS = s;
-
-      /* parallax: معامل 0.18 بدل 0.3 — التأثير مرئي لكن desync
-         مع compositor أثناء momentum غير محسوس */
-      if (inner) {
-        const shift = Math.min(s * 0.18, COVER_H * 0.35);
-        inner.style.transform = `translateY(-${shift}px)`;
-      }
-
-      /* إخفاء عند تجاوز العتبة — مرة واحدة فقط لا كل frame */
-      const shouldHide = s > COVER_H + OVERLAP;
+    const onScroll = () => {
+      const shouldHide = window.scrollY > COVER_H + OVERLAP;
       if (shouldHide !== hidden) {
         hidden = shouldHide;
         cover.style.display = shouldHide ? "none" : "";
       }
     };
 
-    const onScroll = () => {
-      /* rAF: نُجدوِل تحديثاً واحداً لكل frame بحد أقصى */
-      if (!rafId) rafId = requestAnimationFrame(update);
-    };
-
-    update(); // تطبيق فوري عند التحميل
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   /* قيم ثابتة */
@@ -153,9 +119,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
     <>
       {/* ══════════════════════════════════════════
           صورة الغلاف — Fixed خلف المحتوى
-          المحتوى يتمرّر فوقها كالستارة
-          transform:translateZ(0) → GPU layer مستقل
-          will-change:transform على الصورة الداخلية فقط
+          بدون parallax → لا jank في كروم
       ══════════════════════════════════════════ */}
       <div
         ref={coverRef}
@@ -167,27 +131,9 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
           height: COVER_H,
           zIndex: 0,
           overflow: "hidden",
-          /*
-           * will-change:transform يضع الـ cover على GPU compositing layer
-           * مستقلة بشكل صريح — أفضل من translateZ(0) لأنه يُعطي
-           * المتصفح وقتاً لتجهيز اللـ layer قبل الـ scroll.
-           * خلال momentum scrolling، الـ compositor يُدمج الـ layer
-           * مباشرة بدون انتظار الـ main thread.
-           */
-          willChange: "transform",
         }}
       >
-        {/* الصورة الداخلية: will-change:transform → GPU layer
-            التغيير عبر JS لا يُسبّب repaint للصفحة كاملها */}
-        <div
-          ref={innerRef}
-          className="absolute inset-0"
-          style={{
-            top: "-8%",
-            height: "116%",   /* أقل مساحة رسم = GPU texture أصغر = momentum أخف */
-            willChange: "transform",
-          }}
-        >
+        <div className="absolute inset-0">
           {store.coverImageUrl ? (
             store.coverImageUrl.startsWith("data:") ? (
               <img
@@ -204,7 +150,7 @@ function StoreHeroContent({ store, productCount }: StoreHeroProps) {
                 className="object-cover"
                 sizes="100vw"
                 priority
-                quality={60}   /* ↓ من 85 → texture أصغر في GPU memory */
+                quality={70}
                 decoding="async"
               />
             )

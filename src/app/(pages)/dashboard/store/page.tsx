@@ -676,7 +676,7 @@ export default function StoreDashboardPage() {
     }
   }, [user, toast]);
 
-  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings'];
+  const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings', 'pos'];
 
   const handleViewChange = (view: string) => {
     if (!validViews.includes(view)) return;

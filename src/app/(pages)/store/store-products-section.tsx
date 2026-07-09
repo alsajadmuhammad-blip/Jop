@@ -334,22 +334,27 @@ function FilterBar({
 /* ────────────────────────────────────────────
    المكوّن الرئيسي
 ──────────────────────────────────────────── */
+/* حجم الصفحة الواحدة — عدد المنتجات المعروضة في كل batch */
+const PAGE_SIZE = 24;
+
 function StoreProductsSectionContent({
   products, storeId,
 }: StoreProductsSectionProps) {
-  /* إدخال البحث (يتغير بكل حرف) */
   const [searchInput, setSearchInput] = useState("");
-  /* البحث الفعلي المطبّق على الفلتر — مع debounce 180ms */
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("default");
+  const [search, setSearch]           = useState("");
+  const [sortBy, setSortBy]           = useState<SortOption>("default");
+  /* عدد المنتجات المرئية حالياً */
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  /* sentinel: العنصر الأخير في القائمة الذي يُراقبه IntersectionObserver */
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  /* debounce البحث: لا إعادة حساب useMemo عند كل ضغطة */
+  /* debounce البحث */
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 180);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  /* الترتيب الأساسي: مميز أولاً */
+  /* الترتيب الأساسي */
   const base = useMemo(() =>
     [...products].sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
@@ -358,10 +363,9 @@ function StoreProductsSectionContent({
     [products]
   );
 
-  const featured     = useMemo(() => base.filter(p => p.isFeatured), [base]);
+  const featured      = useMemo(() => base.filter(p => p.isFeatured), [base]);
   const flashProducts = useMemo(() => base.filter(p => hasActiveFlashSale(p)), [base]);
 
-  /* تطبيق البحث والترتيب المتقدم */
   const filtered = useMemo(() => {
     let result = [...base];
 
@@ -408,6 +412,33 @@ function StoreProductsSectionContent({
     return result;
   }, [base, search, sortBy]);
 
+  /* إعادة ضبط visibleCount عند تغيّر الفلتر أو الترتيب */
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, sortBy]);
+
+  /* IntersectionObserver: عندما يظهر الـ sentinel نحمّل الـ batch التالي */
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount(prev => Math.min(prev + PAGE_SIZE, filtered.length));
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filtered.length]);
+
+  /* شريحة المنتجات المرئية فقط */
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
+
   return (
     <div id="store-products" className="min-w-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
 
@@ -420,9 +451,7 @@ function StoreProductsSectionContent({
           <span className="w-1 h-4 bg-primary rounded-full block" />
           جميع المنتجات
         </h2>
-        <span
-          className="text-xs font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5"
-        >
+        <span className="text-xs font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
           {filtered.length}
         </span>
       </div>
@@ -440,9 +469,7 @@ function StoreProductsSectionContent({
       {/* شبكة المنتجات */}
       <div className="px-3 sm:px-4 pb-4">
         {filtered.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-16 text-center"
-          >
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center mb-3">
               <Search className="w-7 h-7 text-slate-300" />
             </div>
@@ -459,7 +486,20 @@ function StoreProductsSectionContent({
           </div>
         ) : (
           <div>
-            <ProductGrid products={filtered} />
+            <ProductGrid products={visible} />
+
+            {/* sentinel — يراقبه IntersectionObserver لتحميل المزيد */}
+            <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+
+            {/* مؤشر التحميل */}
+            {hasMore && (
+              <div className="flex justify-center py-6">
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                  <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  جاري تحميل المزيد…
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
