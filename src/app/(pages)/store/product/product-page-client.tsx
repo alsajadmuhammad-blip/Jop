@@ -285,241 +285,237 @@ function BuyNowDialog({
 
   const price = getEffectivePrice(product);
 
+  if (!open) return null;
+
   return (
-    
-      {open && (
-        <>
-          {/* خلفية معتمة */}
-          <div
-            key="backdrop"}}}}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+    <>
+      {/* خلفية معتمة */}
+      <div
+        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* نافذة الشراء */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl"
+        dir="rtl"
+      >
+        {/* مقبض */}
+        <div className="sticky top-0 bg-white z-10 pt-3 pb-2">
+          <div className="mx-auto w-10 h-1 rounded-full bg-slate-200" />
+        </div>
+
+        {/* رأس النافذة */}
+        <div className="flex items-center justify-between px-5 pb-4 pt-1">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">اشتري الآن</h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {store?.name ? `الطلب من: ${store.name}` : "إتمام الطلب"}
+            </p>
+          </div>
+          <button
             onClick={onClose}
-          />
-
-          {/* نافذة الشراء */}
-          <div
-            key="dialog"}}}}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl"
-            dir="rtl"
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
           >
-            {/* مقبض */}
-            <div className="sticky top-0 bg-white z-10 pt-3 pb-2">
-              <div className="mx-auto w-10 h-1 rounded-full bg-slate-200" />
+            <X className="w-4 h-4 text-slate-600" />
+          </button>
+        </div>
+
+        <div className="px-5 space-y-5 pb-8">
+
+          {/* ملخص المنتج */}
+          <div className="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-100 p-3">
+            <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white border border-slate-100 flex-shrink-0">
+              {product.imageUrl ? (
+                product.imageUrl.startsWith("data:") ? (
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="64px" />
+                )
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Package className="w-7 h-7 text-slate-200" />
+                </div>
+              )}
             </div>
-
-            {/* رأس النافذة */}
-            <div className="flex items-center justify-between px-5 pb-4 pt-1">
-              <div>
-                <h2 className="text-lg font-black text-slate-900">اشتري الآن</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {store?.name ? `الطلب من: ${store.name}` : "إتمام الطلب"}
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-              >
-                <X className="w-4 h-4 text-slate-600" />
-              </button>
-            </div>
-
-            <div className="px-5 space-y-5 pb-8">
-
-              {/* ملخص المنتج */}
-              <div className="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white border border-slate-100 flex-shrink-0">
-                  {product.imageUrl ? (
-                    product.imageUrl.startsWith("data:") ? (
-                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="64px" />
-                    )
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-7 h-7 text-slate-200" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">{product.name}</p>
-                  <p className="text-lg font-black text-primary mt-1">
-                    {price.toLocaleString()}
-                    <span className="text-xs font-bold text-slate-400 mr-1">د.ع</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* معلومات التواصل */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <User className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">معلومات التواصل</span>
-                </div>
-
-                <div className="space-y-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="bn-name" className="text-xs font-semibold text-slate-600">
-                      الاسم الكامل <span className="text-rose-500">*</span>
-                    </Label>
-                    <Input
-                      id="bn-name"
-                      placeholder="مثال: أحمد محمد"
-                      value={form.name}
-                      onChange={(e) => setField("name", e.target.value)}
-                      className={`h-11 rounded-xl text-sm ${errors.name ? "border-rose-400 focus-visible:ring-rose-300" : ""}`}
-                    />
-                    {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="space-y-1">
-                      <Label htmlFor="bn-phone" className="text-xs font-semibold text-slate-600">
-                        الهاتف <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="bn-phone"
-                        placeholder="07xxxxxxxxx"
-                        value={form.phone}
-                        onChange={(e) => setField("phone", e.target.value)}
-                        dir="ltr"
-                        className={`h-11 rounded-xl text-sm ${errors.phone ? "border-rose-400" : ""}`}
-                      />
-                      {errors.phone && <p className="text-[11px] text-rose-500">{errors.phone}</p>}
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="bn-phone2" className="text-xs font-semibold text-slate-400">
-                        هاتف احتياطي
-                      </Label>
-                      <Input
-                        id="bn-phone2"
-                        placeholder="07xxxxxxxxx"
-                        value={form.phoneBackup}
-                        onChange={(e) => setField("phoneBackup", e.target.value)}
-                        dir="ltr"
-                        className="h-11 rounded-xl text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* عنوان التوصيل */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">عنوان التوصيل</span>
-                </div>
-
-                <div className="space-y-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="bn-gov" className="text-xs font-semibold text-slate-600">
-                      المحافظة <span className="text-rose-500">*</span>
-                    </Label>
-                    <Select value={form.governorate} onValueChange={(v) => setField("governorate", v)}>
-                      <SelectTrigger
-                        id="bn-gov"
-                        className={`h-11 rounded-xl text-sm ${errors.governorate ? "border-rose-400" : ""}`}
-                      >
-                        <SelectValue placeholder="اختر محافظتك" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {IRAQI_GOVERNORATES.map((g) => (
-                          <SelectItem key={g} value={g}>{g}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.governorate && <p className="text-[11px] text-rose-500">{errors.governorate}</p>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="bn-addr" className="text-xs font-semibold text-slate-600">
-                      العنوان التفصيلي <span className="text-rose-500">*</span>
-                    </Label>
-                    <Textarea
-                      id="bn-addr"
-                      placeholder="مثال: الكرخ، شارع المتنبي، بناية رقم 12"
-                      value={form.address}
-                      onChange={(e) => setField("address", e.target.value)}
-                      className={`resize-none rounded-xl text-sm ${errors.address ? "border-rose-400" : ""}`}
-                      rows={2}
-                    />
-                    {errors.address && <p className="text-[11px] text-rose-500">{errors.address}</p>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="bn-notes" className="text-xs font-semibold text-slate-400">
-                      ملاحظات إضافية <span className="text-[10px]">(اختياري)</span>
-                    </Label>
-                    <Textarea
-                      id="bn-notes"
-                      placeholder="أي تعليمات خاصة..."
-                      value={form.notes}
-                      onChange={(e) => setField("notes", e.target.value)}
-                      className="resize-none rounded-xl text-sm"
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* إشعار الدفع */}
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                  <Wallet className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-emerald-800">الدفع عند الاستلام</p>
-                  <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
-                    سيتم التنسيق النهائي مع المتجر عبر واتساب بعد إرسال الطلب.
-                  </p>
-                </div>
-              </div>
-
-              {/* أزرار الإجراء */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button
-                  onClick={onClose}
-                  disabled={isSubmitting}
-                  className="h-13 rounded-2xl font-bold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                  style={{ height: "52px" }}
-                >
-                  إلغاء
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="h-13 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 transition-all disabled:opacity-70"
-                  style={{
-                    height: "52px",
-                    background: isSubmitting
-                      ? "#64748b"
-                      : "linear-gradient(135deg,#1d4ed8 0%,#2563eb 60%,#3b82f6 100%)",
-                    boxShadow: isSubmitting ? "none" : "0 6px 20px rgba(37,99,235,0.35)",
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      جاري الإرسال...
-                    </>
-                  ) : (
-                    <>
-                      <Phone className="w-4 h-4" />
-                      إرسال عبر واتساب
-                    </>
-                  )}
-                </button>
-              </div>
-
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">{product.name}</p>
+              <p className="text-lg font-black text-primary mt-1">
+                {price.toLocaleString()}
+                <span className="text-xs font-bold text-slate-400 mr-1">د.ع</span>
+              </p>
             </div>
           </div>
-        </>
-      )}
-    
+
+          {/* معلومات التواصل */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <User className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <span className="text-sm font-bold text-slate-700">معلومات التواصل</span>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="space-y-1">
+                <Label htmlFor="bn-name" className="text-xs font-semibold text-slate-600">
+                  الاسم الكامل <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="bn-name"
+                  placeholder="مثال: أحمد محمد"
+                  value={form.name}
+                  onChange={(e) => setField("name", e.target.value)}
+                  className={`h-11 rounded-xl text-sm ${errors.name ? "border-rose-400 focus-visible:ring-rose-300" : ""}`}
+                />
+                {errors.name && <p className="text-[11px] text-rose-500 font-medium">{errors.name}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="bn-phone" className="text-xs font-semibold text-slate-600">
+                    الهاتف <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    id="bn-phone"
+                    placeholder="07xxxxxxxxx"
+                    value={form.phone}
+                    onChange={(e) => setField("phone", e.target.value)}
+                    dir="ltr"
+                    className={`h-11 rounded-xl text-sm ${errors.phone ? "border-rose-400" : ""}`}
+                  />
+                  {errors.phone && <p className="text-[11px] text-rose-500">{errors.phone}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="bn-phone2" className="text-xs font-semibold text-slate-400">
+                    هاتف احتياطي
+                  </Label>
+                  <Input
+                    id="bn-phone2"
+                    placeholder="07xxxxxxxxx"
+                    value={form.phoneBackup}
+                    onChange={(e) => setField("phoneBackup", e.target.value)}
+                    dir="ltr"
+                    className="h-11 rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* عنوان التوصيل */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-3.5 h-3.5 text-rose-500" />
+              </div>
+              <span className="text-sm font-bold text-slate-700">عنوان التوصيل</span>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="space-y-1">
+                <Label htmlFor="bn-gov" className="text-xs font-semibold text-slate-600">
+                  المحافظة <span className="text-rose-500">*</span>
+                </Label>
+                <Select value={form.governorate} onValueChange={(v) => setField("governorate", v)}>
+                  <SelectTrigger
+                    id="bn-gov"
+                    className={`h-11 rounded-xl text-sm ${errors.governorate ? "border-rose-400" : ""}`}
+                  >
+                    <SelectValue placeholder="اختر محافظتك" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IRAQI_GOVERNORATES.map((g) => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.governorate && <p className="text-[11px] text-rose-500">{errors.governorate}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="bn-addr" className="text-xs font-semibold text-slate-600">
+                  العنوان التفصيلي <span className="text-rose-500">*</span>
+                </Label>
+                <Textarea
+                  id="bn-addr"
+                  placeholder="مثال: الكرخ، شارع المتنبي، بناية رقم 12"
+                  value={form.address}
+                  onChange={(e) => setField("address", e.target.value)}
+                  className={`resize-none rounded-xl text-sm ${errors.address ? "border-rose-400" : ""}`}
+                  rows={2}
+                />
+                {errors.address && <p className="text-[11px] text-rose-500">{errors.address}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="bn-notes" className="text-xs font-semibold text-slate-400">
+                  ملاحظات إضافية <span className="text-[10px]">(اختياري)</span>
+                </Label>
+                <Textarea
+                  id="bn-notes"
+                  placeholder="أي تعليمات خاصة..."
+                  value={form.notes}
+                  onChange={(e) => setField("notes", e.target.value)}
+                  className="resize-none rounded-xl text-sm"
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* إشعار الدفع */}
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-emerald-800">الدفع عند الاستلام</p>
+              <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
+                سيتم التنسيق النهائي مع المتجر عبر واتساب بعد إرسال الطلب.
+              </p>
+            </div>
+          </div>
+
+          {/* أزرار الإجراء */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="h-13 rounded-2xl font-bold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+              style={{ height: "52px" }}
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="h-13 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 transition-all disabled:opacity-70"
+              style={{
+                height: "52px",
+                background: isSubmitting
+                  ? "#64748b"
+                  : "linear-gradient(135deg,#1d4ed8 0%,#2563eb 60%,#3b82f6 100%)",
+                boxShadow: isSubmitting ? "none" : "0 6px 20px rgba(37,99,235,0.35)",
+              }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري الإرسال...
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4" />
+                  إرسال عبر واتساب
+                </>
+              )}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -700,7 +696,7 @@ export default function ProductPageClient() {
       </ProductGallery>
 
       {/* ───── تفاصيل المنتج ───── */}
-      <div}}}
+      <div
         className="px-4 pt-5 space-y-4"
       >
         {/* الاسم + التقييم */}
@@ -813,7 +809,7 @@ export default function ProductPageClient() {
         ) : (
           <div className="flex gap-3">
             {/* أضف إلى السلة */}
-            <button}
+            <button
               onClick={handleAdd}
               className={cn(
                 "flex-1 h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 transition-all",
@@ -837,7 +833,7 @@ export default function ProductPageClient() {
             </button>
 
             {/* اشتري الآن */}
-            <button}
+            <button
               onClick={handleBuyNow}
               className="flex-[1.4] h-14 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2 transition-all"
               style={{

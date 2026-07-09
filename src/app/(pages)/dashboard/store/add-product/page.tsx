@@ -351,14 +351,13 @@ function AddProductPageContent() {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         {pageLoading ? (
           <div
-            className="flex flex-col items-center justify-center py-20"}}
+            className="flex flex-col items-center justify-center py-20"
           >
             <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
             <p className="text-slate-600 font-medium">جاري تحميل البيانات...</p>
           </div>
         ) : (
-          <div}}}
-          >
+          <div>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Product Name */}
@@ -501,7 +500,7 @@ function AddProductPageContent() {
 
                   {/* Discount body */}
                   {discountEnabled && (
-                    <div}}}}
+                    <div
                       className="p-4 space-y-4 border-t border-slate-200 bg-white"
                     >
                       <FormField
@@ -665,12 +664,9 @@ function AddProductPageContent() {
                   >
                     {isLoading ? (
                       <div
-                        className="flex items-center gap-2"}}
+                        className="flex items-center gap-2"
                       >
-                        <div}}
-                        >
-                          <Loader2 className="w-5 h-5" />
-                        </div>
+                        <Loader2 className="w-5 h-5 animate-spin" />
                         <span>جاري الحفظ...</span>
                       </div>
                     ) : (
