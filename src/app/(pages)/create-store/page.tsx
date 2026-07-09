@@ -118,7 +118,7 @@ function PackageCard({ pkg, isSelected, isPopular, index, onSelect, discountPerc
     ? Math.round(pkg.price * (1 - discountPercent / 100)) : null;
 
   return (
-    <div}}}
+    <div
       className="relative"
     >
       {isPopular && (
@@ -129,7 +129,7 @@ function PackageCard({ pkg, isSelected, isPopular, index, onSelect, discountPerc
         </div>
       )}
       <button onClick={onSelect} className="w-full text-right focus:outline-none group">
-        <div }}}
+        <div
           className={`relative h-full rounded-3xl overflow-hidden transition-all duration-300 ${
             isSelected ? "shadow-2xl shadow-primary/20" : "shadow-md hover:shadow-xl"
           }`}
