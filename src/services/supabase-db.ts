@@ -837,7 +837,6 @@ export async function createOrder(order: any): Promise<string | null> {
     status:       order.status || 'pending',
     payment_method: pmMethod,
     paymentMethod:  pmMethod,
-    source:       order.source || 'pos',
   };
 
   /* الحقول الاختيارية — لا نُضيفها إلا إذا كانت موجودة */
