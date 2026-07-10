@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { memo, useMemo, useState, useEffect, useRef } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import {
   Truck, Globe, Star, MapPin, Clock,
 } from "lucide-react";
@@ -9,7 +9,6 @@ import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapp
 import { useStoreContact } from "@/contexts/store-contact-context";
 import type { Store } from "@/lib/types";
 
-const HEADER_H = 56;
 const COVER_H  = 220;
 const OVERLAP  = 28;
 
@@ -40,39 +39,7 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
   const [isOpen, setIsOpen] = useState(store.isActive);
   useEffect(() => { setIsOpen(computeIsOpen(store)); }, [store]);
 
-  const coverRef = useRef<HTMLDivElement>(null);
   const { setContact, clearContact } = useStoreContact();
-
-  /* ضبط top حسب ارتفاع الهيدر الفعلي */
-  useEffect(() => {
-    const cover = coverRef.current;
-    if (!cover) return;
-    const applyOffset = () => {
-      const header = document.querySelector("header");
-      const h = header ? header.getBoundingClientRect().height : HEADER_H;
-      cover.style.top = `${h}px`;
-    };
-    applyOffset();
-    window.addEventListener("resize", applyOffset, { passive: true });
-    return () => window.removeEventListener("resize", applyOffset);
-  }, []);
-
-  /* إخفاء الغلاف بعد تجاوز العتبة */
-  useEffect(() => {
-    const cover = coverRef.current;
-    if (!cover) return;
-    let hidden = false;
-    const onScroll = () => {
-      const shouldHide = window.scrollY > COVER_H + OVERLAP;
-      if (shouldHide !== hidden) {
-        hidden = shouldHide;
-        cover.style.display = shouldHide ? "none" : "";
-      }
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const info = useMemo(() => {
     const cleanWA   = store.whatsappNumber?.replace(/[^0-9+]/g, "") || "";
@@ -96,47 +63,37 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
 
   return (
     <>
-      {/* ══ صورة الغلاف Fixed ══ */}
+      {/* ══ صورة الغلاف — ضمن التدفق الطبيعي للصفحة، تتحرك مع التمرير بشكل عادي بدون fixed/JS scroll listener ══ */}
       <div
-        ref={coverRef}
         style={{
-          position: "fixed",
-          top: HEADER_H,
-          left: 0,
-          right: 0,
           height: COVER_H,
-          zIndex: 0,
+          position: "relative",
           overflow: "hidden",
         }}
       >
-        <div className="absolute inset-0">
-          {store.coverImageUrl ? (
-            store.coverImageUrl.startsWith("data:") ? (
-              <img src={store.coverImageUrl} alt="" className="w-full h-full object-cover" decoding="async" />
-            ) : (
-              <Image src={store.coverImageUrl} alt="" fill className="object-cover" sizes="100vw" priority quality={70} decoding="async" />
-            )
+        {store.coverImageUrl ? (
+          store.coverImageUrl.startsWith("data:") ? (
+            <img src={store.coverImageUrl} alt="" className="w-full h-full object-cover" decoding="async" />
           ) : (
-            <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)" }}>
-              <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "24px 24px" }} />
-            </div>
-          )}
-        </div>
+            <Image src={store.coverImageUrl} alt="" fill className="object-cover" sizes="100vw" priority quality={70} decoding="async" />
+          )
+        ) : (
+          <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)" }}>
+            <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "24px 24px" }} />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
 
         {/* شارة الحالة */}
         <div className="absolute bottom-3 left-3 z-10">
-          <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md border ${
-            isOpen ? "bg-emerald-500/25 border-emerald-400/30 text-emerald-100" : "bg-black/35 border-white/15 text-white/50"
+          <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
+            isOpen ? "bg-emerald-500/70 border-emerald-400/30 text-emerald-50" : "bg-black/55 border-white/15 text-white/60"
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-emerald-300 animate-pulse" : "bg-slate-400"}`} />
             {isOpen ? "مفتوح" : "مغلق"}
           </div>
         </div>
       </div>
-
-      {/* مسافة */}
-      <div style={{ height: COVER_H }} aria-hidden="true" />
 
       {/* ══ ورقة المحتوى ══ */}
       <div style={{ position: "relative", zIndex: 10, marginTop: -OVERLAP, borderTopLeftRadius: 20, borderTopRightRadius: 20, background: "white", boxShadow: "0 -4px 24px rgba(0,0,0,0.09)" }}>

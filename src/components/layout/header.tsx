@@ -107,7 +107,7 @@ export function Header() {
   }, []);
 
   return (
-    <header ref={headerRef} className="fixed top-0 inset-x-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border/40">
+    <header ref={headerRef} className="fixed top-0 inset-x-0 z-50 w-full bg-background border-b border-border/40">
       {/* ── الصف الأول: اللوغو + الأدوات ── */}
       <div className="container mx-auto flex h-14 items-center justify-between gap-3 px-4">
         {/* اللوغو */}
