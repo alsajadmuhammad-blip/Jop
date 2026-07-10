@@ -27,7 +27,70 @@ export type Product = {
   reviews?: number;
   /** حد التنبيه لانخفاض المخزون (افتراضي 5) */
   lowStockThreshold?: number;
+  /** هل هذا المنتج له متغيرات (مقاس / لون / ...)؟ */
+  hasVariants?: boolean;
+  /** تعريف أنواع المتغيرات لهذا المنتج (مثال: [{name:"اللون",values:["أسود","أبيض"]}]) */
+  variantAttributes?: VariantAttributeDef[];
+  /** كل تركيبات المتغيرات الفعلية (تُجلب بشكل منفصل عادة) */
+  variants?: ProductVariant[];
 };
+
+/** تعريف نوع متغيّر واحد (اسم + القيم الممكنة) — يُخزَّن على المنتج نفسه */
+export type VariantAttributeDef = {
+  name: string;      // مثال: "المقاس" أو "اللون"
+  values: string[];  // مثال: ["S","M","L"]
+};
+
+/** تركيبة متغيّر واحدة فعلية للمنتج (مثال: {المقاس:"L", اللون:"أسود"}) */
+export type ProductVariant = {
+  id: string;
+  productId: string;
+  storeId: string;
+  /** القيم المختارة لكل نوع متغيّر — مثال: {"المقاس":"L","اللون":"أسود"} */
+  attributes: Record<string, string>;
+  sku?: string;
+  /** سعر خاص بهذه التركيبة — إن لم يُحدَّد يُستخدم سعر المنتج الأساسي */
+  price?: number;
+  stock: number;
+  imageUrl?: string;
+  isActive?: boolean;
+};
+
+/** يبني تسمية نصية مقروءة لتركيبة متغيّر (مثال: "أسود / L") */
+export function formatVariantLabel(attributes: Record<string, string>): string {
+  return Object.values(attributes).filter(Boolean).join(' / ');
+}
+
+/** يحسب السعر الفعّال آخذاً بعين الاعتبار المتغيّر المختار إن وُجد */
+export function getVariantEffectivePrice(
+  product: Pick<Product, 'price' | 'discountPercent' | 'flashPrice' | 'flashEndsAt'>,
+  variant?: Pick<ProductVariant, 'price'> | null,
+): number {
+  if (variant?.price != null && variant.price > 0) {
+    // المتغيّر له سعر خاص — الخصومات/الفلاش تبقى مرتبطة بالمنتج الأساسي فقط
+    return variant.price;
+  }
+  return getEffectivePrice(product);
+}
+
+/** أقل سعر بين كل تركيبات المتغيرات النشطة، أو سعر المنتج الأساسي إن لم توجد متغيرات */
+export function getStartingPrice(product: Pick<Product, 'price' | 'discountPercent' | 'flashPrice' | 'flashEndsAt' | 'variants' | 'hasVariants'>): number {
+  if (product.hasVariants && product.variants && product.variants.length > 0) {
+    const active = product.variants.filter(v => v.isActive !== false);
+    const pool = active.length > 0 ? active : product.variants;
+    const prices = pool.map(v => getVariantEffectivePrice(product, v));
+    return Math.min(...prices);
+  }
+  return getEffectivePrice(product);
+}
+
+/** إجمالي المخزون عبر كل التركيبات (أو مخزون المنتج نفسه إن لم توجد متغيرات) */
+export function getTotalVariantStock(product: Pick<Product, 'stock' | 'variants' | 'hasVariants'>): number {
+  if (product.hasVariants && product.variants) {
+    return product.variants.reduce((s, v) => s + (v.stock || 0), 0);
+  }
+  return product.stock;
+}
 
 /** يحسب السعر بعد الخصم العادي */
 export function getDiscountedPrice(product: Pick<Product, 'price' | 'discountPercent'>): number {
