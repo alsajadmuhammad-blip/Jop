@@ -697,7 +697,7 @@ export default function ProductPageClient() {
 
       {/* ───── تفاصيل المنتج ───── */}
       <div
-        className="px-4 pt-5 space-y-4"
+        className="px-4 pt-5 pb-28 space-y-4"
       >
         {/* الاسم + التقييم */}
         <div>

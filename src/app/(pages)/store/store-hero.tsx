@@ -60,8 +60,11 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
 
   return (
     <>
-      {/* ══ صورة الغلاف — ضمن التدفق الطبيعي للصفحة، تتحرك مع التمرير بشكل عادي بدون fixed/JS scroll listener ══ */}
-      <div className="relative h-[220px] overflow-hidden">
+      {/* ══ صورة الغلاف — sticky بديل خفيف لـ fixed: تُثبَّت أسفل الهيدر أثناء تمرير أول 220px ثم تتحرر تلقائياً بدون أي مستمع JS ══ */}
+      <div
+        className="sticky z-0 h-[220px] overflow-hidden"
+        style={{ top: "var(--header-h, 56px)" }}
+      >
         {store.coverImageUrl ? (
           store.coverImageUrl.startsWith("data:") ? (
             <img src={store.coverImageUrl} alt="" className="w-full h-full object-cover" decoding="async" />

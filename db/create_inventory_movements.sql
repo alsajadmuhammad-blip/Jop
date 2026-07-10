@@ -10,14 +10,15 @@ ALTER TABLE products
 -- 2) قيد فريد على (id, store_id) في المنتجات لضمان تطابق المنتج مع متجره
 --    عند الإحالة من inventory_movements (يمنع تسجيل حركة لمنتج لا ينتمي للمتجر المحدد)
 --    (Postgres لا يدعم ADD CONSTRAINT IF NOT EXISTS مباشرة، لذلك نتحقق أولاً)
-DO $
+DO $BODY$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'products_id_store_id_unique'
   ) THEN
     ALTER TABLE products ADD CONSTRAINT products_id_store_id_unique UNIQUE (id, store_id);
   END IF;
-END $;
+END
+$BODY$;
 
 -- 3) جدول حركات المخزون (إضافة / إرجاع / استبدال / تلف / تصحيح)
 CREATE TABLE IF NOT EXISTS inventory_movements (
@@ -43,13 +44,18 @@ CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_id
 -- 4) تفعيل RLS وربط الصلاحيات بحسب ملكية المتجر
 ALTER TABLE inventory_movements ENABLE ROW LEVEL SECURITY;
 
+-- ملاحظة مهمة: جدول stores في هذه القاعدة يحتوي عمودين لمالك المتجر
+-- (owner_id بصيغة snake_case و "ownerId" بصيغة camelCase) والعمود المعبّى فعلياً
+-- حالياً هو "ownerId" فقط (owner_id = NULL لكل المتاجر). لذلك السياسة تتحقق من كليهما
+-- لتعمل بشكل صحيح بغض النظر عن أي عمود مُعبّى.
+
 -- صاحب المتجر يقرأ حركات متجره فقط
 DROP POLICY IF EXISTS "store owners read own inventory movements" ON inventory_movements;
 CREATE POLICY "store owners read own inventory movements"
   ON inventory_movements FOR SELECT
   USING (
     store_id IN (
-      SELECT id FROM stores WHERE owner_id = auth.uid()
+      SELECT id FROM stores WHERE owner_id = auth.uid() OR "ownerId" = auth.uid()
     )
   );
 
@@ -59,7 +65,7 @@ CREATE POLICY "store owners insert own inventory movements"
   ON inventory_movements FOR INSERT
   WITH CHECK (
     store_id IN (
-      SELECT id FROM stores WHERE owner_id = auth.uid()
+      SELECT id FROM stores WHERE owner_id = auth.uid() OR "ownerId" = auth.uid()
     )
   );
 
