@@ -9,9 +9,6 @@ import { StoreRatingDialogWrapper } from "@/components/store-rating-dialog-wrapp
 import { useStoreContact } from "@/contexts/store-contact-context";
 import type { Store } from "@/lib/types";
 
-const COVER_H  = 220;
-const OVERLAP  = 28;
-
 function arabicN(n: number) {
   return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
 }
@@ -64,13 +61,7 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
   return (
     <>
       {/* ══ صورة الغلاف — ضمن التدفق الطبيعي للصفحة، تتحرك مع التمرير بشكل عادي بدون fixed/JS scroll listener ══ */}
-      <div
-        style={{
-          height: COVER_H,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <div className="relative h-[220px] overflow-hidden">
         {store.coverImageUrl ? (
           store.coverImageUrl.startsWith("data:") ? (
             <img src={store.coverImageUrl} alt="" className="w-full h-full object-cover" decoding="async" />
@@ -78,8 +69,8 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
             <Image src={store.coverImageUrl} alt="" fill className="object-cover" sizes="100vw" priority quality={70} decoding="async" />
           )
         ) : (
-          <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#0f2460 0%,#1e3a8a 45%,#2563eb 100%)" }}>
-            <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "24px 24px" }} />
+          <div className="w-full h-full bg-[linear-gradient(135deg,#0f2460_0%,#1e3a8a_45%,#2563eb_100%)]">
+            <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[length:24px_24px]" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
@@ -96,7 +87,7 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
       </div>
 
       {/* ══ ورقة المحتوى ══ */}
-      <div style={{ position: "relative", zIndex: 10, marginTop: -OVERLAP, borderTopLeftRadius: 20, borderTopRightRadius: 20, background: "white", boxShadow: "0 -4px 24px rgba(0,0,0,0.09)" }}>
+      <div className="relative z-10 -mt-[28px] rounded-t-[20px] bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.09)]">
 
         <div className="px-4 sm:px-5 pt-4 pb-3">
 
@@ -104,8 +95,7 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
           <div className="flex items-end gap-3 mb-3">
             {/* اللوغو */}
             <div
-              className="relative w-[62px] h-[62px] rounded-2xl border-[3px] border-white bg-white overflow-hidden flex-shrink-0 -mt-10"
-              style={{ boxShadow: "0 4px 18px rgba(0,0,0,0.14)" }}
+              className="relative w-[62px] h-[62px] rounded-2xl border-[3px] border-white bg-white overflow-hidden flex-shrink-0 -mt-10 shadow-[0_4px_18px_rgba(0,0,0,0.14)]"
             >
               {store.logoUrl ? (
                 store.logoUrl.startsWith("data:") ? (
