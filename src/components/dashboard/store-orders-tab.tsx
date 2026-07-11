@@ -569,10 +569,8 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
         </div>
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-3 text-center">
           <p className="text-[10px] text-primary font-semibold mb-0.5">الإيراد</p>
-          <p className="text-base font-extrabold text-primary leading-tight">
-            {stats.revenue >= 1000
-              ? `${(stats.revenue / 1000).toFixed(1)}k`
-              : stats.revenue.toLocaleString()}
+          <p className="text-sm font-extrabold text-primary leading-tight">
+            {stats.revenue.toLocaleString()}
             <span className="text-[10px] font-semibold"> د.ع</span>
           </p>
         </div>

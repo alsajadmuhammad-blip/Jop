@@ -6,7 +6,7 @@ import {
   CreditCard, Zap, Tag, Star, ShoppingCart, Boxes,
 } from "lucide-react";
 
-/* ─── التبويبات مُجمَّعة للمنطق فقط (لحساب المجموعة النشطة) ─── */
+/* ─── التبويبات مُجمَّعة ─── */
 const NAV_GROUPS = [
   {
     id: "store",
@@ -39,7 +39,7 @@ function getGroupForTab(tab: string) {
   return NAV_GROUPS.find((g) => g.tabs.some((t) => t.tab === tab)) ?? NAV_GROUPS[0];
 }
 
-/* ─── المكوّن: يعرض فقط التبويبات الفرعية للمجموعة النشطة ─── */
+/* ─── المكوّن: شبكة بطاقات بدل التبويبات ─── */
 export function StoreOwnerNavbar({
   activeTab,
   onTabChange,
@@ -51,10 +51,10 @@ export function StoreOwnerNavbar({
 
   return (
     <nav
-      className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
+      className="-mx-4 sm:-mx-6 overflow-x-auto px-3 sm:px-5 pb-3 pt-2"
       style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
     >
-      <div className="flex min-w-max items-stretch gap-0.5">
+      <div className="flex min-w-max gap-2">
         {activeGroup.tabs.map(({ tab, label, icon: Icon }) => {
           const isActive = activeTab === tab;
           return (
@@ -62,25 +62,30 @@ export function StoreOwnerNavbar({
               key={tab}
               onClick={() => onTabChange(tab)}
               className={cn(
-                "relative flex items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[12.5px] font-semibold whitespace-nowrap outline-none select-none",
-                "transition-colors duration-100",
+                "flex flex-col items-center justify-center gap-1.5",
+                "w-[72px] py-2.5 rounded-2xl border text-center",
+                "transition-all duration-150 select-none outline-none",
                 isActive
-                  ? "text-primary bg-primary/5"
-                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                  ? "border-primary/30 bg-primary/8 shadow-sm shadow-primary/10"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm"
               )}
             >
-              <Icon
+              <div
                 className={cn(
-                  "h-3.5 w-3.5 flex-shrink-0",
-                  isActive ? "text-primary" : "text-slate-400"
+                  "h-8 w-8 rounded-xl flex items-center justify-center",
+                  isActive ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
                 )}
-                strokeWidth={isActive ? 2.4 : 2}
-              />
-              <span>{label}</span>
-
-              {isActive && (
-                <span className="absolute bottom-0 inset-x-2 h-[2px] rounded-full bg-primary" />
-              )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
+              </div>
+              <span
+                className={cn(
+                  "text-[10.5px] font-semibold leading-tight",
+                  isActive ? "text-primary" : "text-slate-500"
+                )}
+              >
+                {label}
+              </span>
             </button>
           );
         })}
