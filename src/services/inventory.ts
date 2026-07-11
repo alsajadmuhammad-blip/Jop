@@ -155,3 +155,113 @@ export async function logInventoryMovementsBulk(
   }
   return (data || []).map(mapMovementRow);
 }
+
+// ─── الاستبدال المركّب وتصنيف الحركات ────────────────────────────
+
+export const EXCHANGE_PREFIX = 'EXCHANGE::';
+
+export interface ExchangeData {
+  rName:     string;   // اسم المُرجَع
+  iName:     string;   // اسم البديل
+  rQty:      number;
+  iQty:      number;
+  priceDiff: number;   // موجب = عميل يدفع فرق | سالب = استرداد
+  invRef?:   string;
+  invDate?:  string;
+  note?:     string;
+}
+
+export type MovementKind =
+  | 'restock' | 'return' | 'exchange'
+  | 'damage'  | 'correction' | 'pos_sale' | 'other';
+
+export function parseExchangeReason(reason: string): ExchangeData | null {
+  if (!reason.startsWith(EXCHANGE_PREFIX)) return null;
+  try { return JSON.parse(reason.slice(EXCHANGE_PREFIX.length)) as ExchangeData; } catch { return null; }
+}
+
+export function classifyMovement(reason: string): MovementKind {
+  if (reason.startsWith(EXCHANGE_PREFIX)) return 'exchange';
+  if (reason.includes('بيع كاشير'))       return 'pos_sale';
+  if (reason.startsWith('إضافة مخزون'))   return 'restock';
+  if (reason.startsWith('إرجاع'))         return 'return';
+  if (reason.startsWith('تلف'))           return 'damage';
+  if (reason.startsWith('تصحيح'))         return 'correction';
+  return 'other';
+}
+
+/**
+ * استبدال مركّب — يزيد مخزون المُرجَع، يخصم البديل،
+ * وينشئ سجلاً واحداً يحتوي كل التفاصيل.
+ */
+export async function recordExchangeMovement(params: {
+  storeId:             string;
+  returnedProductId:   string;
+  returnedProductName: string;
+  returnedQty:         number;
+  issuedProductId:     string;
+  issuedProductName:   string;
+  issuedQty:           number;
+  priceDiff:           number;
+  invoiceRef?:  string;
+  invoiceDate?: string;
+  note?:        string;
+}): Promise<{ returnedNewStock: number; issuedNewStock: number; movement: InventoryMovement }> {
+  const { storeId, returnedProductId, issuedProductId } = params;
+
+  const { data: rows, error: readErr } = await supabase
+    .from('products').select('id, stock')
+    .in('id', [returnedProductId, issuedProductId])
+    .eq('store_id', storeId);
+
+  if (readErr || !rows?.length)
+    throw new Error(`فشل قراءة المخزون: ${readErr?.message ?? 'منتجات غير موجودة'}`);
+
+  const retRow = rows.find((r: any) => r.id === returnedProductId);
+  const issRow = rows.find((r: any) => r.id === issuedProductId);
+  if (!retRow) throw new Error('المنتج المُرجَع غير موجود');
+  if (!issRow) throw new Error('المنتج البديل غير موجود');
+
+  const returnedNewStock = Number(retRow.stock) + params.returnedQty;
+  const issuedNewStock   = Math.max(0, Number(issRow.stock) - params.issuedQty);
+
+  const { error: e1 } = await supabase.from('products')
+    .update({ stock: returnedNewStock })
+    .eq('id', returnedProductId).eq('store_id', storeId);
+  if (e1) throw new Error(`فشل تحديث مخزون المُرجَع: ${e1.message}`);
+
+  const { error: e2 } = await supabase.from('products')
+    .update({ stock: issuedNewStock })
+    .eq('id', issuedProductId).eq('store_id', storeId);
+  if (e2) {
+    await supabase.from('products').update({ stock: retRow.stock })
+      .eq('id', returnedProductId).eq('store_id', storeId);
+    throw new Error(`فشل تحديث مخزون البديل: ${e2.message}`);
+  }
+
+  const payload: ExchangeData = {
+    rName: params.returnedProductName, iName: params.issuedProductName,
+    rQty: params.returnedQty,          iQty: params.issuedQty,
+    priceDiff: params.priceDiff,
+    ...(params.invoiceRef  ? { invRef:  params.invoiceRef  } : {}),
+    ...(params.invoiceDate ? { invDate: params.invoiceDate } : {}),
+    ...(params.note        ? { note:    params.note        } : {}),
+  };
+
+  const { data: logData, error: e3 } = await supabase
+    .from('inventory_movements')
+    .insert([{ store_id: storeId, product_id: returnedProductId,
+               quantity_change: params.returnedQty,
+               reason: `${EXCHANGE_PREFIX}${JSON.stringify(payload)}` }])
+    .select().single();
+
+  if (e3 || !logData) {
+    await supabase.from('products').update({ stock: retRow.stock })
+      .eq('id', returnedProductId).eq('store_id', storeId);
+    await supabase.from('products').update({ stock: issRow.stock })
+      .eq('id', issuedProductId).eq('store_id', storeId);
+    throw new Error(`فشل تسجيل حركة الاستبدال: ${e3?.message ?? 'خطأ'}`);
+  }
+
+  return { returnedNewStock, issuedNewStock, movement: mapMovementRow(logData) };
+}

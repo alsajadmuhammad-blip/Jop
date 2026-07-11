@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabase';
-import type { Product, Store, Section, Category, User, CartItem, StorePackage } from '@/lib/types';
+import type { Product, Store, Section, Category, User, CartItem, StorePackage, Order, OrderItem, OrderStatus } from '@/lib/types';
 
 const SUPABASE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -834,6 +834,45 @@ export async function fetchUserOrders(userId: string): Promise<any[]> {
   }
 
   return data || [];
+}
+
+/** جلب طلبات متجر معيّن — للاستخدام في نافذة الاستبدال */
+export async function fetchOrdersByStore(storeId: string, limit = 80): Promise<Order[]> {
+  if (!storeId) return [];
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .or(`store_id.eq.${storeId},storeId.eq.${storeId}`)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) { console.error('fetchOrdersByStore:', error.message); return []; }
+  return (data || []).map((row: any): Order => {
+    let items: OrderItem[] = [];
+    if (Array.isArray(row.items)) {
+      items = row.items.map((it: any) => ({
+        productId:   it.productId   || it.product_id   || '',
+        productName: it.productName || it.product_name || '',
+        quantity:    Number(it.quantity ?? it.qty ?? 0),
+        unitPrice:   Number(it.unitPrice  || it.unit_price  || 0),
+        totalPrice:  Number(it.totalPrice || it.total_price || 0),
+      }));
+    }
+    return {
+      id:            row.id,
+      storeId:       row.store_id   || row.storeId   || '',
+      storeName:     row.store_name || row.storeName  || '',
+      customerId:    row.customer_id || row.customerId || null,
+      customerName:  row.customer_name || row.customerName,
+      customerPhone: row.customer_phone || row.customerPhone,
+      items,
+      totalAmount:   Number(row.total_amount ?? row.totalAmount ?? 0),
+      status:        (row.status || 'pending') as OrderStatus,
+      notes:         row.notes ?? null,
+      createdAt:     row.created_at  || row.createdAt  || '',
+      updatedAt:     row.updated_at  || row.updatedAt  || '',
+      paymentMethod: row.payment_method || row.paymentMethod || undefined,
+    };
+  });
 }
 
 export async function createOrder(order: any): Promise<string | null> {
