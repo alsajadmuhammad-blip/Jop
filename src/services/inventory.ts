@@ -1,7 +1,8 @@
 /**
  * Inventory Service — سجل حركات المخزون
- * إضافة / إرجاع / استبدال / تلف / تصحيح — كل حركة تُسجَّل في inventory_movements
+ * إضافة / إرجاع / استبدال / تلف / تصحيح / بيع — كل حركة تُسجَّل في inventory_movements
  * وتُحدَّث كمية المخزون في نفس الوقت.
+ * logInventoryMovementsBulk: لتسجيل الحركات فقط بدون تعديل المخزون (مبيعات الكاشير).
  */
 
 import { supabase } from './supabase';
@@ -122,4 +123,35 @@ export async function recordInventoryMovement(params: {
   }
 
   return resolvedNewStock;
+}
+
+/**
+ * يسجّل حركات مخزون متعددة دفعةً واحدة بدون تعديل المخزون.
+ * يُستخدم بعد مبيعات الكاشير حيث يكون المخزون قد خُصم فعلاً بواسطة
+ * Edge Function، ونحن نريد فقط توثيق الحركة في السجل.
+ */
+export async function logInventoryMovementsBulk(
+  movements: Array<{
+    storeId: string;
+    productId: string;
+    quantityChange: number;
+    reason: string;
+  }>
+): Promise<InventoryMovement[]> {
+  if (!movements.length) return [];
+  const rows = movements.map((m) => ({
+    store_id:        m.storeId,
+    product_id:      m.productId,
+    quantity_change: m.quantityChange,
+    reason:          m.reason,
+  }));
+  const { data, error } = await supabase
+    .from('inventory_movements')
+    .insert(rows)
+    .select();
+  if (error) {
+    console.error('logInventoryMovementsBulk error:', error.message);
+    throw new Error(`فشل تسجيل حركات المخزون: ${error.message}`);
+  }
+  return (data || []).map(mapMovementRow);
 }

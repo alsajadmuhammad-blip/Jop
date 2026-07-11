@@ -11,6 +11,7 @@ import {
   getEffectivePrice, hasActiveFlashSale,
 } from "@/lib/types";
 import { posCheckout } from "@/services/pos-checkout";
+import { logInventoryMovementsBulk, type InventoryMovement } from "@/services/inventory";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -28,12 +29,13 @@ type PaymentMethod = "cash" | "transfer";
 type PosView       = "pos" | "receipt";
 
 export interface PosTabProps {
-  storeId:       string;
-  storeName:     string;
-  storeLogoUrl?: string | null;
-  products:      Product[];
-  sections:      Section[];
-  onStockUpdate: (productId: string, newStock: number) => void;
+  storeId:          string;
+  storeName:        string;
+  storeLogoUrl?:    string | null;
+  products:         Product[];
+  sections:         Section[];
+  onStockUpdate:    (productId: string, newStock: number) => void;
+  onSaleMovements?: (movements: InventoryMovement[]) => void;
 }
 
 /* ─── تهريب نص بسيط قبل حقنه داخل HTML الفاتورة ─── */
@@ -282,7 +284,7 @@ function CartContent({
    الكاشير الرئيسي
 ════════════════════════════════════════ */
 export function PosTab({
-  storeId, storeName, storeLogoUrl, products, sections, onStockUpdate,
+  storeId, storeName, storeLogoUrl, products, sections, onStockUpdate, onSaleMovements,
 }: PosTabProps) {
   const { toast } = useToast();
 
@@ -377,6 +379,22 @@ export function PosTab({
       saleCart.forEach((item) => {
         onStockUpdate(item.product.id, Math.max(0, item.product.stock - item.qty));
       });
+
+      /* تسجيل حركات المخزون لكل منتج مباع */
+      try {
+        const logged = await logInventoryMovementsBulk(
+          saleCart.map((item) => ({
+            storeId:        storeId,
+            productId:      item.product.id,
+            quantityChange: -item.qty,
+            reason:         `بيع كاشير #${result.order_number}`,
+          }))
+        );
+        onSaleMovements?.(logged);
+      } catch (logErr) {
+        /* فشل التسجيل لا يوقف عملية البيع — فقط نُسجّله للتصحيح */
+        console.warn("logInventoryMovementsBulk failed:", logErr);
+      }
 
       setCartOpen(false);
       setPosView("receipt");
@@ -566,10 +584,21 @@ export function PosTab({
           </div>
         </div>
 
-        <Button onClick={resetPos} className="rounded-xl gap-2 font-bold px-10 py-5">
-          <Plus className="w-4 h-4" />
-          بيع جديد
-        </Button>
+        {/* أزرار الإجراء */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+          <Button
+            onClick={handlePrint}
+            variant="outline"
+            className="flex-1 rounded-xl gap-2 font-bold py-5 border-slate-300 text-slate-700 hover:bg-slate-50"
+          >
+            <Printer className="w-4 h-4" />
+            طباعة الفاتورة
+          </Button>
+          <Button onClick={resetPos} className="flex-1 rounded-xl gap-2 font-bold py-5">
+            <Plus className="w-4 h-4" />
+            بيع جديد
+          </Button>
+        </div>
       </div>
     );
   }

@@ -51,6 +51,7 @@ import { DiscountCodesTab } from "@/components/dashboard/discount-codes-tab";
 import { ProductAnalyticsTab } from "@/components/dashboard/product-analytics-tab";
 import { PosTab } from "@/components/dashboard/pos-tab";
 import { InventoryTab } from "@/components/dashboard/inventory-tab";
+import type { InventoryMovement } from "@/services/inventory";
 
 // ===== Dashboard Product Card =====
 // Lightweight card — no portals, no GPU-layer transforms. Confirm dialog is shared at the grid level.
@@ -541,6 +542,7 @@ export default function StoreDashboardPage() {
   const [isStoreActive, setIsStoreActive] = useState(false);
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [activeView, setActiveView] = useState('products');
+  const [posMovements, setPosMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeLoadAttempted, setStoreLoadAttempted] = useState(false);
   const [storeLoadUserId, setStoreLoadUserId] = useState<string | null>(null);
@@ -1448,6 +1450,9 @@ export default function StoreDashboardPage() {
                 prev.map((p) => p.id === productId ? { ...p, stock: newStock } : p)
               )
             }
+            onSaleMovements={(movements) =>
+              setPosMovements((prev) => [...movements, ...prev])
+            }
           />
         )}
 
@@ -1461,6 +1466,7 @@ export default function StoreDashboardPage() {
                 prev.map((p) => p.id === productId ? { ...p, stock: newStock } : p)
               )
             }
+            incomingMovements={posMovements}
           />
         )}
 

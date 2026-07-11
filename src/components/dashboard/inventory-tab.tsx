@@ -21,6 +21,8 @@ interface InventoryTabProps {
   storeId: string;
   products: Product[];
   onStockUpdate: (productId: string, newStock: number) => void;
+  /** حركات جديدة قادمة من الكاشير — تُدمج فوراً مع القائمة بدون انتظار re-fetch */
+  incomingMovements?: InventoryMovement[];
 }
 
 /* أنواع الحركة وإشارتها الافتراضية (+/-) */
@@ -220,7 +222,7 @@ function MovementDialog({
 }
 
 /* ════════ التبويب الرئيسي ════════ */
-export function InventoryTab({ storeId, products, onStockUpdate }: InventoryTabProps) {
+export function InventoryTab({ storeId, products, onStockUpdate, incomingMovements }: InventoryTabProps) {
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -238,6 +240,17 @@ export function InventoryTab({ storeId, products, onStockUpdate }: InventoryTabP
     })();
     return () => { active = false; };
   }, [storeId]);
+
+  /* دمج حركات الكاشير الواردة فوراً — نتجاهل ما هو مسجّل مسبقاً */
+  useEffect(() => {
+    if (!incomingMovements?.length) return;
+    setMovements((prev) => {
+      const existingIds = new Set(prev.map((m) => m.id));
+      const fresh = incomingMovements.filter((m) => !existingIds.has(m.id));
+      if (!fresh.length) return prev;
+      return [...fresh, ...prev];
+    });
+  }, [incomingMovements]);
 
   const productNameById = useMemo(() => {
     const map = new Map<string, string>();
