@@ -3,28 +3,23 @@
 import { cn } from "@/lib/utils";
 import {
   Package, ShoppingBag, LayoutGrid, Settings,
-  CreditCard, Zap, Tag, Star, ShoppingCart,
-  Store, Megaphone, SlidersHorizontal, Boxes,
+  CreditCard, Zap, Tag, Star, ShoppingCart, Boxes,
 } from "lucide-react";
 
-/* ─── هيكل التبويبات ─── */
+/* ─── التبويبات مُجمَّعة للمنطق فقط (لحساب المجموعة النشطة) ─── */
 const NAV_GROUPS = [
   {
     id: "store",
-    label: "المتجر",
-    icon: Store,
     tabs: [
-      { tab: "products", label: "المنتجات", icon: Package },
-      { tab: "orders",   label: "الطلبات",  icon: ShoppingBag },
-      { tab: "pos",      label: "الكاشير",  icon: ShoppingCart },
-      { tab: "inventory", label: "المخزون", icon: Boxes },
-      { tab: "sections", label: "الأقسام",  icon: LayoutGrid },
+      { tab: "products",  label: "المنتجات", icon: Package },
+      { tab: "orders",    label: "الطلبات",  icon: ShoppingBag },
+      { tab: "pos",       label: "الكاشير",  icon: ShoppingCart },
+      { tab: "inventory", label: "المخزون",  icon: Boxes },
+      { tab: "sections",  label: "الأقسام",  icon: LayoutGrid },
     ],
   },
   {
     id: "marketing",
-    label: "التسويق",
-    icon: Megaphone,
     tabs: [
       { tab: "flash",   label: "عروض فلاش",   icon: Zap },
       { tab: "coupons", label: "كودات الخصم", icon: Tag },
@@ -32,8 +27,6 @@ const NAV_GROUPS = [
   },
   {
     id: "manage",
-    label: "الإدارة",
-    icon: SlidersHorizontal,
     tabs: [
       { tab: "analytics",    label: "التقييمات", icon: Star },
       { tab: "subscription", label: "الاشتراك",  icon: CreditCard },
@@ -42,18 +35,11 @@ const NAV_GROUPS = [
   },
 ] as const;
 
-type GroupId = (typeof NAV_GROUPS)[number]["id"];
-
 function getGroupForTab(tab: string) {
-  return (
-    NAV_GROUPS.find((g) => g.tabs.some((t) => t.tab === tab)) ?? NAV_GROUPS[0]
-  );
+  return NAV_GROUPS.find((g) => g.tabs.some((t) => t.tab === tab)) ?? NAV_GROUPS[0];
 }
 
-/* ─── المكوّن ───
-   ملاحظة: أزرار المجموعات (المتجر / التسويق / الإدارة) انتقلت إلى
-   الهيدر السفلي العام لصاحب المتجر، لذا هذا المكوّن يعرض فقط
-   التبويبات الفرعية للمجموعة النشطة حالياً (محسوبة من التبويب الحالي). */
+/* ─── المكوّن: يعرض فقط التبويبات الفرعية للمجموعة النشطة ─── */
 export function StoreOwnerNavbar({
   activeTab,
   onTabChange,
@@ -64,46 +50,41 @@ export function StoreOwnerNavbar({
   const activeGroup = getGroupForTab(activeTab);
 
   return (
-    <div className="space-y-0">
-
-      {/* ── التبويبات الفرعية للمجموعة النشطة ── */}
-      <nav
-        className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        <div className="flex min-w-max items-stretch border-t border-slate-100">
-          {activeGroup.tabs.map((link) => {
-            const isActive = activeTab === link.tab;
-            const Icon = link.icon;
-            return (
-              <button
-                key={link.tab}
-                onClick={() => onTabChange(link.tab)}
+    <nav
+      className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
+      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+    >
+      <div className="flex min-w-max items-stretch gap-0.5">
+        {activeGroup.tabs.map(({ tab, label, icon: Icon }) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => onTabChange(tab)}
+              className={cn(
+                "relative flex items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[12.5px] font-semibold whitespace-nowrap outline-none select-none",
+                "transition-colors duration-100",
+                isActive
+                  ? "text-primary bg-primary/5"
+                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+              )}
+            >
+              <Icon
                 className={cn(
-                  "relative flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold whitespace-nowrap outline-none select-none transition-colors duration-150",
-                  isActive
-                    ? "text-primary"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                  "h-3.5 w-3.5 flex-shrink-0",
+                  isActive ? "text-primary" : "text-slate-400"
                 )}
-              >
-                <Icon
-                  className={cn(
-                    "h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150",
-                    isActive ? "text-primary" : "text-slate-400"
-                  )}
-                />
-                <span>{link.label}</span>
+                strokeWidth={isActive ? 2.4 : 2}
+              />
+              <span>{label}</span>
 
-                {/* مؤشر التبويب النشط */}
-                {isActive && (
-                  <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-primary" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-    </div>
+              {isActive && (
+                <span className="absolute bottom-0 inset-x-2 h-[2px] rounded-full bg-primary" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

@@ -974,72 +974,97 @@ export default function StoreDashboardPage() {
 
   // Product saving is now handled in the add-product page
   
+  /* ── هيكل التحميل السريع — يظهر الهيدر فوراً بدون spinner مزعج ── */
   if (loading || authLoading) {
-    return <div className="flex items-center justify-center h-screen bg-muted/40"><p>جاري تحميل بيانات المتجر...</p></div>;
+    return (
+      <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
+        {/* Header skeleton */}
+        <header style={{ top: 'var(--header-h, 56px)' }} className="sticky z-40 border-b border-slate-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,.06)]">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <div className="flex h-14 items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-slate-100 animate-pulse" />
+                <div className="space-y-1.5">
+                  <div className="h-3.5 w-28 rounded bg-slate-100 animate-pulse" />
+                  <div className="h-2.5 w-16 rounded bg-slate-100 animate-pulse" />
+                </div>
+              </div>
+              <div className="h-8 w-24 rounded-xl bg-slate-100 animate-pulse" />
+            </div>
+            <div className="flex gap-2 pb-2.5 border-t border-slate-100 pt-1">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-7 w-16 rounded-lg bg-slate-100 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </header>
+        {/* Content skeleton */}
+        <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 space-y-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-white animate-pulse border border-slate-100" />)}
+          </div>
+          <div className="h-10 w-full rounded-xl bg-white animate-pulse border border-slate-100" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {[1,2,3,4,5,6].map(i => <div key={i} className="h-44 rounded-2xl bg-white animate-pulse border border-slate-100" />)}
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (!fullStoreData) {
-      // This state can occur if the user is a store owner but their store document was deleted.
-      // It's an edge case but we should handle it.
-      return (
-        <div className="flex items-center justify-center h-screen bg-muted/40">
-          <Alert variant="destructive" className="max-w-md">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>خطأ في بيانات المتجر</AlertTitle>
-            <AlertDescription>
-                لا يمكننا العثور على بيانات متجرك. يرجى التواصل مع الإدارة.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )
+    return (
+      <div className="flex items-center justify-center h-screen bg-muted/40">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>خطأ في بيانات المتجر</AlertTitle>
+          <AlertDescription>لا يمكننا العثور على بيانات متجرك. يرجى التواصل مع الإدارة.</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
 
       {/* ══════════════════ HEADER ══════════════════ */}
-      <header style={{ top: 'var(--header-h, 56px)' }} className="sticky z-40 border-b border-slate-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,.06)]">
+      <header style={{ top: 'var(--header-h, 56px)' }} className="sticky z-40 bg-white border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
 
           {/* Top row */}
-          <div className="flex h-16 items-center justify-between gap-3">
-            {/* Store identity */}
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-14 items-center justify-between gap-3">
+            {/* هوية المتجر */}
+            <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 {fullStoreData.logoUrl ? (
-                  <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-                    <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="40px" />
+                  <div className="relative h-9 w-9 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                    <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="36px" priority />
                   </div>
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 shadow-sm">
-                    <Package2 className="h-5 w-5 text-primary" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                    <Package2 className="h-4.5 w-4.5 text-primary" />
                   </div>
                 )}
-                {fullStoreData.isActive && (
-                  <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                )}
+                {/* مؤشر النشاط */}
+                <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${fullStoreData.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-base font-bold text-slate-900 leading-snug">{fullStoreData.name}</p>
-                <p className="text-xs text-slate-400 font-medium">لوحة التحكم</p>
+                <p className="truncate text-sm font-bold text-slate-900 leading-tight">{fullStoreData.name}</p>
+                <p className="text-[11px] text-slate-400 leading-tight">{fullStoreData.isActive ? 'نشط' : 'غير نشط'}</p>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
-              <Button asChild size="sm" variant="outline" className="rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary hover:text-white transition-all font-semibold shadow-sm px-4">
-                <Link href={`/store?id=${fullStoreData.id}`}>
-                  <Eye className="h-4 w-4" />
-                  <span>معاينة المتجر</span>
-                </Link>
-              </Button>
-            </div>
+            {/* معاينة المتجر */}
+            <Button asChild size="sm" variant="ghost" className="rounded-xl gap-1.5 text-primary hover:bg-primary/8 font-semibold h-8 px-3 text-xs shrink-0">
+              <Link href={`/store?id=${fullStoreData.id}`}>
+                <Eye className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">معاينة</span>
+              </Link>
+            </Button>
           </div>
 
-          {/* Nav tabs */}
-          <div className="pb-2.5">
-            <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
-          </div>
+          {/* التبويبات */}
+          <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
         </div>
       </header>
 
