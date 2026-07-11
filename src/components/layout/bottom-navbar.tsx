@@ -1,9 +1,10 @@
 
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { Home, ShoppingCart, Store, User, Search, Shield, Phone, MessageSquare, MapPin, type LucideIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { Home, ShoppingCart, Store, User, Search, Shield, Phone, MessageSquare, MapPin, Megaphone, Settings as SettingsIcon, type LucideIcon } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useStoreContact } from "@/contexts/store-contact-context";
@@ -30,6 +31,61 @@ const repNavItems = [
 ];
 
 const HIDE_ON_PATHS = ["/store/product"];
+
+/* ─── شريط سفلي نظيف لصاحب المتجر — الأقسام الرئيسية الثلاثة ─── */
+const STORE_OWNER_TABS = [
+  { tab: "products", label: "المتجر", icon: Store, group: "store" as const },
+  { tab: "flash", label: "التسويق", icon: Megaphone, group: "marketing" as const },
+  { tab: "settings", label: "الإعدادات", icon: SettingsIcon, group: "settings" as const },
+];
+
+function storeOwnerTabGroup(tab: string | null) {
+  if (!tab) return "store";
+  if (["products", "orders", "pos", "inventory", "sections"].includes(tab)) return "store";
+  if (["flash", "coupons"].includes(tab)) return "marketing";
+  return "settings";
+}
+
+function StoreOwnerBottomTabs() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeGroup =
+    pathname === "/dashboard/store" ? storeOwnerTabGroup(searchParams.get("tab")) : null;
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl">
+      <div className="flex items-stretch">
+        {STORE_OWNER_TABS.map(({ tab, label, icon: Icon, group }) => {
+          const isActive = activeGroup === group;
+          return (
+            <Link
+              key={tab}
+              href={`/dashboard/store?tab=${tab}`}
+              className={cn(
+                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors",
+                isActive ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 2} />
+              {label}
+              {isActive && (
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function renderStoreOwnerBar() {
+  return (
+    <Suspense fallback={null}>
+      <StoreOwnerBottomTabs />
+    </Suspense>
+  );
+}
 
 export function BottomNavbar() {
   const pathname = usePathname();
@@ -163,6 +219,7 @@ export function BottomNavbar() {
   );
 
   if (userRole === 'representative') return renderRepNavbar();
+  if (userRole === 'store') return renderStoreOwnerBar();
 
   /* ── شريط المتجر: إذا كان فيه بيانات تواصل، اعرضها بدل بعض الأزرار ── */
   if (hasContact) {

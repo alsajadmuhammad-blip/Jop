@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ShoppingCart, User, Users, LayoutDashboard, LogOut, LogIn,
-  Search, Home, Store, Phone, Shield, UserCircle, Moon, Sun,
+  Search, Home, Store, Shield, UserCircle, Moon, Sun,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -26,12 +26,9 @@ import {
 import { Input } from "../ui/input";
 import { useTheme } from "next-themes";
 
-const WHATSAPP_CONTACT = "https://wa.me/9647772323607?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%B5%D9%84%20%D9%85%D8%B9%20%D9%85%D8%B1%D9%83%D8%B2%D9%8A";
-
 const navLinks = [
   { href: "/", label: "الرئيسية", icon: Home, roles: ["customer", "store"], external: false },
   { href: "/stores", label: "المتاجر", icon: Store, roles: ["customer", "store"], external: false },
-  { href: WHATSAPP_CONTACT, label: "اتصل بنا", icon: Phone, roles: ["customer", "store", "representative"], external: true },
   { href: "/admin", label: "الإدارة", icon: Shield, roles: ["admin"], external: false },
 ];
 
@@ -232,44 +229,6 @@ export function Header() {
         </div>
       </div>
 
-      {/* ── الصف الثاني: روابط التنقل على الموبايل ── */}
-      {!isGuest && visibleLinks.length > 0 && (
-        <div className="md:hidden border-t border-border/30 bg-background/80">
-          <div className="flex overflow-x-auto no-scrollbar px-2 py-1">
-            {visibleLinks.map((link) => {
-              const Icon = link.icon;
-              if (link.external) {
-                return (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-xl transition-all text-xs text-foreground/50 hover:text-primary"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {link.label}
-                  </a>
-                );
-              }
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-xl transition-all text-xs ${
-                    pathname === link.href
-                      ? "text-primary font-semibold"
-                      : "text-foreground/50"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </header>
   );
 }

@@ -682,6 +682,7 @@ export default function StoreDashboardPage() {
   const handleViewChange = (view: string) => {
     if (!validViews.includes(view)) return;
     setActiveView(view);
+    router.replace(`${pathname}?tab=${view}`, { scroll: false });
   };
 
   useEffect(() => {
