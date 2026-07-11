@@ -533,6 +533,12 @@ export default function StoreDashboardPage() {
   const pathname = usePathname();
   const { toast } = useToast();
 
+  // ── Stable refs — يُحدَّثان في كل render بدون تغيير reference ──
+  const userRef  = useRef(user);
+  const toastRef = useRef(toast);
+  useEffect(() => { userRef.current  = user;  });
+  useEffect(() => { toastRef.current = toast; });
+
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -593,21 +599,24 @@ export default function StoreDashboardPage() {
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // ─────────────────────────────────────────────────────────────────
 
+  // loadStore لا يعتمد على user/toast مباشرة — يقرأهما من الـ refs
+  // حتى لا يتغير reference في كل render ويُطلق حلقة لا نهائية
   const loadStore = useCallback(async (silent = false) => {
-    const authUserId = user?.id ?? null;
-    // إذا silent=true (كاش موجود) لا نعرض spinner — stale-while-revalidate
+    const u     = userRef.current;
+    const toast = toastRef.current;
+    const authUserId = u?.id ?? null;
     if (!silent) setLoading(true);
     setStoreLoadAttempted(true);
     setStoreLoadUserId(authUserId);
 
     try {
-      let storeId = user?.storeId ?? null;
+      let storeId = u?.storeId ?? null;
 
       const conditions = [
-        user?.id ? `owner_id.eq.${user.id}` : null,
-        user?.id ? `"ownerId".eq.${user.id}` : null,
-        user?.email ? `owner_email.eq.${user.email}` : null,
-        user?.email ? `"ownerEmail".eq.${user.email}` : null,
+        u?.id    ? `owner_id.eq.${u.id}`          : null,
+        u?.id    ? `"ownerId".eq.${u.id}`          : null,
+        u?.email ? `owner_email.eq.${u.email}`     : null,
+        u?.email ? `"ownerEmail".eq.${u.email}`    : null,
       ]
         .filter(Boolean)
         .join(',');
@@ -663,21 +672,18 @@ export default function StoreDashboardPage() {
       const packageRows = await fetchStorePackages();
       setPackages(packageRows);
 
-      // حفظ البيانات في localStorage مع TTL للعودة الفورية
-      if (user?.id) {
-        writeStoreCache(user.id, storeData, productsRows, sectionsRows);
+      if (u?.id) {
+        writeStoreCache(u.id, storeData, productsRows, sectionsRows);
       }
     } catch (error) {
       console.error('Error fetching store data:', error);
-      // لا نعرض toast للأخطاء الصامتة (silent revalidate)
       if (!silent) {
         toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'فشل تحميل بيانات المتجر.' });
       }
     } finally {
-      // أوقف الـ spinner دائماً بعد الانتهاء
       setLoading(false);
     }
-  }, [user, toast]);
+  }, []); // ← لا deps — يقرأ القيم دائماً من الـ refs أعلاه
 
   const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings', 'pos', 'inventory'];
 
@@ -706,9 +712,7 @@ export default function StoreDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
 
     if (!user) {
       setStore(null);
@@ -729,9 +733,10 @@ export default function StoreDashboardPage() {
 
     // silent=true إذا الكاش محمّل — نجدد البيانات في الخلفية بدون spinner
     loadStore(sessionRestored);
-
-    return () => {};
-  }, [user, userRole, authLoading, router, loadStore, storeLoadAttempted, storeLoadUserId, sessionRestored]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userRole, authLoading, storeLoadAttempted, storeLoadUserId, sessionRestored]);
+  // ↑ استخدام user?.id بدل user الكامل يمنع إعادة التشغيل عند تغيير reference بنفس البيانات
+  // loadStore مستقر الآن (deps=[]) فلا داعي لإدراجه هنا
 
   const fullStoreData = useMemo(() => {
     // If the store doc doesn't exist yet (e.g. pending review), create a temporary one for the UI
