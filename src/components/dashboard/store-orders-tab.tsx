@@ -645,6 +645,23 @@ export function StoreOrdersTab({ storeId, storeName, storeLogoUrl: _storeLogoUrl
     return map;
   }, [orders]);
 
+  /* ── Pre-formatted dates for all orders (avoids re-computing per render) ── */
+  const formattedDateMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const order of orders) {
+      map.set(
+        order.id,
+        new Date(order.createdAt).toLocaleString("ar-IQ", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    }
+    return map;
+  }, [orders]);
+
   /* ── Count per status (current month) ── */
   const countByStatus = useMemo(() => {
     const map: Record<string, number> = { all: currentMonthOrders.length };
@@ -886,8 +903,10 @@ export function StoreOrdersTab({ storeId, storeName, storeLogoUrl: _storeLogoUrl
                 key={order.id}
                 order={order}
                 orderNumber={String(orderNumberMap.get(order.id) ?? order.id.slice(0, 6))}
+                formattedDate={formattedDateMap.get(order.id) ?? ""}
                 onStatusChange={handleStatusChange}
                 isUpdating={updatingOrderId === order.id}
+                storeName={storeName}
               />
             ))}
           </div>
@@ -911,8 +930,10 @@ export function StoreOrdersTab({ storeId, storeName, storeLogoUrl: _storeLogoUrl
                 monthKey={key}
                 orders={monthOrders}
                 orderNumberMap={orderNumberMap}
+                formattedDateMap={formattedDateMap}
                 onStatusChange={handleStatusChange}
                 updatingOrderId={updatingOrderId}
+                storeName={storeName}
               />
             ))}
           </div>
