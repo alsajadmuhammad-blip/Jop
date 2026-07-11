@@ -5,12 +5,10 @@ import {
   Boxes, Plus, ArrowLeftRight, History, AlertTriangle,
   PackageCheck, Search, Loader2, X, Wrench, ShoppingCart,
   ChevronRight, Receipt, TrendingDown, TrendingUp, Package,
-  RotateCcw, ArrowUpDown, Filter,
+  ChevronLeft, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Product, Order, OrderItem } from "@/lib/types";
@@ -25,7 +23,6 @@ import {
   type InventoryMovement,
   type InventoryReasonKind,
   type MovementKind,
-  type ExchangeData,
 } from "@/services/inventory";
 import { fetchOrdersByStore } from "@/services/supabase-db";
 
@@ -42,25 +39,27 @@ const DAMAGE_REASONS = [
 type StockFilter = "all" | "low" | "out";
 type StockSort   = "name" | "asc" | "desc";
 
-const KIND_META: Record<MovementKind, { label: string; color: string; icon: typeof Plus }> = {
-  restock:    { label: "إضافة مخزون", color: "text-emerald-600 bg-emerald-50 border-emerald-200",     icon: Plus },
-  return:     { label: "إرجاع",       color: "text-blue-600 bg-blue-50 border-blue-200",              icon: PackageCheck },
-  exchange:   { label: "استبدال",     color: "text-violet-600 bg-violet-50 border-violet-200",        icon: ArrowLeftRight },
-  damage:     { label: "تلف / فقدان", color: "text-orange-600 bg-orange-50 border-orange-200",        icon: AlertTriangle },
-  correction: { label: "تصحيح",       color: "text-slate-600 bg-slate-100 border-slate-200",          icon: Wrench },
-  pos_sale:   { label: "بيع كاشير",   color: "text-sky-600 bg-sky-50 border-sky-200",                 icon: ShoppingCart },
-  other:      { label: "أخرى",        color: "text-slate-500 bg-slate-50 border-slate-200",           icon: History },
+const MOVEMENT_KIND_OPTIONS: { value: MovementKind | "all"; label: string }[] = [
+  { value: "all",        label: "جميع الحركات" },
+  { value: "restock",    label: "إضافة مخزون" },
+  { value: "return",     label: "إرجاع من عميل" },
+  { value: "exchange",   label: "استبدال" },
+  { value: "damage",     label: "تلف / فقدان" },
+  { value: "correction", label: "تصحيح يدوي" },
+  { value: "pos_sale",   label: "بيع كاشير" },
+];
+
+const KIND_META: Record<MovementKind, { label: string; dot: string; icon: typeof Plus }> = {
+  restock:    { label: "إضافة مخزون", dot: "bg-emerald-500", icon: Plus },
+  return:     { label: "إرجاع",       dot: "bg-blue-500",    icon: PackageCheck },
+  exchange:   { label: "استبدال",     dot: "bg-violet-500",  icon: ArrowLeftRight },
+  damage:     { label: "تلف",         dot: "bg-orange-500",  icon: AlertTriangle },
+  correction: { label: "تصحيح",       dot: "bg-slate-400",   icon: Wrench },
+  pos_sale:   { label: "كاشير",       dot: "bg-sky-500",     icon: ShoppingCart },
+  other:      { label: "أخرى",        dot: "bg-slate-300",   icon: History },
 };
 
-const FILTER_TABS: { kind: MovementKind | "all"; label: string }[] = [
-  { kind: "all",        label: "الكل" },
-  { kind: "restock",    label: "إضافة" },
-  { kind: "return",     label: "إرجاع" },
-  { kind: "exchange",   label: "استبدال" },
-  { kind: "damage",     label: "تلف" },
-  { kind: "correction", label: "تصحيح" },
-  { kind: "pos_sale",   label: "كاشير" },
-];
+const PAGE_SIZE = 25;
 
 // ─── مساعدات ──────────────────────────────────────────────────────
 
@@ -79,99 +78,73 @@ function shortDate(iso: string) {
   } catch { return iso; }
 }
 
-// ─── بطاقة حركة مخزون عادية ──────────────────────────────────────
+// ─── صف حركة عادية ───────────────────────────────────────────────
 
-function MovementCard({
-  movement, productName,
-}: { movement: InventoryMovement; productName: string }) {
+function MovementRow({ movement, productName }: { movement: InventoryMovement; productName: string }) {
   const kind  = classifyMovement(movement.reason);
   const meta  = KIND_META[kind];
   const Icon  = meta.icon;
   const isPos = movement.quantityChange > 0;
+  const label = movement.reason.startsWith(EXCHANGE_PREFIX) ? meta.label : movement.reason;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/60 transition-colors">
-      <div className={cn("shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center", meta.color)}>
+    <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
+      <div className={cn("shrink-0 w-1.5 h-1.5 rounded-full mt-0.5", meta.dot)} />
+      <div className="shrink-0 text-slate-400">
         <Icon className="w-3.5 h-3.5" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-slate-800 truncate">{productName}</p>
-        <p className="text-[11px] text-slate-400 truncate">
-          {movement.reason.startsWith("EXCHANGE::") ? "" : movement.reason}
-          {" · "}
-          {formatDate(movement.createdAt)}
-        </p>
+        <p className="text-[11px] text-slate-400 truncate">{label} · {formatDate(movement.createdAt)}</p>
       </div>
-      <span className={cn(
-        "shrink-0 text-sm font-black tabular-nums",
-        isPos ? "text-emerald-600" : "text-rose-600"
-      )}>
+      <span className={cn("shrink-0 text-sm font-black tabular-nums", isPos ? "text-emerald-600" : "text-rose-600")}>
         {isPos ? "+" : ""}{movement.quantityChange}
       </span>
     </div>
   );
 }
 
-// ─── بطاقة حركة الاستبدال المركّبة ───────────────────────────────
+// ─── صف حركة الاستبدال ───────────────────────────────────────────
 
-function ExchangeCard({ movement }: { movement: InventoryMovement }) {
+function ExchangeRow({ movement }: { movement: InventoryMovement }) {
   const ex = parseExchangeReason(movement.reason);
   if (!ex) return null;
-
   return (
-    <div className="px-4 py-3 hover:bg-slate-50/60 transition-colors">
-      {/* الرأس */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl border border-violet-200 bg-violet-50 flex items-center justify-center">
-            <ArrowLeftRight className="w-3.5 h-3.5 text-violet-600" />
+    <div className="py-3 border-b border-slate-100 last:border-0">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5" />
+        <ArrowLeftRight className="shrink-0 w-3.5 h-3.5 text-slate-400 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">استبدال</span>
+            {ex.invRef && <span className="text-[11px] text-slate-400">فاتورة #{ex.invRef}</span>}
+            <span className="text-[11px] text-slate-400 mr-auto">{formatDate(movement.createdAt)}</span>
           </div>
-          <div>
-            <span className="text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">
-              استبدال
-            </span>
-            {ex.invRef && (
-              <span className="mr-1.5 text-[11px] text-slate-400">فاتورة: #{ex.invRef}</span>
-            )}
-          </div>
+          <p className="text-sm text-slate-700 mt-1">
+            <span className="text-emerald-700 font-semibold">{ex.rName}</span>
+            <span className="text-slate-400 mx-1.5">({ex.rQty})</span>
+            <span className="text-slate-300">←→</span>
+            <span className="text-sky-700 font-semibold mx-1.5">{ex.iName}</span>
+            <span className="text-slate-400">({ex.iQty})</span>
+          </p>
+          {(ex.priceDiff !== 0 || ex.note) && (
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {ex.priceDiff !== 0 && (
+                <span className={ex.priceDiff > 0 ? "text-emerald-600 font-bold" : "text-rose-500 font-bold"}>
+                  فرق السعر: {ex.priceDiff > 0 ? "+" : ""}{ex.priceDiff} ر.س
+                  {ex.note ? " · " : ""}
+                </span>
+              )}
+              {ex.note}
+            </p>
+          )}
         </div>
-        <span className="text-[11px] text-slate-400">{formatDate(movement.createdAt)}</span>
-      </div>
-
-      {/* تفاصيل المنتجين */}
-      <div className="mr-10 space-y-1">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[9px] shrink-0">↩</span>
-          <span className="text-slate-600">
-            مُرجَع: <span className="font-semibold text-slate-800">{ex.rName}</span>
-            <span className="text-slate-400 mr-1">({ex.rQty} وحدة)</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="w-4 h-4 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-[9px] shrink-0">↪</span>
-          <span className="text-slate-600">
-            بديل: <span className="font-semibold text-slate-800">{ex.iName}</span>
-            <span className="text-slate-400 mr-1">({ex.iQty} وحدة)</span>
-          </span>
-        </div>
-        {/* فرق السعر */}
-        {ex.priceDiff !== 0 && (
-          <div className="flex items-center gap-1 text-[11px] mt-1">
-            <span className="text-slate-400">فرق السعر:</span>
-            <span className={cn("font-bold", ex.priceDiff > 0 ? "text-emerald-600" : "text-rose-600")}>
-              {ex.priceDiff > 0 ? "+" : ""}{ex.priceDiff.toLocaleString("ar-IQ")} ر.س
-            </span>
-          </div>
-        )}
-        {ex.note && (
-          <p className="text-[11px] text-slate-400 truncate mt-0.5">{ex.note}</p>
-        )}
       </div>
     </div>
   );
 }
 
-// ─── نافذة: اختيار منتج ──────────────────────────────────────────
+// ─── اختيار منتج (مكوّن مشترك) ───────────────────────────────────
 
 function ProductPicker({
   products, selected, onSelect, onClear, placeholder = "ابحث عن منتج...",
@@ -196,8 +169,7 @@ function ProductPicker({
           <p className="text-sm font-bold text-slate-800">{selected.name}</p>
           <p className="text-xs text-slate-400">المخزون الحالي: {selected.stock}</p>
         </div>
-        <button onClick={() => { onClear(); setSearch(""); }}
-          className="text-slate-400 hover:text-rose-500 transition-colors">
+        <button onClick={() => { onClear(); setSearch(""); }} className="text-slate-400 hover:text-rose-500 transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -208,95 +180,79 @@ function ProductPicker({
     <div className="space-y-1.5">
       <div className="relative">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder={placeholder}
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
           className="w-full rounded-xl border border-slate-200 bg-slate-50 pr-10 pl-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
       </div>
-      <div className="max-h-44 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-50">
-        {filtered.length === 0
-          ? <p className="text-xs text-slate-400 text-center py-5">لا توجد منتجات</p>
-          : filtered.map((p) => (
-              <button key={p.id} onClick={() => { onSelect(p); setSearch(""); }}
-                className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors">
-                <span className="font-semibold text-slate-800 truncate">{p.name}</span>
-                <span className="text-xs text-slate-400 shrink-0">مخزون: {p.stock}</span>
-              </button>
-            ))
-        }
-      </div>
+      {search.trim() && (
+        <div className="rounded-xl border border-slate-100 divide-y divide-slate-50">
+          {filtered.length === 0
+            ? <p className="text-xs text-slate-400 text-center py-4">لا توجد نتائج</p>
+            : filtered.slice(0, 6).map((p) => (
+                <button key={p.id} onClick={() => { onSelect(p); setSearch(""); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors">
+                  <span className="font-semibold text-slate-800 truncate">{p.name}</span>
+                  <span className="text-xs text-slate-400 shrink-0">مخزون: {p.stock}</span>
+                </button>
+              ))
+          }
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── نموذج: حركة عادية (إضافة / إرجاع / تصحيح) ──────────────────
-
-type StandardKind = Extract<InventoryReasonKind, "restock" | "return" | "correction">;
+// ─── نموذج: إضافة / إرجاع / تصحيح ───────────────────────────────
 
 function StandardForm({
   kind, products, storeId, onDone, onClose,
 }: {
-  kind: StandardKind;
+  kind: Extract<InventoryReasonKind, "restock" | "return" | "correction">;
   products: Product[];
   storeId: string;
-  onDone: (updates: { productId: string; newStock: number }[], movement: InventoryMovement) => void;
+  onDone: (updates: { productId: string; newStock: number }[], m: InventoryMovement) => void;
   onClose: () => void;
 }) {
-  const { toast } = useToast();
+  const { toast }             = useToast();
   const [product, setProduct] = useState<Product | null>(null);
   const [qty, setQty]         = useState("1");
   const [note, setNote]       = useState("");
   const [saving, setSaving]   = useState(false);
 
-  const sign = kind === "correction" ? 1 : kind === "restock" ? 1 : 1; // all +1 for these kinds
-  const label = INVENTORY_REASON_LABELS[kind];
-
   const handleSubmit = async () => {
-    const qtyNum = Math.abs(Number(qty));
-    if (!product)      { toast({ variant: "destructive", title: "اختر منتجاً" }); return; }
-    if (!qtyNum || isNaN(qtyNum)) { toast({ variant: "destructive", title: "أدخل كمية صحيحة" }); return; }
-
-    const reasonLabel = note.trim() ? `${label} — ${note.trim()}` : label;
+    const q = Math.abs(Number(qty));
+    if (!product)        { toast({ variant: "destructive", title: "اختر منتجاً" }); return; }
+    if (!q || isNaN(q))  { toast({ variant: "destructive", title: "أدخل كمية صحيحة" }); return; }
+    const label = note.trim() ? `${INVENTORY_REASON_LABELS[kind]} — ${note.trim()}` : INVENTORY_REASON_LABELS[kind];
     setSaving(true);
     try {
-      const newStock = await recordInventoryMovement({
-        storeId, productId: product.id,
-        currentStock: product.stock,
-        quantityChange: qtyNum * sign,
-        reasonLabel,
-      });
-      onDone(
-        [{ productId: product.id, newStock }],
-        { id: `local-${Date.now()}`, storeId, productId: product.id,
-          quantityChange: qtyNum * sign, reason: reasonLabel,
-          createdAt: new Date().toISOString() }
-      );
-      toast({ title: "تم تسجيل الحركة", description: `${product.name}: مخزون جديد ${newStock}` });
+      const newStock = await recordInventoryMovement({ storeId, productId: product.id, currentStock: product.stock, quantityChange: q, reasonLabel: label });
+      onDone([{ productId: product.id, newStock }], { id: `local-${Date.now()}`, storeId, productId: product.id, quantityChange: q, reason: label, createdAt: new Date().toISOString() });
+      toast({ title: "تم تسجيل الحركة", description: `${product.name} → مخزون جديد: ${newStock}` });
       onClose();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل التسجيل", description: err?.message });
-    } finally { setSaving(false); }
+    } catch (err: any) { toast({ variant: "destructive", title: "فشل التسجيل", description: err?.message }); }
+    finally { setSaving(false); }
   };
 
   return (
     <div className="space-y-4">
       <div>
         <p className="text-xs font-semibold text-slate-500 mb-1.5">المنتج</p>
-        <ProductPicker products={products} selected={product}
-          onSelect={setProduct} onClear={() => setProduct(null)} />
+        <ProductPicker products={products} selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
       </div>
-      <div>
-        <p className="text-xs font-semibold text-slate-500 mb-1.5">الكمية (ستُضاف)</p>
-        <input type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-slate-500 mb-1.5">ملاحظة (اختياري)</p>
-        <input value={note} onChange={(e) => setNote(e.target.value)}
-          placeholder="تفاصيل إضافية..."
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-slate-500 mb-1.5">الكمية</p>
+          <input type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-center outline-none focus:border-primary focus:bg-white" />
+        </div>
+        <div className="flex-[2]">
+          <p className="text-xs font-semibold text-slate-500 mb-1.5">ملاحظة (اختياري)</p>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="تفاصيل..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
+        </div>
       </div>
       <Button onClick={handleSubmit} disabled={saving} className="w-full rounded-xl font-bold py-5">
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "تأكيد الحركة"}
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "تأكيد"}
       </Button>
     </div>
   );
@@ -309,163 +265,116 @@ function DamageForm({
 }: {
   products: Product[];
   storeId: string;
-  onDone: (updates: { productId: string; newStock: number }[], movement: InventoryMovement) => void;
+  onDone: (updates: { productId: string; newStock: number }[], m: InventoryMovement) => void;
   onClose: () => void;
 }) {
-  const { toast } = useToast();
-  const [product,      setProduct]      = useState<Product | null>(null);
-  const [qty,          setQty]          = useState("1");
+  const { toast }                     = useToast();
+  const [product, setProduct]         = useState<Product | null>(null);
+  const [qty, setQty]                 = useState("1");
   const [damageReason, setDamageReason] = useState(DAMAGE_REASONS[0]);
-  const [note,         setNote]         = useState("");
-  const [saving,       setSaving]       = useState(false);
+  const [note, setNote]               = useState("");
+  const [saving, setSaving]           = useState(false);
 
   const handleSubmit = async () => {
-    const qtyNum = Math.abs(Number(qty));
-    if (!product)  { toast({ variant: "destructive", title: "اختر منتجاً" }); return; }
-    if (!qtyNum || isNaN(qtyNum)) { toast({ variant: "destructive", title: "أدخل كمية صحيحة" }); return; }
-
-    const reasonLabel = note.trim()
+    const q = Math.abs(Number(qty));
+    if (!product)        { toast({ variant: "destructive", title: "اختر منتجاً" }); return; }
+    if (!q || isNaN(q))  { toast({ variant: "destructive", title: "أدخل كمية صحيحة" }); return; }
+    const label = note.trim()
       ? `${INVENTORY_REASON_LABELS.damage} — ${damageReason} (${note.trim()})`
       : `${INVENTORY_REASON_LABELS.damage} — ${damageReason}`;
-
     setSaving(true);
     try {
-      const newStock = await recordInventoryMovement({
-        storeId, productId: product.id,
-        currentStock: product.stock,
-        quantityChange: -qtyNum,
-        reasonLabel,
-      });
-      onDone(
-        [{ productId: product.id, newStock }],
-        { id: `local-${Date.now()}`, storeId, productId: product.id,
-          quantityChange: -qtyNum, reason: reasonLabel,
-          createdAt: new Date().toISOString() }
-      );
-      toast({ title: "تم تسجيل التلف", description: `${product.name}: مخزون جديد ${newStock}` });
+      const newStock = await recordInventoryMovement({ storeId, productId: product.id, currentStock: product.stock, quantityChange: -q, reasonLabel: label });
+      onDone([{ productId: product.id, newStock }], { id: `local-${Date.now()}`, storeId, productId: product.id, quantityChange: -q, reason: label, createdAt: new Date().toISOString() });
+      toast({ title: "تم تسجيل التلف", description: `${product.name} → مخزون جديد: ${newStock}` });
       onClose();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل التسجيل", description: err?.message });
-    } finally { setSaving(false); }
+    } catch (err: any) { toast({ variant: "destructive", title: "فشل التسجيل", description: err?.message }); }
+    finally { setSaving(false); }
   };
 
   return (
     <div className="space-y-4">
       <div>
         <p className="text-xs font-semibold text-slate-500 mb-1.5">المنتج التالف</p>
-        <ProductPicker products={products} selected={product}
-          onSelect={setProduct} onClear={() => setProduct(null)} />
+        <ProductPicker products={products} selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
       </div>
-      <div>
-        <p className="text-xs font-semibold text-slate-500 mb-1.5">الكمية التالفة</p>
-        <input type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-slate-500 mb-1.5">سبب التلف</p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {DAMAGE_REASONS.map((r) => (
-            <button key={r} onClick={() => setDamageReason(r)}
-              className={cn(
-                "rounded-xl border px-3 py-2 text-xs font-semibold text-right transition-colors",
-                damageReason === r
-                  ? "border-orange-400 bg-orange-50 text-orange-700"
-                  : "border-slate-200 text-slate-500 hover:bg-slate-50"
-              )}>
-              {r}
-            </button>
-          ))}
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-slate-500 mb-1.5">الكمية</p>
+          <input type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-center outline-none focus:border-primary focus:bg-white" />
+        </div>
+        <div className="flex-[2]">
+          <p className="text-xs font-semibold text-slate-500 mb-1.5">سبب التلف</p>
+          <select value={damageReason} onChange={(e) => setDamageReason(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white">
+            {DAMAGE_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
         </div>
       </div>
       <div>
         <p className="text-xs font-semibold text-slate-500 mb-1.5">ملاحظة (اختياري)</p>
-        <input value={note} onChange={(e) => setNote(e.target.value)}
-          placeholder="تفاصيل إضافية..."
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="تفاصيل إضافية..."
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
       </div>
-      <Button onClick={handleSubmit} disabled={saving}
-        className="w-full rounded-xl font-bold py-5 bg-orange-500 hover:bg-orange-600">
+      <Button onClick={handleSubmit} disabled={saving} className="w-full rounded-xl font-bold py-5 bg-orange-500 hover:bg-orange-600">
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "تسجيل التلف"}
       </Button>
     </div>
   );
 }
 
-// ─── نموذج: الاستبدال (خطوتان) ───────────────────────────────────
-
-type ExchangeStep = "order" | "details";
+// ─── نموذج: الاستبدال ─────────────────────────────────────────────
 
 function ExchangeForm({
   products, storeId, onDone, onClose,
 }: {
   products: Product[];
   storeId: string;
-  onDone: (updates: { productId: string; newStock: number }[], movement: InventoryMovement) => void;
+  onDone: (updates: { productId: string; newStock: number }[], m: InventoryMovement) => void;
   onClose: () => void;
 }) {
-  const { toast } = useToast();
-  const [step,        setStep]        = useState<ExchangeStep>("order");
-  const [orders,      setOrders]      = useState<Order[]>([]);
+  const { toast }                         = useToast();
+  const [step, setStep]                   = useState<"order" | "details">("order");
+  const [orders, setOrders]               = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
-  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSearch, setOrderSearch]     = useState("");
+  const [selOrder, setSelOrder]           = useState<Order | null>(null);
+  const [returnProduct, setReturnProduct] = useState<Product | null>(null);
+  const [issuedProduct, setIssuedProduct] = useState<Product | null>(null);
+  const [returnedQty, setReturnedQty]     = useState("1");
+  const [issuedQty, setIssuedQty]         = useState("1");
+  const [priceDiff, setPriceDiff]         = useState("0");
+  const [note, setNote]                   = useState("");
+  const [saving, setSaving]               = useState(false);
 
-  const [selOrder,       setSelOrder]       = useState<Order | null>(null);
-  const [selOrderItem,   setSelOrderItem]   = useState<OrderItem | null>(null);
-  const [returnProduct,  setReturnProduct]  = useState<Product | null>(null);
-  const [issuedProduct,  setIssuedProduct]  = useState<Product | null>(null);
-  const [returnedQty,    setReturnedQty]    = useState("1");
-  const [issuedQty,      setIssuedQty]      = useState("1");
-  const [priceDiff,      setPriceDiff]      = useState("0");
-  const [note,           setNote]           = useState("");
-  const [saving,         setSaving]         = useState(false);
-
-  // تحميل الطلبات عند فتح النموذج
   useEffect(() => {
     let active = true;
-    (async () => {
-      setOrdersLoading(true);
-      const data = await fetchOrdersByStore(storeId, 80);
-      if (active) { setOrders(data); setOrdersLoading(false); }
-    })();
+    fetchOrdersByStore(storeId, 80).then((d) => { if (active) { setOrders(d); setOrdersLoading(false); } });
     return () => { active = false; };
   }, [storeId]);
 
-  // حساب فرق السعر تلقائياً عند اختيار المنتجين
   useEffect(() => {
-    if (returnProduct && issuedProduct) {
-      const diff = (issuedProduct.price ?? 0) - (returnProduct.price ?? 0);
-      setPriceDiff(String(Math.round(diff)));
-    }
+    if (returnProduct && issuedProduct)
+      setPriceDiff(String(Math.round((issuedProduct.price ?? 0) - (returnProduct.price ?? 0))));
   }, [returnProduct, issuedProduct]);
-
-  // اختيار منتج من بنود الطلب
-  const handleOrderItemSelect = (item: OrderItem) => {
-    setSelOrderItem(item);
-    const found = products.find((p) => p.id === item.productId || p.name === item.productName);
-    setReturnProduct(found ?? null);
-    setReturnedQty(String(item.quantity));
-  };
 
   const filteredOrders = useMemo(() => {
     if (!orderSearch.trim()) return orders;
     const q = orderSearch.toLowerCase();
     return orders.filter((o) =>
       (o.customerName ?? "").toLowerCase().includes(q) ||
-      o.id.toLowerCase().includes(q) ||
       o.items.some((it) => it.productName.toLowerCase().includes(q))
     );
   }, [orders, orderSearch]);
 
   const handleSubmit = async () => {
-    if (!returnProduct)  { toast({ variant: "destructive", title: "اختر المنتج المُرجَع" }); return; }
-    if (!issuedProduct)  { toast({ variant: "destructive", title: "اختر المنتج البديل" }); return; }
-    if (returnProduct.id === issuedProduct.id) {
-      toast({ variant: "destructive", title: "يجب أن يكون المنتج البديل مختلفاً عن المُرجَع" }); return;
-    }
+    if (!returnProduct) { toast({ variant: "destructive", title: "اختر المنتج المُرجَع" }); return; }
+    if (!issuedProduct) { toast({ variant: "destructive", title: "اختر المنتج البديل"  }); return; }
+    if (returnProduct.id === issuedProduct.id) { toast({ variant: "destructive", title: "المنتجان يجب أن يكونا مختلفَين" }); return; }
     const rQty = Math.abs(Number(returnedQty));
     const iQty = Math.abs(Number(issuedQty));
-    if (!rQty || !iQty) { toast({ variant: "destructive", title: "أدخل الكميات بشكل صحيح" }); return; }
-
+    if (!rQty || !iQty) { toast({ variant: "destructive", title: "أدخل الكميات" }); return; }
     setSaving(true);
     try {
       const result = await recordExchangeMovement({
@@ -478,109 +387,80 @@ function ExchangeForm({
         issuedQty: iQty,
         priceDiff: Number(priceDiff) || 0,
         invoiceRef:  selOrder ? selOrder.id.slice(-8).toUpperCase() : undefined,
-        invoiceDate: selOrder ? selOrder.createdAt : undefined,
+        invoiceDate: selOrder?.createdAt,
         note: note.trim() || undefined,
       });
       onDone(
-        [
-          { productId: returnProduct.id,  newStock: result.returnedNewStock },
-          { productId: issuedProduct.id,  newStock: result.issuedNewStock   },
-        ],
+        [{ productId: returnProduct.id, newStock: result.returnedNewStock },
+         { productId: issuedProduct.id,  newStock: result.issuedNewStock  }],
         result.movement
       );
-      toast({
-        title: "تم تسجيل الاستبدال",
-        description: `${returnProduct.name} ←→ ${issuedProduct.name}`,
-      });
+      toast({ title: "تم تسجيل الاستبدال", description: `${returnProduct.name} ←→ ${issuedProduct.name}` });
       onClose();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل تسجيل الاستبدال", description: err?.message });
-    } finally { setSaving(false); }
+    } catch (err: any) { toast({ variant: "destructive", title: "فشل الاستبدال", description: err?.message }); }
+    finally { setSaving(false); }
   };
 
-  // ── الخطوة 1: اختيار الفاتورة ─────────────────────────────────
   if (step === "order") {
     return (
-      <div className="space-y-4">
-        <p className="text-xs text-slate-500">
-          اختر الفاتورة الأصلية للاستبدال، أو اضغط "تخطي" لإدخال البيانات يدوياً.
-        </p>
-
+      <div className="space-y-3">
+        <p className="text-xs text-slate-500">اختر الفاتورة الأصلية أو اضغط «تخطي» للإدخال اليدوي.</p>
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)}
-            placeholder="ابحث باسم العميل أو المنتج..."
+          <input value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} placeholder="ابحث باسم العميل أو المنتج..."
             className="w-full rounded-xl border border-slate-200 bg-slate-50 pr-10 pl-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
         </div>
-
         {ordersLoading ? (
-          <div className="flex items-center justify-center py-8 text-slate-400 gap-2">
+          <div className="flex items-center justify-center py-8 gap-2 text-slate-400">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-xs">جاري تحميل الطلبات...</span>
+            <span className="text-xs">جاري التحميل...</span>
           </div>
-        ) : filteredOrders.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-6">لا توجد طلبات</p>
         ) : (
-          <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-50">
-            {filteredOrders.map((o) => (
+          <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+            {filteredOrders.slice(0, 8).map((o) => (
               <button key={o.id} onClick={() => { setSelOrder(o); setStep("details"); }}
-                className="w-full text-right px-3 py-2.5 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {o.customerName || "عميل غير معرّف"}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {o.items.map((it) => it.productName).slice(0, 2).join("، ")}
-                      {o.items.length > 2 ? ` و${o.items.length - 2} أخرى` : ""}
-                    </p>
-                  </div>
-                  <div className="text-left shrink-0">
-                    <p className="text-xs font-bold text-slate-700">#{o.id.slice(-6).toUpperCase()}</p>
-                    <p className="text-[11px] text-slate-400">{shortDate(o.createdAt)}</p>
-                  </div>
+                className="w-full text-right px-3 py-2.5 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{o.customerName || "عميل غير معرّف"}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{o.items.slice(0, 2).map((it) => it.productName).join("، ")}{o.items.length > 2 ? ` +${o.items.length - 2}` : ""}</p>
+                </div>
+                <div className="shrink-0 text-left">
+                  <p className="text-xs font-bold text-slate-600">#{o.id.slice(-6).toUpperCase()}</p>
+                  <p className="text-[11px] text-slate-400">{shortDate(o.createdAt)}</p>
                 </div>
               </button>
             ))}
+            {filteredOrders.length === 0 && <p className="text-xs text-slate-400 text-center py-5">لا توجد نتائج</p>}
           </div>
         )}
-
-        <Button variant="outline" onClick={() => setStep("details")}
-          className="w-full rounded-xl font-bold py-4 gap-2">
-          <ChevronRight className="w-4 h-4" />
-          تخطي — إدخال يدوي
+        <Button variant="outline" onClick={() => setStep("details")} className="w-full rounded-xl py-4 gap-2">
+          <ChevronRight className="w-4 h-4" /> تخطي — إدخال يدوي
         </Button>
       </div>
     );
   }
 
-  // ── الخطوة 2: تفاصيل الاستبدال ───────────────────────────────
   return (
     <div className="space-y-4">
-      {/* شارة الفاتورة إن وُجدت */}
       {selOrder && (
         <div className="flex items-center justify-between rounded-xl border border-violet-200 bg-violet-50 px-3 py-2">
           <div className="flex items-center gap-2">
             <Receipt className="w-3.5 h-3.5 text-violet-600" />
-            <span className="text-xs font-bold text-violet-700">
-              فاتورة #{selOrder.id.slice(-6).toUpperCase()}
-            </span>
+            <span className="text-xs font-bold text-violet-700">فاتورة #{selOrder.id.slice(-6).toUpperCase()}</span>
             <span className="text-[11px] text-slate-400">{shortDate(selOrder.createdAt)}</span>
           </div>
-          <button onClick={() => { setSelOrder(null); setSelOrderItem(null); setStep("order"); setReturnProduct(null); }}
-            className="text-slate-400 hover:text-rose-500 transition-colors">
+          <button onClick={() => { setSelOrder(null); setStep("order"); setReturnProduct(null); }} className="text-slate-400 hover:text-rose-500">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* بنود الفاتورة للاختيار منها */}
-      {selOrder && !selOrderItem && (
+      {selOrder && !returnProduct && (
         <div>
-          <p className="text-xs font-semibold text-slate-500 mb-1.5">اختر المنتج المُرجَع من الفاتورة</p>
-          <div className="rounded-xl border border-slate-100 divide-y divide-slate-50">
-            {selOrder.items.map((item, idx) => (
-              <button key={idx} onClick={() => handleOrderItemSelect(item)}
+          <p className="text-xs font-semibold text-slate-500 mb-1.5">اختر المنتج المُرجَع</p>
+          <div className="border border-slate-100 rounded-xl divide-y divide-slate-50 overflow-hidden">
+            {selOrder.items.map((item, i) => (
+              <button key={i} onClick={() => { const p = products.find((x) => x.id === item.productId || x.name === item.productName); setReturnProduct(p ?? null); setReturnedQty(String(item.quantity)); }}
                 className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors">
                 <span className="font-semibold text-slate-800 truncate">{item.productName}</span>
                 <span className="text-xs text-slate-400 shrink-0">{item.quantity} وحدة</span>
@@ -590,78 +470,54 @@ function ExchangeForm({
         </div>
       )}
 
-      {/* المنتج المُرجَع */}
       <div>
         <p className="text-xs font-semibold text-slate-500 mb-1.5">
-          <span className="inline-block w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black text-center leading-4 ml-1">↩</span>
-          المنتج المُرجَع
+          <span className="text-emerald-600 ml-1">↩</span>المنتج المُرجَع
         </p>
-        <ProductPicker products={products} selected={returnProduct}
-          onSelect={setReturnProduct} onClear={() => { setReturnProduct(null); setSelOrderItem(null); }}
-          placeholder="ابحث عن المنتج المُرجَع..." />
+        <ProductPicker products={products} selected={returnProduct} onSelect={setReturnProduct}
+          onClear={() => { setReturnProduct(null); }} placeholder="ابحث عن المنتج المُرجَع..." />
         {returnProduct && (
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-1.5">
             <span className="text-xs text-slate-500">الكمية:</span>
-            <input type="number" min={1} value={returnedQty}
-              onChange={(e) => setReturnedQty(e.target.value)}
+            <input type="number" min={1} value={returnedQty} onChange={(e) => setReturnedQty(e.target.value)}
               className="w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-center outline-none focus:border-primary" />
           </div>
         )}
       </div>
 
-      {/* المنتج البديل */}
       <div>
         <p className="text-xs font-semibold text-slate-500 mb-1.5">
-          <span className="inline-block w-4 h-4 rounded-full bg-sky-100 text-sky-700 text-[9px] font-black text-center leading-4 ml-1">↪</span>
-          المنتج البديل
+          <span className="text-sky-600 ml-1">↪</span>المنتج البديل
         </p>
-        <ProductPicker
-          products={products.filter((p) => p.id !== returnProduct?.id)}
-          selected={issuedProduct}
-          onSelect={setIssuedProduct} onClear={() => setIssuedProduct(null)}
-          placeholder="ابحث عن المنتج البديل..." />
+        <ProductPicker products={products.filter((p) => p.id !== returnProduct?.id)} selected={issuedProduct}
+          onSelect={setIssuedProduct} onClear={() => setIssuedProduct(null)} placeholder="ابحث عن المنتج البديل..." />
         {issuedProduct && (
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-1.5">
             <span className="text-xs text-slate-500">الكمية:</span>
-            <input type="number" min={1} value={issuedQty}
-              onChange={(e) => setIssuedQty(e.target.value)}
+            <input type="number" min={1} value={issuedQty} onChange={(e) => setIssuedQty(e.target.value)}
               className="w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-center outline-none focus:border-primary" />
           </div>
         )}
       </div>
 
-      {/* فرق السعر */}
       {returnProduct && issuedProduct && (
-        <div>
-          <p className="text-xs font-semibold text-slate-500 mb-1.5">فرق السعر (موجب = العميل يدفع إضافياً)</p>
-          <div className="flex items-center gap-2">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-slate-500 mb-1.5">فرق السعر (ر.س)</p>
             <input type="number" value={priceDiff} onChange={(e) => setPriceDiff(e.target.value)}
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
-            <span className="text-xs text-slate-400 shrink-0">ر.س</span>
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
           </div>
-          {returnProduct.price != null && issuedProduct.price != null && (
-            <p className="text-[11px] text-slate-400 mt-1">
-              {returnProduct.name}: {returnProduct.price} ← {issuedProduct.name}: {issuedProduct.price}
-            </p>
-          )}
+          <div className="flex-[2]">
+            <p className="text-xs font-semibold text-slate-500 mb-1.5">ملاحظة (اختياري)</p>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="سبب الاستبدال..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
+          </div>
         </div>
       )}
 
-      {/* ملاحظة */}
-      <div>
-        <p className="text-xs font-semibold text-slate-500 mb-1.5">ملاحظة (اختياري)</p>
-        <input value={note} onChange={(e) => setNote(e.target.value)}
-          placeholder="سبب الاستبدال، ملاحظات..."
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white" />
-      </div>
-
       <div className="flex gap-2">
-        <Button variant="outline" onClick={() => setStep("order")}
-          className="rounded-xl px-4 py-5">
-          رجوع
-        </Button>
-        <Button onClick={handleSubmit} disabled={saving}
-          className="flex-1 rounded-xl font-bold py-5 bg-violet-600 hover:bg-violet-700">
+        <Button variant="outline" onClick={() => setStep("order")} className="rounded-xl px-4 py-5">رجوع</Button>
+        <Button onClick={handleSubmit} disabled={saving} className="flex-1 rounded-xl font-bold py-5 bg-violet-600 hover:bg-violet-700">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "تأكيد الاستبدال"}
         </Button>
       </div>
@@ -671,14 +527,12 @@ function ExchangeForm({
 
 // ─── نافذة الحركة الرئيسية ────────────────────────────────────────
 
-type ActiveKind = InventoryReasonKind;
-
-const KIND_BUTTONS: { kind: ActiveKind; label: string; color: string; icon: typeof Plus }[] = [
-  { kind: "restock",    label: "إضافة",   color: "border-emerald-300 bg-emerald-50 text-emerald-700", icon: Plus },
-  { kind: "return",     label: "إرجاع",   color: "border-blue-300 bg-blue-50 text-blue-700",          icon: PackageCheck },
-  { kind: "exchange",   label: "استبدال", color: "border-violet-300 bg-violet-50 text-violet-700",    icon: ArrowLeftRight },
-  { kind: "damage",     label: "تلف",     color: "border-orange-300 bg-orange-50 text-orange-700",    icon: AlertTriangle },
-  { kind: "correction", label: "تصحيح",   color: "border-slate-300 bg-slate-100 text-slate-700",      icon: Wrench },
+const KIND_BUTTONS: { kind: InventoryReasonKind; label: string; activeColor: string; icon: typeof Plus }[] = [
+  { kind: "restock",    label: "إضافة",   activeColor: "border-emerald-400 bg-emerald-50 text-emerald-700", icon: Plus },
+  { kind: "return",     label: "إرجاع",   activeColor: "border-blue-400 bg-blue-50 text-blue-700",          icon: PackageCheck },
+  { kind: "exchange",   label: "استبدال", activeColor: "border-violet-400 bg-violet-50 text-violet-700",    icon: ArrowLeftRight },
+  { kind: "damage",     label: "تلف",     activeColor: "border-orange-400 bg-orange-50 text-orange-700",    icon: AlertTriangle },
+  { kind: "correction", label: "تصحيح",   activeColor: "border-slate-400 bg-slate-100 text-slate-700",      icon: Wrench },
 ];
 
 function MovementDialog({
@@ -688,13 +542,10 @@ function MovementDialog({
   onOpenChange: (v: boolean) => void;
   products: Product[];
   storeId: string;
-  onDone: (updates: { productId: string; newStock: number }[], movement: InventoryMovement) => void;
+  onDone: (updates: { productId: string; newStock: number }[], m: InventoryMovement) => void;
 }) {
-  const [kind, setKind] = useState<ActiveKind>("restock");
-
+  const [kind, setKind] = useState<InventoryReasonKind>("restock");
   useEffect(() => { if (open) setKind("restock"); }, [open]);
-
-  const handleClose = () => onOpenChange(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -702,37 +553,23 @@ function MovementDialog({
         <DialogHeader>
           <DialogTitle className="text-right">تسجيل حركة مخزون</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-5 text-right">
-          {/* اختيار نوع الحركة */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 mb-2">نوع الحركة</p>
-            <div className="grid grid-cols-5 gap-1.5">
-              {KIND_BUTTONS.map((b) => {
-                const Icon = b.icon;
-                return (
-                  <button key={b.kind} onClick={() => setKind(b.kind)}
-                    className={cn(
-                      "flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] font-bold transition-all",
-                      kind === b.kind ? b.color : "border-slate-200 text-slate-400 hover:bg-slate-50"
-                    )}>
-                    <Icon className="w-3.5 h-3.5" />
-                    {b.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-5 gap-1.5">
+            {KIND_BUTTONS.map((b) => {
+              const Icon = b.icon;
+              return (
+                <button key={b.kind} onClick={() => setKind(b.kind)}
+                  className={cn("flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 text-[10px] font-bold transition-all",
+                    kind === b.kind ? b.activeColor : "border-slate-200 text-slate-400 hover:bg-slate-50")}>
+                  <Icon className="w-4 h-4" />
+                  {b.label}
+                </button>
+              );
+            })}
           </div>
-
-          {/* النموذج المناسب */}
-          {kind === "exchange" ? (
-            <ExchangeForm products={products} storeId={storeId} onDone={onDone} onClose={handleClose} />
-          ) : kind === "damage" ? (
-            <DamageForm products={products} storeId={storeId} onDone={onDone} onClose={handleClose} />
-          ) : (
-            <StandardForm kind={kind as StandardKind} products={products}
-              storeId={storeId} onDone={onDone} onClose={handleClose} />
-          )}
+          {kind === "exchange"   ? <ExchangeForm products={products} storeId={storeId} onDone={onDone} onClose={() => onOpenChange(false)} /> :
+           kind === "damage"     ? <DamageForm   products={products} storeId={storeId} onDone={onDone} onClose={() => onOpenChange(false)} /> :
+           <StandardForm kind={kind as "restock" | "return" | "correction"} products={products} storeId={storeId} onDone={onDone} onClose={() => onOpenChange(false)} />}
         </div>
       </DialogContent>
     </Dialog>
@@ -745,33 +582,30 @@ interface InventoryTabProps {
   storeId:    string;
   products:   Product[];
   onStockUpdate: (productId: string, newStock: number) => void;
-  /** حركات جديدة من الكاشير — تُدمج فوراً بدون انتظار re-fetch */
   incomingMovements?: InventoryMovement[];
 }
 
-export function InventoryTab({
-  storeId, products, onStockUpdate, incomingMovements,
-}: InventoryTabProps) {
-  const [movements,     setMovements]     = useState<InventoryMovement[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [dialogOpen,    setDialogOpen]    = useState(false);
-  const [kindFilter,    setKindFilter]    = useState<MovementKind | "all">("all");
-  const [movSearch,     setMovSearch]     = useState("");
-  const [stockFilter,   setStockFilter]   = useState<StockFilter>("all");
-  const [stockSort,     setStockSort]     = useState<StockSort>("name");
-  const [stockSearch,   setStockSearch]   = useState("");
+export function InventoryTab({ storeId, products, onStockUpdate, incomingMovements }: InventoryTabProps) {
+  const [movements,   setMovements]   = useState<InventoryMovement[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [dialogOpen,  setDialogOpen]  = useState(false);
+
+  // فلترة المخزون
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [stockSort,   setStockSort]   = useState<StockSort>("name");
+  const [stockSearch, setStockSearch] = useState("");
+
+  // فلترة الحركات
+  const [kindFilter,  setKindFilter]  = useState<MovementKind | "all">("all");
+  const [movSearch,   setMovSearch]   = useState("");
+  const [page,        setPage]        = useState(1);
 
   useEffect(() => {
     let active = true;
-    (async () => {
-      setLoading(true);
-      const data = await fetchInventoryMovements(storeId);
-      if (active) { setMovements(data); setLoading(false); }
-    })();
+    fetchInventoryMovements(storeId).then((d) => { if (active) { setMovements(d); setLoading(false); } });
     return () => { active = false; };
   }, [storeId]);
 
-  /* دمج حركات الكاشير الواردة فوراً */
   useEffect(() => {
     if (!incomingMovements?.length) return;
     setMovements((prev) => {
@@ -787,28 +621,17 @@ export function InventoryTab({
     return m;
   }, [products]);
 
-  // ── إحصائيات ──────────────────────────────────────────────────
   const stats = useMemo(() => ({
-    total:    products.length,
-    units:    products.reduce((s, p) => s + p.stock, 0),
-    low:      products.filter((p) => p.stock > 0 && p.stock <= (p.lowStockThreshold ?? 5)).length,
-    out:      products.filter((p) => p.stock === 0).length,
-    todayMov: movements.filter((m) => {
-      const d = new Date(m.createdAt);
-      const now = new Date();
-      return d.getFullYear() === now.getFullYear() &&
-             d.getMonth() === now.getMonth() &&
-             d.getDate() === now.getDate();
-    }).length,
-  }), [products, movements]);
+    total: products.length,
+    units: products.reduce((s, p) => s + p.stock, 0),
+    low:   products.filter((p) => p.stock > 0 && p.stock <= (p.lowStockThreshold ?? 5)).length,
+    out:   products.filter((p) => p.stock === 0).length,
+  }), [products]);
 
-  // ── مستويات المخزون (مرتّبة ومفلترة) ─────────────────────────
+  // ── مخزون مرتّب ──────────────────────────────────────────────
   const filteredStock = useMemo(() => {
     let list = [...products];
-    if (stockSearch.trim()) {
-      const q = stockSearch.toLowerCase();
-      list = list.filter((p) => p.name.toLowerCase().includes(q));
-    }
+    if (stockSearch.trim()) { const q = stockSearch.toLowerCase(); list = list.filter((p) => p.name.toLowerCase().includes(q)); }
     if (stockFilter === "low") list = list.filter((p) => p.stock > 0 && p.stock <= (p.lowStockThreshold ?? 5));
     if (stockFilter === "out") list = list.filter((p) => p.stock === 0);
     if (stockSort === "asc")  list.sort((a, b) => a.stock - b.stock);
@@ -817,33 +640,37 @@ export function InventoryTab({
     return list;
   }, [products, stockSearch, stockFilter, stockSort]);
 
-  // ── سجل الحركات (مرتّب ومفلتر) ───────────────────────────────
+  // ── حركات مرتّبة ─────────────────────────────────────────────
   const filteredMovements = useMemo(() => {
     let list = movements;
-    if (kindFilter !== "all")
-      list = list.filter((m) => classifyMovement(m.reason) === kindFilter);
+    if (kindFilter !== "all") list = list.filter((m) => classifyMovement(m.reason) === kindFilter);
     if (movSearch.trim()) {
       const q = movSearch.toLowerCase();
       list = list.filter((m) => {
         const name = productMap.get(m.productId)?.name ?? "";
         const ex   = parseExchangeReason(m.reason);
         return name.toLowerCase().includes(q) ||
-               (ex ? (ex.rName + ex.iName).toLowerCase().includes(q) : m.reason.toLowerCase().includes(q));
+               (ex ? `${ex.rName} ${ex.iName}`.toLowerCase().includes(q) : m.reason.toLowerCase().includes(q));
       });
     }
     return list;
   }, [movements, kindFilter, movSearch, productMap]);
 
+  const totalPages   = Math.max(1, Math.ceil(filteredMovements.length / PAGE_SIZE));
+  const pagedMovements = filteredMovements.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // إعادة تعيين الصفحة عند تغيير الفلتر
+  useEffect(() => { setPage(1); }, [kindFilter, movSearch]);
+
   const handleMovementDone = useCallback((
-    updates: { productId: string; newStock: number }[],
-    movement: InventoryMovement
+    updates: { productId: string; newStock: number }[], movement: InventoryMovement
   ) => {
     updates.forEach(({ productId, newStock }) => onStockUpdate(productId, newStock));
     setMovements((prev) => [movement, ...prev]);
   }, [onStockUpdate]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8 pb-10">
 
       {/* ── رأس الصفحة ── */}
       <div className="flex items-center justify-between">
@@ -857,21 +684,21 @@ export function InventoryTab({
         </Button>
       </div>
 
-      {/* ── بطاقات الإحصائيات ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {/* ── إحصائيات ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { icon: Package,      label: "المنتجات",    value: stats.total,    color: "text-slate-700 bg-slate-50 border-slate-200" },
-          { icon: TrendingUp,   label: "إجمالي الوحدات", value: stats.units, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
-          { icon: TrendingDown, label: "مخزون منخفض",  value: stats.low,    color: "text-amber-700 bg-amber-50 border-amber-200" },
-          { icon: AlertTriangle,label: "نافد المخزون", value: stats.out,     color: "text-rose-700 bg-rose-50 border-rose-200" },
+          { icon: Package,       label: "المنتجات",       value: stats.total, cls: "text-slate-700 bg-slate-50 border-slate-200" },
+          { icon: TrendingUp,    label: "إجمالي الوحدات", value: stats.units, cls: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+          { icon: TrendingDown,  label: "مخزون منخفض",    value: stats.low,   cls: "text-amber-700 bg-amber-50 border-amber-200" },
+          { icon: AlertTriangle, label: "نافد المخزون",   value: stats.out,   cls: "text-rose-700 bg-rose-50 border-rose-200" },
         ].map((s) => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className={cn("rounded-2xl border p-3.5 flex items-center gap-3", s.color)}>
-              <Icon className="w-5 h-5 shrink-0" />
+            <div key={s.label} className={cn("rounded-2xl border p-4 flex items-center gap-3", s.cls)}>
+              <Icon className="w-5 h-5 shrink-0 opacity-70" />
               <div>
-                <p className="text-lg font-black tabular-nums leading-none">{s.value}</p>
-                <p className="text-[11px] font-medium opacity-70 mt-0.5">{s.label}</p>
+                <p className="text-2xl font-black tabular-nums leading-none">{s.value}</p>
+                <p className="text-xs font-medium opacity-60 mt-1">{s.label}</p>
               </div>
             </div>
           );
@@ -879,126 +706,123 @@ export function InventoryTab({
       </div>
 
       {/* ── مستويات المخزون ── */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-slate-800">مستويات المخزون</p>
-            {/* فلتر الحالة */}
-            <div className="flex gap-1">
-              {(["all", "low", "out"] as StockFilter[]).map((f) => (
-                <button key={f} onClick={() => setStockFilter(f)}
-                  className={cn("rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors",
-                    stockFilter === f ? "bg-primary text-white" : "text-slate-400 hover:bg-slate-100")}>
-                  {f === "all" ? "الكل" : f === "low" ? "منخفض" : "نافد"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {/* بحث */}
-            <div className="relative flex-1">
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input value={stockSearch} onChange={(e) => setStockSearch(e.target.value)}
-                placeholder="بحث..." className="w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 pl-2 py-1.5 text-xs outline-none focus:border-primary focus:bg-white" />
-            </div>
-            {/* ترتيب */}
-            <div className="flex gap-1">
-              {([["name", "اسم"], ["asc", "↑"], ["desc", "↓"]] as [StockSort, string][]).map(([s, lbl]) => (
-                <button key={s} onClick={() => setStockSort(s)}
-                  className={cn("rounded-lg px-2 py-1.5 text-[11px] font-bold border transition-colors",
-                    stockSort === s ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-400 hover:bg-slate-50")}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
-          </div>
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-slate-800">مستويات المخزون</h3>
+          <span className="text-xs text-slate-400">{filteredStock.length} منتج</span>
         </div>
 
-        <div className="max-h-64 overflow-y-auto divide-y divide-slate-50">
-          {filteredStock.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-8">لا توجد منتجات</p>
-          ) : filteredStock.map((p) => {
-            const low = p.stock > 0 && p.stock <= (p.lowStockThreshold ?? 5);
-            const out = p.stock === 0;
-            return (
-              <div key={p.id} className="flex items-center justify-between px-4 py-2.5">
-                <span className="text-sm font-medium text-slate-700 truncate">{p.name}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  {out  && <span className="text-[10px] font-bold text-rose-500 bg-rose-50 border border-rose-200 rounded-full px-1.5 py-0.5">نافد</span>}
-                  {low  && !out && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">منخفض</span>}
-                  <span className={cn("text-sm font-black tabular-nums rounded-full px-2 py-0.5",
-                    out ? "bg-rose-100 text-rose-700" : low ? "bg-amber-100 text-amber-700" : "bg-emerald-50 text-emerald-700")}>
-                    {p.stock}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── سجل الحركات ── */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 space-y-2.5">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-slate-400" />
-            <p className="text-sm font-bold text-slate-800">سجل الحركات</p>
-            {movements.length > 0 && (
-              <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
-                {movements.length}
-              </span>
-            )}
+        {/* شريط تحكم واحد */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {/* بحث */}
+          <div className="relative flex-1 min-w-36">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} placeholder="بحث عن منتج..."
+              className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
-
-          {/* فلاتر نوع الحركة */}
-          <div className="flex gap-1 flex-wrap">
-            {FILTER_TABS.map((t) => (
-              <button key={t.kind} onClick={() => setKindFilter(t.kind)}
-                className={cn("rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors whitespace-nowrap",
-                  kindFilter === t.kind ? "bg-primary text-white" : "text-slate-400 hover:bg-slate-100")}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* بحث بالمنتج */}
-          <div className="relative">
-            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input value={movSearch} onChange={(e) => setMovSearch(e.target.value)}
-              placeholder="بحث باسم المنتج..."
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 pl-2 py-1.5 text-xs outline-none focus:border-primary focus:bg-white" />
-          </div>
+          {/* فلتر الحالة */}
+          <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as StockFilter)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary">
+            <option value="all">جميع المنتجات</option>
+            <option value="low">مخزون منخفض</option>
+            <option value="out">نافد المخزون</option>
+          </select>
+          {/* ترتيب */}
+          <select value={stockSort} onChange={(e) => setStockSort(e.target.value as StockSort)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary">
+            <option value="name">ترتيب: اسم</option>
+            <option value="asc">ترتيب: الأقل مخزوناً</option>
+            <option value="desc">ترتيب: الأعلى مخزوناً</option>
+          </select>
         </div>
 
-        {loading ? (
-          <div className="py-10 flex items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-xs">جاري التحميل...</span>
-          </div>
-        ) : filteredMovements.length === 0 ? (
-          <div className="py-10 text-center text-xs text-slate-400">
-            {movements.length === 0 ? "لا توجد حركات مخزون مسجّلة بعد" : "لا توجد حركات تطابق الفلتر المحدد"}
-          </div>
+        {filteredStock.length === 0 ? (
+          <p className="text-sm text-slate-400 py-6 text-center">لا توجد منتجات تطابق البحث</p>
         ) : (
-          <div className="divide-y divide-slate-50 max-h-[420px] overflow-y-auto">
-            {filteredMovements.map((m) => {
-              const isExchange = m.reason.startsWith(EXCHANGE_PREFIX);
-              const productName = productMap.get(m.productId)?.name ?? "منتج محذوف";
-              return isExchange
-                ? <ExchangeCard key={m.id} movement={m} />
-                : <MovementCard key={m.id} movement={m} productName={productName} />;
+          <div className="divide-y divide-slate-100">
+            {filteredStock.map((p) => {
+              const low = p.stock > 0 && p.stock <= (p.lowStockThreshold ?? 5);
+              const out = p.stock === 0;
+              return (
+                <div key={p.id} className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium text-slate-700">{p.name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {out && <span className="text-[10px] font-bold text-rose-500 bg-rose-50 border border-rose-200 rounded-full px-2 py-0.5">نافد</span>}
+                    {low && !out && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">منخفض</span>}
+                    <span className={cn("text-sm font-black tabular-nums w-10 text-left",
+                      out ? "text-rose-600" : low ? "text-amber-600" : "text-emerald-700")}>
+                      {p.stock}
+                    </span>
+                  </div>
+                </div>
+              );
             })}
           </div>
         )}
-      </div>
+      </section>
 
-      <MovementDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        products={products}
-        storeId={storeId}
-        onDone={handleMovementDone}
-      />
+      {/* ── سجل الحركات ── */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-slate-800">سجل الحركات</h3>
+          {movements.length > 0 && <span className="text-xs text-slate-400">{filteredMovements.length} حركة</span>}
+        </div>
+
+        {/* شريط فلترة بسيط */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <div className="relative flex-1 min-w-36">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input value={movSearch} onChange={(e) => setMovSearch(e.target.value)} placeholder="بحث باسم المنتج..."
+              className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+          <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value as MovementKind | "all")}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary">
+            {MOVEMENT_KIND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12 gap-2 text-slate-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">جاري التحميل...</span>
+          </div>
+        ) : filteredMovements.length === 0 ? (
+          <p className="text-sm text-slate-400 py-8 text-center">
+            {movements.length === 0 ? "لا توجد حركات مخزون مسجّلة بعد" : "لا توجد حركات تطابق الفلتر"}
+          </p>
+        ) : (
+          <>
+            <div className="divide-y divide-slate-100">
+              {pagedMovements.map((m) =>
+                m.reason.startsWith(EXCHANGE_PREFIX)
+                  ? <ExchangeRow key={m.id} movement={m} />
+                  : <MovementRow  key={m.id} movement={m} productName={productMap.get(m.productId)?.name ?? "منتج محذوف"} />
+              )}
+            </div>
+
+            {/* ترقيم الصفحات */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-100">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1} className="rounded-xl gap-1.5 text-xs">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                  السابق
+                </Button>
+                <span className="text-xs text-slate-500">
+                  {page} / {totalPages}
+                </span>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages} className="rounded-xl gap-1.5 text-xs">
+                  التالي
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      <MovementDialog open={dialogOpen} onOpenChange={setDialogOpen} products={products} storeId={storeId} onDone={handleMovementDone} />
     </div>
   );
 }
