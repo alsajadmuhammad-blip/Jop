@@ -5,7 +5,6 @@ import { CartProvider } from "@/components/cart/cart-provider";
 import { Header } from "@/components/layout/header";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BottomNavbar } from "@/components/layout/bottom-navbar";
-import { FloatingContactButton } from "@/components/layout/floating-contact-button";
 import PwaInstall from "@/components/pwa-install";
 import PushNotificationPrompt from "@/components/push-notification-prompt";
 import { ThemeProvider } from "next-themes";
@@ -48,7 +47,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
             </PageWrapper>
 
             <BottomNavbar />
-            <FloatingContactButton />
             <PwaInstall />
             <PushNotificationPrompt />
           </div>

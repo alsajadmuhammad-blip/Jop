@@ -1055,10 +1055,10 @@ export default function StoreDashboardPage() {
             </div>
 
             {/* معاينة المتجر */}
-            <Button asChild size="sm" variant="ghost" className="rounded-xl gap-1.5 text-primary hover:bg-primary/8 font-semibold h-8 px-3 text-xs shrink-0">
+            <Button asChild size="sm" variant="outline" className="rounded-xl gap-1.5 text-primary border-primary/30 hover:bg-primary/5 font-semibold h-9 px-3.5 text-xs shrink-0">
               <Link href={`/store?id=${fullStoreData.id}`}>
                 <Eye className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">معاينة</span>
+                <span>معاينة المتجر</span>
               </Link>
             </Button>
           </div>
@@ -1160,7 +1160,7 @@ export default function StoreDashboardPage() {
         {/* ─── تبويب الطلبات ─── */}
         {activeView === 'orders' && (
           <div>
-            <StoreOrdersTab storeId={fullStoreData.id} />
+            <StoreOrdersTab storeId={fullStoreData.id} storeName={fullStoreData.name} storeLogoUrl={fullStoreData.logoUrl} />
           </div>
         )}
 

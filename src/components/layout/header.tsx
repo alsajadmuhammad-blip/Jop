@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ShoppingCart, User, Users, LayoutDashboard, LogOut, LogIn,
-  Search, Home, Store, Shield, UserCircle, Moon, Sun,
+  Search, Home, Store, Shield, UserCircle, Moon, Sun, MessageCircle,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -170,6 +170,20 @@ export function Header() {
                 <ShoppingCart className="h-4 w-4" />
               </Button>
             </CartSheet>
+          )}
+
+          {/* زر التواصل — للزبائن وأصحاب المتاجر والمندوبين */}
+          {!authLoading && !isGuest && userRole !== "admin" && (
+            <a
+              href="https://wa.me/9647772323607?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%B5%D9%84%20%D9%85%D8%B9%20%D9%85%D8%B1%D9%83%D8%B2%D9%8A"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="تواصل معنا"
+              className="flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+            >
+              <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">اتصل بنا</span>
+            </a>
           )}
 
           {authLoading ? (

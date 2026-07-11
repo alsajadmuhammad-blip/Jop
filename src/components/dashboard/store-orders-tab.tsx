@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,7 @@ import {
   ShoppingCart, Phone, Clock, MapPin, RefreshCw,
   ChevronDown, ChevronUp, TrendingUp,
   CheckCircle2, XCircle, Loader2, Search,
-  Calendar, Banknote, Package, Filter,
+  Calendar, Banknote, Package, Filter, Printer,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -85,19 +85,129 @@ function getMonthLabel(key: string): string {
   return d.toLocaleDateString("ar-IQ", { year: "numeric", month: "long" });
 }
 
+/* ─────────────── Print invoice ──────────────────────────── */
+function printOrderInvoice(order: Order, orderNumber: string, storeName = "المتجر") {
+  const dateStr = new Date(order.createdAt).toLocaleString("ar-IQ", {
+    year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+  const itemsRows = order.items.map((item) => `
+    <tr>
+      <td>${item.productName}</td>
+      <td style="text-align:center">${item.quantity}</td>
+      <td style="text-align:left">${item.unitPrice?.toLocaleString() ?? "—"} د.ع</td>
+      <td style="text-align:left">${item.totalPrice.toLocaleString()} د.ع</td>
+    </tr>
+  `).join("");
+
+  const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8"/>
+  <title>فاتورة #${orderNumber}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 13px; color: #1e293b; background: #fff; padding: 32px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
+    .store-name { font-size: 22px; font-weight: 800; color: #3b5bdb; }
+    .invoice-meta { text-align: left; }
+    .invoice-meta h2 { font-size: 18px; font-weight: 700; color: #1e293b; }
+    .invoice-meta p { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #f1f5f9; color: #475569; margin-top: 6px; }
+    section { margin-bottom: 20px; }
+    section h3 { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .info-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; }
+    .info-item label { display: block; font-size: 10px; color: #94a3b8; margin-bottom: 3px; }
+    .info-item span { font-size: 13px; font-weight: 600; color: #1e293b; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: #f1f5f9; padding: 9px 12px; text-align: right; font-size: 11px; font-weight: 700; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    thead th:last-child { text-align: left; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .total-row { background: #3b5bdb; color: #fff; }
+    .total-row td { padding: 12px; font-size: 15px; font-weight: 800; border: none; }
+    .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="store-name">${storeName}</div>
+      <div class="badge">فاتورة رسمية</div>
+    </div>
+    <div class="invoice-meta">
+      <h2>طلب #${orderNumber}</h2>
+      <p>${dateStr}</p>
+      <p>طريقة الدفع: ${order.paymentMethod === "cash" ? "كاش" : order.paymentMethod === "transfer" ? "تحويل" : "واتساب"}</p>
+    </div>
+  </div>
+
+  <section>
+    <h3>معلومات العميل</h3>
+    <div class="info-grid">
+      <div class="info-item"><label>الاسم</label><span>${order.customerName || "—"}</span></div>
+      <div class="info-item"><label>الهاتف</label><span>${order.customerPhone || "—"}</span></div>
+      ${order.customerGovernorate ? `<div class="info-item"><label>المحافظة</label><span>${order.customerGovernorate}</span></div>` : ""}
+      ${order.customerAddress ? `<div class="info-item"><label>العنوان</label><span>${order.customerAddress}</span></div>` : ""}
+    </div>
+  </section>
+
+  <section>
+    <h3>المنتجات</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>المنتج</th>
+          <th style="text-align:center">الكمية</th>
+          <th style="text-align:left">سعر الوحدة</th>
+          <th style="text-align:left">الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRows}
+        <tr class="total-row">
+          <td colspan="3">المجموع الكلي</td>
+          <td style="text-align:left">${order.totalAmount.toLocaleString()} د.ع</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  ${order.notes ? `<section><h3>ملاحظات</h3><p style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;">${order.notes}</p></section>` : ""}
+
+  <div class="footer">
+    تم إصدار هذه الفاتورة من منصة مركزي — ${new Date().toLocaleDateString("ar-IQ")}
+  </div>
+</body>
+</html>`;
+
+  const w = window.open("", "_blank", "width=820,height=700");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 400);
+}
+
 /* ─────────────── OrderCard ───────────────────────────────── */
-function OrderCard({
+const OrderCard = memo(function OrderCard({
   order,
   orderNumber,
+  formattedDate,
   onStatusChange,
   isUpdating,
   archived = false,
+  storeName,
 }: {
   order: Order;
   orderNumber: string;
+  formattedDate: string;
   onStatusChange: (id: string, status: OrderStatus) => void;
   isUpdating: boolean;
   archived?: boolean;
+  storeName?: string;
 }) {
   const [expanded, setExpanded] = useState(!archived && order.status === "pending");
   const nextStatuses = nextStatusMap[order.status] || [];
@@ -141,7 +251,7 @@ function OrderCard({
           <div className="flex items-center gap-3 text-[11px] text-slate-400 flex-wrap">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {new Date(order.createdAt).toLocaleString("ar-IQ")}
+              {formattedDate}
             </span>
             <span className="font-bold text-slate-700">
               {order.totalAmount.toLocaleString()} د.ع
@@ -288,25 +398,40 @@ function OrderCard({
               )}
             </p>
           )}
+
+          {/* زر الطباعة */}
+          <div className="pt-1 border-t border-slate-100">
+            <button
+              onClick={() => printOrderInvoice(order, orderNumber, storeName)}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              طباعة الفاتورة
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
-}
+});
 
 /* ─────────────── MonthArchiveCard ───────────────────────── */
 function MonthArchiveCard({
   monthKey,
   orders,
   orderNumberMap,
+  formattedDateMap,
   onStatusChange,
   updatingOrderId,
+  storeName,
 }: {
   monthKey: string;
   orders: Order[];
   orderNumberMap: Map<string, number>;
+  formattedDateMap: Map<string, string>;
   onStatusChange: (id: string, status: OrderStatus) => void;
   updatingOrderId: string | null;
+  storeName?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -381,9 +506,11 @@ function MonthArchiveCard({
               key={order.id}
               order={order}
               orderNumber={String(orderNumberMap.get(order.id) ?? order.id.slice(0, 6))}
+              formattedDate={formattedDateMap.get(order.id) ?? ""}
               onStatusChange={onStatusChange}
               isUpdating={updatingOrderId === order.id}
               archived
+              storeName={storeName}
             />
           ))}
         </div>
@@ -395,9 +522,11 @@ function MonthArchiveCard({
 /* ─────────────── Main component ─────────────────────────── */
 interface StoreOrdersTabProps {
   storeId: string;
+  storeName?: string;
+  storeLogoUrl?: string;
 }
 
-export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
+export function StoreOrdersTab({ storeId, storeName, storeLogoUrl: _storeLogoUrl }: StoreOrdersTabProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
