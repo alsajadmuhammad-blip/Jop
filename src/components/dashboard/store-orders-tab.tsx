@@ -1,10 +1,10 @@
 /**
- * Store Orders Tab Component
+ * Store Orders Tab — with monthly archive grouping
  */
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,19 +13,20 @@ import type { Order, OrderStatus } from "@/lib/types";
 import { fetchStoreOrders, updateOrderStatus } from "@/services/orders";
 import {
   ShoppingCart, Phone, Clock, MapPin, RefreshCw,
-  ChevronDown, ChevronUp, ArrowUpDown, TrendingUp,
+  ChevronDown, ChevronUp, TrendingUp,
   CheckCircle2, XCircle, Loader2, Search,
+  Calendar, Banknote, Package, Filter,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 /* ─────────────── Status meta ─────────────────────────────── */
 const statusLabels: Record<OrderStatus, string> = {
-  pending:          "في الانتظار",
-  accepted:         "تم القبول",
-  preparing:        "قيد التجهيز",
-  ready_for_pickup: "جاهز للاستلام",
-  delivering:       "قيد التوصيل",
-  delivered:        "تم التسليم",
+  pending:          "جديد",
+  accepted:         "مقبول",
+  preparing:        "يُجهَّز",
+  ready_for_pickup: "جاهز",
+  delivering:       "يُوصَّل",
+  delivered:        "مُسلَّم",
   cancelled:        "ملغى",
 };
 
@@ -49,7 +50,7 @@ const nextStatusMap: Record<OrderStatus, OrderStatus[]> = {
   cancelled:        [],
 };
 
-/* ─────────────── Filter tabs ─────────────────────────────── */
+/* ─────────────── Filters ─────────────────────────────────── */
 const FILTER_TABS: { id: OrderStatus | "all"; label: string }[] = [
   { id: "all",          label: "الكل" },
   { id: "pending",      label: "جديد" },
@@ -60,25 +61,29 @@ const FILTER_TABS: { id: OrderStatus | "all"; label: string }[] = [
   { id: "cancelled",    label: "ملغى" },
 ];
 
-/* ─── مصدر الطلب: طلب تطبيق (واتساب) أو بيع فوري من الكاشير (كاش/تحويل) ─── */
 type SourceFilter = "all" | "app" | "pos";
-const SOURCE_TABS: { id: SourceFilter; label: string }[] = [
-  { id: "all", label: "الكل" },
-  { id: "app", label: "طلبات التطبيق" },
-  { id: "pos", label: "مبيعات الكاشير" },
-];
 function isPosOrder(order: Order): boolean {
   return order.paymentMethod === "cash" || order.paymentMethod === "transfer";
 }
 
-/* ─────────────── Sort options ────────────────────────────── */
 type SortKey = "newest" | "oldest" | "highest" | "lowest";
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "newest",  label: "الأحدث أولاً" },
-  { value: "oldest",  label: "الأقدم أولاً" },
-  { value: "highest", label: "الأعلى سعراً" },
-  { value: "lowest",  label: "الأقل سعراً" },
-];
+
+/* ─────────────── Month helpers ───────────────────────────── */
+function getMonthKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getCurrentMonthKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthLabel(key: string): string {
+  const [year, month] = key.split("-").map(Number);
+  const d = new Date(year, month - 1, 1);
+  return d.toLocaleDateString("ar-IQ", { year: "numeric", month: "long" });
+}
 
 /* ─────────────── OrderCard ───────────────────────────────── */
 function OrderCard({
@@ -86,13 +91,15 @@ function OrderCard({
   orderNumber,
   onStatusChange,
   isUpdating,
+  archived = false,
 }: {
   order: Order;
   orderNumber: string;
   onStatusChange: (id: string, status: OrderStatus) => void;
   isUpdating: boolean;
+  archived?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(order.status === "pending");
+  const [expanded, setExpanded] = useState(!archived && order.status === "pending");
   const nextStatuses = nextStatusMap[order.status] || [];
   const hasAddress = order.customerGovernorate || order.customerAddress;
 
@@ -102,16 +109,16 @@ function OrderCard({
         order.status === "cancelled" ? "opacity-60" : ""
       } ${order.status === "pending" ? "border-amber-200 ring-1 ring-amber-100" : "border-slate-100"}`}
     >
-      {/* ── Card Header ── */}
+      {/* Header */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full px-5 py-4 flex items-start justify-between gap-3 text-right hover:bg-slate-50/50 transition-colors"
+        className="w-full px-4 py-3.5 flex items-start justify-between gap-3 text-right hover:bg-slate-50/50 transition-colors"
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-base font-bold text-slate-900">طلب #{orderNumber}</span>
+            <span className="text-sm font-bold text-slate-900">#{orderNumber}</span>
             <Badge
-              className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[order.status]}`}
+              className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${statusColors[order.status]}`}
             >
               {statusLabels[order.status]}
             </Badge>
@@ -122,16 +129,16 @@ function OrderCard({
                   : "bg-sky-50 text-sky-700 border-sky-200"
               }`}
             >
-              {isPosOrder(order) ? "بيع فوري (كاشير)" : "طلب من التطبيق"}
+              {isPosOrder(order) ? "كاشير" : "تطبيق"}
             </span>
-            {order.status === "pending" && (
+            {order.status === "pending" && !archived && (
               <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
                 يحتاج إجراء
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+          <div className="flex items-center gap-3 text-[11px] text-slate-400 flex-wrap">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {new Date(order.createdAt).toLocaleString("ar-IQ")}
@@ -141,200 +148,138 @@ function OrderCard({
             </span>
           </div>
         </div>
-        <div className="shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors">
+        <div className="shrink-0 flex items-center justify-center h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors mt-0.5">
           {expanded ? (
-            <ChevronUp className="h-4 w-4 text-slate-600" />
+            <ChevronUp className="h-3.5 w-3.5 text-slate-600" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-slate-600" />
+            <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
           )}
         </div>
       </button>
 
-      {/* ── Quick Summary (always visible) ── */}
-      <div className="px-5 pb-4 grid grid-cols-2 gap-3">
-        {/* Customer phone */}
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Phone className="h-3.5 w-3.5 text-primary" />
+      {/* Quick row — always visible */}
+      <div className="px-4 pb-3.5 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Phone className="h-3 w-3 text-primary" />
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-slate-400 leading-none mb-0.5">الهاتف</p>
-            <a
-              href={`https://wa.me/${order.customerPhone?.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-sm font-semibold text-primary hover:underline truncate block"
-              dir="ltr"
-            >
-              {order.customerPhone || "—"}
-            </a>
-          </div>
+          <a
+            href={`https://wa.me/${order.customerPhone?.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-semibold text-primary hover:underline"
+            dir="ltr"
+          >
+            {order.customerPhone || "—"}
+          </a>
         </div>
-
-        {/* Governorate */}
         {hasAddress && (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-              <MapPin className="h-3.5 w-3.5 text-emerald-600" />
+          <div className="flex items-center gap-1.5">
+            <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+              <MapPin className="h-3 w-3 text-emerald-600" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 leading-none mb-0.5">المحافظة</p>
-              <p className="text-sm font-semibold text-slate-900 truncate">
-                {order.customerGovernorate || "—"}
-              </p>
-            </div>
+            <span className="text-xs font-semibold text-slate-700">
+              {order.customerGovernorate || "—"}
+            </span>
           </div>
         )}
-
-        {/* Total */}
-        <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
-          <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-slate-600">د.ع</span>
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 leading-none mb-0.5">الإجمالي</p>
-            <p className="text-sm font-bold text-slate-900">
-              {order.totalAmount.toLocaleString()} د.ع
-            </p>
-          </div>
-        </div>
       </div>
 
-      {/* ── Expanded Details ── */}
+      {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-slate-100 px-5 py-4 space-y-4 bg-slate-50/50">
-
-          {/* Customer details */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              معلومات العميل
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+        <div className="border-t border-slate-100 px-4 py-4 space-y-4 bg-slate-50/50">
+          {/* Customer */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">الاسم</span>
+              <p className="font-semibold text-slate-900 mt-0.5">{order.customerName || "—"}</p>
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">الهاتف</span>
+              <a
+                href={`https://wa.me/${order.customerPhone?.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary hover:underline block mt-0.5"
+                dir="ltr"
+              >
+                {order.customerPhone || "—"}
+              </a>
+            </div>
+            {order.customerPhoneBackup && (
               <div>
-                <span className="text-slate-400 text-xs">الاسم</span>
-                <p className="font-semibold text-slate-900">{order.customerName || "—"}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-xs">الهاتف الأساسي</span>
-                <a
-                  href={`https://wa.me/${order.customerPhone?.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-primary hover:underline block"
-                  dir="ltr"
-                >
-                  {order.customerPhone || "—"}
+                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">هاتف احتياطي</span>
+                <a href={`tel:${order.customerPhoneBackup}`} className="font-semibold text-slate-900 hover:underline block mt-0.5" dir="ltr">
+                  {order.customerPhoneBackup}
                 </a>
               </div>
-              {order.customerPhoneBackup && (
-                <div>
-                  <span className="text-slate-400 text-xs">الهاتف الاحتياطي</span>
-                  <a
-                    href={`tel:${order.customerPhoneBackup}`}
-                    className="font-semibold text-slate-900 hover:underline block"
-                    dir="ltr"
-                  >
-                    {order.customerPhoneBackup}
-                  </a>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Delivery address */}
+          {/* Address */}
           {hasAddress && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                عنوان التوصيل
-              </p>
-              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5 text-sm">
-                {order.customerGovernorate && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 text-xs w-16 shrink-0">المحافظة</span>
-                    <span className="font-semibold text-slate-900">{order.customerGovernorate}</span>
-                  </div>
-                )}
-                {order.customerAddress && (
-                  <div className="flex items-start gap-2">
-                    <span className="text-slate-400 text-xs w-16 shrink-0 mt-0.5">العنوان</span>
-                    <span className="font-medium text-slate-800 leading-snug">
-                      {order.customerAddress}
-                    </span>
-                  </div>
-                )}
-              </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5 text-sm">
+              {order.customerGovernorate && (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 text-[10px] w-16 shrink-0">المحافظة</span>
+                  <span className="font-semibold text-slate-900">{order.customerGovernorate}</span>
+                </div>
+              )}
+              {order.customerAddress && (
+                <div className="flex items-start gap-2">
+                  <span className="text-slate-400 text-[10px] w-16 shrink-0 mt-0.5">العنوان</span>
+                  <span className="font-medium text-slate-800 leading-snug">{order.customerAddress}</span>
+                </div>
+              )}
             </div>
           )}
 
           {/* Products */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              المنتجات
-            </p>
-            <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 overflow-hidden">
-              {order.items.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="text-slate-700">
-                    {item.productName}{" "}
-                    <span className="text-slate-400">×{item.quantity}</span>
-                  </span>
-                  <span className="font-semibold text-slate-900">
-                    {item.totalPrice.toLocaleString()} د.ع
-                  </span>
-                </div>
-              ))}
-              <div className="flex justify-between px-3 py-2 font-bold text-sm bg-slate-50">
-                <span>الإجمالي</span>
-                <span className="text-primary">{order.totalAmount.toLocaleString()} د.ع</span>
+          <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 overflow-hidden">
+            {order.items.map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
+                <span className="text-slate-700">
+                  {item.productName}{" "}
+                  <span className="text-slate-400 text-xs">×{item.quantity}</span>
+                </span>
+                <span className="font-semibold text-slate-900 text-xs">
+                  {item.totalPrice.toLocaleString()} د.ع
+                </span>
               </div>
+            ))}
+            <div className="flex justify-between px-3 py-2 font-bold text-sm bg-slate-50/80">
+              <span className="text-slate-600">الإجمالي</span>
+              <span className="text-primary">{order.totalAmount.toLocaleString()} د.ع</span>
             </div>
           </div>
 
           {/* Notes */}
           {order.notes && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                ملاحظات العميل
-              </p>
-              <p className="text-sm text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 leading-relaxed">
-                {order.notes}
-              </p>
+            <p className="text-sm text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 leading-relaxed">
+              📝 {order.notes}
+            </p>
+          )}
+
+          {/* Status actions */}
+          {!archived && nextStatuses.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {nextStatuses.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={s === "cancelled" ? "destructive" : "default"}
+                  className={s !== "cancelled" ? "bg-primary hover:bg-primary/90 text-white rounded-xl" : "rounded-xl"}
+                  disabled={isUpdating}
+                  onClick={() => onStatusChange(order.id, s)}
+                >
+                  {isUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : statusLabels[s]}
+                </Button>
+              ))}
             </div>
           )}
 
-          {/* Status Actions */}
-          {nextStatuses.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                تحديث الحالة
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {nextStatuses.map((s) => (
-                  <Button
-                    key={s}
-                    size="sm"
-                    variant={s === "cancelled" ? "destructive" : "default"}
-                    className={
-                      s !== "cancelled"
-                        ? "bg-primary hover:bg-primary/90 text-white"
-                        : ""
-                    }
-                    disabled={isUpdating}
-                    onClick={() => onStatusChange(order.id, s)}
-                  >
-                    {isUpdating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      statusLabels[s]
-                    )}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {nextStatuses.length === 0 && (
+          {!archived && nextStatuses.length === 0 && (
             <p className="text-xs text-slate-400 text-center py-1 flex items-center justify-center gap-1">
               {order.status === "delivered" ? (
                 <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> الطلب مُسلَّم بنجاح</>
@@ -343,6 +288,104 @@ function OrderCard({
               )}
             </p>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────── MonthArchiveCard ───────────────────────── */
+function MonthArchiveCard({
+  monthKey,
+  orders,
+  orderNumberMap,
+  onStatusChange,
+  updatingOrderId,
+}: {
+  monthKey: string;
+  orders: Order[];
+  orderNumberMap: Map<string, number>;
+  onStatusChange: (id: string, status: OrderStatus) => void;
+  updatingOrderId: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const revenue = orders
+    .filter((o) => o.status === "delivered")
+    .reduce((s, o) => s + o.totalAmount, 0);
+  const deliveredCount = orders.filter((o) => o.status === "delivered").length;
+  const cancelledCount = orders.filter((o) => o.status === "cancelled").length;
+  const activeCount = orders.length - deliveredCount - cancelledCount;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
+      {/* Summary row */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-4 py-4 flex items-center gap-3 text-right hover:bg-slate-50 transition-colors"
+      >
+        {/* Calendar icon */}
+        <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+          <Calendar className="h-4.5 w-4.5 h-[18px] w-[18px] text-indigo-600" />
+        </div>
+
+        <div className="flex-1 min-w-0 text-right">
+          <p className="text-sm font-bold text-slate-800">{getMonthLabel(monthKey)}</p>
+          <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+            <span className="flex items-center gap-1 text-[11px] text-slate-500">
+              <Package className="h-3 w-3" />
+              {orders.length} طلب
+            </span>
+            {deliveredCount > 0 && (
+              <span className="text-[11px] text-emerald-600 font-semibold">
+                ✓ {deliveredCount} مُسلَّم
+              </span>
+            )}
+            {activeCount > 0 && (
+              <span className="text-[11px] text-amber-600 font-semibold">
+                ◕ {activeCount} نشط
+              </span>
+            )}
+            {cancelledCount > 0 && (
+              <span className="text-[11px] text-red-400">
+                ✕ {cancelledCount} ملغى
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Revenue badge */}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 rounded-xl px-2.5 py-1">
+            <Banknote className="h-3.5 w-3.5 text-emerald-600" />
+            <span className="text-xs font-bold text-emerald-700">
+              {revenue.toLocaleString()} د.ع
+            </span>
+          </div>
+        </div>
+
+        <div className="h-7 w-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+          {open ? (
+            <ChevronUp className="h-3.5 w-3.5 text-slate-600" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
+          )}
+        </div>
+      </button>
+
+      {/* Expanded orders */}
+      {open && (
+        <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-3 space-y-2">
+          {orders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              orderNumber={String(orderNumberMap.get(order.id) ?? order.id.slice(0, 6))}
+              onStatusChange={onStatusChange}
+              isUpdating={updatingOrderId === order.id}
+              archived
+            />
+          ))}
         </div>
       )}
     </div>
@@ -362,12 +405,12 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  // useState initializer runs only on client → avoids SSR/client date mismatch
+  const [currentMonthKey] = useState(() => getCurrentMonthKey());
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId]);
+  useEffect(() => { loadOrders(); /* eslint-disable-next-line */ }, [storeId]);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -380,7 +423,7 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusChange = useCallback(async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingOrderId(orderId);
     try {
       const updated = await updateOrderStatus(orderId, newStatus);
@@ -393,35 +436,56 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     } finally {
       setUpdatingOrderId(null);
     }
-  };
+  }, [toast]);
 
-  /* ── Stats ── */
-  const stats = useMemo(() => {
-    const pending   = orders.filter((o) => o.status === "pending").length;
-    const delivered = orders.filter((o) => o.status === "delivered").length;
-    const cancelled = orders.filter((o) => o.status === "cancelled").length;
-    const revenue   = orders
-      .filter((o) => o.status === "delivered")
-      .reduce((sum, o) => sum + o.totalAmount, 0);
-    const appCount = orders.filter((o) => !isPosOrder(o)).length;
-    const posCount = orders.filter((o) => isPosOrder(o)).length;
-    return { pending, delivered, cancelled, revenue, appCount, posCount };
-  }, [orders]);
+  /* ── Month split ── */
+  const { currentMonthOrders, pastMonthGroups } = useMemo(() => {
+    const current: Order[] = [];
+    const past: Record<string, Order[]> = {};
 
-  /* ── Filter + Search + Sort ── */
-  const visibleOrders = useMemo(() => {
-    let list = [...orders];
-
-    // filter by source: app orders vs. in-store POS sales
-    if (sourceFilter === "app") list = list.filter((o) => !isPosOrder(o));
-    if (sourceFilter === "pos") list = list.filter((o) => isPosOrder(o));
-
-    // filter by status
-    if (filterStatus !== "all") {
-      list = list.filter((o) => o.status === filterStatus);
+    for (const order of orders) {
+      const key = getMonthKey(order.createdAt);
+      if (key === currentMonthKey) {
+        current.push(order);
+      } else {
+        if (!past[key]) past[key] = [];
+        past[key].push(order);
+      }
     }
 
-    // search by name or phone
+    // Sort past months newest first
+    const sortedKeys = Object.keys(past).sort((a, b) => b.localeCompare(a));
+    const pastMonthGroups = sortedKeys.map((key) => ({
+      key,
+      orders: past[key].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    }));
+
+    return { currentMonthOrders: current, pastMonthGroups };
+  }, [orders, currentMonthKey]);
+
+  /* ── Stats (current month only) ── */
+  const stats = useMemo(() => {
+    const pending   = currentMonthOrders.filter((o) => o.status === "pending").length;
+    const delivered = currentMonthOrders.filter((o) => o.status === "delivered").length;
+    const cancelled = currentMonthOrders.filter((o) => o.status === "cancelled").length;
+    const revenue   = currentMonthOrders
+      .filter((o) => o.status === "delivered")
+      .reduce((sum, o) => sum + o.totalAmount, 0);
+    const appCount  = currentMonthOrders.filter((o) => !isPosOrder(o)).length;
+    const posCount  = currentMonthOrders.filter((o) => isPosOrder(o)).length;
+    return { pending, delivered, cancelled, revenue, appCount, posCount };
+  }, [currentMonthOrders]);
+
+  /* ── Filter + Search + Sort (current month) ── */
+  const visibleOrders = useMemo(() => {
+    let list = [...currentMonthOrders];
+
+    if (sourceFilter === "app") list = list.filter((o) => !isPosOrder(o));
+    if (sourceFilter === "pos") list = list.filter((o) => isPosOrder(o));
+    if (filterStatus !== "all") list = list.filter((o) => o.status === filterStatus);
+
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -431,7 +495,6 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
       );
     }
 
-    // sort
     switch (sortKey) {
       case "newest":  list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
       case "oldest":  list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
@@ -440,41 +503,41 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     }
 
     return list;
-  }, [orders, sourceFilter, filterStatus, search, sortKey]);
+  }, [currentMonthOrders, sourceFilter, filterStatus, search, sortKey]);
 
-  /* ── Sequential order numbers: oldest = #1, sorted by (createdAt, id) for determinism ── */
+  /* ── Sequential order numbers across ALL orders ── */
   const orderNumberMap = useMemo(() => {
     const sorted = [...orders].sort((a, b) => {
-      const tDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      if (tDiff !== 0) return tDiff;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      const t = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      return t !== 0 ? t : a.id < b.id ? -1 : 1;
     });
     const map = new Map<string, number>();
     sorted.forEach((o, i) => map.set(o.id, i + 1));
     return map;
   }, [orders]);
 
-  /* ── Count per status (for filter badge) ── */
+  /* ── Count per status (current month) ── */
   const countByStatus = useMemo(() => {
-    const map: Record<string, number> = { all: orders.length };
-    for (const o of orders) {
+    const map: Record<string, number> = { all: currentMonthOrders.length };
+    for (const o of currentMonthOrders) {
       map[o.status] = (map[o.status] ?? 0) + 1;
     }
     return map;
-  }, [orders]);
+  }, [currentMonthOrders]);
 
-  /* ─── Loading skeleton ── */
+  /* ── Loading skeleton ── */
   if (loading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-        ))}
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}
+        </div>
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
       </div>
     );
   }
 
-  /* ─── Empty state ── */
+  /* ── Empty state ── */
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border-2 border-dashed border-slate-200">
@@ -485,155 +548,247 @@ export function StoreOrdersTab({ storeId }: StoreOrdersTabProps) {
     );
   }
 
+  /* ── Active filters count (for badge) ── */
+  const activeFiltersCount =
+    (filterStatus !== "all" ? 1 : 0) +
+    (sourceFilter !== "all" ? 1 : 0) +
+    (sortKey !== "newest" ? 1 : 0);
+
   return (
     <div className="space-y-4">
 
-      {/* ─── Header row ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-bold text-slate-900">الطلبات</h2>
-          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-            {orders.length}
-          </span>
-          {stats.pending > 0 && (
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 animate-pulse">
-              {stats.pending} جديد
-            </span>
-          )}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={loadOrders}
-          disabled={loading}
-          className="gap-1.5 rounded-lg text-xs"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          تحديث
-        </Button>
-      </div>
-
-      {/* ─── Stats cards ── */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* ─── Stats ── */}
+      <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-2xl bg-amber-50 border border-amber-100 p-3 text-center">
-          <p className="text-xs text-amber-600 font-medium mb-0.5">طلبات جديدة</p>
-          <p className="text-2xl font-extrabold text-amber-700">{stats.pending}</p>
+          <p className="text-[10px] text-amber-600 font-semibold mb-0.5">جديدة</p>
+          <p className="text-2xl font-extrabold text-amber-700 leading-none">{stats.pending}</p>
         </div>
         <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3 text-center">
-          <p className="text-xs text-emerald-600 font-medium mb-0.5">مُسلَّمة</p>
-          <p className="text-2xl font-extrabold text-emerald-700">{stats.delivered}</p>
+          <p className="text-[10px] text-emerald-600 font-semibold mb-0.5">مُسلَّمة</p>
+          <p className="text-2xl font-extrabold text-emerald-700 leading-none">{stats.delivered}</p>
         </div>
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-3 text-center">
-          <p className="text-xs text-primary font-medium mb-0.5">الإيراد</p>
-          <p className="text-lg font-extrabold text-primary leading-tight">
-            {stats.revenue.toLocaleString()}
-            <span className="text-xs font-semibold"> د.ع</span>
+          <p className="text-[10px] text-primary font-semibold mb-0.5">الإيراد</p>
+          <p className="text-base font-extrabold text-primary leading-tight">
+            {stats.revenue >= 1000
+              ? `${(stats.revenue / 1000).toFixed(1)}k`
+              : stats.revenue.toLocaleString()}
+            <span className="text-[10px] font-semibold"> د.ع</span>
           </p>
         </div>
       </div>
 
-      {/* ─── مصدر الطلب: تطبيق أو كاشير ── */}
-      <div className="flex overflow-x-auto no-scrollbar gap-2">
-        {SOURCE_TABS.map((tab) => {
-          const isActive = sourceFilter === tab.id;
-          const count = tab.id === "all" ? orders.length : tab.id === "app" ? stats.appCount : stats.posCount;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setSourceFilter(tab.id)}
-              className={`flex-shrink-0 flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold border transition-colors ${
-                isActive
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-slate-200 text-slate-500"
-              }`}
-            >
-              {tab.label}
-              <span
-                className={`text-[10px] rounded-full px-1.5 py-0.5 font-semibold ${
-                  isActive ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
-                }`}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ─── Search + Sort ── */}
+      {/* ─── Search + actions row ── */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ابحث باسم الزبون أو الهاتف..."
-            className="pr-9 rounded-xl text-sm h-9"
+            placeholder="ابحث بالاسم أو الهاتف..."
+            className="pr-9 rounded-xl text-sm h-9 bg-white"
           />
         </div>
-        <div className="relative flex items-center gap-1.5 rounded-xl border border-input bg-background px-3 h-9">
-          <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="bg-transparent text-xs font-medium text-slate-700 outline-none cursor-pointer appearance-none pr-1"
-            aria-label="ترتيب الطلبات"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Filter toggle */}
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className={`relative h-9 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            showFilters || activeFiltersCount > 0
+              ? "border-primary bg-primary/5 text-primary"
+              : "border-slate-200 text-slate-600 bg-white"
+          }`}
+        >
+          <Filter className="h-3.5 w-3.5" />
+          فلترة
+          {activeFiltersCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
+        {/* Refresh */}
+        <button
+          onClick={loadOrders}
+          disabled={loading}
+          className="h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+          aria-label="تحديث"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
-      {/* ─── Filter tabs ── */}
-      <div className="flex overflow-x-auto no-scrollbar gap-2 pb-1">
-        {FILTER_TABS.map((tab) => {
-          const count = countByStatus[tab.id] ?? 0;
-          const isActive = filterStatus === tab.id;
-          if (tab.id !== "all" && count === 0) return null;
-          return (
+      {/* ─── Collapsible filter panel ── */}
+      {showFilters && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 space-y-3">
+
+          {/* Source segmented control */}
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">المصدر</p>
+            <div className="flex gap-1.5">
+              {(
+                [
+                  { id: "all" as SourceFilter, label: "الكل", count: currentMonthOrders.length },
+                  { id: "app" as SourceFilter, label: "طلبات التطبيق", count: stats.appCount },
+                  { id: "pos" as SourceFilter, label: "مبيعات الكاشير", count: stats.posCount },
+                ] as { id: SourceFilter; label: string; count: number }[]
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSourceFilter(tab.id)}
+                  className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl border text-xs font-bold transition-colors ${
+                    sourceFilter === tab.id
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-slate-200 text-slate-500"
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`text-[10px] mt-0.5 font-semibold ${sourceFilter === tab.id ? "text-primary/70" : "text-slate-400"}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Status chips */}
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">الحالة</p>
+            <div className="flex overflow-x-auto no-scrollbar gap-1.5 pb-0.5">
+              {FILTER_TABS.map((tab) => {
+                const count = countByStatus[tab.id] ?? 0;
+                const isActive = filterStatus === tab.id;
+                if (tab.id !== "all" && count === 0) return null;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFilterStatus(tab.id)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-primary text-white shadow-sm shadow-primary/20"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {tab.label}
+                    <span
+                      className={`text-[10px] rounded-full px-1.5 py-0.5 font-semibold ${
+                        isActive ? "bg-white/25 text-white" : "bg-white text-slate-500 border border-slate-200"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">الترتيب</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {(
+                [
+                  { value: "newest" as SortKey, label: "الأحدث" },
+                  { value: "oldest" as SortKey, label: "الأقدم" },
+                  { value: "highest" as SortKey, label: "الأعلى" },
+                  { value: "lowest" as SortKey, label: "الأقل" },
+                ] as { value: SortKey; label: string }[]
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSortKey(opt.value)}
+                  className={`flex-1 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
+                    sortKey === opt.value
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-slate-200 text-slate-500"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reset */}
+          {activeFiltersCount > 0 && (
             <button
-              key={tab.id}
-              onClick={() => setFilterStatus(tab.id)}
-              className={`flex-shrink-0 flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-bold transition-all ${
-                isActive
-                  ? "bg-primary text-white shadow-sm shadow-primary/30"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
+              onClick={() => { setFilterStatus("all"); setSourceFilter("all"); setSortKey("newest"); }}
+              className="w-full py-1.5 text-xs text-red-500 font-semibold hover:text-red-600 transition-colors"
             >
-              {tab.label}
-              <span
-                className={`text-[10px] rounded-full px-1.5 py-0.5 font-semibold ${
-                  isActive ? "bg-white/25 text-white" : "bg-white text-slate-500 border border-slate-200"
-                }`}
-              >
-                {count}
-              </span>
+              إعادة تعيين الفلاتر
             </button>
-          );
-        })}
+          )}
+        </div>
+      )}
+
+      {/* ─── Current month section ── */}
+      <div>
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-1 rounded-full bg-primary" />
+            <h3 className="text-sm font-bold text-slate-800">
+              {getMonthLabel(currentMonthKey)}
+            </h3>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+              {visibleOrders.length}
+            </span>
+            {stats.pending > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 animate-pulse">
+                {stats.pending} جديد
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] text-slate-400 font-medium bg-primary/5 border border-primary/10 rounded-lg px-2 py-0.5 text-primary">
+            الشهر الحالي
+          </span>
+        </div>
+
+        {/* Orders */}
+        {visibleOrders.length === 0 ? (
+          <div className="text-center py-10 rounded-2xl border-2 border-dashed border-slate-100">
+            <TrendingUp className="h-9 w-9 text-slate-200 mx-auto mb-2" />
+            <p className="text-sm text-slate-400 font-medium">
+              {currentMonthOrders.length === 0 ? "لا توجد طلبات هذا الشهر بعد" : "لا توجد طلبات بهذه المعايير"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {visibleOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                orderNumber={String(orderNumberMap.get(order.id) ?? order.id.slice(0, 6))}
+                onStatusChange={handleStatusChange}
+                isUpdating={updatingOrderId === order.id}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ─── Orders list ── */}
-      {visibleOrders.length === 0 ? (
-        <div className="text-center py-12 rounded-2xl border-2 border-dashed border-slate-100">
-          <TrendingUp className="h-10 w-10 text-slate-200 mx-auto mb-2" />
-          <p className="text-sm text-slate-400 font-medium">لا توجد طلبات بهذه المعايير</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {visibleOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              orderNumber={String(orderNumberMap.get(order.id) ?? order.id.slice(0, 8).toUpperCase())}
-              onStatusChange={handleStatusChange}
-              isUpdating={updatingOrderId === order.id}
-            />
-          ))}
+      {/* ─── Past months archive ── */}
+      {pastMonthGroups.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 pt-1">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              أرشيف الشهور السابقة
+            </span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+          <div className="space-y-2">
+            {pastMonthGroups.map(({ key, orders: monthOrders }) => (
+              <MonthArchiveCard
+                key={key}
+                monthKey={key}
+                orders={monthOrders}
+                orderNumberMap={orderNumberMap}
+                onStatusChange={handleStatusChange}
+                updatingOrderId={updatingOrderId}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
