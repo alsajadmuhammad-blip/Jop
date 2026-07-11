@@ -99,12 +99,15 @@ function renderStoreOwnerBar() {
 export function BottomNavbar() {
   const pathname = usePathname();
   const { items } = useCart();
-  const { user, userRole } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
   const { contact } = useStoreContact();
   const totalCartItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const isGuest = !user;
 
   if (HIDE_ON_PATHS.some(p => pathname?.startsWith(p))) return null;
+
+  /* أثناء تحميل الـ auth — لا نعرض شيئاً لتجنب الوميض */
+  if (authLoading) return null;
 
   /* هل نحن في صفحة متجر وعندنا بيانات تواصل؟ */
   const isStorePage = pathname?.startsWith("/store") && !pathname.startsWith("/store/product");

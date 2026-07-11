@@ -71,7 +71,7 @@ function ThemeToggle() {
 }
 
 export function Header() {
-  const { user, userRole, logout } = useAuth();
+  const { user, userRole, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -172,7 +172,10 @@ export function Header() {
             </CartSheet>
           )}
 
-          {isGuest ? (
+          {authLoading ? (
+            /* skeleton أثناء تحميل الـ auth — يمنع الوميض */
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+          ) : isGuest ? (
             <Button asChild size="sm" className="rounded-xl gap-2 text-sm">
               <Link href="/login">
                 <LogIn className="h-4 w-4" />
