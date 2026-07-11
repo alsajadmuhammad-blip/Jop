@@ -49,11 +49,11 @@ function storeOwnerTabGroup(tab: string | null) {
 function StoreOwnerBottomTabs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeGroup =
-    pathname === "/dashboard/store" ? storeOwnerTabGroup(searchParams.get("tab")) : null;
+  const onDashboard = pathname === "/dashboard/store";
+  const activeGroup = onDashboard ? storeOwnerTabGroup(searchParams.get("tab")) : null;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl">
+    <div className="md:hidden fixed bottom-2 left-2 right-2 z-50 rounded-2xl border border-border/60 bg-background/95 shadow-lg shadow-black/5 backdrop-blur-xl">
       <div className="flex items-stretch">
         {STORE_OWNER_TABS.map(({ tab, label, icon: Icon, group }) => {
           const isActive = activeGroup === group;
@@ -61,8 +61,17 @@ function StoreOwnerBottomTabs() {
             <Link
               key={tab}
               href={`/dashboard/store?tab=${tab}`}
+              prefetch={false}
+              onClick={(e) => {
+                if (onDashboard) {
+                  // نفس الصفحة أصلاً: نبدّل التبويب فوراً محلياً بدل انتظار
+                  // انتقال Next.js الكامل، لتصبح بنفس سرعة التبويبات الداخلية
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent("store-owner-tab-change", { detail: tab }));
+                }
+              }}
               className={cn(
-                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors",
+                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors first:rounded-s-2xl last:rounded-e-2xl",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >

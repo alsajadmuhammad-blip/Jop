@@ -692,6 +692,17 @@ export default function StoreDashboardPage() {
     handleViewChange(view);
   }, []);
 
+  /* استماع لتبديل التبويب من الهيدر السفلي العام — بدون انتقال صفحة كامل
+     ليكون بنفس سرعة تبديل التبويبات الداخلية */
+  useEffect(() => {
+    const onExternalTabChange = (e: Event) => {
+      const tab = (e as CustomEvent<string>).detail;
+      if (tab) handleViewChange(tab);
+    };
+    window.addEventListener('store-owner-tab-change', onExternalTabChange);
+    return () => window.removeEventListener('store-owner-tab-change', onExternalTabChange);
+  }, []);
+
   useEffect(() => {
     if (authLoading) {
       return;
@@ -1404,6 +1415,7 @@ export default function StoreDashboardPage() {
           <PosTab
             storeId={fullStoreData.id}
             storeName={fullStoreData.name}
+            storeLogoUrl={fullStoreData.logoUrl}
             products={products}
             sections={sections}
             onStockUpdate={(productId, newStock) =>

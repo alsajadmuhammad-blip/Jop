@@ -50,7 +50,10 @@ function getGroupForTab(tab: string) {
   );
 }
 
-/* ─── المكوّن ─── */
+/* ─── المكوّن ───
+   ملاحظة: أزرار المجموعات (المتجر / التسويق / الإدارة) انتقلت إلى
+   الهيدر السفلي العام لصاحب المتجر، لذا هذا المكوّن يعرض فقط
+   التبويبات الفرعية للمجموعة النشطة حالياً (محسوبة من التبويب الحالي). */
 export function StoreOwnerNavbar({
   activeTab,
   onTabChange,
@@ -63,35 +66,7 @@ export function StoreOwnerNavbar({
   return (
     <div className="space-y-0">
 
-      {/* ── الصف الأول: أزرار المجموعات ── */}
-      <div className="flex items-center gap-1.5 py-2.5">
-        {NAV_GROUPS.map((group) => {
-          const isActive = activeGroup.id === group.id;
-          const GroupIcon = group.icon;
-          return (
-            <button
-              key={group.id}
-              onClick={() => onTabChange(group.tabs[0].tab)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition-all duration-150 outline-none select-none",
-                isActive
-                  ? "bg-primary text-white shadow-sm shadow-primary/25"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
-              )}
-            >
-              <GroupIcon
-                className={cn(
-                  "h-3.5 w-3.5 flex-shrink-0",
-                  isActive ? "text-white" : "text-slate-400"
-                )}
-              />
-              {group.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── الصف الثاني: التبويبات الفرعية للمجموعة النشطة ── */}
+      {/* ── التبويبات الفرعية للمجموعة النشطة ── */}
       <nav
         className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}

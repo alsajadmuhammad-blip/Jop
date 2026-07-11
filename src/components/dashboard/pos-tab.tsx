@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import Image from "next/image";
 import {
   Search, Plus, Minus, X, ShoppingCart, CheckCircle2,
-  Banknote, CreditCard, Package, ReceiptText, ImageIcon, Zap,
+  Banknote, CreditCard, Package, ReceiptText, ImageIcon, Zap, Printer,
 } from "lucide-react";
 import {
   Product, Section,
@@ -30,9 +30,19 @@ type PosView       = "pos" | "receipt";
 export interface PosTabProps {
   storeId:       string;
   storeName:     string;
+  storeLogoUrl?: string | null;
   products:      Product[];
   sections:      Section[];
   onStockUpdate: (productId: string, newStock: number) => void;
+}
+
+/* ─── تهريب نص بسيط قبل حقنه داخل HTML الفاتورة ─── */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /* ════════════════════════════════════════
@@ -272,7 +282,7 @@ function CartContent({
    الكاشير الرئيسي
 ════════════════════════════════════════ */
 export function PosTab({
-  storeId, storeName, products, sections, onStockUpdate,
+  storeId, storeName, storeLogoUrl, products, sections, onStockUpdate,
 }: PosTabProps) {
   const { toast } = useToast();
 
@@ -397,6 +407,102 @@ export function PosTab({
       setCompleting(false);
     }
   };
+
+  /* ── طباعة فاتورة حقيقية تحمل شعار واسم المتجر ── */
+  const handlePrint = useCallback(() => {
+    const total = lastCart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
+    const dateStr = new Date().toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+
+    const rows = lastCart
+      .map(
+        (item) => `
+        <tr>
+          <td style="text-align:right;padding:5px 0;">${escapeHtml(item.product.name)}</td>
+          <td style="text-align:center;padding:5px 0;">${item.qty}</td>
+          <td style="text-align:left;padding:5px 0;white-space:nowrap;">${item.unitPrice.toLocaleString()}</td>
+          <td style="text-align:left;padding:5px 0;white-space:nowrap;font-weight:bold;">${(item.unitPrice * item.qty).toLocaleString()}</td>
+        </tr>`
+      )
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="utf-8" />
+        <title>فاتورة #${lastOrderNum ?? ""}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            font-family: Tahoma, Arial, sans-serif;
+            width: 300px;
+            margin: 0 auto;
+            padding: 18px 16px;
+            color: #111827;
+          }
+          .center { text-align: center; }
+          .logo {
+            width: 64px; height: 64px; border-radius: 14px;
+            object-fit: cover; display: block; margin: 0 auto 8px;
+          }
+          h1 { font-size: 16px; margin: 0 0 3px; }
+          .muted { color: #6b7280; font-size: 11px; margin: 1px 0; }
+          .divider { border-top: 1px dashed #9ca3af; margin: 12px 0; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          thead td { font-weight: bold; border-bottom: 1px solid #d1d5db; padding-bottom: 5px; color: #374151; }
+          tbody tr:not(:last-child) td { border-bottom: 1px dotted #e5e7eb; }
+          .total-row td { border-top: 2px solid #111827; font-weight: 800; padding-top: 8px; font-size: 14px; }
+          .meta { font-size: 12px; margin: 3px 0; }
+          .footer { text-align: center; margin-top: 18px; font-size: 11px; color: #6b7280; }
+          @media print {
+            body { padding: 0; }
+            @page { margin: 8mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          ${storeLogoUrl ? `<img src="${escapeHtml(storeLogoUrl)}" class="logo" alt="${escapeHtml(storeName)}" />` : ""}
+          <h1>${escapeHtml(storeName)}</h1>
+          <p class="muted">فاتورة بيع رقم #${lastOrderNum ?? "—"}</p>
+          <p class="muted">${escapeHtml(dateStr)}</p>
+        </div>
+        <div class="divider"></div>
+        ${customerName.trim() ? `<p class="meta"><strong>العميل:</strong> ${escapeHtml(customerName.trim())}</p>` : ""}
+        <p class="meta"><strong>طريقة الدفع:</strong> ${payment === "cash" ? "كاش" : "تحويل"}</p>
+        <div class="divider"></div>
+        <table>
+          <thead>
+            <tr>
+              <td>الصنف</td>
+              <td style="text-align:center;">الكمية</td>
+              <td style="text-align:left;">السعر</td>
+              <td style="text-align:left;">الإجمالي</td>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="3">المجموع الكلي</td>
+              <td style="text-align:left;">${total.toLocaleString()} د.ع</td>
+            </tr>
+          </tfoot>
+        </table>
+        ${notes.trim() ? `<div class="divider"></div><p class="meta"><strong>ملاحظات:</strong> ${escapeHtml(notes.trim())}</p>` : ""}
+        <div class="divider"></div>
+        <p class="footer">شكراً لتعاملكم معنا</p>
+      </body>
+      </html>`;
+
+    const printWindow = window.open("", "_blank", "width=380,height=640");
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    // نمنح المتصفح فرصة لعرض المحتوى والصورة قبل فتح مربع الطباعة
+    setTimeout(() => { printWindow.print(); }, 300);
+  }, [lastCart, lastOrderNum, storeName, storeLogoUrl, customerName, notes, payment]);
 
   const resetPos = () => {
     setCart([]);
