@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Boxes, Plus, ArrowLeftRight, History, AlertTriangle,
   PackageCheck, Search, Loader2, X, Wrench, ShoppingCart,
@@ -140,6 +140,64 @@ function ExchangeRow({ movement }: { movement: InventoryMovement }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── قائمة منسدلة مخصصة ─────────────────────────────────────────
+
+function DropdownSelect<T extends string>({
+  value, onChange, options, className,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className={cn("relative", className)}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "flex items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2 text-sm transition-colors whitespace-nowrap min-w-0",
+          open ? "border-primary text-primary" : "border-slate-200 text-slate-700 hover:border-slate-300"
+        )}
+      >
+        <span className="truncate">{selected?.label}</span>
+        <ChevronDown className={cn("w-3.5 h-3.5 shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full mt-1 left-0 z-50 min-w-full w-max rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className={cn(
+                "w-full text-right px-4 py-2.5 text-sm transition-colors",
+                o.value === value
+                  ? "bg-primary/5 text-primary font-bold"
+                  : "text-slate-700 hover:bg-slate-50"
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -720,20 +778,24 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
             <input value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} placeholder="بحث عن منتج..."
               className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
-          {/* فلتر الحالة */}
-          <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as StockFilter)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary">
-            <option value="all">جميع المنتجات</option>
-            <option value="low">مخزون منخفض</option>
-            <option value="out">نافد المخزون</option>
-          </select>
-          {/* ترتيب */}
-          <select value={stockSort} onChange={(e) => setStockSort(e.target.value as StockSort)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary">
-            <option value="name">ترتيب: اسم</option>
-            <option value="asc">ترتيب: الأقل مخزوناً</option>
-            <option value="desc">ترتيب: الأعلى مخزوناً</option>
-          </select>
+          <DropdownSelect<StockFilter>
+            value={stockFilter}
+            onChange={setStockFilter}
+            options={[
+              { value: "all", label: "جميع المنتجات" },
+              { value: "low", label: "مخزون منخفض" },
+              { value: "out", label: "نافد المخزون" },
+            ]}
+          />
+          <DropdownSelect<StockSort>
+            value={stockSort}
+            onChange={setStockSort}
+            options={[
+              { value: "name", label: "ترتيب: اسم" },
+              { value: "asc",  label: "ترتيب: الأقل مخزوناً" },
+              { value: "desc", label: "ترتيب: الأعلى مخزوناً" },
+            ]}
+          />
         </div>
 
         {filteredStock.length === 0 ? (
@@ -775,10 +837,11 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
             <input value={movSearch} onChange={(e) => setMovSearch(e.target.value)} placeholder="بحث باسم المنتج..."
               className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
-          <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value as MovementKind | "all")}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary">
-            {MOVEMENT_KIND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <DropdownSelect<MovementKind | "all">
+            value={kindFilter}
+            onChange={setKindFilter}
+            options={MOVEMENT_KIND_OPTIONS}
+          />
         </div>
 
         {loading ? (

@@ -5,3 +5,4 @@
 - [POS cashier feature](pos-cashier-feature.md) — in-store POS tab in dashboard; manual stock decrement required (createOrder in supabase-db.ts has no auto-trigger).
 - [Partner earnings system](partner-earnings-system.md) — centralized in /api/partner-activation; salary goal uses package_points JSONB per-partner; auth via Supabase JWT + idempotency window.
 - [Store owner navigation](store-owner-navigation.md) — mobile bottom bar and dashboard top tabs sync via `?tab=` query param; contact us is a floating button, not a header link.
+- [Cache empty-data bug](cache-empty-data-bug.md) — writeStoreCache & setStorePage must guard against empty products; network blip writes [] and locks out data for 5 min.

@@ -35,6 +35,8 @@ export function getStorePage(storeId: string): StorePageData | null {
 }
 
 export function setStorePage(storeId: string, data: StorePageData): void {
+  // لا نخزّن إذا كانت البيانات فارغة — يمنع تخزين نتيجة network blip
+  if (!data?.store?.id || !data.products?.length) return;
   _cache.set(storeId, { ...data, fetchedAt: Date.now() });
 }
 

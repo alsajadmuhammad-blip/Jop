@@ -507,6 +507,8 @@ function readStoreCache(userId: string) {
 }
 
 function writeStoreCache(userId: string, store: any, products: any[], sections: any[]) {
+  // لا نحفظ إذا كانت البيانات فارغة — يمنع تخزين نتيجة network blip
+  if (!store?.id || !products?.length) return;
   try {
     localStorage.setItem(`markazi_store_${userId}`, JSON.stringify({ store, products, sections, ts: Date.now() }));
     // حذف مفاتيح sessionStorage القديمة
