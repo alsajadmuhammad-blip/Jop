@@ -38,6 +38,8 @@
   "exclude": [
     "node_modules",
     "create-store-owner.ts",
-    "artifacts"
+    "artifacts",
+    "index.ts",
+    "supabase"
   ]
 }
