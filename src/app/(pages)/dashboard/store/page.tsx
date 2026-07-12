@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { StoreSidebar, StoreMobileBar } from "./sidebar";
+import { StoreSidebar, StoreMobileDrawer, NAV_GROUPS } from "./sidebar";
 import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag, Camera, Loader2, Menu } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
@@ -550,6 +550,7 @@ export default function StoreDashboardPage() {
   const [isStoreActive, setIsStoreActive] = useState(false);
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [activeView, setActiveView] = useState('products');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [posMovements, setPosMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeLoadAttempted, setStoreLoadAttempted] = useState(false);
@@ -1055,35 +1056,36 @@ export default function StoreDashboardPage() {
       {/* ══ HEADER — موبايل فقط ══ */}
       <header
         style={{ top: 'var(--header-h, 56px)' }}
-        className="md:hidden sticky z-40 bg-white border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,.05)]"
+        className="md:hidden sticky z-40 bg-white border-b border-slate-100 shadow-sm"
       >
-        <div className="flex h-13 items-center justify-between gap-3 px-4">
-          {/* هوية المتجر */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative shrink-0">
-              {fullStoreData.logoUrl ? (
-                <div className="relative h-8 w-8 overflow-hidden rounded-xl border border-slate-200">
-                  <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="32px" priority />
-                </div>
-              ) : (
-                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Package2 className="h-4 w-4 text-primary" />
-                </div>
-              )}
-              <span className={`absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${fullStoreData.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900 leading-tight">{fullStoreData.name}</p>
-              <p className="text-[10px] text-slate-400">{fullStoreData.isActive ? 'نشط' : 'غير نشط'}</p>
-            </div>
+        <div className="flex h-14 items-center gap-3 px-4">
+          {/* زر فتح القائمة الجانبية */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
+            aria-label="فتح القائمة"
+          >
+            <Menu className="h-5 w-5 text-slate-700" />
+          </button>
+
+          {/* اسم الصفحة الحالية */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-900 leading-tight truncate">
+              {NAV_GROUPS.reduce<string>((found, g) => {
+                const match = (g.items as ReadonlyArray<{tab:string;label:string}>).find(i => i.tab === activeView);
+                return match ? match.label : found;
+              }, 'لوحة التحكم')}
+            </p>
+            <p className="text-[10px] text-slate-400 leading-none mt-0.5">{fullStoreData.name}</p>
           </div>
+
           {/* معاينة المتجر */}
           <Link
             href={`/store?id=${fullStoreData.id}`}
-            className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-xl px-3 py-1.5 hover:bg-primary/5 transition-colors shrink-0"
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/8 border border-primary/20 rounded-xl px-3 py-2 hover:bg-primary/12 transition-colors shrink-0"
           >
             <Eye className="h-3.5 w-3.5" />
-            معاينة
+            <span>معاينة</span>
           </Link>
         </div>
       </header>
@@ -1116,7 +1118,7 @@ export default function StoreDashboardPage() {
         )}
 
         {/* ══════════════════ MAIN ══════════════════ */}
-        <main className="flex-1 px-4 sm:px-6 py-6 pb-28 md:pb-8 max-w-4xl w-full mx-auto md:mx-0">
+        <main className="flex-1 px-4 sm:px-6 py-6 pb-8 max-w-4xl w-full mx-auto md:mx-0">
 
         {/* ─── تبويب المنتجات ─── */}
         {activeView === 'products' && (
@@ -1506,8 +1508,18 @@ export default function StoreDashboardPage() {
         </main>
       </div>
 
-      {/* ══ BOTTOM BAR — موبايل فقط ══ */}
-      <StoreMobileBar activeTab={activeView} onTabChange={handleViewChange} />
+      {/* ══ MOBILE DRAWER ══ */}
+      <StoreMobileDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        activeTab={activeView}
+        onTabChange={handleViewChange}
+        storeName={fullStoreData.name}
+        storeLogoUrl={fullStoreData.logoUrl}
+        storeId={fullStoreData.id}
+        isActive={!!fullStoreData.isActive}
+        onLogout={handleLogout}
+      />
 
     </div>
   );

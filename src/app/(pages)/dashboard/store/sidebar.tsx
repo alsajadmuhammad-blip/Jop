@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Package, ShoppingBag, LayoutGrid, Settings,
   CreditCard, Zap, Tag, Star, ShoppingCart, Boxes,
-  Eye, LogOut, Package2, Megaphone,
-  ChevronLeft, MoreHorizontal,
+  Eye, LogOut, Package2, X,
 } from "lucide-react";
 
-/* ─── هيكل التنقل ─────────────────────────────────── */
-
+/* ═══════════════════════════════════════════════════
+   Navigation structure
+═══════════════════════════════════════════════════ */
 export const NAV_GROUPS = [
   {
     id: "store",
@@ -29,9 +28,9 @@ export const NAV_GROUPS = [
     id: "marketing",
     label: "التسويق",
     items: [
-      { tab: "flash",     label: "عروض فلاش",   icon: Zap },
-      { tab: "coupons",   label: "كودات الخصم",  icon: Tag },
-      { tab: "analytics", label: "التقييمات",    icon: Star },
+      { tab: "flash",     label: "عروض فلاش",  icon: Zap },
+      { tab: "coupons",   label: "كودات الخصم", icon: Tag },
+      { tab: "analytics", label: "التقييمات",   icon: Star },
     ],
   },
   {
@@ -44,35 +43,87 @@ export const NAV_GROUPS = [
   },
 ] as const;
 
-/* ─── عنصر تنقل واحد ─────────────────────────────── */
-
+/* ═══════════════════════════════════════════════════
+   Shared nav item
+═══════════════════════════════════════════════════ */
 function NavItem({
-  tab, label, icon: Icon, isActive, onClick,
+  tab, label, icon: Icon, isActive, onClick, size = "md",
 }: {
   tab: string; label: string; icon: React.ElementType;
   isActive: boolean; onClick: () => void;
+  size?: "md" | "lg";
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 outline-none select-none",
+        "group w-full flex items-center gap-3 rounded-xl font-medium transition-all duration-150 outline-none select-none text-right",
+        size === "lg" ? "px-4 py-3.5 text-[15px]" : "px-3 py-2.5 text-sm",
         isActive
           ? "bg-primary text-white shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       )}
     >
-      <Icon
-        className={cn("h-[17px] w-[17px] shrink-0 transition-colors", isActive ? "text-white/90" : "text-slate-400 group-hover:text-slate-600")}
-        strokeWidth={isActive ? 2.3 : 1.9}
-      />
-      <span className="flex-1 text-right">{label}</span>
+      <div className={cn(
+        "flex items-center justify-center rounded-lg shrink-0",
+        size === "lg" ? "h-9 w-9" : "h-8 w-8",
+        isActive ? "bg-white/15" : "bg-slate-100 group-hover:bg-slate-200"
+      )}>
+        <Icon
+          className={cn(
+            size === "lg" ? "h-[18px] w-[18px]" : "h-4 w-4",
+            isActive ? "text-white" : "text-slate-500 group-hover:text-slate-700"
+          )}
+          strokeWidth={isActive ? 2.3 : 1.9}
+        />
+      </div>
+      <span className="flex-1">{label}</span>
+      {isActive && <span className="h-1.5 w-1.5 rounded-full bg-white/70 shrink-0" />}
     </button>
   );
 }
 
-/* ─── الـ Sidebar الكامل ─────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   Store identity card (shared between sidebar & drawer)
+═══════════════════════════════════════════════════ */
+function StoreCard({
+  storeName, storeLogoUrl, isActive,
+}: {
+  storeName: string; storeLogoUrl?: string | null; isActive: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-primary/5 border border-primary/10">
+      <div className="relative shrink-0">
+        {storeLogoUrl ? (
+          <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-white shadow">
+            <Image src={storeLogoUrl} alt={storeName} fill sizes="48px" className="object-cover" />
+          </div>
+        ) : (
+          <div className="h-12 w-12 rounded-xl bg-primary/10 border-2 border-white shadow flex items-center justify-center">
+            <Package2 className="h-6 w-6 text-primary" />
+          </div>
+        )}
+        <span className={cn(
+          "absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full border-2 border-white",
+          isActive ? "bg-emerald-500" : "bg-slate-300"
+        )} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold text-slate-800 truncate leading-snug">{storeName}</p>
+        <p className={cn(
+          "text-xs font-medium mt-0.5",
+          isActive ? "text-emerald-600" : "text-slate-400"
+        )}>
+          {isActive ? "● متجر نشط" : "○ غير نشط"}
+        </p>
+      </div>
+    </div>
+  );
+}
 
+/* ═══════════════════════════════════════════════════
+   Desktop Sidebar (fixed, right side)
+═══════════════════════════════════════════════════ */
 interface StoreSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -88,54 +139,24 @@ export function StoreSidebar({
   storeId, isActive, onLogout,
 }: StoreSidebarProps) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
 
-      {/* ── هوية المتجر ───────────────────── */}
+      {/* Store identity */}
       <div className="px-4 pt-5 pb-4">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="relative shrink-0">
-            {storeLogoUrl ? (
-              <div className="relative h-10 w-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                <Image src={storeLogoUrl} alt={storeName} fill sizes="40px" className="object-cover" />
-              </div>
-            ) : (
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Package2 className="h-5 w-5 text-primary" />
-              </div>
-            )}
-            <span className={cn(
-              "absolute -bottom-0.5 -left-0.5 h-[11px] w-[11px] rounded-full border-2 border-slate-50",
-              isActive ? "bg-emerald-500" : "bg-slate-300"
-            )} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-slate-800 truncate leading-snug">{storeName}</p>
-            <p className={cn("text-[11px] font-medium leading-snug mt-0.5",
-              isActive ? "text-emerald-600" : "text-slate-400"
-            )}>
-              {isActive ? "متجر نشط" : "غير نشط"}
-            </p>
-          </div>
-        </div>
+        <StoreCard storeName={storeName} storeLogoUrl={storeLogoUrl} isActive={isActive} />
       </div>
 
-      {/* ── التنقل ────────────────────────── */}
-      <nav
-        className="flex-1 overflow-y-auto px-3 space-y-5 pb-3"
-        style={{ scrollbarWidth: "none" }}
-      >
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-4" style={{ scrollbarWidth: "none" }}>
         {NAV_GROUPS.map((group) => (
           <div key={group.id}>
-            <p className="px-3 mb-1 text-[10.5px] font-bold uppercase tracking-widest text-slate-400 select-none">
+            <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 select-none">
               {group.label}
             </p>
             <div className="space-y-0.5">
               {group.items.map(({ tab, label, icon }) => (
                 <NavItem
-                  key={tab}
-                  tab={tab}
-                  label={label}
-                  icon={icon}
+                  key={tab} tab={tab} label={label} icon={icon}
                   isActive={activeTab === tab}
                   onClick={() => onTabChange(tab)}
                 />
@@ -145,151 +166,134 @@ export function StoreSidebar({
         ))}
       </nav>
 
-      {/* ── الجزء السفلي ─────────────────── */}
+      {/* Bottom actions */}
       <div className="px-3 py-3 border-t border-slate-100 space-y-0.5">
         <Link
           href={`/store?id=${storeId}`}
           target="_blank"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
         >
-          <Eye className="h-[17px] w-[17px] text-slate-400 shrink-0" />
-          <span className="flex-1 text-right">معاينة المتجر</span>
+          <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100">
+            <Eye className="h-4 w-4 text-slate-500" />
+          </div>
+          <span className="flex-1">معاينة المتجر</span>
         </Link>
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
         >
-          <LogOut className="h-[17px] w-[17px] shrink-0" />
-          <span className="flex-1 text-right">تسجيل الخروج</span>
+          <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100">
+            <LogOut className="h-4 w-4 text-slate-400" />
+          </div>
+          <span className="flex-1">تسجيل الخروج</span>
         </button>
       </div>
-
     </div>
   );
 }
 
-/* ──────────────────────────────────────────────────
-   MOBILE: Bottom bar + More Drawer
-   ─────────────────────────────────────────────── */
-
-const BOTTOM_PRIMARY = [
-  { tab: "products",  label: "المنتجات", icon: Package },
-  { tab: "orders",    label: "الطلبات",  icon: ShoppingBag },
-  { tab: "pos",       label: "الكاشير",  icon: ShoppingCart },
-  { tab: "inventory", label: "المخزون",  icon: Boxes },
-];
-
-const MORE_ITEMS = [
-  { tab: "sections",     label: "الأقسام",      icon: LayoutGrid, group: "store" },
-  { tab: "flash",        label: "عروض فلاش",    icon: Zap,        group: "marketing" },
-  { tab: "coupons",      label: "كودات الخصم",  icon: Tag,        group: "marketing" },
-  { tab: "analytics",    label: "التقييمات",    icon: Star,       group: "marketing" },
-  { tab: "subscription", label: "الاشتراك",     icon: CreditCard, group: "manage" },
-  { tab: "settings",     label: "الإعدادات",    icon: Settings,   group: "manage" },
-];
-
-export function StoreMobileBar({
-  activeTab,
-  onTabChange,
-}: {
+/* ═══════════════════════════════════════════════════
+   Mobile Drawer (slides in from right)
+═══════════════════════════════════════════════════ */
+interface StoreMobileDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
   activeTab: string;
   onTabChange: (tab: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const moreActive = MORE_ITEMS.some((i) => i.tab === activeTab);
+  storeName: string;
+  storeLogoUrl?: string | null;
+  storeId: string;
+  isActive: boolean;
+  onLogout: () => void;
+}
+
+export function StoreMobileDrawer({
+  isOpen, onClose,
+  activeTab, onTabChange,
+  storeName, storeLogoUrl, storeId, isActive, onLogout,
+}: StoreMobileDrawerProps) {
+  const handleSelect = (tab: string) => {
+    onTabChange(tab);
+    onClose();
+  };
 
   return (
     <>
-      {/* ── Overlay ───────────────────── */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={cn(
+          "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden",
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+      />
 
-      {/* ── Drawer "المزيد" ───────────── */}
+      {/* Panel */}
       <div
         className={cn(
-          "fixed inset-x-0 z-50 md:hidden transition-all duration-300 ease-out",
-          open
-            ? "bottom-[72px] opacity-100 translate-y-0 pointer-events-auto"
-            : "bottom-[72px] opacity-0 translate-y-3 pointer-events-none"
+          "fixed top-0 right-0 z-50 h-full w-[82vw] max-w-[320px] bg-white shadow-2xl transition-transform duration-300 ease-out md:hidden flex flex-col",
+          isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <div className="mx-3">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
-            <div className="px-4 pt-3 pb-1.5 border-b border-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">المزيد</p>
-            </div>
-            <div className="p-2 grid grid-cols-3 gap-1">
-              {MORE_ITEMS.map(({ tab, label, icon: Icon }) => {
-                const active = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => { onTabChange(tab); setOpen(false); }}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-colors",
-                      active ? "bg-primary/10" : "hover:bg-slate-50"
-                    )}
-                  >
-                    <Icon
-                      className={cn("h-5 w-5", active ? "text-primary" : "text-slate-500")}
-                      strokeWidth={active ? 2.4 : 1.9}
-                    />
-                    <span className={cn("text-[11px] font-semibold text-center leading-tight",
-                      active ? "text-primary" : "text-slate-600"
-                    )}>
-                      {label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        {/* Drawer header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">القائمة</p>
+          <button
+            onClick={onClose}
+            className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors"
+          >
+            <X className="h-4 w-4 text-slate-600" />
+          </button>
         </div>
-      </div>
 
-      {/* ── Bottom bar ────────────────── */}
-      <div className="fixed bottom-0 inset-x-0 z-50 md:hidden">
-        <div className="mx-0 border-t border-slate-200 bg-white/97 backdrop-blur-xl">
-          <div className="flex items-stretch pb-safe">
-            {BOTTOM_PRIMARY.map(({ tab, label, icon: Icon }) => {
-              const active = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => { onTabChange(tab); setOpen(false); }}
-                  className={cn(
-                    "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-3 transition-colors relative",
-                    active ? "text-primary" : "text-slate-400"
-                  )}
-                >
-                  {active && (
-                    <span className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full" />
-                  )}
-                  <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} />
-                  <span className="text-[10px] font-semibold">{label}</span>
-                </button>
-              );
-            })}
+        {/* Store card */}
+        <div className="px-4 pt-4 pb-3">
+          <StoreCard storeName={storeName} storeLogoUrl={storeLogoUrl} isActive={isActive} />
+        </div>
 
-            {/* زر المزيد */}
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-3 transition-colors relative",
-                (open || moreActive) ? "text-primary" : "text-slate-400"
-              )}
-            >
-              {(open || moreActive) && (
-                <span className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full" />
-              )}
-              <MoreHorizontal className="h-5 w-5" strokeWidth={(open || moreActive) ? 2.4 : 1.8} />
-              <span className="text-[10px] font-semibold">المزيد</span>
-            </button>
-          </div>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-4" style={{ scrollbarWidth: "none" }}>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.id}>
+              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 select-none">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.items.map(({ tab, label, icon }) => (
+                  <NavItem
+                    key={tab} tab={tab} label={label} icon={icon}
+                    isActive={activeTab === tab}
+                    onClick={() => handleSelect(tab)}
+                    size="lg"
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="px-3 py-4 border-t border-slate-100 space-y-1">
+          <Link
+            href={`/store?id=${storeId}`}
+            target="_blank"
+            onClick={onClose}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+          >
+            <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-slate-100">
+              <Eye className="h-[18px] w-[18px] text-slate-500" />
+            </div>
+            <span className="flex-1">معاينة المتجر</span>
+          </Link>
+          <button
+            onClick={() => { onLogout(); onClose(); }}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-slate-100">
+              <LogOut className="h-[18px] w-[18px] text-slate-400" />
+            </div>
+            <span className="flex-1">تسجيل الخروج</span>
+          </button>
         </div>
       </div>
     </>
