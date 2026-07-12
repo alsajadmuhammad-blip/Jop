@@ -989,29 +989,25 @@ export default function StoreDashboardPage() {
   /* ── هيكل التحميل السريع — يظهر الهيدر فوراً بدون spinner مزعج ── */
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
-        {/* Header skeleton */}
-        <header style={{ top: 'var(--header-h, 56px)' }} className="sticky z-40 border-b border-slate-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,.06)]">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6">
-            <div className="flex h-14 items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-slate-100 animate-pulse" />
-                <div className="space-y-1.5">
-                  <div className="h-3.5 w-28 rounded bg-slate-100 animate-pulse" />
-                  <div className="h-2.5 w-16 rounded bg-slate-100 animate-pulse" />
-                </div>
-              </div>
-              <div className="h-8 w-24 rounded-xl bg-slate-100 animate-pulse" />
-            </div>
-            <div className="flex gap-2 pb-2.5 border-t border-slate-100 pt-1">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-7 w-16 rounded-lg bg-slate-100 animate-pulse" />
-              ))}
-            </div>
+      <div className="min-h-screen bg-[#f5f6fa] flex">
+        {/* Sidebar skeleton — desktop */}
+        <div className="hidden md:flex flex-col fixed right-0 top-[56px] w-56 lg:w-60 h-[calc(100vh-56px)] bg-white border-l border-slate-100">
+          <div className="px-4 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2.5">
+            <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+            <div className="space-y-1.5 flex-1"><div className="h-3 w-24 rounded bg-slate-100 animate-pulse" /><div className="h-2.5 w-14 rounded bg-slate-100 animate-pulse" /></div>
           </div>
-        </header>
+          <div className="px-3 py-3 space-y-1">
+            {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-9 rounded-xl bg-slate-100 animate-pulse" />)}
+          </div>
+        </div>
+        {/* Mobile header skeleton */}
+        <div className="md:hidden fixed top-[56px] inset-x-0 z-40 bg-white border-b border-slate-100 h-14 flex items-center gap-3 px-4">
+          <div className="h-9 w-9 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+          <div className="flex-1 space-y-1"><div className="h-3 w-20 rounded bg-slate-100 animate-pulse" /><div className="h-2 w-28 rounded bg-slate-100 animate-pulse" /></div>
+          <div className="h-8 w-16 rounded-xl bg-slate-100 animate-pulse" />
+        </div>
         {/* Content skeleton */}
-        <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 space-y-4">
+        <main className="flex-1 md:mr-56 lg:mr-60 mt-[56px] md:mt-0 pt-14 px-4 sm:px-6 py-6 space-y-4 w-full">
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-white animate-pulse border border-slate-100" />)}
           </div>
