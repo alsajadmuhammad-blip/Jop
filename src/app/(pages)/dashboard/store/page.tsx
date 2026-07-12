@@ -690,29 +690,31 @@ export default function StoreDashboardPage() {
 
   const validViews = ['products', 'orders', 'flash', 'coupons', 'sections', 'analytics', 'subscription', 'settings', 'pos', 'inventory'];
 
-  const handleViewChange = (view: string) => {
+  // تغيير الصفحة: state فقط + URL بدون Next.js router (يمنع الحلقة اللانهائية)
+  const handleViewChange = useCallback((view: string) => {
     if (!validViews.includes(view)) return;
     setActiveView(view);
-    router.replace(`${pathname}?tab=${view}`, { scroll: false });
-  };
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}?tab=${view}`);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // قراءة tab من URL عند أول تحميل فقط
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const view = params.get('tab') || 'products';
-    handleViewChange(view);
-  }, []);
+    const view = params.get('tab');
+    if (view && validViews.includes(view)) setActiveView(view);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* استماع لتبديل التبويب من الهيدر السفلي العام — بدون انتقال صفحة كامل
-     ليكون بنفس سرعة تبديل التبويبات الداخلية */
+  // استماع للحدث الخارجي من الهيدر السفلي
   useEffect(() => {
-    const onExternalTabChange = (e: Event) => {
+    const handler = (e: Event) => {
       const tab = (e as CustomEvent<string>).detail;
       if (tab) handleViewChange(tab);
     };
-    window.addEventListener('store-owner-tab-change', onExternalTabChange);
-    return () => window.removeEventListener('store-owner-tab-change', onExternalTabChange);
-  }, []);
+    window.addEventListener('store-owner-tab-change', handler);
+    return () => window.removeEventListener('store-owner-tab-change', handler);
+  }, [handleViewChange]);
 
   useEffect(() => {
     if (authLoading) return;

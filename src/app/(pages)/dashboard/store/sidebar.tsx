@@ -43,86 +43,41 @@ export const NAV_GROUPS = [
   },
 ] as const;
 
-/* ═══════════════════════════════════════════════════
-   Shared nav item
-═══════════════════════════════════════════════════ */
+/* ── عنصر تنقل مشترك ── */
 function NavItem({
-  tab, label, icon: Icon, isActive, onClick, size = "md",
+  label, icon: Icon, isActive, onClick, compact = false,
 }: {
-  tab: string; label: string; icon: React.ElementType;
+  label: string; icon: React.ElementType;
   isActive: boolean; onClick: () => void;
-  size?: "md" | "lg";
+  compact?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "group w-full flex items-center gap-3 rounded-xl font-medium transition-all duration-150 outline-none select-none text-right",
-        size === "lg" ? "px-4 py-3.5 text-[15px]" : "px-3 py-2.5 text-sm",
+        "group w-full flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150 outline-none select-none text-right",
+        compact ? "px-3 py-2" : "px-3 py-2.5",
         isActive
           ? "bg-primary text-white shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       )}
     >
       <div className={cn(
-        "flex items-center justify-center rounded-lg shrink-0",
-        size === "lg" ? "h-9 w-9" : "h-8 w-8",
-        isActive ? "bg-white/15" : "bg-slate-100 group-hover:bg-slate-200"
+        "h-7 w-7 flex items-center justify-center rounded-lg shrink-0",
+        isActive ? "bg-white/20" : "bg-slate-100 group-hover:bg-slate-200"
       )}>
         <Icon
-          className={cn(
-            size === "lg" ? "h-[18px] w-[18px]" : "h-4 w-4",
-            isActive ? "text-white" : "text-slate-500 group-hover:text-slate-700"
-          )}
+          className={cn("h-3.5 w-3.5", isActive ? "text-white" : "text-slate-500 group-hover:text-slate-700")}
           strokeWidth={isActive ? 2.3 : 1.9}
         />
       </div>
       <span className="flex-1">{label}</span>
-      {isActive && <span className="h-1.5 w-1.5 rounded-full bg-white/70 shrink-0" />}
     </button>
   );
 }
 
 /* ═══════════════════════════════════════════════════
-   Store identity card (shared between sidebar & drawer)
-═══════════════════════════════════════════════════ */
-function StoreCard({
-  storeName, storeLogoUrl, isActive,
-}: {
-  storeName: string; storeLogoUrl?: string | null; isActive: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-primary/5 border border-primary/10">
-      <div className="relative shrink-0">
-        {storeLogoUrl ? (
-          <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-white shadow">
-            <Image src={storeLogoUrl} alt={storeName} fill sizes="48px" className="object-cover" />
-          </div>
-        ) : (
-          <div className="h-12 w-12 rounded-xl bg-primary/10 border-2 border-white shadow flex items-center justify-center">
-            <Package2 className="h-6 w-6 text-primary" />
-          </div>
-        )}
-        <span className={cn(
-          "absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full border-2 border-white",
-          isActive ? "bg-emerald-500" : "bg-slate-300"
-        )} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-slate-800 truncate leading-snug">{storeName}</p>
-        <p className={cn(
-          "text-xs font-medium mt-0.5",
-          isActive ? "text-emerald-600" : "text-slate-400"
-        )}>
-          {isActive ? "● متجر نشط" : "○ غير نشط"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   Desktop Sidebar (fixed, right side)
+   Desktop Sidebar
 ═══════════════════════════════════════════════════ */
 interface StoreSidebarProps {
   activeTab: string;
@@ -141,51 +96,69 @@ export function StoreSidebar({
   return (
     <div className="flex flex-col h-full bg-white">
 
-      {/* Store identity */}
-      <div className="px-4 pt-5 pb-4">
-        <StoreCard storeName={storeName} storeLogoUrl={storeLogoUrl} isActive={isActive} />
+      {/* هوية المتجر */}
+      <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="relative shrink-0">
+            {storeLogoUrl ? (
+              <div className="relative h-10 w-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <Image src={storeLogoUrl} alt={storeName} fill sizes="40px" className="object-cover" />
+              </div>
+            ) : (
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Package2 className="h-5 w-5 text-primary" />
+              </div>
+            )}
+            <span className={cn(
+              "absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full border-2 border-white",
+              isActive ? "bg-emerald-500" : "bg-slate-300"
+            )} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-slate-800 truncate">{storeName}</p>
+            <p className={cn("text-[11px] font-medium", isActive ? "text-emerald-600" : "text-slate-400")}>
+              {isActive ? "نشط" : "غير نشط"}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-4" style={{ scrollbarWidth: "none" }}>
+      {/* التنقل */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-3.5" style={{ scrollbarWidth: "none" }}>
         {NAV_GROUPS.map((group) => (
           <div key={group.id}>
-            <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 select-none">
+            <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 select-none">
               {group.label}
             </p>
             <div className="space-y-0.5">
               {group.items.map(({ tab, label, icon }) => (
-                <NavItem
-                  key={tab} tab={tab} label={label} icon={icon}
-                  isActive={activeTab === tab}
-                  onClick={() => onTabChange(tab)}
-                />
+                <NavItem key={tab} label={label} icon={icon}
+                  isActive={activeTab === tab} onClick={() => onTabChange(tab)} compact />
               ))}
             </div>
           </div>
         ))}
       </nav>
 
-      {/* Bottom actions */}
+      {/* أسفل */}
       <div className="px-3 py-3 border-t border-slate-100 space-y-0.5">
         <Link
-          href={`/store?id=${storeId}`}
-          target="_blank"
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+          href={`/store?id=${storeId}`} target="_blank"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
         >
-          <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100">
-            <Eye className="h-4 w-4 text-slate-500" />
+          <div className="h-7 w-7 flex items-center justify-center rounded-lg bg-slate-100">
+            <Eye className="h-3.5 w-3.5 text-slate-500" />
           </div>
-          <span className="flex-1">معاينة المتجر</span>
+          <span>معاينة المتجر</span>
         </Link>
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
         >
-          <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100">
-            <LogOut className="h-4 w-4 text-slate-400" />
+          <div className="h-7 w-7 flex items-center justify-center rounded-lg bg-slate-100">
+            <LogOut className="h-3.5 w-3.5 text-slate-400" />
           </div>
-          <span className="flex-1">تسجيل الخروج</span>
+          <span>تسجيل الخروج</span>
         </button>
       </div>
     </div>
@@ -193,7 +166,7 @@ export function StoreSidebar({
 }
 
 /* ═══════════════════════════════════════════════════
-   Mobile Drawer (slides in from right)
+   Mobile Drawer — يتزلق من اليمين
 ═══════════════════════════════════════════════════ */
 interface StoreMobileDrawerProps {
   isOpen: boolean;
@@ -212,87 +185,104 @@ export function StoreMobileDrawer({
   activeTab, onTabChange,
   storeName, storeLogoUrl, storeId, isActive, onLogout,
 }: StoreMobileDrawerProps) {
-  const handleSelect = (tab: string) => {
-    onTabChange(tab);
-    onClose();
-  };
+
+  const pick = (tab: string) => { onTabChange(tab); onClose(); };
+
+  // كل الصفحات في قائمة واحدة مسطّحة (بدون groups لتقليص الطول)
+  const allItems: { tab: string; label: string; icon: React.ElementType }[] =
+    (NAV_GROUPS as readonly { items: readonly { tab: string; label: string; icon: React.ElementType }[] }[])
+      .flatMap(g => [...g.items]);
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className={cn(
-          "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden",
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        )}
-      />
+      {/* Backdrop — z-[55] أدنى من البانل */}
+      {isOpen && (
+        <div
+          aria-hidden
+          onClick={onClose}
+          className="fixed inset-0 z-[55] bg-black/50 md:hidden"
+        />
+      )}
 
-      {/* Panel */}
+      {/* Panel — z-[60] فوق الـ backdrop */}
       <div
+        onClick={e => e.stopPropagation()}   /* يمنع التسرب للـ backdrop */
         className={cn(
-          "fixed top-0 right-0 z-50 h-full w-[82vw] max-w-[320px] bg-white shadow-2xl transition-transform duration-300 ease-out md:hidden flex flex-col",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          "fixed top-0 right-0 z-[60] h-full bg-white shadow-2xl md:hidden",
+          "w-64 flex flex-col",
+          "transition-transform duration-250 ease-out",
+          isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
         )}
       >
-        {/* Drawer header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">القائمة</p>
+        {/* رأس الـ drawer */}
+        <div className="flex items-center justify-between px-4 h-14 border-b border-slate-100 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {storeLogoUrl ? (
+              <div className="relative h-7 w-7 rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                <Image src={storeLogoUrl} alt={storeName} fill sizes="28px" className="object-cover" />
+              </div>
+            ) : (
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Package2 className="h-3.5 w-3.5 text-primary" />
+              </div>
+            )}
+            <span className="text-sm font-bold text-slate-800 truncate">{storeName}</span>
+          </div>
           <button
             onClick={onClose}
-            className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
           >
             <X className="h-4 w-4 text-slate-600" />
           </button>
         </div>
 
-        {/* Store card */}
-        <div className="px-4 pt-4 pb-3">
-          <StoreCard storeName={storeName} storeLogoUrl={storeLogoUrl} isActive={isActive} />
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-4" style={{ scrollbarWidth: "none" }}>
-          {NAV_GROUPS.map((group) => (
-            <div key={group.id}>
-              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 select-none">
-                {group.label}
-              </p>
-              <div className="space-y-1">
-                {group.items.map(({ tab, label, icon }) => (
-                  <NavItem
-                    key={tab} tab={tab} label={label} icon={icon}
-                    isActive={activeTab === tab}
-                    onClick={() => handleSelect(tab)}
-                    size="lg"
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+        {/* قائمة التنقل */}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5" style={{ scrollbarWidth: "none" }}>
+          {allItems.map(({ tab, label, icon: Icon }) => {
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => pick(tab)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
+                  active
+                    ? "bg-primary text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                )}
+              >
+                <div className={cn(
+                  "h-8 w-8 flex items-center justify-center rounded-lg shrink-0",
+                  active ? "bg-white/20" : "bg-slate-100"
+                )}>
+                  <Icon className={cn("h-4 w-4", active ? "text-white" : "text-slate-500")} strokeWidth={active ? 2.3 : 1.9} />
+                </div>
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Bottom actions */}
-        <div className="px-3 py-4 border-t border-slate-100 space-y-1">
+        {/* أسفل */}
+        <div className="px-3 py-3 border-t border-slate-100 space-y-0.5 shrink-0">
           <Link
-            href={`/store?id=${storeId}`}
-            target="_blank"
+            href={`/store?id=${storeId}`} target="_blank"
             onClick={onClose}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
           >
-            <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-slate-100">
-              <Eye className="h-[18px] w-[18px] text-slate-500" />
+            <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100 shrink-0">
+              <Eye className="h-4 w-4 text-slate-500" />
             </div>
-            <span className="flex-1">معاينة المتجر</span>
+            <span>معاينة المتجر</span>
           </Link>
           <button
             onClick={() => { onLogout(); onClose(); }}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
-            <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-slate-100">
-              <LogOut className="h-[18px] w-[18px] text-slate-400" />
+            <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100 shrink-0">
+              <LogOut className="h-4 w-4 text-slate-400" />
             </div>
-            <span className="flex-1">تسجيل الخروج</span>
+            <span>تسجيل الخروج</span>
           </button>
         </div>
       </div>
