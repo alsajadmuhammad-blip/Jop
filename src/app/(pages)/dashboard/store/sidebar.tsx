@@ -7,39 +7,36 @@ import { cn } from "@/lib/utils";
 import {
   Package, ShoppingBag, LayoutGrid, Settings,
   CreditCard, Zap, Tag, Star, ShoppingCart, Boxes,
-  Eye, LogOut, Package2, ChevronLeft,
-  Megaphone, Store,
+  Eye, LogOut, Package2, Megaphone,
+  ChevronLeft, MoreHorizontal,
 } from "lucide-react";
 
-// ─── بيانات التنقل ────────────────────────────────────────────────
+/* ─── هيكل التنقل ─────────────────────────────────── */
 
-const NAV_SECTIONS = [
+export const NAV_GROUPS = [
   {
     id: "store",
     label: "المتجر",
-    icon: Store,
     items: [
-      { tab: "products",  label: "المنتجات", icon: Package },
-      { tab: "orders",    label: "الطلبات",  icon: ShoppingBag },
-      { tab: "pos",       label: "الكاشير",  icon: ShoppingCart },
-      { tab: "inventory", label: "المخزون",  icon: Boxes },
-      { tab: "sections",  label: "الأقسام",  icon: LayoutGrid },
+      { tab: "products",  label: "المنتجات",  icon: Package },
+      { tab: "orders",    label: "الطلبات",   icon: ShoppingBag },
+      { tab: "pos",       label: "الكاشير",   icon: ShoppingCart },
+      { tab: "inventory", label: "المخزون",   icon: Boxes },
+      { tab: "sections",  label: "الأقسام",   icon: LayoutGrid },
     ],
   },
   {
     id: "marketing",
     label: "التسويق",
-    icon: Megaphone,
     items: [
       { tab: "flash",     label: "عروض فلاش",   icon: Zap },
-      { tab: "coupons",   label: "كودات الخصم", icon: Tag },
-      { tab: "analytics", label: "التقييمات",   icon: Star },
+      { tab: "coupons",   label: "كودات الخصم",  icon: Tag },
+      { tab: "analytics", label: "التقييمات",    icon: Star },
     ],
   },
   {
     id: "manage",
     label: "الإدارة",
-    icon: Settings,
     items: [
       { tab: "subscription", label: "الاشتراك",  icon: CreditCard },
       { tab: "settings",     label: "الإعدادات", icon: Settings },
@@ -47,19 +44,7 @@ const NAV_SECTIONS = [
   },
 ] as const;
 
-// ─── Props ────────────────────────────────────────────────────────
-
-interface StoreSidebarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  storeName: string;
-  storeLogoUrl?: string | null;
-  storeId: string;
-  isActive: boolean;
-  onLogout: () => void;
-}
-
-// ─── عنصر التنقل ─────────────────────────────────────────────────
+/* ─── عنصر تنقل واحد ─────────────────────────────── */
 
 function NavItem({
   tab, label, icon: Icon, isActive, onClick,
@@ -71,69 +56,81 @@ function NavItem({
     <button
       onClick={onClick}
       className={cn(
-        "group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-right",
+        "group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 outline-none select-none",
         isActive
-          ? "bg-primary text-white shadow-sm shadow-primary/25"
+          ? "bg-primary text-white shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       )}
     >
       <Icon
-        className={cn("h-4 w-4 shrink-0", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")}
-        strokeWidth={isActive ? 2.4 : 2}
+        className={cn("h-[17px] w-[17px] shrink-0 transition-colors", isActive ? "text-white/90" : "text-slate-400 group-hover:text-slate-600")}
+        strokeWidth={isActive ? 2.3 : 1.9}
       />
-      <span className="flex-1 truncate">{label}</span>
-      {isActive && <ChevronLeft className="h-3.5 w-3.5 text-white/70 shrink-0" />}
+      <span className="flex-1 text-right">{label}</span>
     </button>
   );
 }
 
-// ─── الشريط الجانبي ───────────────────────────────────────────────
+/* ─── الـ Sidebar الكامل ─────────────────────────── */
+
+interface StoreSidebarProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  storeName: string;
+  storeLogoUrl?: string | null;
+  storeId: string;
+  isActive: boolean;
+  onLogout: () => void;
+}
 
 export function StoreSidebar({
   activeTab, onTabChange, storeName, storeLogoUrl,
   storeId, isActive, onLogout,
 }: StoreSidebarProps) {
   return (
-    <aside className="flex flex-col h-full select-none">
+    <div className="flex flex-col h-full">
 
-      {/* ── هوية المتجر ── */}
-      <div className="px-4 pt-5 pb-4 border-b border-slate-100">
-        <div className="flex items-center gap-3">
+      {/* ── هوية المتجر ───────────────────── */}
+      <div className="px-4 pt-5 pb-4">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
           <div className="relative shrink-0">
             {storeLogoUrl ? (
-              <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
-                <Image src={storeLogoUrl} alt={storeName} fill className="object-cover" sizes="44px" />
+              <div className="relative h-10 w-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <Image src={storeLogoUrl} alt={storeName} fill sizes="40px" className="object-cover" />
               </div>
             ) : (
-              <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Package2 className="h-5 w-5 text-primary" />
               </div>
             )}
             <span className={cn(
-              "absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full border-2 border-white",
+              "absolute -bottom-0.5 -left-0.5 h-[11px] w-[11px] rounded-full border-2 border-slate-50",
               isActive ? "bg-emerald-500" : "bg-slate-300"
             )} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-slate-900 truncate leading-tight">{storeName}</p>
-            <p className={cn("text-[11px] font-medium mt-0.5", isActive ? "text-emerald-600" : "text-slate-400")}>
-              {isActive ? "● نشط" : "○ غير نشط"}
+            <p className="text-sm font-bold text-slate-800 truncate leading-snug">{storeName}</p>
+            <p className={cn("text-[11px] font-medium leading-snug mt-0.5",
+              isActive ? "text-emerald-600" : "text-slate-400"
+            )}>
+              {isActive ? "متجر نشط" : "غير نشط"}
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── التنقل ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-5"
-        style={{ scrollbarWidth: "none" }}>
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.id}>
-            {/* عنوان القسم */}
-            <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 select-none">
-              {section.label}
+      {/* ── التنقل ────────────────────────── */}
+      <nav
+        className="flex-1 overflow-y-auto px-3 space-y-5 pb-3"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {NAV_GROUPS.map((group) => (
+          <div key={group.id}>
+            <p className="px-3 mb-1 text-[10.5px] font-bold uppercase tracking-widest text-slate-400 select-none">
+              {group.label}
             </p>
             <div className="space-y-0.5">
-              {section.items.map(({ tab, label, icon }) => (
+              {group.items.map(({ tab, label, icon }) => (
                 <NavItem
                   key={tab}
                   tab={tab}
@@ -148,30 +145,32 @@ export function StoreSidebar({
         ))}
       </nav>
 
-      {/* ── أسفل السايدبار ── */}
-      <div className="px-3 py-3 border-t border-slate-100 space-y-1">
+      {/* ── الجزء السفلي ─────────────────── */}
+      <div className="px-3 py-3 border-t border-slate-100 space-y-0.5">
         <Link
           href={`/store?id=${storeId}`}
           target="_blank"
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors"
         >
-          <Eye className="h-4 w-4 text-slate-400 shrink-0" />
-          <span>معاينة المتجر</span>
+          <Eye className="h-[17px] w-[17px] text-slate-400 shrink-0" />
+          <span className="flex-1 text-right">معاينة المتجر</span>
         </Link>
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
         >
-          <LogOut className="h-4 w-4 shrink-0" />
-          <span>تسجيل الخروج</span>
+          <LogOut className="h-[17px] w-[17px] shrink-0" />
+          <span className="flex-1 text-right">تسجيل الخروج</span>
         </button>
       </div>
 
-    </aside>
+    </div>
   );
 }
 
-// ─── Bottom bar للموبايل (5 عناصر ثابتة + drawer للباقي) ─────────
+/* ──────────────────────────────────────────────────
+   MOBILE: Bottom bar + More Drawer
+   ─────────────────────────────────────────────── */
 
 const BOTTOM_PRIMARY = [
   { tab: "products",  label: "المنتجات", icon: Package },
@@ -180,40 +179,95 @@ const BOTTOM_PRIMARY = [
   { tab: "inventory", label: "المخزون",  icon: Boxes },
 ];
 
-const DRAWER_ITEMS = [
-  { tab: "sections",     label: "الأقسام",      icon: LayoutGrid },
-  { tab: "flash",        label: "عروض فلاش",    icon: Zap },
-  { tab: "coupons",      label: "كودات الخصم",  icon: Tag },
-  { tab: "analytics",    label: "التقييمات",    icon: Star },
-  { tab: "subscription", label: "الاشتراك",     icon: CreditCard },
-  { tab: "settings",     label: "الإعدادات",    icon: Settings },
+const MORE_ITEMS = [
+  { tab: "sections",     label: "الأقسام",      icon: LayoutGrid, group: "store" },
+  { tab: "flash",        label: "عروض فلاش",    icon: Zap,        group: "marketing" },
+  { tab: "coupons",      label: "كودات الخصم",  icon: Tag,        group: "marketing" },
+  { tab: "analytics",    label: "التقييمات",    icon: Star,       group: "marketing" },
+  { tab: "subscription", label: "الاشتراك",     icon: CreditCard, group: "manage" },
+  { tab: "settings",     label: "الإعدادات",    icon: Settings,   group: "manage" },
 ];
 
 export function StoreMobileBar({
-  activeTab, onTabChange,
-}: { activeTab: string; onTabChange: (tab: string) => void }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const moreActive = DRAWER_ITEMS.some((i) => i.tab === activeTab);
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const moreActive = MORE_ITEMS.some((i) => i.tab === activeTab);
 
   return (
     <>
-      {/* Bottom bar */}
+      {/* ── Overlay ───────────────────── */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* ── Drawer "المزيد" ───────────── */}
+      <div
+        className={cn(
+          "fixed inset-x-0 z-50 md:hidden transition-all duration-300 ease-out",
+          open
+            ? "bottom-[72px] opacity-100 translate-y-0 pointer-events-auto"
+            : "bottom-[72px] opacity-0 translate-y-3 pointer-events-none"
+        )}
+      >
+        <div className="mx-3">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="px-4 pt-3 pb-1.5 border-b border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">المزيد</p>
+            </div>
+            <div className="p-2 grid grid-cols-3 gap-1">
+              {MORE_ITEMS.map(({ tab, label, icon: Icon }) => {
+                const active = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => { onTabChange(tab); setOpen(false); }}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-colors",
+                      active ? "bg-primary/10" : "hover:bg-slate-50"
+                    )}
+                  >
+                    <Icon
+                      className={cn("h-5 w-5", active ? "text-primary" : "text-slate-500")}
+                      strokeWidth={active ? 2.4 : 1.9}
+                    />
+                    <span className={cn("text-[11px] font-semibold text-center leading-tight",
+                      active ? "text-primary" : "text-slate-600"
+                    )}>
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bottom bar ────────────────── */}
       <div className="fixed bottom-0 inset-x-0 z-50 md:hidden">
-        <div className="mx-3 mb-3">
-          <div className="flex items-stretch bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-xl shadow-black/8 overflow-hidden">
+        <div className="mx-0 border-t border-slate-200 bg-white/97 backdrop-blur-xl">
+          <div className="flex items-stretch pb-safe">
             {BOTTOM_PRIMARY.map(({ tab, label, icon: Icon }) => {
               const active = activeTab === tab;
               return (
                 <button
                   key={tab}
-                  onClick={() => { onTabChange(tab); setDrawerOpen(false); }}
+                  onClick={() => { onTabChange(tab); setOpen(false); }}
                   className={cn(
-                    "flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors relative",
-                    active ? "text-primary" : "text-slate-400 active:text-slate-600"
+                    "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-3 transition-colors relative",
+                    active ? "text-primary" : "text-slate-400"
                   )}
                 >
                   {active && (
-                    <span className="absolute top-0 inset-x-3 h-0.5 bg-primary rounded-full" />
+                    <span className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full" />
                   )}
                   <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} />
                   <span className="text-[10px] font-semibold">{label}</span>
@@ -223,68 +277,18 @@ export function StoreMobileBar({
 
             {/* زر المزيد */}
             <button
-              onClick={() => setDrawerOpen((v) => !v)}
+              onClick={() => setOpen((v) => !v)}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors relative",
-                (drawerOpen || moreActive) ? "text-primary" : "text-slate-400"
+                "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-3 transition-colors relative",
+                (open || moreActive) ? "text-primary" : "text-slate-400"
               )}
             >
-              {(drawerOpen || moreActive) && (
-                <span className="absolute top-0 inset-x-3 h-0.5 bg-primary rounded-full" />
+              {(open || moreActive) && (
+                <span className="absolute top-0 inset-x-4 h-[2px] bg-primary rounded-full" />
               )}
-              <div className="h-5 w-5 flex items-center justify-center">
-                <span className="flex gap-[3px] items-center">
-                  {[0,1,2].map((i) => (
-                    <span key={i} className={cn(
-                      "block rounded-full transition-all",
-                      (drawerOpen || moreActive) ? "bg-primary" : "bg-slate-400",
-                      i === 1 ? "h-[5px] w-[5px]" : "h-[4px] w-[4px]"
-                    )} />
-                  ))}
-                </span>
-              </div>
+              <MoreHorizontal className="h-5 w-5" strokeWidth={(open || moreActive) ? 2.4 : 1.8} />
               <span className="text-[10px] font-semibold">المزيد</span>
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay */}
-      {drawerOpen && (
-        <div
-          className="fixed inset-0 z-40 md:hidden bg-black/20 backdrop-blur-sm"
-          onClick={() => setDrawerOpen(false)}
-        />
-      )}
-
-      {/* Drawer */}
-      <div className={cn(
-        "fixed inset-x-0 bottom-[76px] z-50 md:hidden transition-all duration-300 ease-out",
-        drawerOpen ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-4 opacity-0 pointer-events-none"
-      )}>
-        <div className="mx-3">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">خيارات إضافية</p>
-            </div>
-            <div className="p-2 grid grid-cols-3 gap-1.5">
-              {DRAWER_ITEMS.map(({ tab, label, icon: Icon }) => {
-                const active = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => { onTabChange(tab); setDrawerOpen(false); }}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors",
-                      active ? "bg-primary/10 text-primary" : "hover:bg-slate-50 text-slate-600"
-                    )}
-                  >
-                    <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-slate-400")} strokeWidth={active ? 2.4 : 2} />
-                    <span className="text-[11px] font-semibold leading-tight text-center">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>
