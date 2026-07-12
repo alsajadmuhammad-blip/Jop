@@ -51,10 +51,11 @@ export function StoreOwnerNavbar({
 
   return (
     <nav
-      className="-mx-4 sm:-mx-6 overflow-x-auto px-3 sm:px-5 pb-3 pt-2"
+      className="-mx-4 sm:-mx-6 overflow-x-auto px-3 sm:px-5 pb-2.5 pt-1.5 sm:pb-3 sm:pt-2"
       style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
     >
-      <div className="flex min-w-max gap-2">
+      {/* موبايل: أزرار أفقية مدمجة — ديسكتوب: بطاقات */}
+      <div className="flex min-w-max gap-1.5 sm:gap-2">
         {activeGroup.tabs.map(({ tab, label, icon: Icon }) => {
           const isActive = activeTab === tab;
           return (
@@ -62,7 +63,28 @@ export function StoreOwnerNavbar({
               key={tab}
               onClick={() => onTabChange(tab)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1.5",
+                // موبايل: pill مدمج أفقي
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition-all duration-150 select-none outline-none sm:hidden",
+                isActive
+                  ? "border-primary/40 bg-primary/8 text-primary"
+                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={isActive ? 2.4 : 1.8} />
+              {label}
+            </button>
+          );
+        })}
+
+        {activeGroup.tabs.map(({ tab, label, icon: Icon }) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={`d-${tab}`}
+              onClick={() => onTabChange(tab)}
+              className={cn(
+                // ديسكتوب: بطاقة أيقونة + نص تحت
+                "hidden sm:flex flex-col items-center justify-center gap-1.5",
                 "w-[72px] py-2.5 rounded-2xl border text-center",
                 "transition-all duration-150 select-none outline-none",
                 isActive
@@ -70,20 +92,10 @@ export function StoreOwnerNavbar({
                   : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm"
               )}
             >
-              <div
-                className={cn(
-                  "h-8 w-8 rounded-xl flex items-center justify-center",
-                  isActive ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
-                )}
-              >
+              <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center", isActive ? "bg-primary text-white" : "bg-slate-100 text-slate-500")}>
                 <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
               </div>
-              <span
-                className={cn(
-                  "text-[10.5px] font-semibold leading-tight",
-                  isActive ? "text-primary" : "text-slate-500"
-                )}
-              >
+              <span className={cn("text-[10.5px] font-semibold leading-tight", isActive ? "text-primary" : "text-slate-500")}>
                 {label}
               </span>
             </button>

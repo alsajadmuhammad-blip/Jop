@@ -770,32 +770,37 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
           <span className="text-xs text-slate-400">{filteredStock.length} منتج</span>
         </div>
 
-        {/* شريط تحكم واحد */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {/* بحث */}
-          <div className="relative flex-1 min-w-36">
+        {/* شريط تحكم */}
+        <div className="space-y-2 mb-4">
+          {/* بحث — عرض كامل */}
+          <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} placeholder="بحث عن منتج..."
               className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
-          <DropdownSelect<StockFilter>
-            value={stockFilter}
-            onChange={setStockFilter}
-            options={[
-              { value: "all", label: "جميع المنتجات" },
-              { value: "low", label: "مخزون منخفض" },
-              { value: "out", label: "نافد المخزون" },
-            ]}
-          />
-          <DropdownSelect<StockSort>
-            value={stockSort}
-            onChange={setStockSort}
-            options={[
-              { value: "name", label: "ترتيب: اسم" },
-              { value: "asc",  label: "ترتيب: الأقل مخزوناً" },
-              { value: "desc", label: "ترتيب: الأعلى مخزوناً" },
-            ]}
-          />
+          {/* الفلاتر في صف واحد */}
+          <div className="flex gap-2">
+            <DropdownSelect<StockFilter>
+              value={stockFilter}
+              onChange={setStockFilter}
+              className="flex-1"
+              options={[
+                { value: "all", label: "الكل" },
+                { value: "low", label: "منخفض" },
+                { value: "out", label: "نافد" },
+              ]}
+            />
+            <DropdownSelect<StockSort>
+              value={stockSort}
+              onChange={setStockSort}
+              className="flex-1"
+              options={[
+                { value: "name", label: "ترتيب: اسم" },
+                { value: "asc",  label: "ترتيب: الأقل" },
+                { value: "desc", label: "ترتيب: الأعلى" },
+              ]}
+            />
+          </div>
         </div>
 
         {filteredStock.length === 0 ? (
@@ -830,9 +835,9 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
           {movements.length > 0 && <span className="text-xs text-slate-400">{filteredMovements.length} حركة</span>}
         </div>
 
-        {/* شريط فلترة بسيط */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <div className="relative flex-1 min-w-36">
+        {/* شريط فلترة */}
+        <div className="space-y-2 mb-4">
+          <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input value={movSearch} onChange={(e) => setMovSearch(e.target.value)} placeholder="بحث باسم المنتج..."
               className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
@@ -840,6 +845,7 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
           <DropdownSelect<MovementKind | "all">
             value={kindFilter}
             onChange={setKindFilter}
+            className="w-full"
             options={MOVEMENT_KIND_OPTIONS}
           />
         </div>

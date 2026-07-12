@@ -1064,10 +1064,10 @@ export default function StoreDashboardPage() {
             </div>
 
             {/* معاينة المتجر */}
-            <Button asChild size="sm" variant="outline" className="rounded-xl gap-1.5 text-primary border-primary/30 hover:bg-primary/5 font-semibold h-9 px-3.5 text-xs shrink-0">
+            <Button asChild size="sm" variant="outline" className="rounded-xl gap-1.5 text-primary border-primary/30 hover:bg-primary/5 font-semibold h-9 px-3 sm:px-3.5 text-xs shrink-0">
               <Link href={`/store?id=${fullStoreData.id}`}>
                 <Eye className="h-3.5 w-3.5" />
-                <span>معاينة المتجر</span>
+                <span className="hidden sm:inline">معاينة المتجر</span>
               </Link>
             </Button>
           </div>
