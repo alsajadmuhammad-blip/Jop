@@ -231,7 +231,8 @@ export function BottomNavbar() {
   );
 
   if (userRole === 'representative') return renderRepNavbar();
-  if (userRole === 'store') return renderStoreOwnerBar();
+  // شريط صاحب المتجر مدمج الآن داخل صفحة الداشبورد (StoreMobileBar)
+  if (userRole === 'store') return null;
 
   /* ── شريط المتجر: إذا كان فيه بيانات تواصل، اعرضها بدل بعض الأزرار ── */
   if (hasContact) {

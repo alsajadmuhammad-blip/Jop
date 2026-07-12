@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { StoreOwnerNavbar } from "./navbar";
-import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag, Camera, Loader2 } from "lucide-react";
+import { StoreSidebar, StoreMobileBar } from "./sidebar";
+import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag, Camera, Loader2, Menu } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
 import type { Product, Store, Section, StorePackage } from "@/lib/types";
@@ -1034,75 +1034,89 @@ export default function StoreDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f6fa] flex flex-col">
+    <div className="min-h-screen bg-[#f5f6fa]">
 
-      {/* ══════════════════ HEADER ══════════════════ */}
-      <header style={{ top: 'var(--header-h, 56px)' }} className="sticky z-40 bg-white border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+      {/* ══ SIDEBAR — ديسكتوب فقط ══ */}
+      <aside
+        style={{ top: 'var(--header-h, 56px)', height: 'calc(100vh - var(--header-h, 56px))' }}
+        className="hidden md:flex md:flex-col fixed right-0 z-30 w-56 lg:w-60 bg-white border-l border-slate-100 shadow-[−1px_0_8px_rgba(0,0,0,.04)]"
+      >
+        <StoreSidebar
+          activeTab={activeView}
+          onTabChange={handleViewChange}
+          storeName={fullStoreData.name}
+          storeLogoUrl={fullStoreData.logoUrl}
+          storeId={fullStoreData.id}
+          isActive={!!fullStoreData.isActive}
+          onLogout={handleLogout}
+        />
+      </aside>
 
-          {/* Top row */}
-          <div className="flex h-14 items-center justify-between gap-3">
-            {/* هوية المتجر */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative shrink-0">
-                {fullStoreData.logoUrl ? (
-                  <div className="relative h-9 w-9 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-                    <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="36px" priority />
-                  </div>
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-                    <Package2 className="h-4.5 w-4.5 text-primary" />
-                  </div>
-                )}
-                {/* مؤشر النشاط */}
-                <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${fullStoreData.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-900 leading-tight">{fullStoreData.name}</p>
-                <p className="text-[11px] text-slate-400 leading-tight">{fullStoreData.isActive ? 'نشط' : 'غير نشط'}</p>
-              </div>
+      {/* ══ HEADER — موبايل فقط ══ */}
+      <header
+        style={{ top: 'var(--header-h, 56px)' }}
+        className="md:hidden sticky z-40 bg-white border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,.05)]"
+      >
+        <div className="flex h-13 items-center justify-between gap-3 px-4">
+          {/* هوية المتجر */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative shrink-0">
+              {fullStoreData.logoUrl ? (
+                <div className="relative h-8 w-8 overflow-hidden rounded-xl border border-slate-200">
+                  <Image src={fullStoreData.logoUrl} alt={fullStoreData.name} fill className="object-cover" sizes="32px" priority />
+                </div>
+              ) : (
+                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Package2 className="h-4 w-4 text-primary" />
+                </div>
+              )}
+              <span className={`absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${fullStoreData.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
             </div>
-
-            {/* معاينة المتجر */}
-            <Button asChild size="sm" variant="outline" className="rounded-xl gap-1.5 text-primary border-primary/30 hover:bg-primary/5 font-semibold h-9 px-3 sm:px-3.5 text-xs shrink-0">
-              <Link href={`/store?id=${fullStoreData.id}`}>
-                <Eye className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">معاينة المتجر</span>
-              </Link>
-            </Button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-slate-900 leading-tight">{fullStoreData.name}</p>
+              <p className="text-[10px] text-slate-400">{fullStoreData.isActive ? 'نشط' : 'غير نشط'}</p>
+            </div>
           </div>
-
-          {/* التبويبات */}
-          <StoreOwnerNavbar activeTab={activeView} onTabChange={handleViewChange} />
+          {/* معاينة المتجر */}
+          <Link
+            href={`/store?id=${fullStoreData.id}`}
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-xl px-3 py-1.5 hover:bg-primary/5 transition-colors shrink-0"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            معاينة
+          </Link>
         </div>
       </header>
 
-      {/* ══════════════════ BANNER ALERTS ══════════════════ */}
-      {(isPendingReview || isSubscriptionExpired || showExpirationWarning) && (
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-4 space-y-2">
-          {isPendingReview && (
-            <Alert className="border-amber-200 bg-amber-50 py-3">
-              <Info className="h-4 w-4 shrink-0 text-amber-600" />
-              <AlertDescription className="text-sm font-medium text-amber-800">متجرك قيد المراجعة من فريقنا، سيتم تفعيله قريباً.</AlertDescription>
-            </Alert>
-          )}
-          {isSubscriptionExpired && (
-            <Alert variant="destructive" className="py-3">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <AlertDescription className="text-sm font-medium">انتهى اشتراكك — تواصل مع الإدارة لتجديده واستعادة متجرك.</AlertDescription>
-            </Alert>
-          )}
-          {showExpirationWarning && !isSubscriptionExpired && (
-            <Alert className="border-orange-200 bg-orange-50 py-3">
-              <Clock className="h-4 w-4 shrink-0 text-orange-500" />
-              <AlertDescription className="text-sm font-medium text-orange-800">تنبيه — متبقي <strong>{remainingDays}</strong> أيام فقط لانتهاء اشتراكك.</AlertDescription>
-            </Alert>
-          )}
-        </div>
-      )}
+      {/* ══ CONTENT WRAPPER ══ */}
+      <div className="md:mr-56 lg:mr-60 flex flex-col min-h-screen">
 
-      {/* ══════════════════ MAIN ══════════════════ */}
-      <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-6">
+        {/* Alerts */}
+        {(isPendingReview || isSubscriptionExpired || showExpirationWarning) && (
+          <div className="px-4 sm:px-6 pt-4 space-y-2">
+            {isPendingReview && (
+              <Alert className="border-amber-200 bg-amber-50 py-3">
+                <Info className="h-4 w-4 shrink-0 text-amber-600" />
+                <AlertDescription className="text-sm font-medium text-amber-800">متجرك قيد المراجعة من فريقنا، سيتم تفعيله قريباً.</AlertDescription>
+              </Alert>
+            )}
+            {isSubscriptionExpired && (
+              <Alert variant="destructive" className="py-3">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <AlertDescription className="text-sm font-medium">انتهى اشتراكك — تواصل مع الإدارة لتجديده واستعادة متجرك.</AlertDescription>
+              </Alert>
+            )}
+            {showExpirationWarning && !isSubscriptionExpired && (
+              <Alert className="border-orange-200 bg-orange-50 py-3">
+                <Clock className="h-4 w-4 shrink-0 text-orange-500" />
+                <AlertDescription className="text-sm font-medium text-orange-800">تنبيه — متبقي <strong>{remainingDays}</strong> أيام فقط لانتهاء اشتراكك.</AlertDescription>
+              </Alert>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════ MAIN ══════════════════ */}
+        <main className="flex-1 px-4 sm:px-6 py-6 pb-28 md:pb-8 max-w-4xl w-full mx-auto md:mx-0">
 
         {/* ─── تبويب المنتجات ─── */}
         {activeView === 'products' && (
@@ -1489,7 +1503,12 @@ export default function StoreDashboardPage() {
           </div>
         )}
 
-      </main>
+        </main>
+      </div>
+
+      {/* ══ BOTTOM BAR — موبايل فقط ══ */}
+      <StoreMobileBar activeTab={activeView} onTabChange={handleViewChange} />
+
     </div>
   );
 }
