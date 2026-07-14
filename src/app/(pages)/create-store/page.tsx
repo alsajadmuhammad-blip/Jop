@@ -179,17 +179,19 @@ function PackageCard({ pkg, isSelected, isPopular, index, onSelect, discountPerc
               }
             </div>
             {features.length > 0 && (
-              <ul className="space-y-2.5 flex-1">
-                {features.slice(0, 3).map((f, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5 ${isSelected ? "bg-primary/10" : "bg-slate-100"}`}>
-                      <Check className={`w-2.5 h-2.5 stroke-[3] ${isSelected ? "text-primary" : "text-slate-500"}`} />
-                    </span>
-                    <span className="text-xs text-slate-600 leading-snug">{f}</span>
-                  </li>
-                ))}
-                {features.length > 3 && <li className="text-xs text-slate-400">+{features.length - 3} مميزات أخرى</li>}
-              </ul>
+              <div className="space-y-3 flex-1">
+                <div className="text-xs font-semibold text-slate-500">مميزات الباقة</div>
+                <ul className="space-y-2">
+                  {features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className={`mt-0.5 inline-flex h-4 w-4 rounded-full items-center justify-center ${isSelected ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"}`}>
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </span>
+                      <span className="text-xs text-slate-600 leading-snug">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             <div className={`mt-5 w-full rounded-xl py-2 text-center text-sm font-semibold transition-all duration-200 ${
               isSelected ? "bg-primary text-white" : "bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600"

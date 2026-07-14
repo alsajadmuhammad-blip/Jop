@@ -6,6 +6,7 @@ import {
   Search, Plus, Minus, X, ShoppingCart, CheckCircle2,
   Banknote, CreditCard, Package, ReceiptText, ImageIcon, Zap, Printer,
 } from "lucide-react";
+import JsBarcode from "jsbarcode";
 import {
   Product, Section,
   getEffectivePrice, hasActiveFlashSale,
@@ -45,6 +46,25 @@ function escapeHtml(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function generateBarcodeDataUrl(value: string): string {
+  if (!value) return "";
+  try {
+    const canvas = document.createElement("canvas");
+    JsBarcode(canvas, value, {
+      format: "CODE128",
+      displayValue: false,
+      width: 2,
+      height: 50,
+      margin: 0,
+      background: "#ffffff",
+      lineColor: "#111111",
+    });
+    return canvas.toDataURL("image/png");
+  } catch {
+    return "";
+  }
 }
 
 /* ════════════════════════════════════════
@@ -98,7 +118,10 @@ function ProductCard({ product, inCart, maxed, onAdd }: ProductCardProps) {
         <p className="text-xs font-semibold text-slate-800 line-clamp-1 leading-snug">
           {product.name}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
+        {product.sku ? (
+          <p className="text-[10px] text-slate-500 mt-0.5">SKU: {product.sku}</p>
+        ) : null}
+        <div className="flex items-center gap-1.5 mt-1">
           <p className="text-sm font-black text-primary leading-none">
             {price.toLocaleString()}
             <span className="text-[10px] font-medium"> د.ع</span>
@@ -310,10 +333,53 @@ export function PosTab({
       );
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      pool = pool.filter((p) => p.name.toLowerCase().includes(q));
+      pool = pool.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.sku?.toLowerCase().includes(q) ?? false)
+      );
     }
     return pool;
   }, [products, sectionFilter, search]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    const query = search.trim().toLowerCase();
+    if (!query) return;
+
+    const exact = products.find(
+      (p) => p.sku?.toLowerCase() === query || p.name.toLowerCase() === query
+    );
+    if (exact && exact.stock > 0) {
+      addToCart(exact);
+      setSearch("");
+      return;
+    }
+
+    const barcodeMatch = products.find((p) => p.sku?.replace(/\s+/g, "").toLowerCase() === query.replace(/\s+/g, ""));
+    if (barcodeMatch && barcodeMatch.stock > 0) {
+      addToCart(barcodeMatch);
+      setSearch("");
+      return;
+    }
+
+    const partial = products.find(
+      (p) =>
+        p.sku?.toLowerCase().includes(query) ||
+        p.name.toLowerCase().includes(query)
+    );
+    if (partial && partial.stock > 0) {
+      addToCart(partial);
+      setSearch("");
+      return;
+    }
+
+    toast({
+      title: "لم يُعثر على منتج",
+      description: "تحقق من SKU أو اسم المنتج وحاول مجدداً.",
+      variant: "default",
+    });
+  };
 
   const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.unitPrice * i.qty, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
@@ -443,6 +509,8 @@ export function PosTab({
       )
       .join("");
 
+    const orderRef = lastOrderNum ? `POS-${lastOrderNum}` : lastOrderId ?? "";
+    const barcodeImg = generateBarcodeDataUrl(orderRef);
     const html = `
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
@@ -453,28 +521,35 @@ export function PosTab({
           * { box-sizing: border-box; }
           body {
             font-family: Tahoma, Arial, sans-serif;
-            width: 300px;
+            width: 340px;
             margin: 0 auto;
-            padding: 18px 16px;
+            padding: 14px 14px 20px;
             color: #111827;
+            background: #ffffff;
           }
           .center { text-align: center; }
           .logo {
-            width: 64px; height: 64px; border-radius: 14px;
-            object-fit: cover; display: block; margin: 0 auto 8px;
+            width: 72px; height: 72px; border-radius: 16px;
+            object-fit: cover; display: block; margin: 0 auto 10px;
+          }
+          .barcode {
+            width: 100%; max-width: 280px; height: auto; margin: 14px auto 4px; display: block;
+          }
+          .barcode-ref {
+            text-align: center; font-size: 10px; color: #475569; margin-top: 4px;
           }
           h1 { font-size: 16px; margin: 0 0 3px; }
           .muted { color: #6b7280; font-size: 11px; margin: 1px 0; }
           .divider { border-top: 1px dashed #9ca3af; margin: 12px 0; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          thead td { font-weight: bold; border-bottom: 1px solid #d1d5db; padding-bottom: 5px; color: #374151; }
+          thead td { font-weight: bold; border-bottom: 1px solid #d1d5db; padding-bottom: 6px; color: #374151; }
           tbody tr:not(:last-child) td { border-bottom: 1px dotted #e5e7eb; }
-          .total-row td { border-top: 2px solid #111827; font-weight: 800; padding-top: 8px; font-size: 14px; }
+          .total-row td { border-top: 2px solid #111827; font-weight: 800; padding-top: 10px; font-size: 14px; }
           .meta { font-size: 12px; margin: 3px 0; }
           .footer { text-align: center; margin-top: 18px; font-size: 11px; color: #6b7280; }
           @media print {
             body { padding: 0; }
-            @page { margin: 8mm; }
+            @page { margin: 8mm; size: auto; }
           }
         </style>
       </head>
@@ -484,6 +559,8 @@ export function PosTab({
           <h1>${escapeHtml(storeName)}</h1>
           <p class="muted">فاتورة بيع رقم #${lastOrderNum ?? "—"}</p>
           <p class="muted">${escapeHtml(dateStr)}</p>
+          ${barcodeImg ? `<img src="${barcodeImg}" class="barcode" alt="باركود الفاتورة" />
+          <p class="barcode-ref">${escapeHtml(orderRef)}</p>` : ""}
         </div>
         <div class="divider"></div>
         ${customerName.trim() ? `<p class="meta"><strong>العميل:</strong> ${escapeHtml(customerName.trim())}</p>` : ""}
@@ -628,7 +705,8 @@ export function PosTab({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ابحث عن منتج..."
+            onKeyDown={handleSearchKeyDown}
+            placeholder="ابحث بالاسم أو SKU ثم اضغط Enter أو استخدم ماسح الباركود"
             className="w-full rounded-xl border border-slate-200 bg-slate-50 pr-10 pl-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all"
           />
         </div>

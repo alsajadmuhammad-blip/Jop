@@ -71,7 +71,8 @@
     "tailwindcss": "^3.4.1",
     "tsx": "^4.15.6",
     "typescript": "^5.4.5",
-    "typescript-eslint": "^8.54.0"
+    "typescript-eslint": "^8.54.0",
+    "jsbarcode": "^3.11.5"
   },
   "main": "index.js"
 }

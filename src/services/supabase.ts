@@ -53,7 +53,8 @@ function hasMatchingSupabaseAnonKey(url: string, key: string) {
   if (!payload || typeof payload !== 'object') return false;
 
   const role = payload.role ?? payload.rol;
-  return payload.ref === ref && role === 'anon';
+  const keyRef = payload.ref ?? payload.sub ?? payload.project_id;
+  return keyRef === ref && role === 'anon';
 }
 
 type BrokenSupabaseQuery = {

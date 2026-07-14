@@ -91,10 +91,19 @@ function PackageCard({ pkg, onEdit, onDelete, onToggle }: {
           </div>
         </div>
 
-        {/* الوصف */}
-        {pkg.description && (
+        {/* المميزات */}
+        {Array.isArray(pkg.metadata?.features) && pkg.metadata.features.length > 0 ? (
+          <ul className="space-y-2 pt-2">
+            {pkg.metadata.features.map((feature: string, index: number) => (
+              <li key={index} className="flex items-start gap-2 text-xs text-slate-600">
+                <span className="mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">✓</span>
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        ) : pkg.description ? (
           <p className="text-xs text-muted-foreground line-clamp-2">{pkg.description}</p>
-        )}
+        ) : null}
 
         {/* أزرار */}
         <div className="flex gap-2 pt-1">
@@ -186,6 +195,8 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
     subscription_duration: '', is_active: true,
     visibility: 'public' as PackageVisibility,
     target_points: '1',
+    features: [] as string[],
+    newFeature: '',
   });
   const [deletePackage, setDeletePackage] = useState<StorePackage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -201,7 +212,7 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
   }, [stores, packages]);
 
   const resetForm = () => {
-    setFormState({ name: '', slug: '', description: '', price: '', product_limit: '', unlimited_products: false, subscription_duration: '', is_active: true, visibility: 'public', target_points: '1' });
+    setFormState({ name: '', slug: '', description: '', price: '', product_limit: '', unlimited_products: false, subscription_duration: '', is_active: true, visibility: 'public', target_points: '1', features: [], newFeature: '' });
     setEditingPackage(null); setPackageError(null);
   };
 
@@ -218,6 +229,8 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
       subscription_duration: String(pkg.subscriptionDuration),
       is_active: pkg.isActive, visibility: pkg.visibility ?? 'public',
       target_points: String(pkg.targetPoints ?? 1),
+      features: Array.isArray(pkg.metadata?.features) ? pkg.metadata.features : [],
+      newFeature: '',
     });
     setPackageError(null); setIsDialogOpen(true);
   };
@@ -239,7 +252,8 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
         price: Number(formState.price), productLimit,
         subscriptionDuration: Number(formState.subscription_duration),
         isActive: formState.is_active, visibility: formState.visibility,
-        targetPoints: targetPts, metadata: null,
+        targetPoints: targetPts,
+        metadata: formState.features.length > 0 ? { features: formState.features } : null,
       };
       if (editingPackage) {
         const r = await updateStorePackage(editingPackage.id, payload);
@@ -449,6 +463,59 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
             <div className="space-y-1.5">
               <Label>الوصف <span className="text-muted-foreground text-xs">(اختياري)</span></Label>
               <Textarea value={formState.description} onChange={e => setFormState(s => ({ ...s, description: e.target.value }))} rows={2} placeholder="وصف مختصر..." />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label>مميزات الباقة</Label>
+                  <p className="text-xs text-muted-foreground">أضف مميزات تظهر في صفحة التسجيل العامة.</p>
+                </div>
+                <Button
+                  type="button"
+                  className="h-9 text-xs px-3"
+                  onClick={() => {
+                    const value = formState.newFeature.trim();
+                    if (!value) return;
+                    if (formState.features.includes(value)) return;
+                    setFormState(s => ({ ...s, features: [...s.features, value], newFeature: '' }));
+                  }}
+                >أضف ميزة</Button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                <Input
+                  value={formState.newFeature}
+                  onChange={e => setFormState(s => ({ ...s, newFeature: e.target.value }))}
+                  placeholder="مثال: دعم فني 24/7"
+                />
+                <Button
+                  type="button"
+                  className="h-9 w-full sm:w-auto text-xs px-3"
+                  onClick={() => {
+                    const value = formState.newFeature.trim();
+                    if (!value) return;
+                    if (formState.features.includes(value)) return;
+                    setFormState(s => ({ ...s, features: [...s.features, value], newFeature: '' }));
+                  }}
+                >أضف</Button>
+              </div>
+              {formState.features.length > 0 && (
+                <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  {formState.features.map((feature, idx) => (
+                    <div key={feature} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">✓</span>
+                        <span>{feature}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormState(s => ({ ...s, features: s.features.filter((_, index) => index !== idx) }))}
+                        className="text-xs text-rose-500 hover:text-rose-700"
+                      >حذف</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* تفعيل */}
