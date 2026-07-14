@@ -216,7 +216,14 @@ export function SubscriptionsTab({ stores, packages, onAssignPackage, onPackages
     setEditingPackage(null); setPackageError(null);
   };
 
-  const slugify = (v: string) => v.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+  const slugify = (v: string) =>
+    v
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^ -\p{L}\p{N}-]+/gu, '')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-');
 
   const openAdd = () => { resetForm(); setIsDialogOpen(true); };
   const openEdit = (pkg: StorePackage) => {
