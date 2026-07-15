@@ -67,10 +67,10 @@ function DashboardProductCard({
   return (
     <article
       style={{ contain: "layout style paint" }}
-      className="flex flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm"
+      className="flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm"
     >
       {/* Image */}
-      <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
+      <div className="relative aspect-square w-full overflow-hidden bg-muted/60">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
@@ -82,7 +82,7 @@ function DashboardProductCard({
           />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <ImageIcon className="w-10 h-10 text-slate-200" />
+            <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
           </div>
         )}
         {hasActiveDiscount(product) && (
@@ -105,7 +105,7 @@ function DashboardProductCard({
           </span>
         )}
         <h3
-          className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug flex-1"
+          className="text-xs font-semibold text-foreground line-clamp-2 leading-snug flex-1"
           title={product.name}
         >
           {product.name}
@@ -113,7 +113,7 @@ function DashboardProductCard({
         <div className="flex items-center justify-between gap-1 mt-0.5">
           {hasActiveDiscount(product) ? (
             <div className="flex flex-col leading-none">
-              <p className="text-[10px] text-slate-400 line-through">
+              <p className="text-[10px] text-muted-foreground line-through">
                 {product.price.toLocaleString()} د.ع
               </p>
               <p className="text-sm font-bold text-rose-600 leading-none">
@@ -128,20 +128,20 @@ function DashboardProductCard({
             </p>
           )}
           {product.stock > 0 && (
-            <p className="text-[10px] text-slate-400">{product.stock} قطعة</p>
+            <p className="text-[10px] text-muted-foreground">{product.stock} قطعة</p>
           )}
         </div>
       </div>
 
       {/* Action row */}
-      <div className="flex border-t border-slate-100">
+      <div className="flex border-t border-border/70">
         <button
           onClick={() => onEdit(product)}
           className="flex-1 py-2 text-xs font-medium text-primary hover:bg-primary/5"
         >
           تعديل
         </button>
-        <div className="w-px bg-slate-100" />
+        <div className="w-px bg-border/70" />
         <button
           onClick={() => onDeleteRequest(product)}
           className="flex-1 py-2 text-xs font-medium text-red-500 hover:bg-red-50"
@@ -392,12 +392,12 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
             </AlertDialogContent>
         </AlertDialog>
 
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
             {/* Header */}
-            <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-4">
                 <div className="flex items-center gap-3">
-                    <h2 className="text-base font-bold text-slate-900">المنتجات</h2>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                    <h2 className="text-base font-bold text-foreground">المنتجات</h2>
+                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
                         {products.length}{!isUnlimited && `/${productLimit}`}
                     </span>
                 </div>
@@ -414,13 +414,13 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
 
             {/* Search + Filter */}
             {products.length > 0 && (
-                <div className="px-4 pt-3 pb-2 flex flex-wrap gap-2 border-b border-slate-100">
+                <div className="flex flex-wrap gap-2 border-b border-border/70 px-4 pb-2 pt-3">
                     <input
                         type="search"
                         value={search}
                         onChange={(e) => handleSearch(e.target.value)}
                         placeholder="ابحث عن منتج…"
-                        className="flex-1 min-w-0 h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
+                        className="h-9 flex-1 min-w-0 rounded-lg border border-border/70 bg-background/70 px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/10"
                     />
                     {sections.length > 0 && (
                         <Select value={sectionFilter} onValueChange={handleSection}>
@@ -467,17 +467,17 @@ function ProductsTab({ products, sections, productLimit, onAdd, onEdit, onDelete
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-14 text-center">
-                        <p className="text-sm font-semibold text-slate-600">لا توجد نتائج</p>
-                        <p className="text-xs text-slate-400 mt-1">جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً</p>
+                        <p className="text-sm font-semibold text-foreground">لا توجد نتائج</p>
+                        <p className="mt-1 text-xs text-muted-foreground">جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً</p>
                     </div>
                 )
             ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mb-4">
-                        <Package className="h-8 w-8 text-slate-300" strokeWidth={1.5} />
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                        <Package className="h-8 w-8 text-muted-foreground/60" strokeWidth={1.5} />
                     </div>
-                    <p className="text-sm font-semibold text-slate-700">لا توجد منتجات بعد</p>
-                    <p className="text-xs text-slate-400 mt-1 mb-5">أضف أول منتج لتبدأ عرض بضاعتك</p>
+                    <p className="text-sm font-semibold text-foreground">لا توجد منتجات بعد</p>
+                    <p className="mb-5 mt-1 text-xs text-muted-foreground">أضف أول منتج لتبدأ عرض بضاعتك</p>
                     <Button onClick={onAdd} size="sm" className="rounded-lg gap-1.5 font-semibold" disabled={limitReached}>
                         <PlusCircle className="h-4 w-4" />
                         إضافة أول منتج
@@ -1190,13 +1190,13 @@ export default function StoreDashboardPage() {
         {/* ─── تبويب الأقسام ─── */}
         {activeView === 'sections' && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-4 mb-5">
+            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+              <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">أقسام المتجر</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">نظّم منتجاتك في أقسام لتسهيل تصفح العملاء.</p>
+                  <h2 className="text-base font-bold text-foreground">أقسام المتجر</h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">نظّم منتجاتك في أقسام لتسهيل تصفح العملاء.</p>
                 </div>
-                <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{sections.length} قسم</span>
+                <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{sections.length} قسم</span>
               </div>
               <div className="flex gap-2">
                 <input
@@ -1205,7 +1205,7 @@ export default function StoreDashboardPage() {
                   onChange={(e) => setNewSectionName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateSection()}
                   placeholder="اسم القسم الجديد…"
-                  className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
+                  className="flex-1 min-w-0 rounded-xl border border-border/70 bg-background/70 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/10"
                 />
                 <Button
                   onClick={handleCreateSection}
@@ -1222,32 +1222,32 @@ export default function StoreDashboardPage() {
                 {sections.map((section, i) => (
                   <div
                     key={section.id}
-                    className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:border-primary/30 hover:shadow-md transition-[border-color,box-shadow]"
+                    className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/70 px-3 py-3 shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md"
                   >
                     {/* صورة القسم */}
-                    <div className="relative w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-slate-100">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
                       {section.imageUrl ? (
                         <Image src={section.imageUrl} alt={section.name} fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Tag className="h-5 w-5 text-slate-300" />
+                          <Tag className="h-5 w-5 text-muted-foreground/60" />
                         </div>
                       )}
                     </div>
                     {/* الاسم والتاريخ */}
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">{section.name}</p>
+                      <p className="truncate text-sm font-semibold text-foreground">{section.name}</p>
                       {section.createdAt && (
-                        <p className="text-[11px] text-slate-400 mt-0.5">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{new Date(section.createdAt).toLocaleDateString('ar-EG')}</p>
                       )}
                       {!section.imageUrl && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">لا توجد صورة — اضغط 📷</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">لا توجد صورة — اضغط 📷</p>
                       )}
                     </div>
                     {/* زر رفع الصورة */}
                     <label
                       htmlFor={`section-img-${section.id}`}
-                      className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                      className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary cursor-pointer"
                       title="تغيير صورة القسم"
                     >
                       {uploadingSectionId === section.id ? (
@@ -1271,7 +1271,7 @@ export default function StoreDashboardPage() {
                     {/* زر الحذف */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <button className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                        <button className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/70 transition-colors opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </AlertDialogTrigger>
@@ -1290,12 +1290,12 @@ export default function StoreDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 mb-4">
-                  <Tag className="h-7 w-7 text-slate-300" strokeWidth={1.5} />
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/70 bg-card py-16 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+                  <Tag className="h-7 w-7 text-muted-foreground/60" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm font-semibold text-slate-700">لا توجد أقسام بعد</p>
-                <p className="text-xs text-slate-400 mt-1">أضف قسماً من الحقل أعلاه لتنظيم منتجاتك</p>
+                <p className="text-sm font-semibold text-foreground">لا توجد أقسام بعد</p>
+                <p className="mt-1 text-xs text-muted-foreground">أضف قسماً من الحقل أعلاه لتنظيم منتجاتك</p>
               </div>
             )}
           </div>
