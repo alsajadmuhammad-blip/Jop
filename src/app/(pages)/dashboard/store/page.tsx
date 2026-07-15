@@ -194,16 +194,16 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
     return (
         <div className="space-y-4">
             {/* هوية المتجر — الشعار + صورة الغلاف */}
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100">
-                    <h3 className="text-base font-bold text-slate-900">هوية المتجر</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">الشعار وصورة الغلاف الظاهران للعملاء.</p>
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                <div className="border-b border-border/70 px-5 py-4">
+                    <h3 className="text-base font-bold text-foreground">هوية المتجر</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">الشعار وصورة الغلاف الظاهران للعملاء.</p>
                 </div>
                 <div className="p-5 space-y-5">
                     {/* معاينة صورة الغلاف */}
                     <div>
                         <p className="text-sm font-semibold text-slate-700 mb-2">صورة الغلاف</p>
-                        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 mb-3">
+                        <div className="relative mb-3 h-32 w-full overflow-hidden rounded-xl border border-border/70 bg-muted">
                             {store.coverImageUrl ? (
                                 <Image
                                     src={store.coverImageUrl}
@@ -213,7 +213,7 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
                                     sizes="100vw"
                                 />
                             ) : (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-1.5">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground">
                                     <ImageIcon className="w-8 h-8" />
                                     <span className="text-xs">لا توجد صورة غلاف</span>
                                 </div>
@@ -228,7 +228,7 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
                     <div>
                         <p className="text-sm font-semibold text-slate-700 mb-2">شعار المتجر</p>
                         {store.logoUrl && (
-                            <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 mb-3">
+                            <div className="relative mb-3 h-20 w-20 overflow-hidden rounded-xl border border-border/70 bg-background/70">
                                 <Image
                                     src={store.logoUrl}
                                     alt="شعار المتجر"
@@ -244,17 +244,17 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
             </div>
 
             {/* إعدادات التشغيل */}
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100">
-                    <h3 className="text-base font-bold text-slate-900">إعدادات التشغيل</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">أوقات العمل وخيارات التوصيل.</p>
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                <div className="border-b border-border/70 px-5 py-4">
+                    <h3 className="text-base font-bold text-foreground">إعدادات التشغيل</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">أوقات العمل وخيارات التوصيل.</p>
                 </div>
                 <div className="p-5 space-y-5">
                     <div>
-                        <Label className="text-sm font-semibold text-slate-700 mb-2 block">ساعات الدوام</Label>
+                        <Label className="mb-2 block text-sm font-semibold text-foreground">ساعات الدوام</Label>
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1.5 flex-1">
-                                <span className="text-xs text-slate-400">من</span>
+                                <span className="text-xs text-muted-foreground">من</span>
                                 <input
                                     type="time"
                                     step={3600}
@@ -267,7 +267,7 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
                             </div>
                             <div className="pt-5 text-slate-300 font-bold">—</div>
                             <div className="flex flex-col gap-1.5 flex-1">
-                                <span className="text-xs text-slate-400">إلى</span>
+                                <span className="text-xs text-muted-foreground">إلى</span>
                                 <input
                                     type="time"
                                     step={3600}
@@ -281,10 +281,10 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/70 px-4 py-3">
                         <div>
-                            <p className="text-sm font-semibold text-slate-800">خدمة التوصيل</p>
-                            <p className="text-xs text-slate-400 mt-0.5">تفعيل خيار التوصيل لعملائك</p>
+                            <p className="text-sm font-semibold text-foreground">خدمة التوصيل</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">تفعيل خيار التوصيل لعملائك</p>
                         </div>
                         <Switch
                             id="delivery-switch"
@@ -297,14 +297,14 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
             </div>
 
             {/* الموقع الجغرافي */}
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100">
-                    <h3 className="text-base font-bold text-slate-900">الموقع الجغرافي</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">يُمكّن العملاء من فتح موقع متجرك على الخريطة.</p>
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                <div className="border-b border-border/70 px-5 py-4">
+                    <h3 className="text-base font-bold text-foreground">الموقع الجغرافي</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">يُمكّن العملاء من فتح موقع متجرك على الخريطة.</p>
                 </div>
                 <div className="p-5 space-y-4">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-sm text-slate-600 mb-3">اضغط لتحديد موقع متجرك تلقائياً بدون إدخال يدوي.</p>
+                    <div className="rounded-xl border border-border/70 bg-background/70 p-4">
+                        <p className="mb-3 text-sm text-muted-foreground">اضغط لتحديد موقع متجرك تلقائياً بدون إدخال يدوي.</p>
                         <div className="flex flex-wrap gap-2">
                             <Button onClick={handleUseCurrentLocation} size="sm" className="rounded-xl font-semibold">تحديد الموقع تلقائياً</Button>
                             {store.latitude && (
@@ -317,13 +317,13 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
                             href={`geo:${store.latitude},${store.longitude}?q=${store.latitude},${store.longitude}(${encodeURIComponent(store.name)})`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                            className="flex items-center justify-center gap-2 rounded-xl border border-border/70 bg-background/70 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                         >
                             <Globe className="h-4 w-4 text-primary" />
                             عرض الموقع على الخريطة
                         </a>
                     ) : (
-                        <p className="text-xs text-slate-400 text-center py-2">لم يتم تحديد الموقع بعد.</p>
+                        <p className="py-2 text-center text-xs text-muted-foreground">لم يتم تحديد الموقع بعد.</p>
                     )}
                 </div>
             </div>
