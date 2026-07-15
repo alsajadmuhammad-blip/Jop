@@ -856,7 +856,7 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{p.name}</p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {low && !out ? "يحتاج إلى ت replenishment" : out ? "غير متوفر حالياً" : "مخزون جيد"}
+                      {low && !out ? "يحتاج إلى إعادة تعبئة" : out ? "غير متوفر حالياً" : "مخزون مناسب"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -882,18 +882,24 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
         </div>
 
         {/* شريط فلترة */}
-        <div className="space-y-2 mb-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input value={movSearch} onChange={(e) => setMovSearch(e.target.value)} placeholder="بحث باسم المنتج..."
-              className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
+        <div className="mb-4 rounded-2xl border border-border/70 bg-background/70 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold text-foreground">تصفية السجل</p>
+            <span className="text-[11px] text-muted-foreground">ابحث عن منتج أو نوع الحركة</span>
           </div>
-          <DropdownSelect<MovementKind | "all">
-            value={kindFilter}
-            onChange={setKindFilter}
-            className="w-full"
-            options={MOVEMENT_KIND_OPTIONS}
-          />
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input value={movSearch} onChange={(e) => setMovSearch(e.target.value)} placeholder="بحث باسم المنتج أو سبب الحركة..."
+                className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-sm outline-none focus:border-primary" />
+            </div>
+            <DropdownSelect<MovementKind | "all">
+              value={kindFilter}
+              onChange={setKindFilter}
+              className="w-full"
+              options={MOVEMENT_KIND_OPTIONS}
+            />
+          </div>
         </div>
 
         {loading ? (
