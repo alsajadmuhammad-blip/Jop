@@ -61,30 +61,29 @@ export function StoreSidebar({
   storeId, isActive, onLogout,
 }: StoreSidebarProps) {
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex h-full flex-col overflow-hidden bg-card text-card-foreground">
 
       {/* هوية المتجر */}
-      <div className="px-4 pt-4 pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
+      <div className="border-b border-border/70 px-4 pb-3 pt-4">
+        <div className="flex items-center gap-2.5 rounded-2xl border border-border/70 bg-background/70 p-2.5 shadow-sm">
           <div className="relative shrink-0">
             {storeLogoUrl ? (
-              <div className="relative h-10 w-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+              <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-border/70 shadow-sm">
                 <Image src={storeLogoUrl} alt={storeName} fill sizes="40px" className="object-cover" />
               </div>
             ) : (
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <Package2 className="h-5 w-5 text-primary" />
               </div>
             )}
             <span className={cn(
-              "absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full border-2 border-white",
-              isActive ? "bg-emerald-500" : "bg-slate-300"
+              "absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full border-2 border-background",
+              isActive ? "bg-emerald-500" : "bg-slate-400"
             )} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-slate-800 truncate">{storeName}</p>
-            <p className={cn("text-[11px] font-medium", isActive ? "text-emerald-600" : "text-slate-400")}>
-              {isActive ? "نشط" : "غير نشط"}
+            <p className="truncate text-sm font-bold text-foreground">{storeName}</p>
+            <p className={cn("text-[11px] font-medium", isActive ? "text-emerald-600" : "text-muted-foreground")}>
             </p>
           </div>
         </div>
@@ -94,7 +93,7 @@ export function StoreSidebar({
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ scrollbarWidth: "none" }}>
         {NAV_GROUPS.map((group) => (
           <div key={group.id}>
-            <p className="px-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               {group.label}
             </p>
             <div className="space-y-0.5">
@@ -103,16 +102,19 @@ export function StoreSidebar({
                 return (
                   <button key={tab} onClick={() => onTabChange(tab)}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium transition-all",
-                      active ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"
+                      "group relative flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2.5 text-sm font-medium transition-all duration-200",
+                      active
+                        ? "bg-primary text-primary-foreground shadow-[0_10px_30px_rgba(37,99,235,0.22)] ring-1 ring-primary/20"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
-                    <div className={cn("h-7 w-7 flex items-center justify-center rounded-lg shrink-0",
-                      active ? "bg-white/20" : "bg-slate-100"
+                    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-all",
+                      active ? "border-white/20 bg-white/20" : "border-border/70 bg-muted group-hover:border-primary/20"
                     )}>
-                      <Icon className={cn("h-3.5 w-3.5", active ? "text-white" : "text-slate-500")} strokeWidth={active ? 2.3 : 1.9} />
+                      <Icon className={cn("h-3.75 w-3.75", active ? "text-primary-foreground" : "text-muted-foreground")} strokeWidth={active ? 2.3 : 1.9} />
                     </div>
                     <span>{label}</span>
+                    {active && <span className="ml-auto h-2.5 w-2.5 rounded-full bg-white/80 shadow-sm" />}
                   </button>
                 );
               })}
@@ -122,20 +124,20 @@ export function StoreSidebar({
       </nav>
 
       {/* أسفل */}
-      <div className="px-3 py-3 border-t border-slate-100 space-y-0.5">
+      <div className="space-y-1.5 border-t border-border/70 px-3 py-3">
         <Link href={`/store?id=${storeId}`} target="_blank"
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+          className="flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-emerald-500/10 hover:text-emerald-600"
         >
-          <div className="h-7 w-7 flex items-center justify-center rounded-lg bg-slate-100">
-            <Eye className="h-3.5 w-3.5 text-slate-500" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10">
+            <Eye className="h-3.75 w-3.75 text-emerald-600" />
           </div>
           <span>معاينة المتجر</span>
         </Link>
         <button onClick={onLogout}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
         >
-          <div className="h-7 w-7 flex items-center justify-center rounded-lg bg-slate-100">
-            <LogOut className="h-3.5 w-3.5 text-slate-400" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-destructive/10">
+            <LogOut className="h-3.75 w-3.75 text-destructive" />
           </div>
           <span>تسجيل الخروج</span>
         </button>
@@ -177,7 +179,7 @@ export function StoreMobileDrawer({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)" }}
+        style={{ position: "absolute", inset: 0, background: "rgba(2,8,23,0.72)" }}
       />
 
       {/* Panel — يأتي من اليمين */}
@@ -189,17 +191,19 @@ export function StoreMobileDrawer({
           right: 0,
           bottom: 0,
           width: 260,
-          background: "#fff",
+          background: "hsl(var(--card))",
+          color: "hsl(var(--card-foreground))",
           display: "flex",
           flexDirection: "column",
-          boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+          boxShadow: "-4px 0 24px rgba(2,8,23,0.22)",
           overflowY: "auto",
+          borderLeft: "1px solid hsl(var(--border))",
         }}
       >
         {/* رأس الـ drawer */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 16px", borderBottom: "1px solid #f1f5f9", flexShrink: 0,
+          padding: "12px 16px", borderBottom: "1px solid hsl(var(--border))", flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             {storeLogoUrl ? (
@@ -211,7 +215,7 @@ export function StoreMobileDrawer({
                 <Package2 style={{ width: 16, height: 16 }} />
               </div>
             )}
-            <span style={{ fontWeight: 700, fontSize: 14, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "hsl(var(--foreground))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {storeName}
             </span>
           </div>
@@ -230,7 +234,7 @@ export function StoreMobileDrawer({
               {/* تسمية المجموعة */}
               <div style={{
                 fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                letterSpacing: "0.08em", color: "#94a3b8", padding: "0 8px",
+                letterSpacing: "0.08em", color: "hsl(var(--muted-foreground))", padding: "0 8px",
                 marginBottom: 4,
               }}>
                 {group.label}
@@ -246,18 +250,19 @@ export function StoreMobileDrawer({
                       style={{
                         width: "100%", display: "flex", alignItems: "center", gap: 10,
                         padding: "10px 10px", borderRadius: 10, border: "none", cursor: "pointer",
-                        background: active ? "var(--primary, #6366f1)" : "transparent",
-                        color: active ? "#fff" : "#475569",
+                        background: active ? "hsl(var(--primary))" : "transparent",
+                        color: active ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))",
                         fontWeight: 600, fontSize: 14, textAlign: "right",
                         transition: "background 0.15s",
+                        boxShadow: active ? "0 10px 24px rgba(37, 99, 235, 0.22)" : "none",
                       }}
                     >
                       <div style={{
                         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        background: active ? "rgba(255,255,255,0.2)" : "#f1f5f9",
+                        background: active ? "rgba(255,255,255,0.2)" : "hsl(var(--muted))",
                       }}>
-                        <Icon style={{ width: 16, height: 16, color: active ? "#fff" : "#64748b" }} strokeWidth={active ? 2.3 : 1.9} />
+                        <Icon style={{ width: 16, height: 16, color: active ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))" }} strokeWidth={active ? 2.3 : 1.9} />
                       </div>
                       <span>{label}</span>
                     </button>
@@ -269,19 +274,19 @@ export function StoreMobileDrawer({
         </nav>
 
         {/* أسفل الـ drawer */}
-        <div style={{ padding: "8px 12px 20px", borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+        <div style={{ padding: "8px 12px 20px", borderTop: "1px solid hsl(var(--border))", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
           <Link
             href={`/store?id=${storeId}`} target="_blank"
             onClick={onClose}
             style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 10px", borderRadius: 10,
-              color: "#059669", fontWeight: 600, fontSize: 14,
-              textDecoration: "none", background: "#f0fdf4",
+              color: "hsl(142 76% 36%)", fontWeight: 600, fontSize: 14,
+              textDecoration: "none", background: "rgba(16, 185, 129, 0.12)",
             }}
           >
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Eye style={{ width: 16, height: 16, color: "#059669" }} />
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(16, 185, 129, 0.16)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Eye style={{ width: 16, height: 16, color: "hsl(142 76% 36%)" }} />
             </div>
             <span>معاينة المتجر</span>
           </Link>
@@ -290,12 +295,12 @@ export function StoreMobileDrawer({
             style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 10px", borderRadius: 10, border: "none", cursor: "pointer",
-              color: "#dc2626", fontWeight: 600, fontSize: 14,
+              color: "hsl(var(--destructive))", fontWeight: 600, fontSize: 14,
               background: "transparent", width: "100%", textAlign: "right",
             }}
           >
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <LogOut style={{ width: 16, height: 16, color: "#dc2626" }} />
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(239, 68, 68, 0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <LogOut style={{ width: 16, height: 16, color: "hsl(var(--destructive))" }} />
             </div>
             <span>تسجيل الخروج</span>
           </button>

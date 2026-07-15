@@ -78,28 +78,62 @@ function shortDate(iso: string) {
   } catch { return iso; }
 }
 
+function splitReasonLabel(reason: string) {
+  const clean = reason.trim();
+  if (!clean) return { title: "إجراء غير محدد", detail: "" };
+
+  const separatorIndex = clean.indexOf(" — ");
+  if (separatorIndex > -1) {
+    return {
+      title: clean.slice(0, separatorIndex).trim(),
+      detail: clean.slice(separatorIndex + 3).trim(),
+    };
+  }
+
+  const firstParen = clean.indexOf("(");
+  const lastParen = clean.lastIndexOf(")");
+  if (firstParen > -1 && lastParen > firstParen) {
+    return {
+      title: clean.slice(0, firstParen).trim(),
+      detail: clean.slice(firstParen + 1, lastParen).trim(),
+    };
+  }
+
+  return { title: clean, detail: "" };
+}
+
 // ─── صف حركة عادية ───────────────────────────────────────────────
 
 function MovementRow({ movement, productName }: { movement: InventoryMovement; productName: string }) {
   const kind  = classifyMovement(movement.reason);
   const meta  = KIND_META[kind];
   const Icon  = meta.icon;
-  const isPos = movement.quantityChange > 0;
+  const isPositive = movement.quantityChange > 0;
   const label = movement.reason.startsWith(EXCHANGE_PREFIX) ? meta.label : movement.reason;
+  const { title, detail } = splitReasonLabel(label);
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-      <div className={cn("shrink-0 w-1.5 h-1.5 rounded-full mt-0.5", meta.dot)} />
-      <div className="shrink-0 text-slate-400">
-        <Icon className="w-3.5 h-3.5" />
+    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className={cn("mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", isPositive ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-rose-200 bg-rose-50 text-rose-600")}>
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-bold text-foreground">{productName}</p>
+            <span className="rounded-full border border-border/70 bg-muted px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {meta.label}
+            </span>
+          </div>
+          <p className="mt-1 text-sm font-semibold text-foreground">{title}</p>
+          {detail && <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>}
+          <p className="mt-1 text-[11px] text-muted-foreground">{formatDate(movement.createdAt)}</p>
+        </div>
+        <div className={cn("min-w-[74px] rounded-xl border px-2.5 py-2 text-center", isPositive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-rose-200 bg-rose-50 text-rose-700")}>
+          <p className="text-[10px] font-semibold">التغيير</p>
+          <p className="text-base font-black tabular-nums">{isPositive ? "+" : ""}{movement.quantityChange}</p>
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 truncate">{productName}</p>
-        <p className="text-[11px] text-slate-400 truncate">{label} · {formatDate(movement.createdAt)}</p>
-      </div>
-      <span className={cn("shrink-0 text-sm font-black tabular-nums", isPos ? "text-emerald-600" : "text-rose-600")}>
-        {isPos ? "+" : ""}{movement.quantityChange}
-      </span>
     </div>
   );
 }
@@ -110,41 +144,41 @@ function ExchangeRow({ movement }: { movement: InventoryMovement }) {
   const ex = parseExchangeReason(movement.reason);
   if (!ex) return null;
   return (
-    <div className="py-3 border-b border-slate-100 last:border-0">
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5" />
-        <ArrowLeftRight className="shrink-0 w-3.5 h-3.5 text-slate-400 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">استبدال</span>
-            {ex.invRef && <span className="text-[11px] text-slate-400">فاتورة #{ex.invRef}</span>}
-            <span className="text-[11px] text-slate-400 mr-auto">{formatDate(movement.createdAt)}</span>
-          </div>
-          <p className="text-sm text-slate-700 mt-1">
-            <span className="text-emerald-700 font-semibold">{ex.rName}</span>
-            <span className="text-slate-400 mx-1.5">({ex.rQty})</span>
-            <span className="text-slate-300">←→</span>
-            <span className="text-sky-700 font-semibold mx-1.5">{ex.iName}</span>
-            <span className="text-slate-400">({ex.iQty})</span>
-          </p>
-          {(ex.priceDiff !== 0 || ex.note) && (
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {ex.priceDiff !== 0 && (
-                <span className={ex.priceDiff > 0 ? "text-emerald-600 font-bold" : "text-rose-500 font-bold"}>
-                  فرق السعر: {ex.priceDiff > 0 ? "+" : ""}{ex.priceDiff} ر.س
-                  {ex.note ? " · " : ""}
-                </span>
-              )}
-              {ex.note}
-            </p>
-          )}
+    <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-3 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-[10px] font-bold text-white">استبدال</span>
+          {ex.invRef && <span className="text-[11px] text-violet-700">فاتورة #{ex.invRef}</span>}
+        </div>
+        <span className="text-[11px] text-muted-foreground">{formatDate(movement.createdAt)}</span>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-2.5">
+          <p className="text-[10px] font-semibold text-emerald-700">المُرجَع</p>
+          <p className="mt-1 text-sm font-bold text-emerald-800">{ex.rName}</p>
+          <p className="text-xs text-emerald-700">الكمية: {ex.rQty}</p>
+        </div>
+        <div className="rounded-xl border border-sky-200 bg-sky-50/80 p-2.5">
+          <p className="text-[10px] font-semibold text-sky-700">البديل</p>
+          <p className="mt-1 text-sm font-bold text-sky-800">{ex.iName}</p>
+          <p className="text-xs text-sky-700">الكمية: {ex.iQty}</p>
         </div>
       </div>
+
+      {(ex.priceDiff !== 0 || ex.note) && (
+        <div className="mt-2 rounded-xl border border-border/70 bg-background/70 p-2.5">
+          {ex.priceDiff !== 0 && (
+            <p className={cn("text-[11px] font-semibold", ex.priceDiff > 0 ? "text-emerald-700" : "text-rose-600")}>
+              فرق السعر: {ex.priceDiff > 0 ? "+" : ""}{ex.priceDiff} ر.س
+            </p>
+          )}
+          {ex.note && <p className="mt-1 text-xs text-muted-foreground">{ex.note}</p>}
+        </div>
+      )}
     </div>
   );
 }
-
-// ─── قائمة منسدلة مخصصة ─────────────────────────────────────────
 
 function DropdownSelect<T extends string>({
   value, onChange, options, className,
@@ -731,15 +765,22 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
     <div className="space-y-8 pb-10">
 
       {/* ── رأس الصفحة ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Boxes className="w-4 h-4 text-primary" />
-          <h2 className="text-base font-bold text-slate-900">إدارة المخزون</h2>
+      <div className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Boxes className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-foreground">إدارة المخزون</h2>
+              <p className="text-sm text-muted-foreground">تابع الحالة، سجّل التعديلات، وراجع الحركات بوضوح</p>
+            </div>
+          </div>
+          <Button onClick={() => setDialogOpen(true)} size="sm" className="rounded-xl gap-1.5 font-bold">
+            <Plus className="w-4 h-4" />
+            تسجيل حركة
+          </Button>
         </div>
-        <Button onClick={() => setDialogOpen(true)} size="sm" className="rounded-xl gap-1.5 font-bold">
-          <Plus className="w-4 h-4" />
-          تسجيل حركة
-        </Button>
       </div>
 
       {/* ── إحصائيات ── */}
@@ -752,7 +793,7 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
         ].map((s) => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className={cn("rounded-2xl border p-4 flex items-center gap-3", s.cls)}>
+            <div key={s.label} className={cn("rounded-2xl border border-border/70 bg-card p-4 flex items-center gap-3 shadow-sm", s.cls)}>
               <Icon className="w-5 h-5 shrink-0 opacity-70" />
               <div>
                 <p className="text-2xl font-black tabular-nums leading-none">{s.value}</p>
@@ -764,10 +805,10 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
       </div>
 
       {/* ── مستويات المخزون ── */}
-      <section>
+      <section className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-slate-800">مستويات المخزون</h3>
-          <span className="text-xs text-slate-400">{filteredStock.length} منتج</span>
+          <h3 className="text-sm font-bold text-foreground">مستويات المخزون</h3>
+          <span className="text-xs text-muted-foreground">{filteredStock.length} منتج</span>
         </div>
 
         {/* شريط تحكم */}
@@ -806,18 +847,23 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
         {filteredStock.length === 0 ? (
           <p className="text-sm text-slate-400 py-6 text-center">لا توجد منتجات تطابق البحث</p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="space-y-2">
             {filteredStock.map((p) => {
               const low = p.stock > 0 && p.stock <= (p.lowStockThreshold ?? 5);
               const out = p.stock === 0;
               return (
-                <div key={p.id} className="flex items-center justify-between py-3">
-                  <span className="text-sm font-medium text-slate-700">{p.name}</span>
+                <div key={p.id} className="flex items-center justify-between rounded-2xl border border-border/70 bg-background/70 px-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{p.name}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {low && !out ? "يحتاج إلى ت replenishment" : out ? "غير متوفر حالياً" : "مخزون جيد"}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {out && <span className="text-[10px] font-bold text-rose-500 bg-rose-50 border border-rose-200 rounded-full px-2 py-0.5">نافد</span>}
-                    {low && !out && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">منخفض</span>}
-                    <span className={cn("text-sm font-black tabular-nums w-10 text-left",
-                      out ? "text-rose-600" : low ? "text-amber-600" : "text-emerald-700")}>
+                    {out && <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-600">نافد</span>}
+                    {low && !out && <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">منخفض</span>}
+                    <span className={cn("w-10 text-left text-sm font-black tabular-nums",
+                      out ? "text-rose-600" : low ? "text-amber-700" : "text-emerald-700")}>
                       {p.stock}
                     </span>
                   </div>
@@ -829,10 +875,10 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
       </section>
 
       {/* ── سجل الحركات ── */}
-      <section>
+      <section className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-slate-800">سجل الحركات</h3>
-          {movements.length > 0 && <span className="text-xs text-slate-400">{filteredMovements.length} حركة</span>}
+          <h3 className="text-sm font-bold text-foreground">سجل الحركات</h3>
+          {movements.length > 0 && <span className="text-xs text-muted-foreground">{filteredMovements.length} حركة</span>}
         </div>
 
         {/* شريط فلترة */}
@@ -861,7 +907,7 @@ export function InventoryTab({ storeId, products, onStockUpdate, incomingMovemen
           </p>
         ) : (
           <>
-            <div className="divide-y divide-slate-100">
+            <div className="space-y-2">
               {pagedMovements.map((m) =>
                 m.reason.startsWith(EXCHANGE_PREFIX)
                   ? <ExchangeRow key={m.id} movement={m} />

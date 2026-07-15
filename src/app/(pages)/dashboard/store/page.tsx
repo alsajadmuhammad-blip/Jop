@@ -989,31 +989,31 @@ export default function StoreDashboardPage() {
   /* ── هيكل التحميل السريع — يظهر الهيدر فوراً بدون spinner مزعج ── */
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-[#f5f6fa] flex">
+      <div className="min-h-screen bg-background text-foreground flex">
         {/* Sidebar skeleton — desktop */}
-        <div className="hidden md:flex flex-col fixed right-0 top-[56px] w-56 lg:w-60 h-[calc(100vh-56px)] bg-white border-l border-slate-100">
-          <div className="px-4 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2.5">
-            <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
-            <div className="space-y-1.5 flex-1"><div className="h-3 w-24 rounded bg-slate-100 animate-pulse" /><div className="h-2.5 w-14 rounded bg-slate-100 animate-pulse" /></div>
+        <div className="hidden md:flex flex-col fixed right-0 top-[56px] w-56 lg:w-60 h-[calc(100vh-56px)] bg-card border-l border-border/80">
+          <div className="px-4 pt-4 pb-3 border-b border-border/80 flex items-center gap-2.5">
+            <div className="h-10 w-10 rounded-xl bg-muted animate-pulse shrink-0" />
+            <div className="space-y-1.5 flex-1"><div className="h-3 w-24 rounded bg-muted animate-pulse" /><div className="h-2.5 w-14 rounded bg-muted animate-pulse" /></div>
           </div>
           <div className="px-3 py-3 space-y-1">
-            {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-9 rounded-xl bg-slate-100 animate-pulse" />)}
+            {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-9 rounded-xl bg-muted animate-pulse" />)}
           </div>
         </div>
         {/* Mobile header skeleton */}
-        <div className="md:hidden fixed top-[56px] inset-x-0 z-40 bg-white border-b border-slate-100 h-14 flex items-center gap-3 px-4">
-          <div className="h-9 w-9 rounded-xl bg-slate-100 animate-pulse shrink-0" />
-          <div className="flex-1 space-y-1"><div className="h-3 w-20 rounded bg-slate-100 animate-pulse" /><div className="h-2 w-28 rounded bg-slate-100 animate-pulse" /></div>
-          <div className="h-8 w-16 rounded-xl bg-slate-100 animate-pulse" />
+        <div className="md:hidden fixed top-[56px] inset-x-0 z-40 bg-card/95 backdrop-blur border-b border-border/80 h-14 flex items-center gap-3 px-4">
+          <div className="h-9 w-9 rounded-xl bg-muted animate-pulse shrink-0" />
+          <div className="flex-1 space-y-1"><div className="h-3 w-20 rounded bg-muted animate-pulse" /><div className="h-2 w-28 rounded bg-muted animate-pulse" /></div>
+          <div className="h-8 w-16 rounded-xl bg-muted animate-pulse" />
         </div>
         {/* Content skeleton */}
         <main className="flex-1 md:mr-56 lg:mr-60 mt-[56px] md:mt-0 pt-14 px-4 sm:px-6 py-6 space-y-4 w-full">
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-white animate-pulse border border-slate-100" />)}
+            {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-card animate-pulse border border-border/80" />)}
           </div>
-          <div className="h-10 w-full rounded-xl bg-white animate-pulse border border-slate-100" />
+          <div className="h-10 w-full rounded-xl bg-card animate-pulse border border-border/80" />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="h-44 rounded-2xl bg-white animate-pulse border border-slate-100" />)}
+            {[1,2,3,4,5,6].map(i => <div key={i} className="h-44 rounded-2xl bg-card animate-pulse border border-border/80" />)}
           </div>
         </main>
       </div>
@@ -1033,12 +1033,12 @@ export default function StoreDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f6fa]">
+    <div className="min-h-screen bg-background text-foreground">
 
       {/* ══ SIDEBAR — ديسكتوب فقط ══ */}
       <aside
         style={{ top: 'var(--header-h, 56px)', height: 'calc(100vh - var(--header-h, 56px))' }}
-        className="hidden md:flex md:flex-col fixed right-0 z-30 w-56 lg:w-60 bg-white border-l border-slate-100 shadow-[−1px_0_8px_rgba(0,0,0,.04)]"
+        className="hidden md:flex md:flex-col fixed right-0 z-30 w-56 lg:w-60 bg-card border-l border-border/80 shadow-[−1px_0_8px_rgba(0,0,0,.08)]"
       >
         <StoreSidebar
           activeTab={activeView}
@@ -1054,7 +1054,7 @@ export default function StoreDashboardPage() {
       {/* ══ HEADER — موبايل فقط ══ */}
       <header
         style={{ top: 'var(--header-h, 56px)' }}
-        className="md:hidden sticky z-40 bg-white border-b border-slate-100 shadow-sm"
+        className="md:hidden sticky z-40 bg-card/95 backdrop-blur border-b border-border/80 shadow-sm"
       >
         <div className="flex h-14 items-center gap-3 px-4">
           {/* زر فتح القائمة الجانبية */}
@@ -1089,7 +1089,7 @@ export default function StoreDashboardPage() {
       </header>
 
       {/* ══ CONTENT WRAPPER ══ */}
-      <div className="md:mr-56 lg:mr-60 flex flex-col min-h-screen">
+      <div className="md:mr-56 lg:mr-60 flex flex-col min-h-screen bg-background">
 
         {/* Alerts */}
         {(isPendingReview || isSubscriptionExpired || showExpirationWarning) && (
