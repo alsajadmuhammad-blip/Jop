@@ -115,7 +115,7 @@ function StoreInfoSidebarContent({ store }: StoreInfoSidebarProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="hidden lg:flex items-center justify-center gap-2 w-full h-12 rounded-2xl font-black text-sm text-white transition-all active:scale-[0.98]"
-          style={{ background: "#25D366", boxShadow: "0 4px 16px rgba(37,211,102,0.3)" }}
+          style={{ background: "var(--store-accent)", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}
         >
           <Phone className="w-4 h-4" />
           تواصل عبر واتساب

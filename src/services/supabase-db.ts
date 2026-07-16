@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabase';
-import type { Product, Store, Section, Category, User, CartItem, StorePackage, Order, OrderItem, OrderStatus } from '@/lib/types';
+import type { Product, Store, Section, Category, User, CartItem, StorePackage, Order, OrderItem, OrderStatus, StoreThemePreset } from '@/lib/types';
 
 const SUPABASE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -966,6 +966,13 @@ export function mapStoreRow(row: any): Store {
     packageId: getRowValue<string>(row, 'package_id', 'packageId') || undefined,
     packageName: getRowValue<string>(row, 'package_name', 'packageName'),
     paymentProofUrl: getRowValue<string>(row, 'payment_proof_url', 'paymentProofUrl'),
+    themePreset: getRowValue<string>(row, 'theme_preset', 'themePreset') as StoreThemePreset | undefined,
+    primaryColor: getRowValue<string>(row, 'primary_color', 'primaryColor'),
+    secondaryColor: getRowValue<string>(row, 'secondary_color', 'secondaryColor'),
+    accentColor: getRowValue<string>(row, 'accent_color', 'accentColor'),
+    backgroundColor: getRowValue<string>(row, 'background_color', 'backgroundColor'),
+    foregroundColor: getRowValue<string>(row, 'foreground_color', 'foregroundColor'),
+    cardColor: getRowValue<string>(row, 'card_color', 'cardColor'),
     createdAt: getRowValue<any>(row, 'created_at', 'createdAt') || null,
     registeredByAgentId: getRowValue<string>(row, 'registered_by_agent_id', 'registeredByAgentId') || null,
   };

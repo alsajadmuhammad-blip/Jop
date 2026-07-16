@@ -237,6 +237,31 @@
     color: hsl(var(--foreground)) !important;
   }
 
+  .store-theme {
+    background-color: var(--store-background);
+    color: var(--store-foreground);
+  }
+
+  .store-theme .store-card {
+    background-color: var(--store-card) !important;
+  }
+
+  .store-theme .store-primary-text {
+    color: var(--store-primary) !important;
+  }
+
+  .store-theme .store-accent-bg {
+    background-color: var(--store-accent) !important;
+  }
+
+  .store-theme .store-primary-bg {
+    background-color: var(--store-primary) !important;
+  }
+
+  .store-theme .store-background {
+    background-color: var(--store-background) !important;
+  }
+
   .dark .text-slate-600,
   .dark .text-slate-500,
   .dark .text-slate-400 {

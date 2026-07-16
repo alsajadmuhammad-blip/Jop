@@ -81,8 +81,8 @@ function StoreHeroContent({ store, productCount: _productCount }: StoreHeroProps
         {/* شارة الحالة */}
         <div className="absolute bottom-3 left-3 z-10">
           <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
-            isOpen ? "bg-emerald-500/70 border-emerald-400/30 text-emerald-50" : "bg-black/55 border-white/15 text-white/60"
-          }`}>
+            isOpen ? "border-transparent text-white" : "border-white/15 text-white/60"
+          }`} style={isOpen ? { backgroundColor: 'var(--store-primary)' } : { backgroundColor: 'rgba(15,23,42,0.45)' }}>
             <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-emerald-300 animate-pulse" : "bg-slate-400"}`} />
             {isOpen ? "مفتوح" : "مغلق"}
           </div>

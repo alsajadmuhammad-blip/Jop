@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchProductsByStore, fetchStoreById, fetchStoreSections } from "@/services/supabase-db";
 import { fetchActiveFlashSalesByStore } from "@/services/flash-sales";
+import { getStoreThemeVariables } from "@/lib/types";
 import { getStorePage, setStorePage } from "@/services/store-page-cache";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreHero } from "./store-hero";
@@ -178,13 +179,15 @@ export default function StorePageClient() {
 
   if (!store) return null;
 
+  const themeVariables = getStoreThemeVariables(store);
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8">
+    <div className="min-h-screen pb-24 lg:pb-8 store-theme" style={themeVariables}>
 
       {/* هيرو المتجر */}
       <StoreHero store={store} productCount={products.length} />
 
-      <div className="relative" style={{ zIndex: 10, background: "#f8fafc" }}>
+      <div className="relative" style={{ zIndex: 10, background: "var(--store-background)" }}>
 
         {/* أقسام المتجر */}
         {sections.length > 0 && (

@@ -156,9 +156,18 @@ export type StorePackage = {
   updatedAt?: string | null;
 };
 
+export type StoreThemePreset = 'default' | 'ocean' | 'sunset' | 'forest' | 'midnight';
+
 export type Store = {
   id: string;
   name: string;
+  themePreset?: StoreThemePreset;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  foregroundColor?: string;
+  cardColor?: string;
   slug?: string;               // URL-friendly identifier (e.g. "my-store")
   description: string;
   logoUrl?: string;
@@ -193,6 +202,69 @@ export type Store = {
   createdAt: string | number | null;
   registeredByAgentId?: string | null;
 };
+
+export const STORE_THEME_PRESETS: Record<StoreThemePreset, { label: string; primaryColor: string; accentColor: string; secondaryColor: string; backgroundColor: string; foregroundColor: string; cardColor: string }> = {
+  default: {
+    label: 'الافتراضي',
+    primaryColor: '#2563eb',
+    accentColor: '#14b8a6',
+    secondaryColor: '#f59e0b',
+    backgroundColor: '#f8fafc',
+    foregroundColor: '#0f172a',
+    cardColor: '#ffffff',
+  },
+  ocean: {
+    label: 'المحيط',
+    primaryColor: '#0ea5e9',
+    accentColor: '#22c55e',
+    secondaryColor: '#7dd3fc',
+    backgroundColor: '#eff6ff',
+    foregroundColor: '#0f172a',
+    cardColor: '#ffffff',
+  },
+  sunset: {
+    label: 'الغروب',
+    primaryColor: '#fb7185',
+    accentColor: '#f97316',
+    secondaryColor: '#facc15',
+    backgroundColor: '#fff7ed',
+    foregroundColor: '#1f2937',
+    cardColor: '#ffffff',
+  },
+  forest: {
+    label: 'الغابة',
+    primaryColor: '#16a34a',
+    accentColor: '#0f766e',
+    secondaryColor: '#a3e635',
+    backgroundColor: '#f0fdf4',
+    foregroundColor: '#0f172a',
+    cardColor: '#ffffff',
+  },
+  midnight: {
+    label: 'منتصف الليل',
+    primaryColor: '#8b5cf6',
+    accentColor: '#38bdf8',
+    secondaryColor: '#e879f9',
+    backgroundColor: '#0f172a',
+    foregroundColor: '#e2e8f0',
+    cardColor: '#111827',
+  },
+};
+
+export function getStoreThemeVariables(store: Partial<Store>): Record<string, string> {
+  const preset = store.themePreset && STORE_THEME_PRESETS[store.themePreset]
+    ? STORE_THEME_PRESETS[store.themePreset]
+    : STORE_THEME_PRESETS.default;
+
+  return {
+    '--store-primary': store.primaryColor || preset.primaryColor,
+    '--store-accent': store.accentColor || preset.accentColor,
+    '--store-secondary': store.secondaryColor || preset.secondaryColor,
+    '--store-background': store.backgroundColor || preset.backgroundColor,
+    '--store-foreground': store.foregroundColor || preset.foregroundColor,
+    '--store-card': store.cardColor || preset.cardColor,
+  };
+}
 
 export type CartItem = {
   product: Product;

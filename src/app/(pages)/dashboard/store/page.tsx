@@ -8,7 +8,7 @@ import { StoreSidebar, StoreMobileDrawer, NAV_GROUPS } from "./sidebar";
 import { PlusCircle, AlertTriangle, Edit, Trash2, Package, Image as ImageIcon, Package2, LogOut, Info, ShoppingCart as ShoppingCartIcon, Truck, Globe, CreditCard, CalendarDays, CheckCircle2, Clock, Eye, Tag, Camera, Loader2, Menu } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { differenceInDays, parseISO } from "date-fns";
-import type { Product, Store, Section, StorePackage } from "@/lib/types";
+import { STORE_THEME_PRESETS, type Product, type Store, type Section, type StorePackage } from "@/lib/types";
 import { getDiscountedPrice, hasActiveDiscount } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -240,6 +240,92 @@ function StoreSettingsTab({ store, onSettingChange, onLogoSave, onCoverSave }: {
                         )}
                         <LogoUploader store={store} onSave={onLogoSave} />
                     </div>
+                </div>
+            </div>
+
+            {/* تصميم المتجر */}
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                <div className="border-b border-border/70 px-5 py-4">
+                    <h3 className="text-base font-bold text-foreground">تصميم المتجر</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">اختر نمط الألوان أو قم بتخصيص ألوان المتجر.</p>
+                </div>
+                <div className="p-5 space-y-5">
+                    <div>
+                        <Label className="mb-2 block text-sm font-semibold text-foreground">نمط الألوان</Label>
+                        <Select
+                            value={store.themePreset || 'default'}
+                            onValueChange={(value) => onSettingChange('themePreset', value as any)}
+                        >
+                            <SelectTrigger className="h-11 rounded-xl text-sm">
+                                <SelectValue placeholder="اختر النمط" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(STORE_THEME_PRESETS).map(([key, preset]) => (
+                                    <SelectItem key={key} value={key}>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span>{preset.label}</span>
+                                            <span className="flex gap-1">
+                                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: preset.primaryColor }} />
+                                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: preset.accentColor }} />
+                                            </span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <label className="flex flex-col gap-2 text-sm">
+                            <span className="font-semibold text-foreground">اللون الأساسي</span>
+                            <input
+                                type="color"
+                                value={store.primaryColor || STORE_THEME_PRESETS[store.themePreset || 'default'].primaryColor}
+                                onChange={(event) => onSettingChange('primaryColor', event.target.value)}
+                                className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
+                            />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm">
+                            <span className="font-semibold text-foreground">لون التمييز</span>
+                            <input
+                                type="color"
+                                value={store.accentColor || STORE_THEME_PRESETS[store.themePreset || 'default'].accentColor}
+                                onChange={(event) => onSettingChange('accentColor', event.target.value)}
+                                className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
+                            />
+                        </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <label className="flex flex-col gap-2 text-sm">
+                            <span className="font-semibold text-foreground">لون الخلفية</span>
+                            <input
+                                type="color"
+                                value={store.backgroundColor || STORE_THEME_PRESETS[store.themePreset || 'default'].backgroundColor}
+                                onChange={(event) => onSettingChange('backgroundColor', event.target.value)}
+                                className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
+                            />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm">
+                            <span className="font-semibold text-foreground">لون النص</span>
+                            <input
+                                type="color"
+                                value={store.foregroundColor || STORE_THEME_PRESETS[store.themePreset || 'default'].foregroundColor}
+                                onChange={(event) => onSettingChange('foregroundColor', event.target.value)}
+                                className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
+                            />
+                        </label>
+                    </div>
+
+                    <label className="flex flex-col gap-2 text-sm">
+                        <span className="font-semibold text-foreground">لون البطاقات</span>
+                        <input
+                            type="color"
+                            value={store.cardColor || STORE_THEME_PRESETS[store.themePreset || 'default'].cardColor}
+                            onChange={(event) => onSettingChange('cardColor', event.target.value)}
+                            className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
+                        />
+                    </label>
                 </div>
             </div>
 
@@ -818,6 +904,34 @@ export default function StoreDashboardPage() {
     if (data.activationDate !== undefined) {
       dbData.activation_date = data.activationDate;
       dbData.activationDate = data.activationDate;
+    }
+    if (data.themePreset !== undefined) {
+      dbData.theme_preset = data.themePreset;
+      dbData.themePreset = data.themePreset;
+    }
+    if (data.primaryColor !== undefined) {
+      dbData.primary_color = data.primaryColor;
+      dbData.primaryColor = data.primaryColor;
+    }
+    if (data.secondaryColor !== undefined) {
+      dbData.secondary_color = data.secondaryColor;
+      dbData.secondaryColor = data.secondaryColor;
+    }
+    if (data.accentColor !== undefined) {
+      dbData.accent_color = data.accentColor;
+      dbData.accentColor = data.accentColor;
+    }
+    if (data.backgroundColor !== undefined) {
+      dbData.background_color = data.backgroundColor;
+      dbData.backgroundColor = data.backgroundColor;
+    }
+    if (data.foregroundColor !== undefined) {
+      dbData.foreground_color = data.foregroundColor;
+      dbData.foregroundColor = data.foregroundColor;
+    }
+    if (data.cardColor !== undefined) {
+      dbData.card_color = data.cardColor;
+      dbData.cardColor = data.cardColor;
     }
     if (data.ownerId !== undefined) {
       dbData.owner_id = data.ownerId;
