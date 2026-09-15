@@ -72,8 +72,11 @@ create table if not exists public.applications (
   note text,
   status public.application_status not null default 'new',
   created_at timestamptz not null default now(),
-  constraint application_target_check check ((job_id is not null) <> (cv_request_id is not null))
+  constraint application_target_check check (job_id is null and cv_request_id is not null)
 );
+
+alter table public.applications drop constraint if exists application_target_check;
+alter table public.applications add constraint application_target_check check (job_id is null and cv_request_id is not null);
 
 create index if not exists jobs_status_created_at_idx on public.jobs(status, created_at desc);
 create index if not exists cv_requests_status_created_at_idx on public.cv_requests(status, created_at desc);
@@ -132,7 +135,7 @@ drop policy if exists "admins manage cv requests" on public.cv_requests;
 create policy "admins manage cv requests" on public.cv_requests for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "public submits applications" on public.applications;
-create policy "public submits applications" on public.applications for insert with check (true);
+create policy "public submits applications" on public.applications for insert with check (job_id is null and cv_request_id is not null);
 drop policy if exists "admins and hr read applications" on public.applications;
 create policy "admins and assigned hr read applications" on public.applications for select using (
   public.is_admin()

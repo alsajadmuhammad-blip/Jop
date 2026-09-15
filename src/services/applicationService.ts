@@ -17,7 +17,7 @@ export async function loadApplications() {
 }
 
 export async function submitApplication(
-  target: { jobId?: string | null; requestId?: string },
+  target: { requestId: string },
   form: ApplicationFormData,
   file: File,
 ) {
@@ -29,8 +29,8 @@ export async function submitApplication(
   if (upload.error) return upload.error;
 
   const { error } = await supabase.from("applications").insert({
-    job_id: target.jobId || null,
-    cv_request_id: target.requestId || null,
+    job_id: null,
+    cv_request_id: target.requestId,
     ...form,
     cv_path: path,
   });

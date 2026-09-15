@@ -4,12 +4,11 @@ import { hasSupabaseConfig } from "../../lib/supabase";
 import { submitApplication, type ApplicationFormData } from "../../services/applicationService";
 
 type ApplicationFormProps = {
-  jobId?: string | null;
   requestId?: string;
   onSubmitted: () => void;
 };
 
-export function ApplicationForm({ jobId, requestId, onSubmitted }: ApplicationFormProps) {
+export function ApplicationForm({ requestId, onSubmitted }: ApplicationFormProps) {
   const [form, setForm] = useState<ApplicationFormData>({ full_name: "", email: "", phone: "", note: "" });
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -25,14 +24,14 @@ export function ApplicationForm({ jobId, requestId, onSubmitted }: ApplicationFo
 
     setSaving(true);
     setError("");
-    if (!hasSupabaseConfig || (!jobId && !requestId)) {
+    if (!hasSupabaseConfig || !requestId) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       setSaving(false);
       onSubmitted();
       return;
     }
 
-    const submitError = await submitApplication({ jobId, requestId }, form, file);
+    const submitError = await submitApplication({ requestId }, form, file);
     setSaving(false);
     if (submitError) return setError(submitError.message || "تعذر إرسال الطلب.");
     onSubmitted();

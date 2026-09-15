@@ -152,7 +152,7 @@ function App() {
       {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} />}
     </main>
     <Footer />
-    {modal === "job" && selectedJob && <JobModal job={selectedJob} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("وصل طلبك بنجاح. بالتوفيق!"); }} />}
+    {modal === "job" && selectedJob && <JobModal job={selectedJob} onClose={() => setModal(null)} onBrowseRequests={() => { setModal(null); navigate("requests"); }} />}
     {modal === "request" && selectedRequest && <RequestModal request={selectedRequest} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("تم إرسال سيرتك الذاتية إلى الجهة المختصة."); }} />}
     {modal === "login" && <LoginModal onClose={closeLogin} onSuccess={(nextProfile) => { setProfile(nextProfile); setModal(null); notify("تم تسجيل الدخول"); }} />}
     {toast && <div className="toast"><Check size={17} />{toast}</div>}
