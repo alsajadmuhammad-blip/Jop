@@ -78,6 +78,18 @@ returns boolean language sql security definer set search_path = public stable as
   select exists (select 1 from public.profiles where id = auth.uid() and role = 'hr');
 $$;
 
+create or replace function public.is_hr_for_organization(target_organization text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and role = 'hr'
+      and organization is not null
+      and lower(trim(organization)) = lower(trim(target_organization))
+  );
+$$;
+
 alter table public.profiles enable row level security;
 alter table public.hr_groups enable row level security;
 alter table public.jobs enable row level security;
@@ -89,22 +101,53 @@ create policy "users can read own profile" on public.profiles for select using (
 drop policy if exists "admins manage profiles" on public.profiles;
 create policy "admins manage profiles" on public.profiles for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists "admins manage hr groups" on public.hr_groups;
+create policy "admins manage hr groups" on public.hr_groups for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "hr reads own group" on public.hr_groups;
+create policy "hr reads own group" on public.hr_groups for select using (user_id = auth.uid());
+
 drop policy if exists "public reads published jobs" on public.jobs;
 create policy "public reads published jobs" on public.jobs for select using (status = 'published' or public.is_admin());
 drop policy if exists "admins manage jobs" on public.jobs;
 create policy "admins manage jobs" on public.jobs for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "public reads published cv requests" on public.cv_requests;
-create policy "public reads published cv requests" on public.cv_requests for select using (status = 'published' or public.is_admin() or public.is_hr());
+create policy "public reads published cv requests" on public.cv_requests for select using (
+  status = 'published'
+  or public.is_admin()
+  or public.is_hr_for_organization(organization_name)
+);
 drop policy if exists "admins manage cv requests" on public.cv_requests;
 create policy "admins manage cv requests" on public.cv_requests for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "public submits applications" on public.applications;
 create policy "public submits applications" on public.applications for insert with check (true);
 drop policy if exists "admins and hr read applications" on public.applications;
-create policy "admins and hr read applications" on public.applications for select using (public.is_admin() or public.is_hr());
+create policy "admins and assigned hr read applications" on public.applications for select using (
+  public.is_admin()
+  or (
+    cv_request_id is not null
+    and exists (
+      select 1
+      from public.cv_requests request
+      where request.id = applications.cv_request_id
+        and public.is_hr_for_organization(request.organization_name)
+    )
+  )
+);
 drop policy if exists "admins and hr update applications" on public.applications;
-create policy "admins and hr update applications" on public.applications for update using (public.is_admin() or public.is_hr()) with check (public.is_admin() or public.is_hr());
+create policy "admins and assigned hr update applications" on public.applications for update using (
+  public.is_admin()
+  or (
+    cv_request_id is not null
+    and exists (
+      select 1
+      from public.cv_requests request
+      where request.id = applications.cv_request_id
+        and public.is_hr_for_organization(request.organization_name)
+    )
+  )
+) with check (public.is_admin() or public.is_hr());
 
 insert into storage.buckets (id, name, public)
 values ('cvs', 'cvs', false)
@@ -113,4 +156,16 @@ on conflict (id) do update set public = false;
 drop policy if exists "public can upload cv files" on storage.objects;
 create policy "public can upload cv files" on storage.objects for insert to anon, authenticated with check (bucket_id = 'cvs');
 drop policy if exists "team can read cv files" on storage.objects;
-create policy "team can read cv files" on storage.objects for select to authenticated using (bucket_id = 'cvs' and (public.is_admin() or public.is_hr()));
+create policy "team can read assigned cv files" on storage.objects for select to authenticated using (
+  bucket_id = 'cvs'
+  and (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.applications application
+      join public.cv_requests request on request.id = application.cv_request_id
+      where application.cv_path = storage.objects.name
+        and public.is_hr_for_organization(request.organization_name)
+    )
+  )
+);

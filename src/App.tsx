@@ -94,6 +94,11 @@ function App() {
     window.setTimeout(() => setToast(""), 3500);
   };
 
+  const closeLogin = () => {
+    setModal(null);
+    if (view === "admin" || view === "hr") navigate("home");
+  };
+
   const loadPublicData = async () => {
     if (!hasSupabaseConfig) {
       setJobs(demoJobs);
@@ -102,12 +107,15 @@ function App() {
       return;
     }
     setLoading(true);
-    const [{ data: jobData }, { data: requestData }] = await Promise.all([
+    const [jobsResult, requestsResult] = await Promise.all([
       supabase.from("jobs").select("*").eq("status", "published").order("created_at", { ascending: false }),
       supabase.from("cv_requests").select("*").eq("status", "published").order("created_at", { ascending: false }),
     ]);
-    setJobs((jobData as Job[]) || []);
-    setRequests((requestData as CVRequest[]) || []);
+    if (jobsResult.error || requestsResult.error) {
+      notify("تعذر تحميل البيانات. نفّذ ملف Supabase schema.sql أولاً.");
+    }
+    setJobs((jobsResult.data as Job[]) || []);
+    setRequests((requestsResult.data as CVRequest[]) || []);
     setLoading(false);
   };
 
@@ -134,8 +142,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if ((view === "admin" || view === "hr") && !profile) setModal("login");
-    if (view === "admin" && profile && profile.role !== "admin") notify("هذه الصفحة مخصصة للإدارة");
+    if ((view === "admin" || view === "hr") && !profile) {
+      setModal("login");
+      return;
+    }
+    if (view === "admin" && profile?.role !== "admin") {
+      notify("هذه الصفحة مخصصة للإدارة");
+      navigate("home");
+      return;
+    }
+    if (view === "hr" && profile?.role !== "hr") {
+      notify("هذه الصفحة مخصصة لجهات HR");
+      navigate("home");
+    }
   }, [view, profile]);
 
   useEffect(() => {
@@ -145,10 +164,13 @@ function App() {
   }, [profile]);
 
   const loadApplications = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("applications")
       .select("*, jobs(title, company_name), cv_requests(title, organization_name)")
       .order("created_at", { ascending: false });
+    if (error) {
+      notify("تعذر تحميل السير الذاتية. تأكد من سياسات Supabase والحساب.");
+    }
     setApplications((data as Application[]) || []);
   };
 
@@ -185,7 +207,7 @@ function App() {
       <Footer />
       {modal === "job" && selectedJob && <JobModal job={selectedJob} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("وصل طلبك بنجاح. بالتوفيق!"); }} />}
       {modal === "request" && selectedRequest && <RequestModal request={selectedRequest} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("تم إرسال سيرتك الذاتية إلى الجهة المختصة."); }} />}
-      {modal === "login" && <LoginModal onClose={() => setModal(null)} onSuccess={(nextProfile) => { setProfile(nextProfile); setModal(null); notify("تم تسجيل الدخول"); }} />}
+      {modal === "login" && <LoginModal onClose={closeLogin} onSuccess={(nextProfile) => { setProfile(nextProfile); setModal(null); notify("تم تسجيل الدخول"); }} />}
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </div>
   );
