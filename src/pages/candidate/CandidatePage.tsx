@@ -1,0 +1,7 @@
+import { ArrowLeft, BriefcaseBusiness, FileText, LogOut, Send } from "lucide-react";
+import type { View } from "../../app/types";
+import type { Profile } from "../../lib/types";
+
+export function CandidatePage({ profile, onNavigate, onLogout }: { profile: Profile; onNavigate: (view: View) => void; onLogout: () => void }) {
+  return <section className="container page-section dashboard-page"><div className="account-hero"><div><span className="eyebrow">مساحة الباحث عن عمل</span><h1>أهلاً {profile.full_name || "بك"}</h1><p>من هنا تقدر تتابع فرصك وتوصل إلى الوظائف وطلبات HR المنشورة.</p></div><span className="account-avatar">{(profile.full_name || "م").slice(0, 1)}</span></div><div className="account-actions"><button className="account-action-card" onClick={() => onNavigate("jobs")}><span><BriefcaseBusiness size={21} /></span><b>تصفح الوظائف</b><small>شوف الفرص المنشورة وقدّم مباشرة</small><ArrowLeft size={17} /></button><button className="account-action-card" onClick={() => onNavigate("requests")}><span><FileText size={21} /></span><b>طلبات HR</b><small>اعرف الاختصاصات المطلوبة حالياً</small><ArrowLeft size={17} /></button><button className="account-action-card" onClick={() => onNavigate("requests")}><span><Send size={21} /></span><b>أرسل سيرتك الذاتية</b><small>اختر الطلب المناسب وأرفق CV</small><ArrowLeft size={17} /></button></div><button className="text-btn account-logout" onClick={onLogout}><LogOut size={17} /> تسجيل الخروج</button></section>;
+}
