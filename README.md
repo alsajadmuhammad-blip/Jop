@@ -14,6 +14,14 @@ npm run dev
 - `VITE_SUPABASE_URL` أو `NEXT_PUBLIC_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY` أو `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
+للتشغيل المحلي، انسخ `.env.example` إلى `.env` ثم ضع مفتاح Supabase المحلي داخله:
+
+```bash
+cp .env.example .env
+```
+
+ملف `.env` مستثنى من Git عمداً، بينما `.env.example` آمن للرفع إلى GitHub لأنه لا يحتوي على المفتاح الفعلي.
+
 ## تجهيز Supabase
 
 1. افتح SQL Editor في مشروع Supabase.

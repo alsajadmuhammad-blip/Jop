@@ -2,6 +2,3 @@ node_modules
 .next
 out/
 .next/
-.env
-.env.*
-!.env.example
