@@ -18,7 +18,7 @@ npm run dev
 
 1. افتح SQL Editor في مشروع Supabase.
 2. نفّذ الملف `supabase/schema.sql` كاملاً.
-3. من Authentication أنشئ حسابات الفريق، ثم أضف سجلاً مقابلاً في `profiles`:
+3. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
 
 ```sql
 insert into public.profiles (id, full_name, role, organization)
@@ -34,7 +34,22 @@ npm run build
 firebase deploy --only hosting
 ```
 
-قبل النشر، اربط المشروع الصحيح في `.firebaserc`، وضع متغيرات Supabase في بيئة البناء. ملف `firebase.json` يستخدم `dist` ويعيد توجيه كل المسارات إلى `index.html`.
+تم ربط `.firebaserc` حالياً بمشروع Firebase `iraq-jobs-1415d`. إعدادات Firebase Web SDK وAnalytics غير مطلوبة للاستضافة فقط؛ Firebase Hosting يحتاج Project ID وملف `firebase.json` فقط. ملف `firebase.json` يستخدم `dist` ويعيد توجيه كل المسارات إلى `index.html`.
+
+إذا لم يكن Firebase CLI مثبتاً:
+
+```bash
+npm install -g firebase-tools
+firebase login
+```
+
+ثم:
+
+```bash
+npm run build
+firebase use iraq-jobs-1415d
+firebase deploy --only hosting
+```
 
 ## سير العمل
 

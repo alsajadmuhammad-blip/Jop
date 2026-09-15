@@ -1,9 +1,20 @@
 -- مسار: database + RLS + private CV storage
 create extension if not exists "pgcrypto";
 
-create type public.user_role as enum ('candidate', 'admin', 'hr');
-create type public.post_status as enum ('draft', 'published', 'closed');
-create type public.application_status as enum ('new', 'reviewing', 'shortlisted', 'rejected', 'hired');
+do $$ begin
+  create type public.user_role as enum ('candidate', 'admin', 'hr');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.post_status as enum ('draft', 'published', 'closed');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.application_status as enum ('new', 'reviewing', 'shortlisted', 'rejected', 'hired');
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
