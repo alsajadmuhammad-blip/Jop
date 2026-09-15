@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import type { JobType, PostStatus } from "../lib/types";
+import type { JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
 
 export type JobPostInput = {
   title: string;
@@ -10,6 +10,8 @@ export type JobPostInput = {
   description: string;
   requirements: string[];
   salary_range: string | null;
+  contact_email: string | null;
+  contact_whatsapp: string | null;
 };
 
 export type RequestPostInput = {
@@ -21,6 +23,32 @@ export type RequestPostInput = {
 
 export async function createJob(input: JobPostInput) {
   const { error } = await supabase.from("jobs").insert({ ...input, status: "published" });
+  return error;
+}
+
+export async function loadJobRequests() {
+  const { data, error } = await supabase
+    .from("job_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return { requests: (data as JobRequest[]) || [], error };
+}
+
+export async function submitJobRequest(input: Omit<JobRequest, "id" | "status" | "approved_job_id" | "reviewed_at" | "created_at">) {
+  const { error } = await supabase.from("job_requests").insert({ ...input, status: "pending" });
+  return error;
+}
+
+export async function approveJobRequest(id: string) {
+  const { error } = await supabase.rpc("approve_job_request", { p_request_id: id });
+  return error;
+}
+
+export async function updateJobRequestStatus(id: string, status: JobRequestStatus) {
+  const { error } = await supabase
+    .from("job_requests")
+    .update({ status, reviewed_at: new Date().toISOString() })
+    .eq("id", id);
   return error;
 }
 

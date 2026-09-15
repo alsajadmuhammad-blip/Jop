@@ -9,30 +9,35 @@ import type { View } from "./app/types";
 import { getCurrentProfile, getProfile, signOut } from "./services/authService";
 import { getPublicContent } from "./services/publicService";
 import { loadApplications } from "./services/applicationService";
+import { loadJobRequests } from "./services/adminService";
 import { HomePage } from "./pages/public/HomePage";
 import { JobsPage } from "./pages/public/JobsPage";
 import { RequestsPage } from "./pages/public/RequestsPage";
+import { JobDetailsPage } from "./pages/public/JobDetailsPage";
+import { JobRequestPage } from "./pages/public/JobRequestPage";
 import { CandidatePage } from "./pages/candidate/CandidatePage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { HrDashboardPage } from "./pages/hr/HrDashboardPage";
-import { JobModal } from "./features/jobs/JobModal";
 import { RequestModal } from "./features/requests/RequestModal";
 import { LoginModal } from "./features/auth/LoginModal";
 
-const views: View[] = ["home", "jobs", "requests", "candidate", "admin", "hr"];
+const views: View[] = ["home", "jobs", "requests", "candidate", "admin", "hr", "job", "job-request"];
 
-function readView(): View {
-  const value = window.location.hash.replace("#", "") as View;
-  return views.includes(value) ? value : "home";
+function readRoute(): { view: View; jobId: string | null } {
+  const value = window.location.hash.replace(/^#/, "");
+  if (value.startsWith("job/")) return { view: "job", jobId: decodeURIComponent(value.slice(4)) };
+  return { view: views.includes(value as View) ? value as View : "home", jobId: null };
 }
 
 function App() {
-  const [view, setView] = useState<View>(readView);
+  const initialRoute = readRoute();
+  const [view, setView] = useState<View>(initialRoute.view);
+  const [routeJobId, setRouteJobId] = useState<string | null>(initialRoute.jobId);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [requests, setRequests] = useState<CVRequest[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [jobRequests, setJobRequests] = useState<import("./lib/types").JobRequest[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<CVRequest | null>(null);
   const [modal, setModal] = useState<"job" | "request" | "login" | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,8 +46,17 @@ function App() {
 
   const navigate = (next: View) => {
     setView(next);
+    setRouteJobId(null);
     setMobileMenu(false);
     window.location.hash = next;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const navigateToJob = (job: Job) => {
+    setView("job");
+    setRouteJobId(job.id);
+    setMobileMenu(false);
+    window.location.hash = `job/${encodeURIComponent(job.id)}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -73,6 +87,13 @@ function App() {
     setApplications(result.applications);
   };
 
+  const refreshJobRequests = async () => {
+    if (!hasSupabaseConfig || profile?.role !== "admin") return;
+    const result = await loadJobRequests();
+    if (result.error) notify("تعذر تحميل طلبات نشر الوظائف. تأكد من تنفيذ تحديث قاعدة البيانات.");
+    setJobRequests(result.requests);
+  };
+
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -88,7 +109,11 @@ function App() {
       setLoading(false);
     })();
 
-    const onHashChange = () => setView(readView());
+    const onHashChange = () => {
+      const route = readRoute();
+      setView(route.view);
+      setRouteJobId(route.jobId);
+    };
     window.addEventListener("hashchange", onHashChange);
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!hasSupabaseConfig) return;
@@ -126,9 +151,12 @@ function App() {
   useEffect(() => {
     if (profile?.role === "admin" || profile?.role === "hr") void refreshApplications();
     else setApplications([]);
+    if (profile?.role === "admin") void refreshJobRequests();
+    else setJobRequests([]);
   }, [profile]);
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
+  const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
   const closeLogin = () => {
     setModal(null);
     if (view === "admin" || view === "hr" || view === "candidate") navigate("home");
@@ -144,15 +172,16 @@ function App() {
     <Header view={view} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} onLogout={() => void logout()} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
-      {view === "home" && <HomePage jobs={publishedJobs} requests={requests} loading={loading} onNavigate={navigate} onOpenJob={(job) => { setSelectedJob(job); setModal("job"); }} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
-      {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={(job) => { setSelectedJob(job); setModal("job"); }} />}
+      {view === "home" && <HomePage jobs={publishedJobs} requests={requests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
+      {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} />}
+      {view === "job" && <JobDetailsPage job={selectedJob} onNavigate={navigate} />}
+      {view === "job-request" && <JobRequestPage onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
       {view === "requests" && <RequestsPage requests={requests} loading={loading} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
       {view === "candidate" && profile?.role === "candidate" && <CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} />}
-      {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} onRefresh={() => { void refreshPublicContent(); void refreshApplications(); }} onNotify={notify} />}
+      {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onRefresh={() => { void refreshPublicContent(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
       {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} />}
     </main>
     <Footer />
-    {modal === "job" && selectedJob && <JobModal job={selectedJob} onClose={() => setModal(null)} onBrowseRequests={() => { setModal(null); navigate("requests"); }} />}
     {modal === "request" && selectedRequest && <RequestModal request={selectedRequest} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("تم إرسال سيرتك الذاتية إلى الجهة المختصة."); }} />}
     {modal === "login" && <LoginModal onClose={closeLogin} onSuccess={(nextProfile) => { setProfile(nextProfile); setModal(null); notify("تم تسجيل الدخول"); }} />}
     {toast && <div className="toast"><Check size={17} />{toast}</div>}

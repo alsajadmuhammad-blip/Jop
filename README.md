@@ -26,7 +26,8 @@ cp .env.example .env
 
 1. افتح SQL Editor في مشروع Supabase.
 2. نفّذ الملف `supabase/schema.sql` كاملاً.
-3. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
+3. إذا كان المشروع يستخدم قاعدة بيانات قديمة سبق تنفيذ مخططها، نفّذ `supabase/job-publishing-migration.sql` لإضافة وسائل التواصل وطلبات نشر الوظائف.
+4. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
 
 ```sql
 insert into public.profiles (id, full_name, role, organization)
@@ -66,3 +67,4 @@ firebase deploy --only hosting
 - ملف CV يرفع إلى bucket خاص اسمه `cvs`.
 - الإدارة وHR يفتحون الملفات من خلال رابط مؤقت من Supabase Storage.
 - الإدارة تنشئ الوظائف وطلبات CV وتغلق أو تعيد نشر المنشورات. الوظائف المعروضة للتصفح فقط، ولا يوجد تقديم مباشر عليها.
+- الشركات والجهات ترسل طلب نشر وظيفة من رابط عام، ثم توافق الإدارة على الطلب قبل نشر الوظيفة. يظهر رابط النموذج داخل لوحة الإدارة ويمكن مشاركته خارج المنصة.

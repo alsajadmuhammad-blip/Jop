@@ -1,6 +1,7 @@
 export type JobType = "دوام كامل" | "دوام جزئي" | "عن بُعد" | "تدريب" | "عمل حر";
 export type PostStatus = "draft" | "published" | "closed";
 export type ApplicationStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
+export type JobRequestStatus = "pending" | "approved" | "rejected";
 
 export interface Profile {
   id: string;
@@ -19,10 +20,32 @@ export interface Job {
   description: string;
   requirements: string[];
   salary_range: string | null;
+  contact_email: string | null;
+  contact_whatsapp: string | null;
   status: PostStatus;
   created_at: string;
   deadline: string | null;
   created_by: string | null;
+}
+
+export interface JobRequest {
+  id: string;
+  title: string;
+  company_name: string;
+  contact_name: string;
+  contact_email: string | null;
+  contact_whatsapp: string | null;
+  category: string;
+  city: string;
+  job_type: JobType;
+  description: string;
+  requirements: string[];
+  salary_range: string | null;
+  deadline: string | null;
+  status: JobRequestStatus;
+  approved_job_id: string | null;
+  reviewed_at: string | null;
+  created_at: string;
 }
 
 export interface CVRequest {
