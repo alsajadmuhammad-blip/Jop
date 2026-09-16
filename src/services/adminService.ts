@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import type { JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
+import type { CVRequest, Job, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
 
 export type JobPostInput = {
   title: string;
@@ -24,6 +24,18 @@ export type RequestPostInput = {
 export async function createJob(input: JobPostInput) {
   const { error } = await supabase.from("jobs").insert({ ...input, status: "published" });
   return error;
+}
+
+export async function loadAdminPosts() {
+  const [jobsResult, requestsResult] = await Promise.all([
+    supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+    supabase.from("cv_requests").select("*").order("created_at", { ascending: false }),
+  ]);
+  return {
+    jobs: (jobsResult.data as Job[]) || [],
+    requests: (requestsResult.data as CVRequest[]) || [],
+    error: jobsResult.error || requestsResult.error,
+  };
 }
 
 export async function loadJobRequests() {

@@ -1,4 +1,27 @@
 node_modules
 .next
 out/
+.next/!.env
+
+# التبعيات والحزم الثقيلة
+node_modules/
+.pnpm-store/
+
+# نواتج البناء والتجميع (Build Outputs)
 .next/
+out/
+build/
+dist/
+
+# ملفات السجلات والذاكرة المؤقتة (Logs & Cache)
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.cache/
+.npm/
+
+# مخلفات نظام التشغيل
+.DS_Store
+Thumbs.db
+*.tmp

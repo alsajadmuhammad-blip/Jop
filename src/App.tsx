@@ -9,7 +9,7 @@ import type { View } from "./app/types";
 import { getCurrentProfile, getProfile, signOut } from "./services/authService";
 import { getPublicContent } from "./services/publicService";
 import { loadApplications } from "./services/applicationService";
-import { loadJobRequests } from "./services/adminService";
+import { loadAdminPosts, loadJobRequests } from "./services/adminService";
 import { HomePage } from "./pages/public/HomePage";
 import { JobsPage } from "./pages/public/JobsPage";
 import { RequestsPage } from "./pages/public/RequestsPage";
@@ -87,6 +87,14 @@ function App() {
     setApplications(result.applications);
   };
 
+  const refreshAdminPosts = async () => {
+    if (!hasSupabaseConfig || profile?.role !== "admin") return;
+    const result = await loadAdminPosts();
+    if (result.error) notify("تعذر تحميل بيانات لوحة الإدارة.");
+    setJobs(result.jobs);
+    setRequests(result.requests);
+  };
+
   const refreshJobRequests = async () => {
     if (!hasSupabaseConfig || profile?.role !== "admin") return;
     const result = await loadJobRequests();
@@ -153,6 +161,7 @@ function App() {
     else setApplications([]);
     if (profile?.role === "admin") void refreshJobRequests();
     else setJobRequests([]);
+    if (profile?.role === "admin") void refreshAdminPosts();
   }, [profile]);
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
@@ -176,9 +185,9 @@ function App() {
       {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} />}
       {view === "job" && <JobDetailsPage job={selectedJob} onNavigate={navigate} />}
       {view === "job-request" && <JobRequestPage onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
-      {view === "requests" && <RequestsPage requests={requests} loading={loading} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
+      {view === "requests" && <RequestsPage />}
       {view === "candidate" && profile?.role === "candidate" && <CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} />}
-      {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onRefresh={() => { void refreshPublicContent(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
+      {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
       {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} />}
     </main>
     <Footer />
