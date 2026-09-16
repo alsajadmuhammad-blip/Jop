@@ -19,15 +19,13 @@ export function JobDetailsPage({ job, onNavigate }: { job: Job | null; onNavigat
     <button className="back-link" onClick={() => onNavigate("jobs")}><ArrowRight size={16} /> العودة إلى الوظائف</button>
     <div className="job-details-hero">
       <div className="job-details-heading"><span className="company-logo large"><Building2 size={25} /></span><div><span className="category-label">{job.category || "عام"}</span><h1>{job.title}</h1><p>{job.company_name}</p></div></div>
-      <button className="outline-btn" onClick={() => void navigator.clipboard?.writeText(window.location.href)}><Share2 size={16} /> نسخ الرابط</button>
+      <button className="outline-btn" onClick={() => void navigator.clipboard?.writeText(window.location.href)}><Share2 size={16} /> مشاركة الرابط</button>
     </div>
-    <div className="job-brand-note"><img src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><b>iraq jobs</b><small>فرصة مهنية منشورة للباحثين عن عمل</small></span></div>
-    <div className="detail-chips"><span><Clock3 size={15} />{job.job_type}</span><span><MapPin size={15} />{job.city}</span><span><BriefcaseBusiness size={15} />{job.salary_range || "الراتب يحدد بالمقابلة"}</span></div>
+    <div className="detail-chips" aria-label="معلومات الوظيفة"><span><Clock3 size={15} />{job.job_type}</span><span><MapPin size={15} />{job.city}</span><span><BriefcaseBusiness size={15} />{job.salary_range || "الراتب يحدد بالمقابلة"}</span></div>
     <div className="job-details-grid">
       <article className="job-details-content">
         <div className="content-block"><h2>عن الوظيفة</h2><p>{job.description}</p></div>
         <div className="content-block"><h2>المتطلبات</h2><ul className="requirements-list">{job.requirements.length ? job.requirements.map((item) => <li key={item}><Check size={16} />{item}</li>) : <li>لم تتم إضافة متطلبات محددة.</li>}</ul></div>
-        <div className="job-application-notice"><MessageCircle size={20} /><div><b>التقديم المباشر غير متاح</b><p>هذه الوظيفة مخصصة للعرض. تواصل مع جهة النشر مباشرة عبر إحدى الوسائل المتاحة أدناه.</p></div></div>
       </article>
       <aside className="contact-card"><span className="eyebrow">طريقة التواصل</span><h2>تواصل مباشرة</h2><p>اختر الوسيلة المناسبة للتواصل مع الجهة الناشرة حول هذه الوظيفة.</p>{hasContact ? <div className="contact-actions">{job.contact_whatsapp && <a className="contact-action whatsapp premium-contact" href={whatsappUrl(job.contact_whatsapp)} target="_blank" rel="noreferrer"><span className="contact-icon"><MessageCircle size={21} /></span><span className="contact-copy"><small>رد سريع غالباً</small><b>تواصل عبر واتساب</b><em dir="ltr">{job.contact_whatsapp}</em></span><ArrowLeft className="contact-arrow" size={17} /></a>}{job.contact_email && <a className="contact-action email" href={`mailto:${job.contact_email}`}><Mail size={19} /><span><small>البريد الإلكتروني</small><b dir="ltr">{job.contact_email}</b></span></a>}</div> : <p className="contact-missing">لم تضف الجهة وسيلة تواصل لهذه الوظيفة بعد.</p>}</aside>
     </div>
