@@ -1,4 +1,4 @@
-import { ArrowRight, BriefcaseBusiness, Building2, Check, Clock3, Mail, MapPin, MessageCircle, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, Building2, Check, Clock3, Mail, MapPin, MessageCircle, Share2 } from "lucide-react";
 import { PageIntro } from "../../components/common/PageIntro";
 import type { View } from "../../app/types";
 import type { Job } from "../../lib/types";
@@ -28,7 +28,7 @@ export function JobDetailsPage({ job, onNavigate }: { job: Job | null; onNavigat
         <div className="content-block"><h2>المتطلبات</h2><ul className="requirements-list">{job.requirements.length ? job.requirements.map((item) => <li key={item}><Check size={16} />{item}</li>) : <li>لم تتم إضافة متطلبات محددة.</li>}</ul></div>
         <div className="job-application-notice"><MessageCircle size={20} /><div><b>التقديم المباشر غير متاح</b><p>هذه الوظيفة مخصصة للعرض. تواصل مع جهة النشر مباشرة عبر إحدى الوسائل المتاحة أدناه.</p></div></div>
       </article>
-      <aside className="contact-card"><span className="eyebrow">طريقة التواصل</span><h2>تواصل مباشرة</h2><p>اختر الوسيلة المناسبة للتواصل مع الجهة الناشرة حول هذه الوظيفة.</p>{hasContact ? <div className="contact-actions">{job.contact_email && <a className="contact-action email" href={`mailto:${job.contact_email}`}><Mail size={19} /><span><small>البريد الإلكتروني</small><b>{job.contact_email}</b></span></a>}{job.contact_whatsapp && <a className="contact-action whatsapp" href={whatsappUrl(job.contact_whatsapp)} target="_blank" rel="noreferrer"><MessageCircle size={19} /><span><small>واتساب</small><b>{job.contact_whatsapp}</b></span></a>}</div> : <p className="contact-missing">لم تضف الجهة وسيلة تواصل لهذه الوظيفة بعد.</p>}</aside>
+      <aside className="contact-card"><span className="eyebrow">طريقة التواصل</span><h2>تواصل مباشرة</h2><p>اختر الوسيلة المناسبة للتواصل مع الجهة الناشرة حول هذه الوظيفة.</p>{hasContact ? <div className="contact-actions">{job.contact_whatsapp && <a className="contact-action whatsapp premium-contact" href={whatsappUrl(job.contact_whatsapp)} target="_blank" rel="noreferrer"><span className="contact-icon"><MessageCircle size={21} /></span><span className="contact-copy"><small>رد سريع غالباً</small><b>تواصل عبر واتساب</b><em dir="ltr">{job.contact_whatsapp}</em></span><ArrowLeft className="contact-arrow" size={17} /></a>}{job.contact_email && <a className="contact-action email" href={`mailto:${job.contact_email}`}><Mail size={19} /><span><small>البريد الإلكتروني</small><b dir="ltr">{job.contact_email}</b></span></a>}</div> : <p className="contact-missing">لم تضف الجهة وسيلة تواصل لهذه الوظيفة بعد.</p>}</aside>
     </div>
   </section>;
 }
