@@ -81,12 +81,12 @@ export function JobRequestPage({ onNavigate, onSubmitted }: JobRequestPageProps)
   };
 
   if (sent) {
-    return <section className="container page-section centered-state"><CheckCircle2 size={52} /><h1>تم استلام طلبك</h1><p>سيراجع فريق مسار البيانات، وعند الموافقة ستظهر الوظيفة للباحثين عن عمل.</p><button className="primary-btn" onClick={() => onNavigate("home")}><ArrowRight size={17} /> العودة للرئيسية</button></section>;
+     return <section className="container page-section centered-state"><CheckCircle2 size={52} /><h1>تم استلام طلبك</h1><p>سيراجع فريق iraq jobs البيانات، وعند الموافقة ستظهر الوظيفة للباحثين عن عمل.</p><button className="primary-btn" onClick={() => onNavigate("home")}><ArrowRight size={17} /> العودة للرئيسية</button></section>;
   }
 
   return <section className="container page-section public-request-page">
     <button className="back-link" onClick={() => onNavigate("home")}><ArrowRight size={16} /> العودة للرئيسية</button>
-    <PageIntro eyebrow="نشر وظيفة" title="أرسل تفاصيل فرصتك إلى مسار" description="خطوات بسيطة، ومراجعة من فريق الإدارة قبل ظهور الوظيفة للعامة. لا تحتاج إلى تسجيل حساب." />
+     <PageIntro eyebrow="نشر وظيفة" title="أرسل تفاصيل فرصتك إلى iraq jobs" description="خطوات بسيطة، ومراجعة من فريق الإدارة قبل ظهور الوظيفة للعامة. لا تحتاج إلى تسجيل حساب." />
     <div className="public-form-card wizard-card">
       <div className="public-form-intro"><span className="company-logo"><Building2 size={20} /></span><div><b>طلب نشر وظيفة</b><span>أكمل الخطوات الأربع حتى يصل طلبك إلى الإدارة</span></div></div>
       <div className="wizard-steps" aria-label="مراحل طلب نشر الوظيفة">{steps.map((step) => <div className={`wizard-step ${currentStep === step.number ? "active" : ""} ${currentStep > step.number ? "complete" : ""}`} key={step.number}><span>{currentStep > step.number ? <Check size={15} /> : step.number}</span><div><b>{step.title}</b><small>{step.caption}</small></div></div>)}</div>

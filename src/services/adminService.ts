@@ -79,6 +79,16 @@ export async function createCvRequest(input: RequestPostInput) {
   return error;
 }
 
+export async function updateCvRequest(id: string, input: RequestPostInput) {
+  const { error } = await supabase.from("cv_requests").update(input).eq("id", id);
+  return error;
+}
+
+export async function deleteCvRequest(id: string) {
+  const { error } = await supabase.from("cv_requests").delete().eq("id", id);
+  return error;
+}
+
 export async function updatePostStatus(table: "jobs" | "cv_requests", id: string, status: PostStatus) {
   const { error } = await supabase.from(table).update({ status }).eq("id", id);
   return error;

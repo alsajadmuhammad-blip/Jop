@@ -33,7 +33,7 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
           <span className="home-kicker"><Sparkles size={15} /> الفرص العراقية، بشكل أوضح</span>
           <h1>خطوتك الجاية<br /><em>تبدأ من هنا.</em></h1>
           <p>منصة تجمع الباحثين عن عمل مع الوظائف والجهات التي تبحث عن مهاراتهم. ابحث، قدّم، وخلي الفرصة تقرب لك.</p>
-          <div className="hero-actions"><button className="primary-btn large" onClick={() => onNavigate("jobs")}>استكشف الوظائف <ArrowLeft size={18} /></button><button className="home-secondary-btn" onClick={() => onNavigate("job-request")}><Building2 size={17} /> أنا جهة توظيف</button></div>
+           <div className="hero-actions"><button className="primary-btn large" onClick={() => onNavigate("jobs")}>استكشف الوظائف <ArrowLeft size={18} /></button></div>
           <div className="home-trust-row"><span><CheckCircle2 size={15} /> وظائف محدثة</span><span><ShieldCheck size={15} /> تجربة مجانية للمتقدم</span><span><Zap size={15} /> تصفح سريع</span></div>
         </div>
         <div className="home-live-panel">
@@ -53,6 +53,6 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
 
     <section className="container section-block home-requests-section"><SectionHeading eyebrow="للمهارات المطلوبة" title="طلبات HR" action="كل الطلبات" onAction={() => onNavigate("requests")} /><div className="request-grid">{requests.length ? requests.slice(0, 3).map((request) => <RequestCard key={request.id} request={request} onClick={() => onOpenRequest(request)} />) : <div className="wide-empty"><FileText size={26} /><b>طلبات HR ستظهر هنا</b><span>تابع الطلبات الجديدة حسب اختصاصك.</span></div>}</div></section>
 
-    <section className="container home-employer-cta"><div className="home-cta-icon"><Building2 size={25} /></div><div><span className="eyebrow light">لأصحاب الشركات والـ HR</span><h2>عندك فرصة؟ خلّها توصل للشخص الصح.</h2><p>أرسل تفاصيل الوظيفة، وفريقنا يراجعها قبل نشرها للباحثين عن عمل.</p></div><button className="light-btn" onClick={() => onNavigate("job-request")}>انشر وظيفة <ArrowLeft size={17} /></button></section>
+     <section className="container home-employer-cta"><div className="home-cta-icon"><Building2 size={25} /></div><div><span className="eyebrow light">لأصحاب الشركات والـ HR</span><h2>عندك فرصة؟ خلّها توصل للشخص الصح.</h2><p>أرسل تفاصيل الوظيفة، وفريقنا يراجعها قبل نشرها للباحثين عن عمل.</p></div></section>
   </>;
 }
