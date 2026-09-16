@@ -26,6 +26,16 @@ export async function createJob(input: JobPostInput) {
   return error;
 }
 
+export async function updateJob(id: string, input: JobPostInput) {
+  const { error } = await supabase.from("jobs").update(input).eq("id", id);
+  return error;
+}
+
+export async function deleteJob(id: string) {
+  const { error } = await supabase.from("jobs").delete().eq("id", id);
+  return error;
+}
+
 export async function loadAdminPosts() {
   const [jobsResult, requestsResult] = await Promise.all([
     supabase.from("jobs").select("*").order("created_at", { ascending: false }),

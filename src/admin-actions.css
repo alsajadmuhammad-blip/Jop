@@ -1,0 +1,35 @@
+.admin-row .row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.admin-row .row-edit-action {
+  color: #4d62ae;
+  background: #edf0ff;
+}
+
+.admin-row .row-edit-action:hover {
+  background: #e1e6ff;
+}
+
+.admin-row .row-delete-action {
+  color: #b0524e;
+  background: #fff0ef;
+}
+
+.admin-row .row-delete-action:hover {
+  background: #ffe3e1;
+}
+
+@media (max-width: 640px) {
+  .admin-row .row-action {
+    min-height: 34px;
+  }
+
+  .admin-row .row-edit-action,
+  .admin-row .row-delete-action {
+    padding-inline: 8px;
+  }
+}

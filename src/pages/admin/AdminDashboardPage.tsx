@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Plus, RefreshCw, Send, Settings2, Users, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Send, Settings2, Trash2, Users, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { categories, jobTypes } from "../../lib/constants";
 import { formatDate } from "../../lib/format";
 import type { Application, ApplicationStatus, CVRequest, Job, JobRequest, JobType, PostStatus } from "../../lib/types";
-import { createCvRequest, createJob, updatePostStatus } from "../../services/adminService";
+import { createCvRequest, createJob, deleteJob, updateJob, updatePostStatus } from "../../services/adminService";
 import { openApplicationCv } from "../../services/applicationService";
 import type { Notify, View } from "../../app/types";
 import { JobRequestReviewList } from "../../features/jobs/JobRequestReviewList";
@@ -18,6 +18,7 @@ type AdminDashboardProps = {
   applications: Application[];
   jobRequests: JobRequest[];
   onNavigate: (view: View) => void;
+  onEditJob: (job: Job) => void;
   onRefresh: () => void;
   onNotify: Notify;
 };
@@ -41,7 +42,7 @@ function StatCard({ icon, value, label, tone, detail }: { icon: React.ReactNode;
   return <div className={`admin-stat-card ${tone}`}><span className="admin-stat-icon">{icon}</span><div><small>{label}</small><strong>{value}</strong><em>{detail}</em></div></div>;
 }
 
-export function AdminDashboardPage({ jobs, requests, applications, jobRequests, onNavigate, onRefresh, onNotify }: AdminDashboardProps) {
+export function AdminDashboardPage({ jobs, requests, applications, jobRequests, onNavigate, onEditJob, onRefresh, onNotify }: AdminDashboardProps) {
   const [section, setSection] = useState<AdminSection>("overview");
   const [statusFilter, setStatusFilter] = useState<"all" | PostStatus>("all");
   const [refreshing, setRefreshing] = useState(false);
@@ -76,6 +77,15 @@ export function AdminDashboardPage({ jobs, requests, applications, jobRequests, 
     onRefresh();
   };
 
+  const removeJob = async (job: Job) => {
+    const confirmed = window.confirm(`هل أنت متأكد من حذف وظيفة «${job.title}»؟\nسيتم حذفها نهائياً ولا يمكن التراجع عن العملية.`);
+    if (!confirmed) return;
+    const error = await deleteJob(job.id);
+    if (error) return onNotify(error.message);
+    onNotify("تم حذف الوظيفة");
+    onRefresh();
+  };
+
   const selectSection = (next: AdminSection) => {
     setSection(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -99,7 +109,7 @@ export function AdminDashboardPage({ jobs, requests, applications, jobRequests, 
         </nav>
         <div className="admin-topbar"><div><span className="eyebrow"><BarChart3 size={14} /> iraq jobs / الإدارة</span><h1>{section === "overview" ? "صباح الخير، خلّينا نرتّب الفرص" : sectionItems.find((item) => item.id === section)?.label}</h1><p>{section === "overview" ? "تابع حركة المنصة واتخذ الإجراء المناسب من مكان واحد." : "إدارة واضحة للمنشورات وطلبات الشركات وملفات المتقدمين."}</p></div><button className="admin-refresh-btn" onClick={() => void refresh()}><RefreshCw className={refreshing ? "spin" : ""} size={16} /> تحديث البيانات</button></div>
         {section === "overview" && <AdminOverview jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} pendingJobRequests={pendingJobRequests} publishedJobs={publishedJobs} draftJobs={draftJobs} closedJobs={closedJobs} newApplications={newApplications} onSection={selectSection} onNavigate={onNavigate} onCopyLink={() => void copyJobRequestLink()} />}
-         {section === "jobs" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>المنشورات</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div><div className="admin-toolbar-actions"><button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button><button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> منشور جديد</button></div></div><div className="admin-filter-row">{(["all", "published", "draft", "closed"] as const).map((item) => <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "الكل" : statusLabel(item)}</button>)}</div><div className="admin-list">{filteredJobs.map((job) => <AdminPost key={job.id} title={job.title} subtitle={`${job.company_name} · ${job.city}`} type="وظيفة" status={job.status} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />)}{requests.length > 0 && <div className="admin-subsection-heading"><span>طلبات CV الداخلية</span><small>{requests.length} طلب</small></div>}{requests.map((request) => <AdminPost key={request.id} title={request.title} subtitle={`${request.organization_name} · ${request.specialization}`} type="طلب CV" status={request.status} onPublish={() => void changeStatus("cv_requests", request.id, request.status === "published" ? "closed" : "published")} />)}{filteredJobs.length === 0 && requests.length === 0 && <EmptyState title="لا توجد منشورات" text="ابدأ بإضافة أول وظيفة من زر منشور جديد." />}</div></section>}
+         {section === "jobs" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>المنشورات</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div><div className="admin-toolbar-actions"><button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button><button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> منشور جديد</button></div></div><div className="admin-filter-row">{(["all", "published", "draft", "closed"] as const).map((item) => <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "الكل" : statusLabel(item)}</button>)}</div><div className="admin-list">{filteredJobs.map((job) => <AdminPost key={job.id} title={job.title} subtitle={`${job.company_name} · ${job.city}`} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />)}{requests.length > 0 && <div className="admin-subsection-heading"><span>طلبات CV الداخلية</span><small>{requests.length} طلب</small></div>}{requests.map((request) => <AdminPost key={request.id} title={request.title} subtitle={`${request.organization_name} · ${request.specialization}`} type="طلب CV" status={request.status} onPublish={() => void changeStatus("cv_requests", request.id, request.status === "published" ? "closed" : "published")} />)}{filteredJobs.length === 0 && requests.length === 0 && <EmptyState title="لا توجد منشورات" text="ابدأ بإضافة أول وظيفة من زر منشور جديد." />}</div></section>}
         {section === "job-requests" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>طلبات نشر الوظائف</h2><p>راجع طلبات الشركات قبل نشرها للعامة.</p></div><button className="outline-btn" onClick={() => void copyJobRequestLink()}><Link2 size={15} /> نسخ رابط الطلب العام</button></div><JobRequestReviewList requests={jobRequests} onRefresh={onRefresh} onNotify={onNotify} /></section>}
         {section === "applications" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>السير الذاتية</h2><p>راجع الملفات المرسلة إلى طلبات HR الداخلية.</p></div><span className="section-count"><FileText size={15} /> {applications.length} ملف</span></div><ApplicationsTable applications={applications} onNotify={onNotify} /></section>}
       </div>
@@ -120,10 +130,10 @@ function AdminOverview({ jobs, requests, applications, jobRequests, pendingJobRe
   </div>;
 }
 
-export function PostForm({ type, onTypeChange, onSaved }: { type: PostType; onTypeChange: (type: PostType) => void; onSaved: () => void }) {
+export function PostForm({ type, onTypeChange, onSaved, initialJob }: { type: PostType; onTypeChange: (type: PostType) => void; onSaved: () => void; initialJob?: Job | null }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", company_name: "", category: "تقنية", city: "بغداد", job_type: "دوام كامل" as JobType, description: "", requirements: "", salary_range: "", contact_email: "", contact_whatsapp: "", specialization: "", organization_name: "", details: "" });
+  const [form, setForm] = useState(() => ({ title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "تقنية", city: initialJob?.city || "بغداد", job_type: initialJob?.job_type || "دوام كامل" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", specialization: "", organization_name: "", details: "" }));
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = async (event: React.FormEvent) => {
@@ -131,19 +141,20 @@ export function PostForm({ type, onTypeChange, onSaved }: { type: PostType; onTy
     if (type === "job" && !form.contact_email.trim() && !form.contact_whatsapp.trim()) return setError("أضف البريد الإلكتروني أو رقم الواتساب على الأقل.");
     setSaving(true);
     setError("");
+    const jobInput = { title: form.title, company_name: form.company_name, category: form.category, city: form.city, job_type: form.job_type, description: form.description, requirements: form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null };
     const error = type === "job"
-      ? await createJob({ title: form.title, company_name: form.company_name, category: form.category, city: form.city, job_type: form.job_type, description: form.description, requirements: form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null })
+      ? await (initialJob ? updateJob(initialJob.id, jobInput) : createJob(jobInput))
       : await createCvRequest({ title: form.title, specialization: form.specialization, organization_name: form.organization_name, details: form.details });
     setSaving(false);
     if (error) return setError(error.message);
     onSaved();
   };
 
-  return <form className="post-form admin-post-form" onSubmit={submit}><div className="post-type"><button type="button" className={type === "job" ? "selected" : ""} onClick={() => onTypeChange("job")}><BriefcaseBusiness size={16} /> وظيفة</button><button type="button" className={type === "request" ? "selected" : ""} onClick={() => onTypeChange("request")}><Users size={16} /> طلب CV داخلي</button></div><div className="form-grid"><label>العنوان<input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder={type === "job" ? "مثال: مطور تطبيقات" : "مثال: مطلوب CV لمطورين"} /></label><label>{type === "job" ? "اسم الشركة" : "اسم جهة HR"}<input required value={type === "job" ? form.company_name : form.organization_name} onChange={(event) => update(type === "job" ? "company_name" : "organization_name", event.target.value)} /></label></div>{type === "job" ? <><div className="form-grid"><label>التصنيف<select value={form.category} onChange={(event) => update("category", event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label><label>المدينة<input required value={form.city} onChange={(event) => update("city", event.target.value)} /></label></div><div className="form-grid"><label>نوع الدوام<select value={form.job_type} onChange={(event) => update("job_type", event.target.value)}>{jobTypes.map((item) => <option key={item}>{item}</option>)}</select></label><label>الراتب <span className="optional">اختياري</span><input value={form.salary_range} onChange={(event) => update("salary_range", event.target.value)} /></label></div><div className="form-grid"><label>البريد الإلكتروني<input type="email" value={form.contact_email} onChange={(event) => update("contact_email", event.target.value)} dir="ltr" /></label><label>واتساب<input value={form.contact_whatsapp} onChange={(event) => update("contact_whatsapp", event.target.value)} dir="ltr" /></label></div><label>الوصف<textarea required rows={4} value={form.description} onChange={(event) => update("description", event.target.value)} /></label><label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label></> : <><label>الاختصاص المطلوب<input required value={form.specialization} onChange={(event) => update("specialization", event.target.value)} /></label><label>تفاصيل الطلب<textarea required rows={5} value={form.details} onChange={(event) => update("details", event.target.value)} /></label></>}{error && <p className="form-error">{error}</p>}<button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : "نشر الآن"} <Send size={16} /></button></form>;
+  return <form className="post-form admin-post-form" onSubmit={submit}>{!initialJob && <div className="post-type"><button type="button" className={type === "job" ? "selected" : ""} onClick={() => onTypeChange("job")}><BriefcaseBusiness size={16} /> وظيفة</button><button type="button" className={type === "request" ? "selected" : ""} onClick={() => onTypeChange("request")}><Users size={16} /> طلب CV داخلي</button></div>}<div className="form-grid"><label>العنوان<input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder={type === "job" ? "مثال: مطور تطبيقات" : "مثال: مطلوب CV لمطورين"} /></label><label>{type === "job" ? "اسم الشركة" : "اسم جهة HR"}<input required value={type === "job" ? form.company_name : form.organization_name} onChange={(event) => update(type === "job" ? "company_name" : "organization_name", event.target.value)} /></label></div>{type === "job" ? <><div className="form-grid"><label>التصنيف<select value={form.category} onChange={(event) => update("category", event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label><label>المدينة<input required value={form.city} onChange={(event) => update("city", event.target.value)} /></label></div><div className="form-grid"><label>نوع الدوام<select value={form.job_type} onChange={(event) => update("job_type", event.target.value)}>{jobTypes.map((item) => <option key={item}>{item}</option>)}</select></label><label>الراتب <span className="optional">اختياري</span><input value={form.salary_range} onChange={(event) => update("salary_range", event.target.value)} /></label></div><div className="form-grid"><label>البريد الإلكتروني<input type="email" value={form.contact_email} onChange={(event) => update("contact_email", event.target.value)} dir="ltr" /></label><label>واتساب<input value={form.contact_whatsapp} onChange={(event) => update("contact_whatsapp", event.target.value)} dir="ltr" /></label></div><label>الوصف<textarea required rows={4} value={form.description} onChange={(event) => update("description", event.target.value)} /></label><label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label></> : <><label>الاختصاص المطلوب<input required value={form.specialization} onChange={(event) => update("specialization", event.target.value)} /></label><label>تفاصيل الطلب<textarea required rows={5} value={form.details} onChange={(event) => update("details", event.target.value)} /></label></>}{error && <p className="form-error">{error}</p>}<button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : initialJob ? "حفظ التعديلات" : "نشر الآن"} <Send size={16} /></button></form>;
 }
 
-function AdminPost({ title, subtitle, type, status, onPublish }: { title: string; subtitle: string; type: string; status: PostStatus; onPublish: () => void }) {
-  return <div className="admin-row"><span className="row-icon"><BriefcaseBusiness size={18} /></span><div><b>{title}</b><small>{type} · {subtitle}</small></div><span className={`status ${status}`}>{statusLabel(status)}</span><button className="row-action" onClick={onPublish}>{status === "published" ? "إغلاق" : "نشر"}</button></div>;
+function AdminPost({ title, subtitle, type, status, onPublish, onEdit, onDelete }: { title: string; subtitle: string; type: string; status: PostStatus; onPublish: () => void; onEdit?: () => void; onDelete?: () => void }) {
+  return <div className="admin-row"><span className="row-icon"><BriefcaseBusiness size={18} /></span><div><b>{title}</b><small>{type} · {subtitle}</small></div><span className={`status ${status}`}>{statusLabel(status)}</span>{onEdit && <button className="row-action row-edit-action" onClick={onEdit}><Pencil size={13} /> تعديل</button>}{onDelete && <button className="row-action row-delete-action" onClick={onDelete}><Trash2 size={13} /> حذف</button>}<button className="row-action" onClick={onPublish}>{status === "published" ? "إغلاق" : "نشر"}</button></div>;
 }
 
 function ApplicationsTable({ applications, onNotify }: { applications: Application[]; onNotify: Notify }) {
