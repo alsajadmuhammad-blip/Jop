@@ -17,6 +17,7 @@ import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
 import { CandidatePage } from "./pages/candidate/CandidatePage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
+import { AdminPostPage } from "./pages/admin/AdminPostPage";
 import { HrDashboardPage } from "./pages/hr/HrDashboardPage";
 import { RequestModal } from "./features/requests/RequestModal";
 import { LoginModal } from "./features/auth/LoginModal";
@@ -136,11 +137,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if ((view === "admin" || view === "hr" || view === "candidate") && !profile) {
+    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate") && !profile) {
       setModal("login");
       return;
     }
-    if (view === "admin" && profile?.role !== "admin") {
+    if ((view === "admin" || view === "admin-post") && profile?.role !== "admin") {
       notify("هذه الصفحة مخصصة للإدارة");
       navigate("home");
       return;
@@ -168,7 +169,7 @@ function App() {
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
   const closeLogin = () => {
     setModal(null);
-    if (view === "admin" || view === "hr" || view === "candidate") navigate("home");
+    if (view === "admin" || view === "admin-post" || view === "hr" || view === "candidate") navigate("home");
   };
   const logout = async () => {
     await signOut();
@@ -188,6 +189,7 @@ function App() {
       {view === "requests" && <RequestsPage />}
       {view === "candidate" && profile?.role === "candidate" && <CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} />}
       {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
+      {view === "admin-post" && profile?.role === "admin" && <AdminPostPage onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify("تم حفظ المنشور ونشره بنجاح"); }} />}
       {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} />}
     </main>
     <Footer />
