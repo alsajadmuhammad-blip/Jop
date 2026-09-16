@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, LayoutDashboard, LogIn, LogOut, Menu, Users } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut, Menu, Users } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
 
@@ -18,7 +18,7 @@ export function Header({ view, profile, onNavigate, onLogin, onLogout, mobileMen
     { label: "طلبات HR", view: "requests" },
   ];
   return <header className="site-header"><div className="nav-wrap">
-    <button className="brand" onClick={() => onNavigate("home")} aria-label="الصفحة الرئيسية"><span className="brand-mark"><BriefcaseBusiness size={19} /></span><span><b>مسار</b><small>وظائف العراق</small></span></button>
+    <button className="brand" onClick={() => onNavigate("home")} aria-label="iraq jobs - الصفحة الرئيسية"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><b>iraq jobs</b><small>for job seekers</small></span></button>
     <nav className={mobileMenu ? "main-nav open" : "main-nav"}>
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}
       {profile?.role === "candidate" && <button className={view === "candidate" ? "nav-link active" : "nav-link"} onClick={() => onNavigate("candidate")}>حسابي</button>}

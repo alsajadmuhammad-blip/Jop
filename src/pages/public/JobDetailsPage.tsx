@@ -21,6 +21,7 @@ export function JobDetailsPage({ job, onNavigate }: { job: Job | null; onNavigat
       <div className="job-details-heading"><span className="company-logo large"><Building2 size={25} /></span><div><span className="category-label">{job.category || "عام"}</span><h1>{job.title}</h1><p>{job.company_name}</p></div></div>
       <button className="outline-btn" onClick={() => void navigator.clipboard?.writeText(window.location.href)}><Share2 size={16} /> نسخ الرابط</button>
     </div>
+    <div className="job-brand-note"><img src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><b>iraq jobs</b><small>فرصة مهنية منشورة للباحثين عن عمل</small></span></div>
     <div className="detail-chips"><span><Clock3 size={15} />{job.job_type}</span><span><MapPin size={15} />{job.city}</span><span><BriefcaseBusiness size={15} />{job.salary_range || "الراتب يحدد بالمقابلة"}</span></div>
     <div className="job-details-grid">
       <article className="job-details-content">

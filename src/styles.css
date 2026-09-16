@@ -3,14 +3,14 @@
   color: #18312d;
   background: #f7faf8;
   font-synthesis: none;
-  --ink: #18312d;
-  --muted: #6b7d78;
-  --line: #e5ece8;
-  --soft: #f1f6f3;
-  --green: #123c35;
-  --green-2: #1c6354;
-  --mint: #dff3eb;
-  --accent: #e5a646;
+  --ink: #18204f;
+  --muted: #68718d;
+  --line: #e4e7f1;
+  --soft: #f3f5fb;
+  --green: #171d53;
+  --green-2: #2c3f91;
+  --mint: #e9edff;
+  --accent: #f47b20;
   --white: #ffffff;
   --shadow: 0 18px 50px rgba(25, 64, 53, .08);
 }
@@ -27,6 +27,7 @@ button:disabled { cursor: wait; opacity: .7; }
 .site-header { position: sticky; top: 0; z-index: 30; height: 78px; background: rgba(255,255,255,.88); border-bottom: 1px solid rgba(229,236,232,.8); backdrop-filter: blur(18px); }
 .nav-wrap { width: min(1240px, calc(100% - 40px)); height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 28px; margin: 0 auto; }
 .brand { border: 0; background: transparent; display: inline-flex; align-items: center; gap: 10px; color: var(--ink); padding: 0; text-align: right; }
+.brand-logo { width: 44px; height: 44px; flex: 0 0 auto; display: block; border: 2px solid rgba(244,123,32,.28); border-radius: 13px; object-fit: cover; box-shadow: 0 7px 16px rgba(24,32,79,.15); }
 .brand-mark { width: 39px; height: 39px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: var(--green); box-shadow: 0 7px 18px rgba(18,60,53,.2); }
 .brand b { display: block; font-family: "Readex Pro", sans-serif; font-size: 18px; line-height: 1.1; }
 .brand small { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
@@ -40,7 +41,7 @@ button:disabled { cursor: wait; opacity: .7; }
 .menu-btn { display: none; border: 0; color: var(--ink); background: transparent; }
 
 .config-banner { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 8px; color: #86601f; background: #fff8e8; border-bottom: 1px solid #f2dfad; font-size: 12px; }
-.hero-section { position: relative; padding: 92px 0 80px; background: radial-gradient(circle at 12% 15%, rgba(211,240,227,.85), transparent 33%), linear-gradient(135deg, #f4fbf7 0%, #fff 55%, #f8fbf9 100%); }
+.hero-section { position: relative; padding: 92px 0 80px; background: radial-gradient(circle at 12% 15%, rgba(226,231,255,.92), transparent 33%), linear-gradient(135deg, #f5f6ff 0%, #fff 55%, #fbfaff 100%); }
 .hero-section:after { content: ""; position: absolute; inset: auto 0 0; height: 1px; background: var(--line); }
 .hero-orb { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(1px); opacity: .6; }
 .orb-one { width: 180px; height: 180px; top: 14%; left: -80px; background: #e6f3c9; }
@@ -51,7 +52,7 @@ button:disabled { cursor: wait; opacity: .7; }
 .eyebrow.light { color: #bde7d8; }
 .hero-copy h1 { font-family: "Readex Pro", sans-serif; font-size: clamp(42px, 5vw, 70px); line-height: 1.2; letter-spacing: -2px; margin: 17px 0 16px; color: var(--ink); }
 .hero-copy h1 span { color: var(--green-2); position: relative; }
-.hero-copy h1 span:after { content: ""; position: absolute; height: 8px; border-radius: 8px; bottom: -2px; right: 3px; left: 5px; background: rgba(229,166,70,.5); z-index: -1; }
+.hero-copy h1 span:after { content: ""; position: absolute; height: 8px; border-radius: 8px; bottom: -2px; right: 3px; left: 5px; background: rgba(244,123,32,.48); z-index: -1; }
 .hero-copy > p { max-width: 540px; color: var(--muted); line-height: 2; font-size: 16px; margin: 0; }
 .hero-actions { display: flex; align-items: center; gap: 18px; margin-top: 28px; }
 .primary-btn, .outline-btn, .light-btn, .text-btn { border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; font-weight: 700; font-size: 13px; transition: transform .2s, box-shadow .2s, background .2s; }
@@ -113,3 +114,7 @@ footer { border-top: 1px solid var(--line); background: #fff; }.footer-inner { m
   .wizard-actions .primary-btn, .wizard-actions .outline-btn { flex: 1; justify-content: center; }
   .premium-contact .contact-copy b { font-size: 12px; }
 }
+
+.hero-brand-lockup { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 18px; }.hero-brand-lockup img { width: 52px; height: 52px; border: 2px solid rgba(244,123,32,.35); border-radius: 15px; object-fit: cover; box-shadow: 0 10px 24px rgba(24,32,79,.14); }.hero-brand-lockup b, .hero-brand-lockup small { display: block; }.hero-brand-lockup b { color: var(--ink); font-family: "Readex Pro", sans-serif; font-size: 19px; letter-spacing: -.02em; }.hero-brand-lockup small { color: #f47b20; font-size: 9px; font-weight: 800; letter-spacing: .14em; margin-top: 3px; }
+.job-card { position: relative; min-height: 276px; overflow: hidden; border-color: #e1e5f0; box-shadow: 0 8px 24px rgba(24,32,79,.05); }.job-card:before { content: ""; position: absolute; width: 120px; height: 120px; top: -70px; left: -42px; border-radius: 50%; background: rgba(244,123,32,.08); }.job-card:hover { border-color: #c8d0f0; box-shadow: 0 17px 35px rgba(24,32,79,.11); }.job-card .card-top, .job-card .card-body, .job-card .card-footer, .job-card-date { position: relative; z-index: 1; }.job-card-badge { color: #f47b20; background: #fff3eb; border: 1px solid #ffe0cd; border-radius: 99px; padding: 5px 8px; font-size: 9px; font-weight: 800; letter-spacing: .02em; }.job-card .company-logo { color: var(--green-2); background: #edf0ff; border: 1px solid #dfe4ff; }.job-card .category-label { color: var(--green-2); background: #edf0ff; }.job-card .card-footer { align-items: center; }.job-card .card-footer b { display: inline-flex; align-items: center; gap: 4px; color: var(--green-2); }.job-card-date { display: block; position: absolute; left: 18px; bottom: 10px; color: #9ba4bd; font-size: 9px; }.job-brand-note { display: inline-flex; align-items: center; gap: 9px; padding: 9px 12px; margin-top: 22px; border: 1px solid #e3e6f3; border-radius: 12px; background: rgba(255,255,255,.72); }.job-brand-note img { width: 30px; height: 30px; border: 1px solid rgba(244,123,32,.3); border-radius: 9px; object-fit: cover; }.job-brand-note b, .job-brand-note small { display: block; }.job-brand-note b { color: var(--ink); font-size: 11px; letter-spacing: .01em; }.job-brand-note small { color: var(--muted); font-size: 9px; margin-top: 2px; }
+footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-inner .brand b { font-size: 15px; letter-spacing: .01em; }.footer-inner .brand small { letter-spacing: .08em; }
