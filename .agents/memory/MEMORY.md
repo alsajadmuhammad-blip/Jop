@@ -7,3 +7,4 @@
 - [Store owner navigation](store-owner-navigation.md) — mobile bottom bar and dashboard top tabs sync via `?tab=` query param; contact us is a floating button, not a header link.
 - [Cache empty-data bug](cache-empty-data-bug.md) — writeStoreCache & setStorePage must guard against empty products; network blip writes [] and locks out data for 5 min.
 - [Masar Supabase roles](masar-supabase-roles.md) — client keys are public; enforce admin/HR separation with database RLS, not UI visibility alone.
+- [Public interface direction](public-ui-direction.md) — keep public job browsing premium and restrained: concise copy, strong hierarchy, and useful details over decorative cards.
