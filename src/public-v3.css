@@ -1064,3 +1064,235 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Brand refinement: use the logo's indigo, orange, and white with restraint. */
+.home-v3-hero {
+  background: linear-gradient(118deg, #202967 0%, #303d98 58%, #3f4db0 100%);
+}
+
+.home-v3-hero:before {
+  border-color: rgba(255, 255, 255, .14);
+  box-shadow: 0 0 0 34px rgba(255, 255, 255, .035), 0 0 0 68px rgba(244, 123, 0, .055);
+}
+
+.home-v3-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 25px;
+}
+
+.home-v3-brand-lockup img {
+  width: 49px;
+  height: 49px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 14px;
+  box-shadow: 0 7px 18px rgba(7, 12, 54, .2);
+}
+
+.home-v3-brand-lockup span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.home-v3-brand-lockup strong {
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: .14em;
+}
+
+.home-v3-brand-lockup small {
+  color: #c3c9f0;
+  font-size: 8px;
+  letter-spacing: .12em;
+}
+
+.home-v3-overline {
+  color: #d9ddfa;
+}
+
+.home-v3-overline i {
+  background: #f47b00;
+}
+
+.home-v3-hero h1 span {
+  color: #ff9b35;
+}
+
+.home-v3-hero-copy p {
+  color: #d2d6ef;
+}
+
+.home-v3-actions .primary-btn {
+  color: #fff;
+  background: #f47b00;
+  box-shadow: 0 9px 22px rgba(19, 25, 82, .28);
+}
+
+.home-v3-actions .primary-btn:hover {
+  color: #fff;
+  background: #d96900;
+}
+
+.home-v3-action-note {
+  color: #d1d6f1;
+}
+
+.home-v3-action-note svg {
+  color: #ff9b35;
+}
+
+.home-v3-featured {
+  position: relative;
+  border-color: rgba(255, 255, 255, .3);
+  box-shadow: 0 24px 60px rgba(14, 20, 79, .3);
+}
+
+.home-v3-featured:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 22px;
+  left: 22px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: #f47b00;
+}
+
+.home-v3-featured-head > span {
+  color: #303d98;
+  background: #edf0ff;
+}
+
+.home-v3-featured-job:hover strong {
+  color: #303d98;
+}
+
+.home-v3-featured-link,
+.home-v3-text-link {
+  color: #303d98;
+}
+
+.home-v3-featured-link:hover,
+.home-v3-text-link:hover {
+  color: #f47b00;
+}
+
+.home-v3-stat strong {
+  color: #303d98;
+}
+
+.home-v3-method > span {
+  color: #f47b00;
+}
+
+.home-v3-employer {
+  border-color: #dfe2f5;
+  background: #f5f6ff;
+}
+
+.home-v3-employer-mark {
+  color: #303d98;
+  background: #e9ecff;
+}
+
+.home-v3-employer small {
+  color: #6f78a8;
+}
+
+.home-v3-employer strong {
+  color: #252e70;
+}
+
+.job-card .company-logo {
+  border-color: #dce0fb;
+  color: #303d98;
+  background: #eef0ff;
+}
+
+.job-card-badge {
+  color: #b55b0a;
+  border-color: #ffe1c4;
+  background: #fff4e9;
+}
+
+.job-card-date svg,
+.job-card-v3-meta svg {
+  color: #6978c2;
+}
+
+.job-card .category-label {
+  color: #b55b0a;
+  background: #fff1e4;
+}
+
+.job-card .job-card-v3-main h3 {
+  color: #20285e;
+}
+
+.job-card-v3-footer b {
+  color: #303d98;
+}
+
+.jobs-page-heading {
+  border-color: #dfe2f5;
+  background: #f5f6ff;
+}
+
+.jobs-page-heading .page-intro h1,
+.jobs-results-bar strong {
+  color: #20285e;
+}
+
+.jobs-total,
+.filter-toggle:hover,
+.filter-toggle.active,
+.filter-options button:hover,
+.filter-options button.selected {
+  color: #303d98;
+  border-color: #cbd2f5;
+  background: #edf0ff;
+}
+
+.job-v3-header {
+  border-color: #dfe2f5;
+}
+
+.job-v3-header-main .company-logo {
+  border-color: #dce0fb;
+  color: #303d98;
+  background: #eef0ff;
+}
+
+.job-v3-tags > span {
+  color: #b55b0a;
+  background: #fff1e4;
+}
+
+.job-v3-header h1,
+.job-v3-section-title h2,
+.job-v3-contact-title h2 {
+  color: #20285e;
+}
+
+.job-v3-facts > span {
+  border-color: #e0e3f4;
+  background: #fafaff;
+}
+
+.job-v3-facts svg,
+.job-v3-contact-title > span,
+.job-v3-requirements svg {
+  color: #303d98;
+}
+
+.job-v3-contact-title > span {
+  background: #edf0ff;
+}
+
+.job-v3-contact-note {
+  color: #97601f;
+  background: #fff8ef;
+}

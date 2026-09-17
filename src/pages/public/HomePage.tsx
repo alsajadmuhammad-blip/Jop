@@ -28,7 +28,8 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
       <div className="container">
         <div className="home-v3-hero-grid">
           <div className="home-v3-hero-copy">
-            <span className="home-v3-overline">iraq jobs <i /> فرص العمل في العراق</span>
+            <div className="home-v3-brand-lockup"><img src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><strong>IRAQ JOBS</strong><small>FOR JOB SEEKERS</small></span></div>
+            <span className="home-v3-overline">فرص العمل في العراق <i /> منصة توظيف موثوقة</span>
             <h1>وظيفتك القادمة<br /><span>تبدأ بخطوة واضحة.</span></h1>
             <p>اعثر على الفرصة المناسبة، راجع التفاصيل، وتواصل مع الجهة مباشرة.</p>
             <div className="home-v3-actions">
