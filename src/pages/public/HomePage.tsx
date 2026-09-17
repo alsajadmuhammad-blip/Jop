@@ -1,4 +1,4 @@
-import { ArrowLeft, BriefcaseBusiness, Building2, Check, CheckCircle2, Clock3, FileText, HeartHandshake, MapPin, Send, ShieldCheck, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, Building2, Clock3, FileText, HeartHandshake, MapPin, Send, Users, Zap } from "lucide-react";
 import { SectionHeading } from "../../components/common/PageIntro";
 import { JobCard } from "../../features/jobs/JobCard";
 import { RequestCard } from "../../features/requests/RequestCard";
@@ -26,21 +26,19 @@ function Step({ icon, number, title, text }: { icon: React.ReactNode; number: st
 export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
   return <>
     <section className="home-hero">
-      <div className="home-hero-glow glow-one" /><div className="home-hero-glow glow-two" />
       <div className="container home-hero-grid">
         <div className="home-hero-copy">
-          <div className="hero-brand-lockup"><img src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><b>iraq jobs</b><small>for job seekers</small></span></div>
-          <span className="home-kicker"><Sparkles size={15} /> الفرص العراقية، بشكل أوضح</span>
-          <h1>خطوتك الجاية<br /><em>تبدأ من هنا.</em></h1>
-          <p>منصة تجمع الباحثين عن عمل مع الوظائف والجهات التي تبحث عن مهاراتهم. ابحث، قدّم، وخلي الفرصة تقرب لك.</p>
-           <div className="hero-actions"><button className="primary-btn large" onClick={() => onNavigate("jobs")}>استكشف الوظائف <ArrowLeft size={18} /></button></div>
-          <div className="home-trust-row"><span><CheckCircle2 size={15} /> وظائف محدثة</span><span><ShieldCheck size={15} /> تجربة مجانية للمتقدم</span><span><Zap size={15} /> تصفح سريع</span></div>
+          <span className="home-kicker">منصة توظيف عراقية</span>
+          <h1>ابحث عن وظيفتك<br /><em>القادمة بوضوح.</em></h1>
+          <p>وظائف مرتبة حسب المجال والمدينة ونوع الدوام. افتح التفاصيل وتواصل مباشرة مع الجهة الناشرة.</p>
+          <div className="hero-actions"><button className="primary-btn large" onClick={() => onNavigate("jobs")}>تصفح الوظائف <ArrowLeft size={18} /></button></div>
+          <div className="home-trust-row"><span><BriefcaseBusiness size={15} /> {jobs.length} وظيفة منشورة</span><span><Clock3 size={15} /> الأحدث يظهر أولاً</span></div>
         </div>
         <div className="home-live-panel">
-          <div className="home-live-head"><div><span className="live-dot" /><b>تتحرك الآن</b></div><small>{jobs.length} فرصة متاحة</small></div>
-          <div className="home-live-title"><span>أحدث الوظائف</span><button onClick={() => onNavigate("jobs")}>عرض الكل <ArrowLeft size={14} /></button></div>
+          <div className="home-live-head"><div><b>آخر الوظائف المضافة</b></div><small>{jobs.length} وظيفة</small></div>
+          <div className="home-live-title"><span>فرص متاحة الآن</span><button onClick={() => onNavigate("jobs")}>كل الوظائف <ArrowLeft size={14} /></button></div>
           <div className="home-live-list">{jobs.slice(0, 3).map((job, index) => <button className="home-live-job" key={job.id} onClick={() => onOpenJob(job)}><span className={`mini-icon icon-${index + 1}`}><BriefcaseBusiness size={16} /></span><span><b>{job.title}</b><small>{job.company_name} · {job.city}</small></span><ArrowLeft size={15} /></button>)}{jobs.length === 0 && <div className="empty-mini">لا توجد وظائف منشورة حالياً</div>}</div>
-          <div className="home-live-footer"><span><Clock3 size={14} /> آخر الفرص أولاً</span><span>iraq jobs</span></div>
+          <div className="home-live-footer"><span><Clock3 size={14} /> يتم ترتيبها حسب تاريخ النشر</span><span>iraq jobs</span></div>
         </div>
       </div>
     </section>
@@ -53,6 +51,6 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
 
     <section className="container section-block home-requests-section"><SectionHeading eyebrow="للمهارات المطلوبة" title="طلبات HR" action="كل الطلبات" onAction={() => onNavigate("requests")} /><div className="request-grid">{requests.length ? requests.slice(0, 3).map((request) => <RequestCard key={request.id} request={request} onClick={() => onOpenRequest(request)} />) : <div className="wide-empty"><FileText size={26} /><b>طلبات HR ستظهر هنا</b><span>تابع الطلبات الجديدة حسب اختصاصك.</span></div>}</div></section>
 
-     <section className="container home-employer-cta"><div className="home-cta-icon"><Building2 size={25} /></div><div><span className="eyebrow light">لأصحاب الشركات والـ HR</span><h2>عندك فرصة؟ خلّها توصل للشخص الصح.</h2><p>أرسل تفاصيل الوظيفة، وفريقنا يراجعها قبل نشرها للباحثين عن عمل.</p></div></section>
+     <section className="container home-employer-cta"><div className="home-cta-icon"><Building2 size={25} /></div><div><span className="eyebrow light">لأصحاب الشركات والـ HR</span><h2>تحتاج مرشحين لوظيفة محددة؟</h2><p>أرسل تفاصيل الوظيفة لفريقنا لمراجعتها وتجهيزها للنشر.</p></div></section>
   </>;
 }

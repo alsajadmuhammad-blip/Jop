@@ -53,7 +53,8 @@ export function JobsPage({ jobs, loading, onOpenJob }: { jobs: Job[]; loading: b
         <div className="filter-group"><span>ترتيب النتائج</span><div className="filter-options"><button className={sort === "newest" ? "selected" : ""} onClick={() => setSort("newest")}><ArrowDownAZ size={14} /> الأحدث أولاً</button><button className={sort === "title" ? "selected" : ""} onClick={() => setSort("title")}><ArrowDownAZ size={14} /> حسب الاسم</button></div></div>
       </div>}
     </div>
-    {(category !== "الكل" || jobType !== "الكل" || city !== "الكل") && <div className="active-filter-list"><span>الفلاتر الحالية:</span>{category !== "الكل" && <button onClick={() => setCategory("الكل")}>{category} <X size={13} /></button>}{jobType !== "الكل" && <button onClick={() => setJobType("الكل")}>{jobType} <X size={13} /></button>}{city !== "الكل" && <button onClick={() => setCity("الكل")}>{city} <X size={13} /></button>}</div>}
+     {(category !== "الكل" || jobType !== "الكل" || city !== "الكل") && <div className="active-filter-list"><span>الفلاتر الحالية:</span>{category !== "الكل" && <button onClick={() => setCategory("الكل")}>{category} <X size={13} /></button>}{jobType !== "الكل" && <button onClick={() => setJobType("الكل")}>{jobType} <X size={13} /></button>}{city !== "الكل" && <button onClick={() => setCity("الكل")}>{city} <X size={13} /></button>}</div>}
+     <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{loading ? "جاري التحميل..." : `${filtered.length} وظيفة متاحة`}</strong></div><span>{sort === "newest" ? "مرتبة حسب الأحدث" : "مرتبة حسب الاسم"}</span></div>
     {loading ? <LoadingCards /> : filtered.length ? <div className="job-grid wide">{filtered.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
   </section>;
 }
