@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Send, Settings2, Trash2, Users, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Send, Settings2, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { categories, jobTypes } from "../../lib/constants";
 import { formatDate } from "../../lib/format";
-import type { Application, ApplicationStatus, CVRequest, Job, JobRequest, JobType, PostStatus } from "../../lib/types";
-import { createCvRequest, createJob, deleteCvRequest, deleteJob, updateCvRequest, updateJob, updatePostStatus } from "../../services/adminService";
+import type { Application, ApplicationStatus, CVRequest, EmployerAccount, Job, JobRequest, JobType, PostStatus } from "../../lib/types";
+import { createCvRequest, createJob, deleteCvRequest, deleteJob, loadEmployerAccounts, updateCandidateSearchPermission, updateCvRequest, updateJob, updatePostStatus } from "../../services/adminService";
 import { openApplicationCv } from "../../services/applicationService";
 import type { Notify, View } from "../../app/types";
 import { JobRequestReviewList } from "../../features/jobs/JobRequestReviewList";
 
-type AdminSection = "overview" | "jobs" | "job-requests" | "applications";
+type AdminSection = "overview" | "jobs" | "job-requests" | "applications" | "employer-access";
 export type PostType = "job" | "request";
 
 type AdminDashboardProps = {
@@ -29,6 +29,7 @@ const sectionItems: { id: AdminSection; label: string; icon: React.ReactNode }[]
   { id: "jobs", label: "إدارة المنشورات", icon: <BriefcaseBusiness size={17} /> },
   { id: "job-requests", label: "طلبات نشر الوظائف", icon: <ClipboardIcon /> },
   { id: "applications", label: "السير الذاتية", icon: <FileText size={17} /> },
+  { id: "employer-access", label: "صلاحيات البحث", icon: <ShieldCheck size={17} /> },
 ];
 
 function ClipboardIcon() {
@@ -47,6 +48,16 @@ export function AdminDashboardPage({ jobs, requests, applications, jobRequests, 
   const [section, setSection] = useState<AdminSection>("overview");
   const [statusFilter, setStatusFilter] = useState<"all" | PostStatus>("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [employerAccounts, setEmployerAccounts] = useState<EmployerAccount[]>([]);
+  const [employerAccountsLoading, setEmployerAccountsLoading] = useState(true);
+
+  useEffect(() => {
+    void loadEmployerAccounts().then((result) => {
+      setEmployerAccounts(result.accounts);
+      setEmployerAccountsLoading(false);
+      if (result.error) onNotify("تعذر تحميل حسابات أصحاب العمل.");
+    });
+  }, []);
 
   const publishedJobs = jobs.filter((job) => job.status === "published");
   const draftJobs = jobs.filter((job) => job.status === "draft");
@@ -122,9 +133,24 @@ export function AdminDashboardPage({ jobs, requests, applications, jobRequests, 
          {section === "jobs" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>المنشورات</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div><div className="admin-toolbar-actions"><button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button><button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> منشور جديد</button></div></div><div className="admin-filter-row">{(["all", "published", "draft", "closed"] as const).map((item) => <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "الكل" : statusLabel(item)}</button>)}</div><div className="admin-list">{filteredJobs.map((job) => <AdminPost key={job.id} title={job.title} subtitle={`${job.company_name} · ${job.city}`} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />)}{requests.length > 0 && <div className="admin-subsection-heading"><span>طلبات CV الداخلية</span><small>{requests.length} طلب</small></div>}{requests.map((request) => <AdminPost key={request.id} title={request.title} subtitle={`${request.organization_name} · ${request.specialization}`} type="طلب CV" status={request.status} onEdit={() => onEditRequest(request)} onDelete={() => void removeRequest(request)} onPublish={() => void changeStatus("cv_requests", request.id, request.status === "published" ? "closed" : "published")} />)}{filteredJobs.length === 0 && requests.length === 0 && <EmptyState title="لا توجد منشورات" text="ابدأ بإضافة أول وظيفة من زر منشور جديد." />}</div></section>}
         {section === "job-requests" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>طلبات نشر الوظائف</h2><p>راجع طلبات الشركات قبل نشرها للعامة.</p></div><button className="outline-btn" onClick={() => void copyJobRequestLink()}><Link2 size={15} /> نسخ رابط الطلب العام</button></div><JobRequestReviewList requests={jobRequests} onRefresh={onRefresh} onNotify={onNotify} /></section>}
         {section === "applications" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>السير الذاتية</h2><p>راجع الملفات المرسلة إلى طلبات HR الداخلية.</p></div><span className="section-count"><FileText size={15} /> {applications.length} ملف</span></div><ApplicationsTable applications={applications} onNotify={onNotify} /></section>}
+         {section === "employer-access" && <EmployerAccessSection accounts={employerAccounts} loading={employerAccountsLoading} onNotify={onNotify} onChanged={(next) => setEmployerAccounts((current) => current.map((account) => account.id === next.id ? next : account))} />}
       </div>
     </div>
   </section>;
+}
+
+function EmployerAccessSection({ accounts, loading, onNotify, onChanged }: { accounts: EmployerAccount[]; loading: boolean; onNotify: Notify; onChanged: (account: EmployerAccount) => void }) {
+  const [updating, setUpdating] = useState("");
+  const changePermission = async (account: EmployerAccount) => {
+    setUpdating(account.id);
+    const enabled = !account.can_search_candidates;
+    const error = await updateCandidateSearchPermission(account.id, enabled);
+    setUpdating("");
+    if (error) return onNotify(error.message || "تعذر تحديث الصلاحية.");
+    onChanged({ ...account, can_search_candidates: enabled });
+    onNotify(enabled ? "تم تفعيل البحث لهذا الحساب" : "تم إيقاف البحث لهذا الحساب");
+  };
+  return <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>صلاحيات البحث</h2><p>فعّل البحث عن الملفات الشخصية لكل صاحب عمل بشكل مستقل.</p></div><span className="section-count"><ShieldCheck size={15} /> {accounts.filter((account) => account.can_search_candidates).length} مفعّلة</span></div><div className="access-explanation"><ShieldCheck size={20} /><span><b>التحكم بيد المشرف</b><small>صاحب العمل لا يستطيع رؤية أو البحث عن أي ملف إلا بعد تفعيل هذه الصلاحية لحسابه.</small></span></div>{loading ? <div className="centered-state"><span className="live-dot" /><p>جاري تحميل الحسابات...</p></div> : <div className="employer-access-list">{accounts.length ? accounts.map((account) => <div className="employer-access-row" key={account.id}><span className="app-avatar">{(account.full_name || "ص").slice(0, 1)}</span><div><b>{account.full_name || "حساب بدون اسم"}</b><small>{account.organization || "صاحب عمل / HR"}</small></div><span className={`permission-status ${account.can_search_candidates ? "enabled" : "disabled"}`}>{account.can_search_candidates ? "البحث مفعّل" : "البحث غير مفعّل"}</span><button className={account.can_search_candidates ? "outline-btn danger-outline" : "primary-btn"} disabled={updating === account.id} onClick={() => void changePermission(account)}>{updating === account.id ? "جاري التحديث..." : account.can_search_candidates ? "إيقاف الصلاحية" : "تفعيل البحث"}</button></div>) : <EmptyState title="لا توجد حسابات أصحاب عمل" text="ستظهر حسابات HR هنا بعد التسجيل." />}</div>}</section>;
 }
 
 function AdminOverview({ jobs, requests, applications, jobRequests, pendingJobRequests, publishedJobs, draftJobs, closedJobs, newApplications, onSection, onNavigate, onCopyLink }: { jobs: Job[]; requests: CVRequest[]; applications: Application[]; jobRequests: JobRequest[]; pendingJobRequests: JobRequest[]; publishedJobs: Job[]; draftJobs: Job[]; closedJobs: Job[]; newApplications: Application[]; onSection: (section: AdminSection) => void; onNavigate: (view: View) => void; onCopyLink: () => void }) {
@@ -183,5 +209,5 @@ function ApplicationsTable({ applications, onNotify }: { applications: Applicati
       onNotify(error instanceof Error ? error.message : "تعذر فتح الملف.");
     }
   };
-  return <div className="applications-list">{applications.length ? applications.map((application) => <div className="application-row" key={application.id}><span className="app-avatar">{application.full_name.slice(0, 1)}</span><div><b>{application.full_name}</b><small>{application.cv_requests?.title || "طلب CV"} · {application.phone}</small></div><span className={`status ${application.status}`}>{application.status === "new" ? "جديد" : application.status === "reviewing" ? "قيد المراجعة" : application.status}</span><button className="row-action" onClick={() => void openCv(application.cv_path)}>فتح CV</button></div>) : <EmptyState title="ماكو سير ذاتية بعد" text="طلبات المتقدمين راح تظهر هنا فور إرسالها." />}</div>;
+  return <div className="applications-list">{applications.length ? applications.map((application) => <div className="application-row" key={application.id}><span className="app-avatar">{application.full_name.slice(0, 1)}</span><div><b>{application.full_name}</b><small>{application.cv_requests?.title || "طلب CV"} · {application.phone}</small></div><span className={`status ${application.status}`}>{application.status === "new" ? "جديد" : application.status === "reviewing" ? "قيد المراجعة" : application.status}</span><button className="row-action" disabled={!application.cv_path} onClick={() => application.cv_path && void openCv(application.cv_path)}>{application.cv_path ? "فتح CV" : "فتح الملف"}</button></div>) : <EmptyState title="ماكو سير ذاتية بعد" text="طلبات المتقدمين راح تظهر هنا فور إرسالها." />}</div>;
 }

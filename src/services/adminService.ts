@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import type { CVRequest, Job, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
+import type { CVRequest, EmployerAccount, Job, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
 
 export type JobPostInput = {
   title: string;
@@ -91,5 +91,23 @@ export async function deleteCvRequest(id: string) {
 
 export async function updatePostStatus(table: "jobs" | "cv_requests", id: string, status: PostStatus) {
   const { error } = await supabase.from(table).update({ status }).eq("id", id);
+  return error;
+}
+
+export async function loadEmployerAccounts() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, organization, can_search_candidates")
+    .eq("role", "hr")
+    .order("created_at", { ascending: false });
+  return { accounts: (data as EmployerAccount[]) || [], error };
+}
+
+export async function updateCandidateSearchPermission(userId: string, enabled: boolean) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ can_search_candidates: enabled })
+    .eq("id", userId)
+    .eq("role", "hr");
   return error;
 }

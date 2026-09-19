@@ -2,9 +2,6 @@ import { supabase } from "../lib/supabase";
 import type { Application, ApplicationStatus } from "../lib/types";
 
 export type ApplicationFormData = {
-  full_name: string;
-  email: string;
-  phone: string;
   note: string;
 };
 
@@ -19,20 +16,24 @@ export async function loadApplications() {
 export async function submitApplication(
   target: { requestId: string },
   form: ApplicationFormData,
-  file: File,
 ) {
-  const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const upload = await supabase.storage.from("cvs").upload(path, file, {
-    contentType: "application/pdf",
-    upsert: false,
-  });
-  if (upload.error) return upload.error;
-
+  const { data: userResult, error: userError } = await supabase.auth.getUser();
+  if (userError || !userResult.user) return userError || new Error("سجّل الدخول بحساب الباحث عن عمل أولاً.");
+  const { data: candidate, error: candidateError } = await supabase
+    .from("candidate_profiles")
+    .select("full_name, email, phone")
+    .eq("user_id", userResult.user.id)
+    .single();
+  if (candidateError || !candidate) return candidateError || new Error("أكمل ملفك المهني قبل إرسال الطلب.");
   const { error } = await supabase.from("applications").insert({
     job_id: null,
     cv_request_id: target.requestId,
-    ...form,
-    cv_path: path,
+    candidate_id: userResult.user.id,
+    full_name: candidate.full_name,
+    email: candidate.email || userResult.user.email || "",
+    phone: candidate.phone,
+    note: form.note,
+    cv_path: null,
   });
   return error;
 }

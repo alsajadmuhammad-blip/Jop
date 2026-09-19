@@ -8,6 +8,37 @@ export interface Profile {
   full_name: string | null;
   role: "candidate" | "admin" | "hr";
   organization: string | null;
+  can_search_candidates: boolean;
+}
+
+export type EmployerAccount = Pick<Profile, "id" | "full_name" | "organization" | "can_search_candidates">;
+
+export interface CandidateProfile {
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  headline: string;
+  specialization: string;
+  city: string;
+  experience_years: number;
+  skills: string[];
+  experience_details: string;
+  education: string;
+  languages: string[];
+  work_type: string;
+  remote_available: boolean;
+  expected_salary_min: number | null;
+  availability: string;
+  summary: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CandidateProfileInput = Omit<CandidateProfile, "user_id" | "created_at" | "updated_at">;
+
+export interface CandidateSearchResult extends CandidateProfile {
+  relevance: number;
 }
 
 export interface Job {
@@ -67,7 +98,8 @@ export interface Application {
   full_name: string;
   email: string;
   phone: string;
-  cv_path: string;
+  cv_path: string | null;
+  candidate_id: string | null;
   note: string | null;
   status: ApplicationStatus;
   created_at: string;
