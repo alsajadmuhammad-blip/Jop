@@ -29,8 +29,7 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
         <div className="home-v3-hero-grid">
           <div className="home-v3-hero-copy">
             <div className="home-v3-brand-lockup"><img src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><strong>IRAQ JOBS</strong><small>FOR JOB SEEKERS</small></span></div>
-            <span className="home-v3-overline">فرص العمل في العراق <i /> منصة توظيف موثوقة</span>
-            <h1>وظيفتك القادمة<br /><span>تبدأ بخطوة واضحة.</span></h1>
+            <h1> وظيفتك القادمة<br /><span>تبدي بخطوة واضحة  .</span></h1>
             <p>اعثر على الفرصة المناسبة، راجع التفاصيل، وتواصل مع الجهة مباشرة.</p>
             <div className="home-v3-actions">
               <button className="primary-btn large" onClick={() => onNavigate("jobs")}>استعرض الوظائف <ArrowLeft size={18} /></button>
