@@ -1,6 +1,14 @@
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/types";
 
+function translateAuthError(error: { message?: string } | null, fallback: string) {
+  const message = error?.message?.toLowerCase() || "";
+  if (message.includes("invalid login credentials")) {
+    return new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+  }
+  return error || new Error(fallback);
+}
+
 export async function getProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")
@@ -19,30 +27,30 @@ export async function getCurrentProfile() {
 
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) return { profile: null, error: error || new Error("تعذر تسجيل الدخول.") };
+  if (error || !data.user) return { profile: null, error: translateAuthError(error, "تعذر تسجيل الدخول.") };
   const { profile, error: profileError } = await getProfile(data.user.id);
   if (profileError || !profile) return { profile: null, error: new Error("الحساب غير مربوط بدور داخل المنصة.") };
   return { profile, error: null };
 }
 
 export async function signUp(email: string, password: string, fullName: string, role: "candidate" | "hr") {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName, role },
+  const { data, error } = await supabase.functions.invoke("create-account", {
+    body: {
+      email: email.trim(),
+      password,
+      fullName: fullName.trim(),
+      role,
     },
   });
-  if (error) return { profile: null, session: null, error };
-  if (!data.user || !data.session) {
+  if (error || !data?.user) {
     return {
       profile: null,
       session: null,
-      error: new Error("تم إنشاء الحساب. افتح بريدك الإلكتروني للتأكيد ثم سجّل الدخول."),
+      error: new Error(data?.error || error?.message || "تعذر إنشاء الحساب."),
     };
   }
-  const result = await getProfile(data.user.id);
-  return { profile: result.profile, session: data.session, error: result.error };
+
+  return signIn(email.trim(), password);
 }
 
 export function signOut() {

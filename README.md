@@ -28,7 +28,10 @@ cp .env.example .env
 2. نفّذ الملف `supabase/schema.sql` كاملاً.
 3. إذا كان المشروع يستخدم قاعدة بيانات قديمة سبق تنفيذ مخططها، نفّذ `supabase/job-publishing-migration.sql` لإضافة وسائل التواصل وطلبات نشر الوظائف.
 4. نفّذ `supabase/candidate-search.sql` لإضافة ملفات ATS الداخلية، تسجيل الحسابات، بحث HR، وصلاحية تفعيل البحث لكل حساب.
-5. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
+5. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
+6. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
+
+تسجيل الحسابات العادية يتم عبر Edge Function حتى يتم إنشاء الحساب مؤكدًا مباشرة بدون رسالة بريد أو رابط تأكيد. الدالة تستخدم `SUPABASE_SERVICE_ROLE_KEY` داخل بيئة Supabase فقط، ولا يوضع هذا المفتاح داخل التطبيق.
 
 ```sql
 insert into public.profiles (id, full_name, role, organization)
