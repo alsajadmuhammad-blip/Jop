@@ -49,6 +49,8 @@ export type CandidateSearchFilters = {
   minExperience: string;
   workType: string;
   remoteOnly: boolean;
+  skill: string;
+  availability: string;
 };
 
 export const emptyCandidateSearchFilters: CandidateSearchFilters = {
@@ -58,7 +60,53 @@ export const emptyCandidateSearchFilters: CandidateSearchFilters = {
   minExperience: "",
   workType: "",
   remoteOnly: false,
+  skill: "",
+  availability: "",
 };
+
+export type CandidateSearchOptions = {
+  total: number;
+  specializations: string[];
+  cities: string[];
+  workTypes: string[];
+  skills: string[];
+  availabilities: string[];
+  experienceYears: number[];
+};
+
+type CandidateSearchOptionRow = Pick<
+  CandidateProfile,
+  "specialization" | "city" | "work_type" | "skills" | "availability" | "experience_years"
+>;
+
+const normalizeSearchValue = (value: string) => value.trim().toLocaleLowerCase();
+
+const uniqueSorted = (values: string[]) => Array.from(
+  new Set(values.map((value) => value.trim()).filter(Boolean)),
+).sort((a, b) => a.localeCompare(b, "ar"));
+
+export async function loadCandidateSearchOptions() {
+  const { data, error } = await supabase
+    .from("candidate_profiles")
+    .select("specialization, city, work_type, skills, availability, experience_years")
+    .limit(1000);
+
+  if (error) return { options: null, error };
+
+  const rows = (data as CandidateSearchOptionRow[]) || [];
+  const options: CandidateSearchOptions = {
+    total: rows.length,
+    specializations: uniqueSorted(rows.map((row) => row.specialization)),
+    cities: uniqueSorted(rows.map((row) => row.city)),
+    workTypes: uniqueSorted(rows.map((row) => row.work_type)),
+    skills: uniqueSorted(rows.flatMap((row) => row.skills || [])),
+    availabilities: uniqueSorted(rows.map((row) => row.availability)),
+    experienceYears: Array.from(new Set(rows.map((row) => Number(row.experience_years)).filter((value) => Number.isFinite(value))))
+      .sort((a, b) => a - b),
+  };
+
+  return { options, error: null };
+}
 
 export async function loadCandidateProfile(userId: string) {
   const { data, error } = await supabase
@@ -79,15 +127,53 @@ export async function saveCandidateProfile(userId: string, input: CandidateProfi
 }
 
 export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
-  const { data, error } = await supabase.rpc("search_candidate_profiles", {
-    p_keyword: filters.keyword.trim() || null,
-    p_specialization: filters.specialization.trim() || null,
-    p_city: filters.city.trim() || null,
-    p_min_experience: filters.minExperience ? Number(filters.minExperience) : null,
-    p_work_type: filters.workType.trim() || null,
-    p_remote_available: filters.remoteOnly || null,
-    p_limit: 50,
-    p_offset: 0,
-  });
-  return { profiles: (data as CandidateSearchResult[]) || [], error };
+  const { data, error } = await supabase
+    .from("candidate_profiles")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(1000);
+
+  if (error) return { profiles: [], error };
+
+  const keyword = normalizeSearchValue(filters.keyword);
+  const specialization = normalizeSearchValue(filters.specialization);
+  const city = normalizeSearchValue(filters.city);
+  const workType = normalizeSearchValue(filters.workType);
+  const skill = normalizeSearchValue(filters.skill);
+  const availability = normalizeSearchValue(filters.availability);
+  const minExperience = filters.minExperience ? Number(filters.minExperience) : null;
+  const searchableText = (candidate: CandidateProfile) => normalizeSearchValue([
+    candidate.full_name,
+    candidate.headline,
+    candidate.specialization,
+    candidate.city,
+    candidate.experience_details,
+    candidate.education,
+    candidate.summary,
+    ...candidate.skills,
+    ...candidate.languages,
+  ].join(" "));
+
+  const profiles = ((data as CandidateProfile[]) || [])
+    .filter((candidate) => {
+      const candidateSkills = (candidate.skills || []).map(normalizeSearchValue);
+      return (
+        (!keyword || searchableText(candidate).includes(keyword)) &&
+        (!specialization || normalizeSearchValue(candidate.specialization) === specialization) &&
+        (!city || normalizeSearchValue(candidate.city) === city) &&
+        (!workType || normalizeSearchValue(candidate.work_type) === workType) &&
+        (!skill || candidateSkills.includes(skill)) &&
+        (!availability || normalizeSearchValue(candidate.availability) === availability) &&
+        (minExperience === null || Number(candidate.experience_years) >= minExperience) &&
+        (!filters.remoteOnly || candidate.remote_available)
+      );
+    })
+    .map((candidate) => ({
+      ...candidate,
+      relevance: keyword && searchableText(candidate).includes(keyword) ? 10 : 0,
+    } satisfies CandidateSearchResult))
+    .sort((a, b) => b.relevance - a.relevance || Date.parse(b.updated_at) - Date.parse(a.updated_at))
+    .slice(0, 50);
+
+  return { profiles, error: null };
 }
