@@ -5,11 +5,11 @@ export type ApplicationFormData = {
   note: string;
 };
 
-export async function loadApplications() {
-  const result = await supabase
+export async function loadApplications(jobsOnly = false) {
+  const query = supabase
     .from("applications")
-    .select("*, jobs(title, company_name), cv_requests(title, organization_name)")
-    .order("created_at", { ascending: false });
+    .select("*, jobs(title, company_name), cv_requests(title, organization_name)");
+  const result = await (jobsOnly ? query.not("job_id", "is", null) : query).order("created_at", { ascending: false });
   return { applications: (result.data as Application[]) || [], error: result.error };
 }
 

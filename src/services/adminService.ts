@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import type { CVRequest, EmployerAccount, Job, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
+import type { EmployerAccount, Job, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
 
 export type JobPostInput = {
   title: string;
@@ -13,13 +13,6 @@ export type JobPostInput = {
   contact_email: string | null;
   contact_whatsapp: string | null;
   internal_applications: boolean;
-};
-
-export type RequestPostInput = {
-  title: string;
-  specialization: string;
-  organization_name: string;
-  details: string;
 };
 
 export async function createJob(input: JobPostInput) {
@@ -38,14 +31,10 @@ export async function deleteJob(id: string) {
 }
 
 export async function loadAdminPosts() {
-  const [jobsResult, requestsResult] = await Promise.all([
-    supabase.from("jobs").select("*").order("created_at", { ascending: false }),
-    supabase.from("cv_requests").select("*").order("created_at", { ascending: false }),
-  ]);
+  const jobsResult = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
   return {
     jobs: (jobsResult.data as Job[]) || [],
-    requests: (requestsResult.data as CVRequest[]) || [],
-    error: jobsResult.error || requestsResult.error,
+    error: jobsResult.error,
   };
 }
 
@@ -83,22 +72,7 @@ export async function updateJobRequestStatus(id: string, status: JobRequestStatu
   return error;
 }
 
-export async function createCvRequest(input: RequestPostInput) {
-  const { error } = await supabase.from("cv_requests").insert({ ...input, status: "published" });
-  return error;
-}
-
-export async function updateCvRequest(id: string, input: RequestPostInput) {
-  const { error } = await supabase.from("cv_requests").update(input).eq("id", id);
-  return error;
-}
-
-export async function deleteCvRequest(id: string) {
-  const { error } = await supabase.from("cv_requests").delete().eq("id", id);
-  return error;
-}
-
-export async function updatePostStatus(table: "jobs" | "cv_requests", id: string, status: PostStatus) {
+export async function updatePostStatus(table: "jobs", id: string, status: PostStatus) {
   const { error } = await supabase.from(table).update({ status }).eq("id", id);
   return error;
 }

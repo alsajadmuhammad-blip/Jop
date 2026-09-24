@@ -30,20 +30,19 @@ import type { HrSection } from "./pages/hr/HrDashboardPage";
 
 const views: View[] = ["home", "jobs", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
 
-function readRoute(): { view: View; jobId: string | null; requestId: string | null } {
+function readRoute(): { view: View; jobId: string | null } {
   const value = window.location.hash.replace(/^#/, "");
-  if (value.startsWith("admin-post/request/")) return { view: "admin-post", jobId: null, requestId: decodeURIComponent(value.slice("admin-post/request/".length)) };
-  if (value.startsWith("admin-post/job/")) return { view: "admin-post", jobId: decodeURIComponent(value.slice("admin-post/job/".length)), requestId: null };
-  if (value.startsWith("admin-post/")) return { view: "admin-post", jobId: decodeURIComponent(value.slice("admin-post/".length)), requestId: null };
-  if (value.startsWith("job/")) return { view: "job", jobId: decodeURIComponent(value.slice(4)), requestId: null };
-  return { view: views.includes(value as View) ? value as View : "home", jobId: null, requestId: null };
+  if (value.startsWith("admin-post/request/")) return { view: "admin", jobId: null };
+  if (value.startsWith("admin-post/job/")) return { view: "admin-post", jobId: decodeURIComponent(value.slice("admin-post/job/".length)) };
+  if (value === "admin-post") return { view: "admin-post", jobId: null };
+  if (value.startsWith("job/")) return { view: "job", jobId: decodeURIComponent(value.slice(4)) };
+  return { view: views.includes(value as View) ? value as View : "home", jobId: null };
 }
 
 function App() {
   const initialRoute = readRoute();
   const [view, setView] = useState<View>(initialRoute.view);
   const [routeJobId, setRouteJobId] = useState<string | null>(initialRoute.jobId);
-  const [routeRequestId, setRouteRequestId] = useState<string | null>(initialRoute.requestId);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [requests, setRequests] = useState<CVRequest[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -61,7 +60,6 @@ function App() {
   const navigate = (next: View) => {
     setView(next);
     setRouteJobId(null);
-    setRouteRequestId(null);
     setMobileMenu(false);
     window.location.hash = next;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -75,15 +73,11 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const navigateToAdminPost = (post?: Job | CVRequest) => {
-    const isRequest = Boolean(post && "organization_name" in post);
+  const navigateToAdminPost = (post?: Job) => {
     setView("admin-post");
-    setRouteJobId(!isRequest ? post?.id || null : null);
-    setRouteRequestId(isRequest ? post?.id || null : null);
+    setRouteJobId(post?.id || null);
     setMobileMenu(false);
-    window.location.hash = post
-      ? `admin-post/${isRequest ? "request" : "job"}/${encodeURIComponent(post.id)}`
-      : "admin-post";
+    window.location.hash = post ? `admin-post/job/${encodeURIComponent(post.id)}` : "admin-post";
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -109,7 +103,7 @@ function App() {
 
   const refreshApplications = async () => {
     if (!hasSupabaseConfig) return;
-    const result = await loadApplications();
+    const result = await loadApplications(profile?.role === "admin");
     if (result.error) notify("تعذر تحميل السير الذاتية. تأكد من سياسات Supabase والحساب.");
     setApplications(result.applications);
   };
@@ -119,7 +113,6 @@ function App() {
     const result = await loadAdminPosts();
     if (result.error) notify("تعذر تحميل بيانات لوحة الإدارة.");
     setJobs(result.jobs);
-    setRequests(result.requests);
   };
 
   const refreshJobRequests = async () => {
@@ -149,7 +142,6 @@ function App() {
       const route = readRoute();
       setView(route.view);
       setRouteJobId(route.jobId);
-       setRouteRequestId(route.requestId);
     };
     window.addEventListener("hashchange", onHashChange);
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -208,7 +200,6 @@ function App() {
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
-  const selectedCvRequest = useMemo(() => requests.find((request) => request.id === routeRequestId) || null, [requests, routeRequestId]);
   const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved";
   const closeLogin = () => {
     setModal(null);
@@ -237,8 +228,8 @@ function App() {
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
          {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell>}
            {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
-          {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onEditRequest={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
-        {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} request={selectedCvRequest} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId || routeRequestId ? "تم حفظ التعديلات" : "تم حفظ المنشور ونشره بنجاح"); }} />}
+          {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} applications={applications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
+        {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId ? "تم حفظ التعديلات" : "تم نشر الوظيفة بنجاح"); }} />}
          {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} section={hrSection} onSection={setHrSection} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}
       </>}
     </main>
