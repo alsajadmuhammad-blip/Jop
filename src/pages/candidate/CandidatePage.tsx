@@ -201,6 +201,5 @@ export function CandidatePage({ profile, onNavigate, onLogout, onProfileUpdated,
         <div className="profile-aside-card mini-contact-card"><div className="mini-contact-icon"><FileText size={17} /></div><div><b>تحتاج تحديث سيرتك؟</b><small>أكمل الملف هنا، وبعدها استخدمه للتقديم على الفرص.</small></div></div>
       </aside>
     </div>
-    <button className="text-btn account-logout" onClick={onLogout}><LogOut size={17} /> تسجيل الخروج</button>
   </section>;
 }

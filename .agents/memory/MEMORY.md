@@ -9,3 +9,4 @@
 - [Masar Supabase roles](masar-supabase-roles.md) — client keys are public; enforce admin/HR separation with database RLS, not UI visibility alone.
 - [Public interface direction](public-ui-direction.md) — keep public job browsing premium and restrained: concise copy, strong hierarchy, and useful details over decorative cards.
 - [Platform feature migrations](platform-feature-migrations.md) — database-backed platform features ship with a standalone Supabase migration that must run after the base schema.
+- [Role navigation](role-navigation.md) — role dashboards use one shared sidebar; keep global header navigation limited to public actions.

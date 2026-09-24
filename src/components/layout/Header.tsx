@@ -1,4 +1,4 @@
-import { Bookmark, LayoutDashboard, LogIn, LogOut, Menu, Users } from "lucide-react";
+import { LogIn, LogOut, Menu } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
 
@@ -20,9 +20,6 @@ export function Header({ view, profile, onNavigate, onLogin, onLogout, mobileMen
     <button className="brand" onClick={() => onNavigate("home")} aria-label="iraq jobs - الصفحة الرئيسية"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><b>iraq jobs</b><small>for job seekers</small></span></button>
     <nav className={mobileMenu ? "main-nav open" : "main-nav"}>
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}
-       {profile?.role === "candidate" && <><button className={view === "candidate" ? "nav-link active" : "nav-link"} onClick={() => onNavigate("candidate")}>حسابي</button><button className={view === "saved" ? "nav-link active" : "nav-link"} onClick={() => onNavigate("saved")}><Bookmark size={16} /> المحفوظات</button></>}
-      {profile?.role === "admin" && <button className={view === "admin" ? "nav-link active" : "nav-link"} onClick={() => onNavigate("admin")}><LayoutDashboard size={16} /> الإدارة</button>}
-      {profile?.role === "hr" && <button className={view === "hr" ? "nav-link active" : "nav-link"} onClick={() => onNavigate("hr")}><Users size={16} /> مساحة HR</button>}
     </nav>
     <div className="header-actions">
        {profile ? <><button className="profile-chip" onClick={() => profile.role === "candidate" ? onNavigate("candidate") : onNavigate(profile.role === "admin" ? "admin" : "hr")}><span>{(profile.full_name || "مستخدم").slice(0, 1)}</span>{profile.full_name || "حسابي"}</button><button className="header-logout-btn" onClick={onLogout}><LogOut size={15} /> تسجيل الخروج</button></> : <button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button>}

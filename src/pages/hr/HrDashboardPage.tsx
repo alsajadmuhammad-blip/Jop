@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
+  BriefcaseBusiness,
   CheckCircle2,
   Clock3,
   FileText,
@@ -17,6 +18,8 @@ import { EmptyState } from "../../components/common/Feedback";
 import { formatDate } from "../../lib/format";
 import type { Application, ApplicationStatus, CandidateSearchResult, Profile } from "../../lib/types";
 import type { Notify } from "../../app/types";
+import type { View } from "../../app/types";
+import { RoleSidebar } from "../../components/layout/RoleSidebar";
 import { openApplicationCv, updateApplicationStatus } from "../../services/applicationService";
 import {
   emptyCandidateSearchFilters,
@@ -33,12 +36,14 @@ export function HrDashboardPage({
   onRefresh,
   onNotify,
   onNavigate,
+  onLogout,
 }: {
   profile: Profile;
   applications: Application[];
   onRefresh: () => void;
   onNotify: Notify;
-  onNavigate: (view: "job-request") => void;
+  onNavigate: (view: View) => void;
+  onLogout: () => void;
 }) {
   const [section, setSection] = useState<"search" | "applications">("search");
   const [filters, setFilters] = useState<CandidateSearchFilters>(emptyCandidateSearchFilters);
@@ -138,20 +143,61 @@ export function HrDashboardPage({
 
   if (!canSearch) {
     return (
-      <section className="container page-section dashboard-page hr-locked-page">
-        <div className="access-lock-card">
-          <span><ShieldAlert size={28} /></span>
-          <h1>البحث غير مفعّل لهذا الحساب</h1>
-          <p>لا يمكنك مشاهدة الملفات الشخصية للباحثين إلا بعد أن يفعّل المشرف صلاحية الوصول لحسابك.</p>
-           <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
-           <button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={16} /> طلب نشر وظيفة</button>
-        </div>
-      </section>
+      <div className="container page-section role-dashboard-shell hr-dashboard-shell">
+        <RoleSidebar
+          eyebrow="مسار"
+          title="صاحب العمل / HR"
+          subtitle={profile.organization || profile.full_name || "مساحة العمل"}
+          active="search"
+          onSelect={(id) => {
+            if (id === "publish") onNavigate("job-request");
+            if (id === "jobs") onNavigate("jobs");
+          }}
+          onLogout={onLogout}
+          items={[
+            { id: "search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
+            { id: "applications", label: "الطلبات الواردة", icon: <FileText size={17} />, badge: applications.length },
+            { id: "publish", label: "طلب نشر وظيفة", icon: <Plus size={17} /> },
+            { id: "jobs", label: "تصفح الوظائف", icon: <BriefcaseBusiness size={17} /> },
+          ]}
+        />
+        <main className="role-dashboard-main">
+          <section className="dashboard-page hr-locked-page">
+            <div className="access-lock-card">
+              <span><ShieldAlert size={28} /></span>
+              <h1>البحث غير مفعّل لهذا الحساب</h1>
+              <p>لا يمكنك مشاهدة الملفات الشخصية للباحثين إلا بعد أن يفعّل المشرف صلاحية الوصول لحسابك.</p>
+              <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
+              <button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={16} /> طلب نشر وظيفة</button>
+            </div>
+          </section>
+        </main>
+      </div>
     );
   }
 
   return (
-    <section className="container page-section dashboard-page hr-workspace-page">
+    <div className="container page-section role-dashboard-shell hr-dashboard-shell">
+      <RoleSidebar
+        eyebrow="مسار"
+        title="صاحب العمل / HR"
+        subtitle={profile.organization || profile.full_name || "مساحة العمل"}
+        active={section}
+        onSelect={(id) => {
+          if (id === "search" || id === "applications") setSection(id);
+          if (id === "publish") onNavigate("job-request");
+          if (id === "jobs") onNavigate("jobs");
+        }}
+        onLogout={onLogout}
+        items={[
+          { id: "search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
+          { id: "applications", label: "الطلبات الواردة", icon: <FileText size={17} />, badge: applications.length },
+          { id: "publish", label: "طلب نشر وظيفة", icon: <Plus size={17} /> },
+          { id: "jobs", label: "تصفح الوظائف", icon: <BriefcaseBusiness size={17} /> },
+        ]}
+      />
+      <main className="role-dashboard-main">
+      <section className="dashboard-page hr-workspace-page">
       <header className="hr-page-header">
         <div className="hr-page-header-copy">
           <span className="eyebrow"><Building2 size={14} /> مساحة صاحب العمل / HR</span>
@@ -162,7 +208,7 @@ export function HrDashboardPage({
             <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
           </div>
         </div>
-           <div className="hr-page-header-mark"><Building2 size={27} /><b>مسار</b><small>دليل الباحثين</small><button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={15} /> طلب نشر وظيفة</button></div>
+           <div className="hr-page-header-mark"><Building2 size={27} /><b>مسار</b><small>دليل الباحثين</small></div>
       </header>
 
       <div className="hr-summary-strip">
@@ -170,15 +216,6 @@ export function HrDashboardPage({
         <div><span><Search size={16} /></span><p><b>{searched ? results.length : "—"}</b><small>نتيجة مطابقة</small></p></div>
         <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>طلب وارد</small></p></div>
         <div className="hr-summary-note"><SlidersHorizontal size={16} /><span>كل خيار يظهر فقط إذا كان موجودًا في ملفات الباحثين الحالية.</span></div>
-      </div>
-
-      <div className="hr-section-tabs">
-        <button type="button" className={section === "search" ? "active" : ""} onClick={() => setSection("search")}>
-          <Search size={16} /> البحث عن الباحثين
-        </button>
-        <button type="button" className={section === "applications" ? "active" : ""} onClick={() => setSection("applications")}>
-          <UserRound size={16} /> الطلبات الواردة <b>{applications.length}</b>
-        </button>
       </div>
 
       {section === "search" && (
@@ -355,6 +392,8 @@ export function HrDashboardPage({
           </article>
         </div>
       )}
-    </section>
+      </section>
+      </main>
+    </div>
   );
 }

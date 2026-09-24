@@ -1,0 +1,426 @@
+/* Shared role navigation: one desktop sidebar, one mobile drawer. */
+.role-dashboard-shell {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  padding-top: 26px;
+  padding-bottom: 54px;
+}
+
+.role-dashboard-main {
+  min-width: 0;
+}
+
+.role-sidebar {
+  position: sticky;
+  top: 96px;
+  z-index: 35;
+  display: flex;
+  min-height: 520px;
+  flex-direction: column;
+  padding: 17px 12px 12px;
+  border: 1px solid #e0e4ef;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(24, 32, 79, .07);
+}
+
+.role-sidebar-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 5px 18px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.role-sidebar-mark {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(145deg, #2d3d91, #5368c1);
+  font-family: "Readex Pro", sans-serif;
+  font-weight: 800;
+}
+
+.role-sidebar-heading > div:not(.role-sidebar-mark) {
+  min-width: 0;
+}
+
+.role-sidebar-heading span,
+.role-sidebar-heading b,
+.role-sidebar-heading small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-sidebar-heading span {
+  color: #8c94ac;
+  font-size: 9px;
+}
+
+.role-sidebar-heading b {
+  margin-top: 3px;
+  color: #1c2457;
+  font-family: "Readex Pro", sans-serif;
+  font-size: 12px;
+}
+
+.role-sidebar-heading small {
+  margin-top: 3px;
+  color: #9ca4b9;
+  font-size: 9px;
+}
+
+.role-sidebar-label {
+  padding: 19px 7px 8px;
+  color: #a0a7ba;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.role-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.role-sidebar-nav button,
+.role-sidebar-logout,
+.role-sidebar-mobile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 10px;
+  color: #727b98;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.role-sidebar-nav button {
+  width: 100%;
+  min-height: 43px;
+  padding: 7px 8px;
+}
+
+.role-sidebar-nav button:hover {
+  color: #2f408f;
+  background: #f5f6ff;
+}
+
+.role-sidebar-nav button.active {
+  color: #fff;
+  background: linear-gradient(100deg, #3d4d9d, #596ac2);
+  box-shadow: 0 8px 17px rgba(64, 80, 166, .2);
+}
+
+.role-sidebar-icon {
+  display: inline-flex;
+  width: 29px;
+  height: 29px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  color: #5a69b5;
+  background: #eef0ff;
+}
+
+.role-sidebar-nav button.active .role-sidebar-icon {
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+}
+
+.role-sidebar-nav em {
+  display: inline-flex;
+  min-width: 19px;
+  height: 19px;
+  align-items: center;
+  justify-content: center;
+  margin-right: auto;
+  border-radius: 99px;
+  color: #fff;
+  background: #e58a46;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.role-sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  padding: 13px 7px;
+  border-top: 1px solid #edf0f5;
+  color: #9ba3b7;
+  font-size: 9px;
+}
+
+.role-sidebar-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ab27b;
+  box-shadow: 0 0 0 4px rgba(74, 178, 123, .12);
+}
+
+.role-sidebar-logout {
+  width: 100%;
+  justify-content: center;
+  min-height: 40px;
+  margin-top: 5px;
+  color: #b6535d;
+  background: #fff5f5;
+}
+
+.role-sidebar-logout:hover {
+  color: #fff;
+  background: #c45e67;
+}
+
+.role-sidebar-mobile-trigger,
+.role-sidebar-backdrop,
+.role-sidebar-close {
+  display: none;
+}
+
+.role-dashboard-shell .role-dashboard-main > .dashboard-page {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.dashboard-page .admin-layout {
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.dashboard-page .admin-layout > .role-sidebar {
+  min-height: 640px;
+}
+
+.dashboard-page .admin-layout > .admin-main {
+  min-width: 0;
+}
+
+.header-actions {
+  flex-wrap: nowrap;
+}
+
+.profile-chip,
+.header-logout-btn {
+  white-space: nowrap;
+}
+
+.header-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #f0d9dd;
+  border-radius: 9px;
+  color: #b6535d;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.header-logout-btn:hover {
+  color: #fff;
+  background: #c45e67;
+}
+
+@media (max-width: 900px) {
+  .role-dashboard-shell {
+    display: block;
+    width: calc(100% - 20px);
+    max-width: none;
+    padding-top: 14px;
+  }
+
+  .role-sidebar-mobile-trigger {
+    display: inline-flex;
+    width: 100%;
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 8px 13px;
+    border: 1px solid #e0e4ef;
+    background: #fff;
+    box-shadow: 0 7px 18px rgba(24, 32, 79, .05);
+  }
+
+  .role-sidebar-mobile-trigger svg {
+    color: #5265b5;
+  }
+
+  .role-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(296px, 86vw);
+    min-height: 0;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 0;
+    transform: translateX(110%);
+    transition: transform .22s ease;
+    box-shadow: -18px 0 40px rgba(18, 27, 68, .18);
+  }
+
+  .role-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .role-sidebar-close {
+    display: inline-flex;
+    width: 29px;
+    height: 29px;
+    align-items: center;
+    justify-content: center;
+    margin-right: auto;
+    border: 1px solid #e7e9f0;
+    border-radius: 8px;
+    color: #8991a8;
+    background: #fff;
+  }
+
+  .role-sidebar-backdrop {
+    position: fixed;
+    z-index: 34;
+    display: block;
+    inset: 0;
+    border: 0;
+    background: rgba(17, 25, 62, .42);
+  }
+
+  .role-dashboard-shell .role-dashboard-main > .dashboard-page {
+    margin-top: 12px;
+  }
+
+  .dashboard-page .admin-layout {
+    display: block;
+  }
+
+  .dashboard-page .admin-layout > .role-sidebar {
+    margin-bottom: 12px;
+  }
+
+  .dashboard-page .admin-layout > .admin-main {
+    width: 100%;
+  }
+
+  .admin-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-refresh-btn {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .site-header {
+    height: 66px;
+  }
+
+  .nav-wrap {
+    min-height: 66px;
+  }
+
+  .brand span {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 5px;
+  }
+
+  .profile-chip {
+    max-width: 105px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-logout-btn {
+    min-width: 34px;
+    width: 34px;
+    justify-content: center;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .header-logout-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .menu-btn {
+    display: none;
+  }
+
+  .main-nav {
+    display: none;
+  }
+
+  .hr-workspace-page,
+  .hr-locked-page {
+    width: 100% !important;
+  }
+
+  .hr-workspace-page .hr-page-header {
+    padding: 16px 14px;
+  }
+
+  .hr-page-header-mark {
+    display: none;
+  }
+
+  .hr-page-header h1 {
+    max-width: 100%;
+    font-size: 21px;
+    line-height: 1.55;
+  }
+
+  .hr-page-header p {
+    max-width: 100%;
+    font-size: 10px;
+  }
+
+  .hr-header-tags {
+    margin-top: 12px;
+  }
+
+  .hr-header-tags span {
+    font-size: 8px;
+  }
+
+  .candidate-search-panel,
+  .candidate-results,
+  .applications-section {
+    padding: 13px !important;
+    border-radius: 14px !important;
+  }
+
+  .results-heading h2,
+  .applications-section-heading h2 {
+    font-size: 17px;
+  }
+}

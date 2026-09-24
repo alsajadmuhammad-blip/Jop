@@ -17,11 +17,13 @@ import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
 import { CandidatePage } from "./pages/candidate/CandidatePage";
 import { SavedJobsPage } from "./pages/candidate/SavedJobsPage";
+import { CandidateDashboardShell } from "./pages/candidate/CandidateDashboardShell";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminPostPage } from "./pages/admin/AdminPostPage";
 import { HrDashboardPage } from "./pages/hr/HrDashboardPage";
 import { RequestModal } from "./features/requests/RequestModal";
 import { LoginModal } from "./features/auth/LoginModal";
+import "./styles/role-navigation.css";
 
 const views: View[] = ["home", "jobs", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
 
@@ -208,7 +210,11 @@ function App() {
     if (view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved") navigate("home");
   };
   const logout = async () => {
-    await signOut();
+    const { error } = await signOut();
+    if (error) {
+      notify("تعذر تسجيل الخروج، حاول مرة ثانية.");
+      return;
+    }
     setProfile(null);
     navigate("home");
     notify("تم تسجيل الخروج");
@@ -223,11 +229,11 @@ function App() {
          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => setModal("login")} onNotify={notify} />}
          {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} onNotify={notify} />}
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
-        {view === "candidate" && profile?.role === "candidate" && <CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} onNotify={notify} />}
-         {view === "saved" && profile?.role === "candidate" && <SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} />}
-        {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onEditJob={navigateToAdminPost} onEditRequest={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
+         {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell profile={profile} active="profile" onNavigate={navigate} onLogout={() => void logout()}><CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} onNotify={notify} /></CandidateDashboardShell>}
+          {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell profile={profile} active="saved" onNavigate={navigate} onLogout={() => void logout()}><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
+         {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onEditJob={navigateToAdminPost} onEditRequest={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} onLogout={() => void logout()} />}
         {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} request={selectedCvRequest} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId || routeRequestId ? "تم حفظ التعديلات" : "تم حفظ المنشور ونشره بنجاح"); }} />}
-         {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}
+         {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} onLogout={() => void logout()} />}
       </>}
     </main>
     <Footer />
