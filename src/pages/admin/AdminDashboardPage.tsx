@@ -8,9 +8,8 @@ import { createCvRequest, createJob, deleteCvRequest, deleteJob, loadEmployerAcc
 import { openApplicationCv } from "../../services/applicationService";
 import type { Notify, View } from "../../app/types";
 import { JobRequestReviewList } from "../../features/jobs/JobRequestReviewList";
-import { RoleSidebar } from "../../components/layout/RoleSidebar";
 
-type AdminSection = "overview" | "jobs" | "job-requests" | "applications" | "employer-access";
+export type AdminSection = "overview" | "jobs" | "job-requests" | "applications" | "employer-access";
 export type PostType = "job" | "request";
 
 type AdminDashboardProps = {
@@ -23,7 +22,8 @@ type AdminDashboardProps = {
   onEditRequest: (request: CVRequest) => void;
   onRefresh: () => void;
   onNotify: Notify;
-  onLogout: () => void;
+  adminSection: AdminSection;
+  onAdminSection: (section: AdminSection) => void;
 };
 
 const sectionItems: { id: AdminSection; label: string; icon: React.ReactNode }[] = [
@@ -46,8 +46,8 @@ function StatCard({ icon, value, label, tone, detail }: { icon: React.ReactNode;
   return <div className={`admin-stat-card ${tone}`}><span className="admin-stat-icon">{icon}</span><div><small>{label}</small><strong>{value}</strong><em>{detail}</em></div></div>;
 }
 
-export function AdminDashboardPage({ jobs, requests, applications, jobRequests, onNavigate, onEditJob, onEditRequest, onRefresh, onNotify, onLogout }: AdminDashboardProps) {
-  const [section, setSection] = useState<AdminSection>("overview");
+export function AdminDashboardPage({ jobs, requests, applications, jobRequests, onNavigate, onEditJob, onEditRequest, onRefresh, onNotify, adminSection, onAdminSection }: AdminDashboardProps) {
+  const section = adminSection;
   const [statusFilter, setStatusFilter] = useState<"all" | PostStatus>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [employerAccounts, setEmployerAccounts] = useState<EmployerAccount[]>([]);
@@ -110,33 +110,18 @@ export function AdminDashboardPage({ jobs, requests, applications, jobRequests, 
   };
 
   const selectSection = (next: AdminSection) => {
-    setSection(next);
+    onAdminSection(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return <section className="container page-section dashboard-page">
-    <div className="admin-layout">
-      <RoleSidebar
-        eyebrow="مسار"
-        title="لوحة المشرف"
-        subtitle="إدارة المنصة"
-        active={section}
-        onSelect={(id) => selectSection(id as AdminSection)}
-        onLogout={onLogout}
-        statusText="البيانات متصلة بـ Supabase"
-        items={sectionItems.map((item) => ({
-          ...item,
-          badge: item.id === "job-requests" ? pendingJobRequests.length : item.id === "applications" ? newApplications.length : undefined,
-        }))}
-      />
-      <div className="admin-main">
+    <div className="admin-main">
         <div className="admin-topbar"><div><span className="eyebrow"><BarChart3 size={14} /> iraq jobs / الإدارة</span><h1>{section === "overview" ? "صباح الخير، خلّينا نرتّب الفرص" : sectionItems.find((item) => item.id === section)?.label}</h1><p>{section === "overview" ? "تابع حركة المنصة واتخذ الإجراء المناسب من مكان واحد." : "إدارة واضحة للمنشورات وطلبات الشركات وملفات المتقدمين."}</p></div><button className="admin-refresh-btn" onClick={() => void refresh()}><RefreshCw className={refreshing ? "spin" : ""} size={16} /> تحديث البيانات</button></div>
         {section === "overview" && <AdminOverview jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} pendingJobRequests={pendingJobRequests} publishedJobs={publishedJobs} draftJobs={draftJobs} closedJobs={closedJobs} newApplications={newApplications} onSection={selectSection} onNavigate={onNavigate} onCopyLink={() => void copyJobRequestLink()} />}
          {section === "jobs" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>الوظائف</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div><div className="admin-toolbar-actions"><button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button><button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> وظيفة جديدة</button></div></div><div className="admin-filter-row">{(["all", "published", "draft", "closed"] as const).map((item) => <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "الكل" : statusLabel(item)}</button>)}</div><div className="admin-list">{filteredJobs.map((job) => <AdminPost key={job.id} title={job.title} subtitle={`${job.company_name} · ${job.city}`} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />)}{filteredJobs.length === 0 && <EmptyState title="لا توجد وظائف" text="ابدأ بإضافة أول وظيفة من زر وظيفة جديدة." />}</div></section>}
         {section === "job-requests" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>طلبات نشر الوظائف</h2><p>راجع طلبات الشركات قبل نشرها للعامة.</p></div><button className="outline-btn" onClick={() => void copyJobRequestLink()}><Link2 size={15} /> نسخ رابط الطلب العام</button></div><JobRequestReviewList requests={jobRequests} onRefresh={onRefresh} onNotify={onNotify} /></section>}
         {section === "applications" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>السير الذاتية</h2><p>راجع الملفات المرسلة إلى طلبات HR الداخلية.</p></div><span className="section-count"><FileText size={15} /> {applications.length} ملف</span></div><ApplicationsTable applications={applications} onNotify={onNotify} /></section>}
          {section === "employer-access" && <EmployerAccessSection accounts={employerAccounts} loading={employerAccountsLoading} onNotify={onNotify} onChanged={(next) => setEmployerAccounts((current) => current.map((account) => account.id === next.id ? next : account))} />}
-      </div>
     </div>
   </section>;
 }

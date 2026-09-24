@@ -19,7 +19,6 @@ import { formatDate } from "../../lib/format";
 import type { Application, ApplicationStatus, CandidateSearchResult, Profile } from "../../lib/types";
 import type { Notify } from "../../app/types";
 import type { View } from "../../app/types";
-import { RoleSidebar } from "../../components/layout/RoleSidebar";
 import { openApplicationCv, updateApplicationStatus } from "../../services/applicationService";
 import {
   emptyCandidateSearchFilters,
@@ -30,22 +29,25 @@ import {
   type CandidateSearchOptions,
 } from "../../services/candidateService";
 
+export type HrSection = "search" | "applications";
+
 export function HrDashboardPage({
   profile,
   applications,
   onRefresh,
   onNotify,
   onNavigate,
-  onLogout,
+  section,
+  onSection,
 }: {
   profile: Profile;
   applications: Application[];
   onRefresh: () => void;
   onNotify: Notify;
   onNavigate: (view: View) => void;
-  onLogout: () => void;
+  section: HrSection;
+  onSection: (section: HrSection) => void;
 }) {
-  const [section, setSection] = useState<"search" | "applications">("search");
   const [filters, setFilters] = useState<CandidateSearchFilters>(emptyCandidateSearchFilters);
   const [options, setOptions] = useState<CandidateSearchOptions | null>(null);
   const [results, setResults] = useState<CandidateSearchResult[]>([]);
@@ -143,61 +145,20 @@ export function HrDashboardPage({
 
   if (!canSearch) {
     return (
-      <div className="container page-section role-dashboard-shell hr-dashboard-shell">
-        <RoleSidebar
-          eyebrow="مسار"
-          title="صاحب العمل / HR"
-          subtitle={profile.organization || profile.full_name || "مساحة العمل"}
-          active="search"
-          onSelect={(id) => {
-            if (id === "publish") onNavigate("job-request");
-            if (id === "jobs") onNavigate("jobs");
-          }}
-          onLogout={onLogout}
-          items={[
-            { id: "search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
-            { id: "applications", label: "الطلبات الواردة", icon: <FileText size={17} />, badge: applications.length },
-            { id: "publish", label: "طلب نشر وظيفة", icon: <Plus size={17} /> },
-            { id: "jobs", label: "تصفح الوظائف", icon: <BriefcaseBusiness size={17} /> },
-          ]}
-        />
-        <main className="role-dashboard-main">
-          <section className="dashboard-page hr-locked-page">
-            <div className="access-lock-card">
-              <span><ShieldAlert size={28} /></span>
-              <h1>البحث غير مفعّل لهذا الحساب</h1>
-              <p>لا يمكنك مشاهدة الملفات الشخصية للباحثين إلا بعد أن يفعّل المشرف صلاحية الوصول لحسابك.</p>
-              <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
-              <button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={16} /> طلب نشر وظيفة</button>
-            </div>
-          </section>
-        </main>
-      </div>
+      <section className="container page-section dashboard-page hr-locked-page">
+        <div className="access-lock-card">
+          <span><ShieldAlert size={28} /></span>
+          <h1>البحث غير مفعّل لهذا الحساب</h1>
+          <p>لا يمكنك مشاهدة الملفات الشخصية للباحثين إلا بعد أن يفعّل المشرف صلاحية الوصول لحسابك.</p>
+          <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
+          <button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={16} /> طلب نشر وظيفة</button>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="container page-section role-dashboard-shell hr-dashboard-shell">
-      <RoleSidebar
-        eyebrow="مسار"
-        title="صاحب العمل / HR"
-        subtitle={profile.organization || profile.full_name || "مساحة العمل"}
-        active={section}
-        onSelect={(id) => {
-          if (id === "search" || id === "applications") setSection(id);
-          if (id === "publish") onNavigate("job-request");
-          if (id === "jobs") onNavigate("jobs");
-        }}
-        onLogout={onLogout}
-        items={[
-          { id: "search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
-          { id: "applications", label: "الطلبات الواردة", icon: <FileText size={17} />, badge: applications.length },
-          { id: "publish", label: "طلب نشر وظيفة", icon: <Plus size={17} /> },
-          { id: "jobs", label: "تصفح الوظائف", icon: <BriefcaseBusiness size={17} /> },
-        ]}
-      />
-      <main className="role-dashboard-main">
-      <section className="dashboard-page hr-workspace-page">
+    <section className="container page-section dashboard-page hr-workspace-page">
       <header className="hr-page-header">
         <div className="hr-page-header-copy">
           <span className="eyebrow"><Building2 size={14} /> مساحة صاحب العمل / HR</span>
@@ -392,8 +353,6 @@ export function HrDashboardPage({
           </article>
         </div>
       )}
-      </section>
-      </main>
-    </div>
+    </section>
   );
 }

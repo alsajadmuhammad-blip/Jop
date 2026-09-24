@@ -465,3 +465,231 @@
     font-size: 17px;
   }
 }
+
+/* One application-level sidebar. Protected pages share this exact navigation. */
+.has-main-sidebar > main,
+.has-main-sidebar > footer {
+  margin-right: 270px;
+}
+
+.main-sidebar {
+  position: fixed;
+  top: 78px;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  width: 250px;
+  flex-direction: column;
+  gap: 0;
+  padding: 20px 14px 16px;
+  border-left: 1px solid #e1e5ef;
+  background: #fff;
+  box-shadow: -10px 0 30px rgba(24, 32, 79, .06);
+  direction: rtl;
+}
+
+.main-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 5px 18px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.main-sidebar-logo {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(145deg, #183c35, #3c7665);
+  font-family: "Readex Pro", sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.main-sidebar-brand b,
+.main-sidebar-brand small,
+.main-sidebar-account b,
+.main-sidebar-account small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-sidebar-brand b {
+  color: #1c2457;
+  font-family: "Readex Pro", sans-serif;
+  font-size: 14px;
+}
+
+.main-sidebar-brand small {
+  margin-top: 3px;
+  color: #9299ad;
+  font-size: 9px;
+}
+
+.main-sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  margin: 17px 4px 3px;
+  padding: 9px;
+  border-radius: 11px;
+  background: #f7f8fc;
+}
+
+.main-sidebar-account > span {
+  display: inline-flex;
+  width: 31px;
+  height: 31px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: #fff;
+  background: #5c6fc0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.main-sidebar-account > div {
+  min-width: 0;
+}
+
+.main-sidebar-account b {
+  color: #303861;
+  font-size: 10px;
+}
+
+.main-sidebar-account small {
+  margin-top: 3px;
+  color: #9299ad;
+  font-size: 8px;
+}
+
+.main-sidebar-label {
+  padding: 20px 8px 8px;
+  color: #a0a7ba;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.main-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.main-sidebar-nav button,
+.main-sidebar-logout {
+  display: flex;
+  width: 100%;
+  min-height: 43px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.main-sidebar-nav button {
+  padding: 7px 9px;
+  color: #727b98;
+  background: transparent;
+}
+
+.main-sidebar-nav button > span {
+  display: inline-flex;
+  width: 29px;
+  height: 29px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  color: #5a69b5;
+  background: #eef0ff;
+}
+
+.main-sidebar-nav button:hover {
+  color: #2f408f;
+  background: #f5f6ff;
+}
+
+.main-sidebar-nav button.active {
+  color: #fff;
+  background: linear-gradient(100deg, #3d4d9d, #596ac2);
+  box-shadow: 0 8px 17px rgba(64, 80, 166, .2);
+}
+
+.main-sidebar-nav button.active > span {
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+}
+
+.main-sidebar-logout {
+  justify-content: center;
+  margin-top: auto;
+  padding: 8px;
+  color: #b6535d;
+  background: #fff5f5;
+}
+
+.main-sidebar-logout:hover {
+  color: #fff;
+  background: #c45e67;
+}
+
+.main-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .has-main-sidebar > main,
+  .has-main-sidebar > footer {
+    margin-right: 0;
+  }
+
+  .main-sidebar {
+    top: 0;
+    display: none;
+    width: min(300px, 86vw);
+    overflow-y: auto;
+    border-left: 0;
+    box-shadow: -12px 0 36px rgba(24, 32, 79, .18);
+  }
+
+  .main-sidebar.open {
+    display: flex;
+  }
+
+  .main-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    display: block;
+    border: 0;
+    background: rgba(20, 28, 58, .35);
+  }
+
+  .has-main-sidebar .menu-btn {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e1e5ef;
+    border-radius: 9px;
+    color: #344482;
+    background: #fff;
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, FileText, GraduationCap, Languages, LogOut, MapPin, Plus, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, FileText, GraduationCap, Languages, MapPin, Plus, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
@@ -8,7 +8,6 @@ import { experienceStoragePrefix, loadCandidateProfile, parseCandidateExperience
 type CandidatePageProps = {
   profile: Profile;
   onNavigate: (view: View) => void;
-  onLogout: () => void;
   onProfileUpdated?: () => void;
   onNotify?: (message: string) => void;
 };
@@ -41,7 +40,7 @@ function toInput(profile: CandidateProfile | null, account: Profile): CandidateP
   };
 }
 
-export function CandidatePage({ profile, onNavigate, onLogout, onProfileUpdated, onNotify }: CandidatePageProps) {
+export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify }: CandidatePageProps) {
   const [form, setForm] = useState<CandidateProfileInput>(() => toInput(null, profile));
   const [experiences, setExperiences] = useState<ExperienceEntry[]>([]);
   const [skillDraft, setSkillDraft] = useState("");

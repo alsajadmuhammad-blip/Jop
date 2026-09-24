@@ -3,8 +3,8 @@ name: Role navigation
 description: Navigation structure for candidate, HR, and admin dashboards.
 ---
 
-Each protected role area should use one shared sidebar as its source of navigation. The public header should not repeat role-specific tabs; mobile should open the same sidebar as a drawer.
+The application-level `MainSidebar` is the single source of navigation for every authenticated role. It contains role-specific destinations without creating a separate sidebar or tab system inside each page; mobile opens this same sidebar as a drawer.
 
 **Why:** Repeated header links, dashboard tabs, and mobile controls created conflicting logout placement and crowded HR copy on small screens.
 
-**How to apply:** Add new role pages to the relevant sidebar instead of adding another header link or local tab system. Keep logout in the sidebar and the compact account header control.
+**How to apply:** Add new role destinations to `MainSidebar` and lift section state to the app shell. Keep the single logout action in the main sidebar and leave the public header limited to public actions plus the account/menu control.

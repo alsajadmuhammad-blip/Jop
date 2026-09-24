@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 import { Header } from "./components/layout/Header";
+import { MainSidebar } from "./components/layout/MainSidebar";
 import { Footer } from "./components/layout/Footer";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { demoJobs } from "./lib/constants";
@@ -24,6 +25,8 @@ import { HrDashboardPage } from "./pages/hr/HrDashboardPage";
 import { RequestModal } from "./features/requests/RequestModal";
 import { LoginModal } from "./features/auth/LoginModal";
 import "./styles/role-navigation.css";
+import type { AdminSection } from "./pages/admin/AdminDashboardPage";
+import type { HrSection } from "./pages/hr/HrDashboardPage";
 
 const views: View[] = ["home", "jobs", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
 
@@ -51,6 +54,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [adminSection, setAdminSection] = useState<AdminSection>("overview");
+  const [hrSection, setHrSection] = useState<HrSection>("search");
   const [toast, setToast] = useState("");
 
   const navigate = (next: View) => {
@@ -220,8 +225,9 @@ function App() {
     notify("تم تسجيل الخروج");
   };
 
-  return <div className="app-shell">
-    <Header view={view} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} onLogout={() => void logout()} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
+  return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}`}>
+    <Header view={view} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
+    {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
@@ -229,11 +235,11 @@ function App() {
          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => setModal("login")} onNotify={notify} />}
          {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} onNotify={notify} />}
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
-         {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell profile={profile} active="profile" onNavigate={navigate} onLogout={() => void logout()}><CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} onNotify={notify} /></CandidateDashboardShell>}
-          {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell profile={profile} active="saved" onNavigate={navigate} onLogout={() => void logout()}><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
-         {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onEditJob={navigateToAdminPost} onEditRequest={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} onLogout={() => void logout()} />}
+         {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell>}
+           {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
+          {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onEditRequest={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
         {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} request={selectedCvRequest} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId || routeRequestId ? "تم حفظ التعديلات" : "تم حفظ المنشور ونشره بنجاح"); }} />}
-         {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} onLogout={() => void logout()} />}
+         {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} section={hrSection} onSection={setHrSection} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}
       </>}
     </main>
     <Footer />
