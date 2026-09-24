@@ -16,13 +16,14 @@ import { RequestsPage } from "./pages/public/RequestsPage";
 import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
 import { CandidatePage } from "./pages/candidate/CandidatePage";
+import { SavedJobsPage } from "./pages/candidate/SavedJobsPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminPostPage } from "./pages/admin/AdminPostPage";
 import { HrDashboardPage } from "./pages/hr/HrDashboardPage";
 import { RequestModal } from "./features/requests/RequestModal";
 import { LoginModal } from "./features/auth/LoginModal";
 
-const views: View[] = ["home", "jobs", "requests", "candidate", "admin", "admin-post", "hr", "job", "job-request"];
+const views: View[] = ["home", "jobs", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
 
 function readRoute(): { view: View; jobId: string | null; requestId: string | null } {
   const value = window.location.hash.replace(/^#/, "");
@@ -166,7 +167,7 @@ function App() {
 
   useEffect(() => {
     if (!authReady) return;
-    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate") && !profile) {
+    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved") && !profile) {
       setModal("login");
       return;
     }
@@ -184,6 +185,10 @@ function App() {
       notify("هذه الصفحة مخصصة للباحثين عن عمل");
       navigate("home");
     }
+    if (view === "saved" && profile?.role !== "candidate") {
+      notify("هذه الصفحة مخصصة للباحثين عن عمل");
+      navigate("home");
+    }
   }, [view, profile, authReady]);
 
   useEffect(() => {
@@ -197,10 +202,10 @@ function App() {
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
   const selectedCvRequest = useMemo(() => requests.find((request) => request.id === routeRequestId) || null, [requests, routeRequestId]);
-  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate";
+  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved";
   const closeLogin = () => {
     setModal(null);
-    if (view === "admin" || view === "admin-post" || view === "hr" || view === "candidate") navigate("home");
+    if (view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved") navigate("home");
   };
   const logout = async () => {
     await signOut();
@@ -215,14 +220,14 @@ function App() {
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
         {view === "home" && <HomePage jobs={publishedJobs} requests={requests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
-        {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} />}
-        {view === "job" && <JobDetailsPage job={selectedJob} onNavigate={navigate} />}
-        {view === "job-request" && <JobRequestPage onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
-        {view === "requests" && <RequestsPage />}
+         {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => setModal("login")} onNotify={notify} />}
+         {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} onNotify={notify} />}
+         {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
         {view === "candidate" && profile?.role === "candidate" && <CandidatePage profile={profile} onNavigate={navigate} onLogout={() => void logout()} onNotify={notify} />}
+         {view === "saved" && profile?.role === "candidate" && <SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} />}
         {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} requests={requests} applications={applications} jobRequests={jobRequests} onNavigate={navigate} onEditJob={navigateToAdminPost} onEditRequest={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
         {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} request={selectedCvRequest} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId || routeRequestId ? "تم حفظ التعديلات" : "تم حفظ المنشور ونشره بنجاح"); }} />}
-        {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} />}
+         {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}
       </>}
     </main>
     <Footer />

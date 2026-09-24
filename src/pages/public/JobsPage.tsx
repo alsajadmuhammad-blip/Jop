@@ -1,18 +1,41 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDownAZ, BriefcaseBusiness, Filter, MapPin, Search, X } from "lucide-react";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { PageIntro } from "../../components/common/PageIntro";
 import { categories, jobTypes } from "../../lib/constants";
-import type { Job, JobType } from "../../lib/types";
+import type { Job, JobType, Profile } from "../../lib/types";
 import { JobCard } from "../../features/jobs/JobCard";
+import { hasSupabaseConfig } from "../../lib/supabase";
+import { loadSavedJobIds, toggleSavedJob } from "../../services/savedJobService";
 
-export function JobsPage({ jobs, loading, onOpenJob }: { jobs: Job[]; loading: boolean; onOpenJob: (job: Job) => void }) {
+export function JobsPage({ jobs, loading, onOpenJob, profile, onLogin, onNotify }: { jobs: Job[]; loading: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("الكل");
   const [jobType, setJobType] = useState<"الكل" | JobType>("الكل");
   const [city, setCity] = useState("الكل");
   const [sort, setSort] = useState<"newest" | "title">("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (profile?.role !== "candidate" || !hasSupabaseConfig) {
+      setSavedIds([]);
+      return;
+    }
+    void loadSavedJobIds().then((result) => setSavedIds(result.ids));
+  }, [profile]);
+
+  const toggleSaved = async (job: Job) => {
+    if (profile?.role !== "candidate") {
+      onLogin?.();
+      return;
+    }
+    const saved = savedIds.includes(job.id);
+    const error = await toggleSavedJob(job.id, saved);
+    if (error) return onNotify?.("تعذر تحديث المحفوظات.");
+    setSavedIds((current) => saved ? current.filter((id) => id !== job.id) : [...current, job.id]);
+    onNotify?.(saved ? "أزيلت الوظيفة من المحفوظات" : "تم حفظ الوظيفة");
+  };
 
   const cities = useMemo(() => Array.from(new Set(jobs.map((job) => job.city).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ar")), [jobs]);
   const activeFilterCount = [category !== "الكل", jobType !== "الكل", city !== "الكل"].filter(Boolean).length;
@@ -55,6 +78,6 @@ export function JobsPage({ jobs, loading, onOpenJob }: { jobs: Job[]; loading: b
     </div>
      {(category !== "الكل" || jobType !== "الكل" || city !== "الكل") && <div className="active-filter-list"><span>الفلاتر الحالية:</span>{category !== "الكل" && <button onClick={() => setCategory("الكل")}>{category} <X size={13} /></button>}{jobType !== "الكل" && <button onClick={() => setJobType("الكل")}>{jobType} <X size={13} /></button>}{city !== "الكل" && <button onClick={() => setCity("الكل")}>{city} <X size={13} /></button>}</div>}
      <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{loading ? "جاري التحميل..." : `${filtered.length} وظيفة متاحة`}</strong></div><span>{sort === "newest" ? "مرتبة حسب الأحدث" : "مرتبة حسب الاسم"}</span></div>
-    {loading ? <LoadingCards /> : filtered.length ? <div className="job-grid wide">{filtered.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
+     {loading ? <LoadingCards /> : filtered.length ? <div className="job-grid wide">{filtered.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved={savedIds.includes(job.id)} onToggleSaved={() => void toggleSaved(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
   </section>;
 }

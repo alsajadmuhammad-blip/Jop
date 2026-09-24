@@ -12,6 +12,7 @@ export type JobPostInput = {
   salary_range: string | null;
   contact_email: string | null;
   contact_whatsapp: string | null;
+  internal_applications: boolean;
 };
 
 export type RequestPostInput = {
@@ -57,7 +58,15 @@ export async function loadJobRequests() {
 }
 
 export async function submitJobRequest(input: Omit<JobRequest, "id" | "status" | "approved_job_id" | "reviewed_at" | "created_at">) {
-  const { error } = await supabase.from("job_requests").insert({ ...input, status: "pending" });
+  const { data: userResult } = await supabase.auth.getUser();
+  const contactEmail = input.contact_email || userResult.user?.email || null;
+  if (!contactEmail && !input.contact_whatsapp) return new Error("أضف البريد الإلكتروني أو رقم الواتساب لاستقبال التقديمات.");
+  const { error } = await supabase.from("job_requests").insert({
+    ...input,
+    contact_email: contactEmail,
+    created_by: input.created_by || userResult.user?.id || null,
+    status: "pending",
+  });
   return error;
 }
 

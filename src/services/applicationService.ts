@@ -14,7 +14,7 @@ export async function loadApplications() {
 }
 
 export async function submitApplication(
-  target: { requestId: string },
+  target: { requestId?: string; jobId?: string },
   form: ApplicationFormData,
 ) {
   const { data: userResult, error: userError } = await supabase.auth.getUser();
@@ -25,9 +25,10 @@ export async function submitApplication(
     .eq("user_id", userResult.user.id)
     .single();
   if (candidateError || !candidate) return candidateError || new Error("أكمل ملفك المهني قبل إرسال الطلب.");
+  if (!target.requestId && !target.jobId) return new Error("حدد الوظيفة أو الطلب قبل الإرسال.");
   const { error } = await supabase.from("applications").insert({
-    job_id: null,
-    cv_request_id: target.requestId,
+    job_id: target.jobId || null,
+    cv_request_id: target.requestId || null,
     candidate_id: userResult.user.id,
     full_name: candidate.full_name,
     email: candidate.email || userResult.user.email || "",

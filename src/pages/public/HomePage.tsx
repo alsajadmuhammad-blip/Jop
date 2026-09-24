@@ -82,10 +82,6 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
       </div>
     </section>
 
-    {requests.length > 0 && <section className="container home-v3-section home-v3-requests">
-      <div className="home-v3-section-head"><div><span>للمهارات المطلوبة</span><h2>طلبات HR</h2></div><button className="home-v3-text-link" onClick={() => onNavigate("requests")}>كل الطلبات <ArrowLeft size={15} /></button></div>
-      <div className="request-grid">{requests.slice(0, 3).map((request) => <RequestCard key={request.id} request={request} onClick={() => onOpenRequest(request)} />)}</div>
-    </section>}
 
     <section className="container home-v3-employer">
       <div className="home-v3-employer-mark"><Building2 size={21} /></div>

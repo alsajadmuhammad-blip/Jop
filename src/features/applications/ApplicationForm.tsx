@@ -5,10 +5,11 @@ import { submitApplication, type ApplicationFormData } from "../../services/appl
 
 type ApplicationFormProps = {
   requestId?: string;
+  jobId?: string;
   onSubmitted: () => void;
 };
 
-export function ApplicationForm({ requestId, onSubmitted }: ApplicationFormProps) {
+export function ApplicationForm({ requestId, jobId, onSubmitted }: ApplicationFormProps) {
   const [form, setForm] = useState<ApplicationFormData>({ note: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -19,14 +20,14 @@ export function ApplicationForm({ requestId, onSubmitted }: ApplicationFormProps
     event.preventDefault();
     setSaving(true);
     setError("");
-    if (!hasSupabaseConfig || !requestId) {
+    if (!hasSupabaseConfig || (!requestId && !jobId)) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       setSaving(false);
       onSubmitted();
       return;
     }
 
-    const submitError = await submitApplication({ requestId }, form);
+    const submitError = await submitApplication({ requestId, jobId }, form);
     setSaving(false);
     if (submitError) return setError(submitError.message || "تعذر إرسال الطلب.");
     onSubmitted();

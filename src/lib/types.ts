@@ -20,6 +20,7 @@ export interface CandidateProfile {
   phone: string;
   headline: string;
   specialization: string;
+  province: string;
   city: string;
   experience_years: number;
   skills: string[];
@@ -53,6 +54,7 @@ export interface Job {
   salary_range: string | null;
   contact_email: string | null;
   contact_whatsapp: string | null;
+  internal_applications: boolean;
   status: PostStatus;
   created_at: string;
   deadline: string | null;
@@ -73,6 +75,8 @@ export interface JobRequest {
   requirements: string[];
   salary_range: string | null;
   deadline: string | null;
+  internal_applications: boolean;
+  created_by: string | null;
   status: JobRequestStatus;
   approved_job_id: string | null;
   reviewed_at: string | null;
@@ -105,4 +109,8 @@ export interface Application {
   created_at: string;
   jobs?: Pick<Job, "title" | "company_name"> | null;
   cv_requests?: Pick<CVRequest, "title" | "organization_name"> | null;
+}
+
+export interface SavedJob extends Job {
+  saved_at: string;
 }

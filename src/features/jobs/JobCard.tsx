@@ -1,12 +1,13 @@
-import { ArrowLeft, Building2, CalendarDays, Clock3, MapPin } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Building2, CalendarDays, Clock3, MapPin } from "lucide-react";
 import { formatDate } from "../../lib/format";
 import type { Job } from "../../lib/types";
 
-export function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
-  return <button className="job-card" onClick={onClick}>
+export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onClick: () => void; saved?: boolean; onToggleSaved?: () => void }) {
+  return <article className="job-card" onClick={onClick} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onClick(); }}>
     <div className="job-card-v3-head">
       <span className="company-logo"><Building2 size={19} /></span>
-      <div><span className="job-card-badge">فرصة عمل</span><small className="job-card-date"><CalendarDays size={12} /> نُشرت {formatDate(job.created_at)}</small></div>
+       <div><span className="job-card-badge">فرصة عمل</span><small className="job-card-date"><CalendarDays size={12} /> نُشرت {formatDate(job.created_at)}</small></div>
+       {onToggleSaved && <button className="job-save-button" onClick={(event) => { event.stopPropagation(); onToggleSaved(); }} aria-label={saved ? "إزالة من المحفوظات" : "حفظ الوظيفة"}>{saved ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}</button>}
     </div>
     <div className="job-card-v3-main">
       <span className="category-label">{job.category || "عام"}</span>
@@ -18,5 +19,5 @@ export function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
       <span><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>
       <b>التفاصيل <ArrowLeft size={14} /></b>
     </div>
-  </button>;
+  </article>;
 }

@@ -26,6 +26,7 @@ function toInput(profile: CandidateProfile | null, account: Profile): CandidateP
     phone: profile?.phone || "",
     headline: profile?.headline || "",
     specialization: profile?.specialization || "",
+    province: profile?.province || "",
     city: profile?.city || "",
     experience_years: profile?.experience_years || 0,
     skills: profile?.skills || [],
@@ -107,6 +108,7 @@ export function CandidatePage({ profile, onNavigate, onLogout, onProfileUpdated,
       form.full_name,
       form.headline,
       form.specialization,
+      form.province,
       form.city,
       form.skills.length,
       experiences.length,
@@ -163,8 +165,9 @@ export function CandidatePage({ profile, onNavigate, onLogout, onProfileUpdated,
         <section className="profile-editor-section">
           <div className="profile-section-heading"><span className="profile-section-icon"><FileText size={18} /></span><div><span className="eyebrow">الخطوة الأولى</span><h2>معلوماتك المهنية</h2><p>البيانات التي تظهر أولاً عندما يجدك صاحب عمل.</p></div></div>
           <div className="form-grid"><label>الاسم الكامل<input required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} placeholder="مثال: أحمد محمد" /></label><label>المسمى الوظيفي<input required value={form.headline} onChange={(event) => update("headline", event.target.value)} placeholder="مثال: مطور واجهات أمامية" /></label></div>
-          <div className="form-grid"><label>التخصص<input required value={form.specialization} onChange={(event) => update("specialization", event.target.value)} placeholder="مثال: برمجيات، محاسبة، تسويق" /></label><label>المدينة<input required value={form.city} onChange={(event) => update("city", event.target.value)} placeholder="بغداد" /></label></div>
-          <div className="form-grid"><label>البريد الإلكتروني<input required type="email" value={form.email} onChange={(event) => update("email", event.target.value)} dir="ltr" /></label><label>رقم الهاتف<input required value={form.phone} onChange={(event) => update("phone", event.target.value)} dir="ltr" /></label></div>
+          <div className="form-grid"><label>التخصص<input required value={form.specialization} onChange={(event) => update("specialization", event.target.value)} placeholder="مثال: برمجيات، محاسبة، تسويق" /></label><label>المحافظة<input required value={form.province} onChange={(event) => update("province", event.target.value)} placeholder="بغداد" /></label></div>
+          <div className="form-grid"><label>المدينة<input required value={form.city} onChange={(event) => update("city", event.target.value)} placeholder="بغداد" /></label><label>البريد الإلكتروني<input required type="email" value={form.email} onChange={(event) => update("email", event.target.value)} dir="ltr" /></label></div>
+          <div className="form-grid"><label>رقم الهاتف<input required value={form.phone} onChange={(event) => update("phone", event.target.value)} dir="ltr" /></label></div>
           <label>نبذة مهنية<textarea required rows={4} value={form.summary} onChange={(event) => update("summary", event.target.value)} placeholder="اكتب 2–3 أسطر عن خبرتك، أسلوبك، والقيمة التي تقدمها..." /></label>
         </section>
 

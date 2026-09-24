@@ -45,6 +45,7 @@ export function formatCandidateExperiences(value: string) {
 export type CandidateSearchFilters = {
   keyword: string;
   specialization: string;
+  province: string;
   city: string;
   minExperience: string;
   workType: string;
@@ -56,6 +57,7 @@ export type CandidateSearchFilters = {
 export const emptyCandidateSearchFilters: CandidateSearchFilters = {
   keyword: "",
   specialization: "",
+  province: "",
   city: "",
   minExperience: "",
   workType: "",
@@ -67,6 +69,7 @@ export const emptyCandidateSearchFilters: CandidateSearchFilters = {
 export type CandidateSearchOptions = {
   total: number;
   specializations: string[];
+  provinces: string[];
   cities: string[];
   workTypes: string[];
   skills: string[];
@@ -76,7 +79,7 @@ export type CandidateSearchOptions = {
 
 type CandidateSearchOptionRow = Pick<
   CandidateProfile,
-  "specialization" | "city" | "work_type" | "skills" | "availability" | "experience_years"
+  "specialization" | "province" | "city" | "work_type" | "skills" | "availability" | "experience_years"
 >;
 
 const normalizeSearchValue = (value: string) => value.trim().toLocaleLowerCase();
@@ -88,7 +91,7 @@ const uniqueSorted = (values: string[]) => Array.from(
 export async function loadCandidateSearchOptions() {
   const { data, error } = await supabase
     .from("candidate_profiles")
-    .select("specialization, city, work_type, skills, availability, experience_years")
+    .select("specialization, province, city, work_type, skills, availability, experience_years")
     .limit(1000);
 
   if (error) return { options: null, error };
@@ -97,6 +100,7 @@ export async function loadCandidateSearchOptions() {
   const options: CandidateSearchOptions = {
     total: rows.length,
     specializations: uniqueSorted(rows.map((row) => row.specialization)),
+    provinces: uniqueSorted(rows.map((row) => row.province)),
     cities: uniqueSorted(rows.map((row) => row.city)),
     workTypes: uniqueSorted(rows.map((row) => row.work_type)),
     skills: uniqueSorted(rows.flatMap((row) => row.skills || [])),
@@ -137,6 +141,7 @@ export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
 
   const keyword = normalizeSearchValue(filters.keyword);
   const specialization = normalizeSearchValue(filters.specialization);
+  const province = normalizeSearchValue(filters.province);
   const city = normalizeSearchValue(filters.city);
   const workType = normalizeSearchValue(filters.workType);
   const skill = normalizeSearchValue(filters.skill);
@@ -146,6 +151,7 @@ export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
     candidate.full_name,
     candidate.headline,
     candidate.specialization,
+    candidate.province,
     candidate.city,
     candidate.experience_details,
     candidate.education,
@@ -160,6 +166,7 @@ export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
       return (
         (!keyword || searchableText(candidate).includes(keyword)) &&
         (!specialization || normalizeSearchValue(candidate.specialization) === specialization) &&
+        (!province || normalizeSearchValue(candidate.province) === province) &&
         (!city || normalizeSearchValue(candidate.city) === city) &&
         (!workType || normalizeSearchValue(candidate.work_type) === workType) &&
         (!skill || candidateSkills.includes(skill)) &&

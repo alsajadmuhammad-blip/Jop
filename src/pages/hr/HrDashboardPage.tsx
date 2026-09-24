@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   UserRound,
   X,
+  Plus,
 } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { formatDate } from "../../lib/format";
@@ -31,11 +32,13 @@ export function HrDashboardPage({
   applications,
   onRefresh,
   onNotify,
+  onNavigate,
 }: {
   profile: Profile;
   applications: Application[];
   onRefresh: () => void;
   onNotify: Notify;
+  onNavigate: (view: "job-request") => void;
 }) {
   const [section, setSection] = useState<"search" | "applications">("search");
   const [filters, setFilters] = useState<CandidateSearchFilters>(emptyCandidateSearchFilters);
@@ -83,6 +86,7 @@ export function HrDashboardPage({
     () => [
       filters.keyword,
       filters.specialization,
+      filters.province,
       filters.city,
       filters.minExperience,
       filters.workType,
@@ -139,7 +143,8 @@ export function HrDashboardPage({
           <span><ShieldAlert size={28} /></span>
           <h1>البحث غير مفعّل لهذا الحساب</h1>
           <p>لا يمكنك مشاهدة الملفات الشخصية للباحثين إلا بعد أن يفعّل المشرف صلاحية الوصول لحسابك.</p>
-          <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
+           <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
+           <button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={16} /> طلب نشر وظيفة</button>
         </div>
       </section>
     );
@@ -157,7 +162,7 @@ export function HrDashboardPage({
             <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
           </div>
         </div>
-        <div className="hr-page-header-mark"><Building2 size={27} /><b>مسار</b><small>دليل الباحثين</small></div>
+           <div className="hr-page-header-mark"><Building2 size={27} /><b>مسار</b><small>دليل الباحثين</small><button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={15} /> طلب نشر وظيفة</button></div>
       </header>
 
       <div className="hr-summary-strip">
@@ -202,6 +207,13 @@ export function HrDashboardPage({
                 </select>
               </label>
               <label>
+                 <span>المحافظة</span>
+                 <select value={filters.province} onChange={(event) => updateFilter("province", event.target.value)} disabled={optionsLoading}>
+                   <option value="">كل المحافظات</option>
+                   {options?.provinces.map((value) => <option key={value} value={value}>{value}</option>)}
+                 </select>
+               </label>
+               <label>
                 <span>المدينة</span>
                 <select value={filters.city} onChange={(event) => updateFilter("city", event.target.value)} disabled={optionsLoading}>
                   <option value="">كل المدن</option>
@@ -269,7 +281,7 @@ export function HrDashboardPage({
                     <span className="candidate-result-copy">
                       <b>{candidate.full_name}</b>
                       <strong>{candidate.headline}</strong>
-                      <small>{candidate.specialization} · {candidate.city} · {candidate.experience_years} سنوات خبرة</small>
+                       <small>{candidate.specialization} · {candidate.province} / {candidate.city} · {candidate.experience_years} سنوات خبرة</small>
                       <span>{candidate.skills.slice(0, 4).join(" · ")}</span>
                     </span>
                     <span className="candidate-result-arrow">عرض الملف</span>
@@ -331,7 +343,7 @@ export function HrDashboardPage({
               <div><span className="eyebrow">ملف مهني</span><h2>{selected.full_name}</h2><p>{selected.headline} · {selected.specialization}</p></div>
             </div>
             <div className="candidate-detail-facts">
-              <span><small>المدينة</small><b>{selected.city || "غير محدد"}</b></span>
+               <span><small>الموقع</small><b>{[selected.province, selected.city].filter(Boolean).join(" / ") || "غير محدد"}</b></span>
               <span><small>الخبرة</small><b>{selected.experience_years} سنوات</b></span>
               <span><small>التوفر</small><b>{selected.availability || "غير محدد"}</b></span>
             </div>
