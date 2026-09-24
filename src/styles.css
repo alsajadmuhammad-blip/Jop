@@ -1189,6 +1189,111 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   box-shadow: 0 24px 65px rgba(13, 43, 31, .23);
 }
 
+.hr-candidate-profile-page {
+  max-width: 920px;
+  padding-top: 34px;
+  padding-bottom: 88px;
+}
+
+.candidate-profile-back {
+  margin-bottom: 17px;
+}
+
+.candidate-profile-card {
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: clamp(22px, 4vw, 36px);
+  border: 1px solid #dfe8e0;
+  box-shadow: 0 12px 30px rgba(28, 67, 52, .06);
+}
+
+.candidate-profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.candidate-profile-header .candidate-detail-heading {
+  padding-left: 0;
+}
+
+.candidate-profile-header h1 {
+  margin: 5px 0 3px;
+  color: #193f35;
+  font-family: "Readex Pro", sans-serif;
+  font-size: clamp(24px, 4vw, 34px);
+}
+
+.candidate-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #dce8df;
+  border-radius: 99px;
+  color: #34765b;
+  background: #f2f8f3;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.candidate-detail-facts small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.application-already-applied {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 15px;
+  padding: 12px 13px;
+  border: 1px solid #b9dfc7;
+  border-radius: 10px;
+  color: #24714e;
+  background: #effaf2;
+}
+
+.application-already-applied > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.application-already-applied b,
+.application-already-applied small {
+  display: block;
+}
+
+.application-already-applied b {
+  font-size: 11px;
+}
+
+.application-already-applied small {
+  margin-top: 3px;
+  color: #56836a;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+@media (max-width: 620px) {
+  .hr-candidate-profile-page {
+    padding-top: 18px;
+  }
+
+  .hr-candidate-profile-page .candidate-profile-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hr-candidate-profile-page .candidate-profile-badge {
+    align-self: flex-start;
+  }
+}
+
 .candidate-detail-close {
   position: absolute;
   top: 17px;

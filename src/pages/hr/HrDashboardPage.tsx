@@ -11,7 +11,6 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   UserRound,
-  X,
   Plus,
 } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
@@ -20,9 +19,9 @@ import type { Application, ApplicationStatus, CandidateProfile, CandidateSearchR
 import type { Notify } from "../../app/types";
 import type { View } from "../../app/types";
 import { openApplicationCv, updateApplicationStatus } from "../../services/applicationService";
+import { CandidateProfilePage } from "./CandidateProfilePage";
 import {
   emptyCandidateSearchFilters,
-  formatCandidateExperiences,
   loadCandidateProfile,
   loadCandidateSearchOptions,
   searchCandidateProfiles,
@@ -55,7 +54,8 @@ export function HrDashboardPage({
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(true);
-  const [selected, setSelected] = useState<CandidateProfile | CandidateSearchResult | null>(null);
+  const [selected, setSelected] = useState<CandidateProfile | null>(null);
+  const [selectedSource, setSelectedSource] = useState<"search" | "applications">("search");
   const [opening, setOpening] = useState("");
 
   const canSearch = profile.can_search_candidates || profile.role === "admin";
@@ -82,6 +82,10 @@ export function HrDashboardPage({
       active = false;
     };
   }, [canSearch]);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [section]);
 
   const updateFilter = <K extends keyof CandidateSearchFilters>(
     key: K,
@@ -139,6 +143,7 @@ export function HrDashboardPage({
 
     setOpening(application.id);
     setSelected(null);
+    setSelectedSource("applications");
 
     if (application.candidate_id) {
       const result = await loadCandidateProfile(application.candidate_id);
@@ -170,6 +175,10 @@ export function HrDashboardPage({
         </div>
       </section>
     );
+  }
+
+  if (selected) {
+    return <CandidateProfilePage candidate={selected} source={selectedSource} onBack={() => setSelected(null)} />;
   }
 
   return (
@@ -290,8 +299,8 @@ export function HrDashboardPage({
             </div>
             {results.length ? (
               <div className="candidate-result-list">
-                {results.map((candidate) => (
-                  <button type="button" className="candidate-result-card" key={candidate.user_id} onClick={() => setSelected(candidate)}>
+                 {results.map((candidate) => (
+                   <button type="button" className="candidate-result-card" key={candidate.user_id} onClick={() => { setSelectedSource("search"); setSelected(candidate); }}>
                     <span className="candidate-result-avatar">{candidate.full_name.slice(0, 1)}</span>
                     <span className="candidate-result-copy">
                       <b>{candidate.full_name}</b>
@@ -349,27 +358,6 @@ export function HrDashboardPage({
         </div>
       )}
 
-      {selected && (
-        <div className="candidate-detail-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>
-          <article className="candidate-detail-card">
-            <button className="candidate-detail-close" onClick={() => setSelected(null)} aria-label="إغلاق"><X size={19} /></button>
-            <div className="candidate-detail-heading">
-              <span className="candidate-result-avatar">{selected.full_name.slice(0, 1)}</span>
-              <div><span className="eyebrow">ملف مهني</span><h2>{selected.full_name}</h2><p>{selected.headline} · {selected.specialization}</p></div>
-            </div>
-            <div className="candidate-detail-facts">
-               <span><small>الموقع</small><b>{[selected.province, selected.city].filter(Boolean).join(" / ") || "غير محدد"}</b></span>
-              <span><small>الخبرة</small><b>{selected.experience_years} سنوات</b></span>
-              <span><small>التوفر</small><b>{selected.availability || "غير محدد"}</b></span>
-            </div>
-            <div className="candidate-detail-section"><h3>نبذة مهنية</h3><p>{selected.summary || "لا توجد نبذة مضافة."}</p></div>
-            <div className="candidate-detail-section"><h3>المهارات</h3><div className="skill-pills">{selected.skills.map((skill) => <span key={skill}>{skill}</span>)}</div></div>
-            <div className="candidate-detail-section"><h3>الخبرة العملية</h3><p>{formatCandidateExperiences(selected.experience_details) || "لا توجد تفاصيل مضافة."}</p></div>
-            <div className="candidate-detail-section"><h3>التعليم واللغات</h3><p>{selected.education || "لا توجد بيانات تعليمية."}</p><p>{selected.languages.join(" · ") || "لا توجد لغات مضافة."}</p></div>
-            <div className="candidate-contact-box"><b>بيانات التواصل</b><span>{selected.email}</span><span>{selected.phone}</span></div>
-          </article>
-        </div>
-      )}
     </section>
   );
 }
