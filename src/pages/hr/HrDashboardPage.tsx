@@ -159,25 +159,27 @@ export function HrDashboardPage({
 
   return (
     <section className="container page-section dashboard-page hr-workspace-page">
-      <header className="hr-page-header">
-        <div className="hr-page-header-copy">
-          <span className="eyebrow"><Building2 size={14} /> مساحة صاحب العمل / HR</span>
-          <h1>ابحث عن الباحث المناسب بدقة</h1>
-          <p>الفلاتر هنا مبنية مباشرة على البيانات التي يضيفها الباحثون في ملفاتهم المهنية.</p>
-          <div className="hr-header-tags">
-            <span><CheckCircle2 size={14} /> بيانات متطابقة مع ملفات الباحثين</span>
-            <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
+      {section === "search" && <>
+        <header className="hr-page-header">
+          <div className="hr-page-header-copy">
+            <span className="eyebrow"><Building2 size={14} /> مساحة صاحب العمل / HR</span>
+            <h1>ابحث عن الباحث المناسب بدقة</h1>
+            <p>الفلاتر هنا مبنية مباشرة على البيانات التي يضيفها الباحثون في ملفاتهم المهنية.</p>
+            <div className="hr-header-tags">
+              <span><CheckCircle2 size={14} /> بيانات متطابقة مع ملفات الباحثين</span>
+              <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
+            </div>
           </div>
-        </div>
-           <div className="hr-page-header-mark"><Building2 size={27} /><b>مسار</b><small>دليل الباحثين</small></div>
-      </header>
+          <div className="hr-page-header-mark"><Building2 size={27} /><b>IRAQ JOBS</b><small>دليل الباحثين</small></div>
+        </header>
 
-      <div className="hr-summary-strip">
-        <div><span><UserRound size={16} /></span><p><b>{options?.total ?? "—"}</b><small>ملف باحث متاح</small></p></div>
-        <div><span><Search size={16} /></span><p><b>{searched ? results.length : "—"}</b><small>نتيجة مطابقة</small></p></div>
-        <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>طلب وارد</small></p></div>
-        <div className="hr-summary-note"><SlidersHorizontal size={16} /><span>كل خيار يظهر فقط إذا كان موجودًا في ملفات الباحثين الحالية.</span></div>
-      </div>
+        <div className="hr-summary-strip">
+          <div><span><UserRound size={16} /></span><p><b>{options?.total ?? "—"}</b><small>ملف باحث متاح</small></p></div>
+          <div><span><Search size={16} /></span><p><b>{searched ? results.length : "—"}</b><small>نتيجة مطابقة</small></p></div>
+          <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>طلب وارد</small></p></div>
+          <div className="hr-summary-note"><SlidersHorizontal size={16} /><span>كل خيار يظهر فقط إذا كان موجودًا في ملفات الباحثين الحالية.</span></div>
+        </div>
+      </>}
 
       {section === "search" && (
         <div className="candidate-search-layout">

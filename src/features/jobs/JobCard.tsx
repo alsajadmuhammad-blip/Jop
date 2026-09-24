@@ -7,7 +7,7 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
     <div className="job-card-v3-head">
       <span className="company-logo"><Building2 size={19} /></span>
        <div><span className="job-card-badge">فرصة عمل</span><small className="job-card-date"><CalendarDays size={12} /> نُشرت {formatDate(job.created_at)}</small></div>
-       {onToggleSaved && <button className="job-save-button" onClick={(event) => { event.stopPropagation(); onToggleSaved(); }} aria-label={saved ? "إزالة من المحفوظات" : "حفظ الوظيفة"}>{saved ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}</button>}
+       {onToggleSaved && <button type="button" className={saved ? "job-save-button saved" : "job-save-button"} onClick={(event) => { event.stopPropagation(); onToggleSaved(); }} aria-label={saved ? "إزالة من المحفوظات" : "حفظ الوظيفة"}>{saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}<span>{saved ? "محفوظة" : "حفظ"}</span></button>}
     </div>
     <div className="job-card-v3-main">
       <span className="category-label">{job.category || "عام"}</span>

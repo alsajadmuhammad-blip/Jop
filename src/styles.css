@@ -670,6 +670,11 @@ button:disabled { cursor: wait; opacity: .7; }
 .primary-btn:hover { transform: translateY(-2px); background: var(--green-2); box-shadow: 0 10px 24px rgba(18,60,53,.22); }
 .primary-btn.large { padding: 14px 20px; }
 .primary-btn.full { width: 100%; min-height: 45px; }
+.save-job-btn { display: inline-flex; min-height: 39px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #cbded3; border-radius: 10px; padding: 9px 13px; color: #28654f; background: #f7fbf8; font-family: inherit; font-size: 11px; font-weight: 800; transition: .2s; }
+.save-job-btn:hover { border-color: #8fc6a4; color: #1e7650; background: #edf9f1; transform: translateY(-1px); }
+.save-job-btn.saved { border-color: #9bcdae; color: #fff; background: #2f8060; box-shadow: 0 7px 16px rgba(47,128,96,.16); }
+.save-job-btn.saved:hover { color: #fff; background: #246c50; }
+.save-job-btn:disabled { cursor: wait; opacity: .7; transform: none; }
 .text-btn { padding: 9px 4px; color: var(--green-2); background: transparent; }
 .text-btn:hover { color: var(--green); transform: translateX(-3px); }
 .hero-trust { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 11px; margin-top: 32px; }

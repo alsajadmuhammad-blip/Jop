@@ -20,6 +20,7 @@ function DetailSection({ number, eyebrow, title, children }: { number: string; e
 
 export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: { job: Job | null; profile?: Profile | null; onNavigate: (view: View) => void; onLogin?: () => void; onNotify?: (message: string) => void }) {
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -30,6 +31,19 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
   if (!job) {
     return <section className="container page-section"><PageIntro eyebrow="الوظيفة" title="الوظيفة غير متاحة" description="قد تكون الوظيفة أُغلقت أو أن الرابط غير صحيح." /><button className="outline-btn" onClick={() => onNavigate("jobs")}><ArrowRight size={16} /> العودة إلى الوظائف</button></section>;
   }
+
+  const handleToggleSaved = async () => {
+    if (saving) return;
+    setSaving(true);
+    const error = await toggleSavedJob(job.id, saved);
+    setSaving(false);
+    if (error) {
+      onNotify?.("تعذر تحديث المحفوظات.");
+      return;
+    }
+    setSaved(!saved);
+    onNotify?.(!saved ? "تم حفظ الوظيفة" : "أزيلت الوظيفة من المحفوظات");
+  };
 
   const hasContact = Boolean(job.contact_email || job.contact_whatsapp);
   return <main className="container page-section job-v3-page">
@@ -44,7 +58,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
         </div>
       </div>
        <div className="job-v3-header-actions">
-         {profile?.role === "candidate" && <button className="outline-btn" onClick={() => void toggleSavedJob(job.id, saved).then((error) => { if (error) onNotify?.("تعذر تحديث المحفوظات."); else { setSaved(!saved); onNotify?.(!saved ? "تم حفظ الوظيفة" : "أزيلت الوظيفة من المحفوظات"); } })}>{saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} {saved ? "محفوظة" : "حفظ الوظيفة"}</button>}
+          {profile?.role === "candidate" && <button type="button" className={saved ? "save-job-btn saved" : "save-job-btn"} disabled={saving} onClick={() => void handleToggleSaved()}>{saving ? "جاري الحفظ..." : <>{saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} {saved ? "محفوظة" : "حفظ الوظيفة"}</>}</button>}
          <button className="outline-btn job-v3-share" onClick={() => void navigator.clipboard?.writeText(window.location.href)}><Share2 size={16} /> مشاركة</button>
        </div>
     </header>
@@ -64,7 +78,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
       </article>
 
        <aside className="job-v3-contact">
-         {job.internal_applications && <div className="internal-application-box"><div className="job-v3-contact-title"><span><BriefcaseBusiness size={19} /></span><div><small>تقديم مباشر</small><h2>قدّم من ملفك المهني</h2></div></div><p>أرسل طلبك مباشرة إلى الجهة من خلال الملف المهني المحفوظ في مسار.</p>{submitted ? <div className="application-success"><Check size={18} /> تم إرسال طلبك بنجاح</div> : profile?.role === "candidate" ? <ApplicationForm jobId={job.id} onSubmitted={() => { setSubmitted(true); onNotify?.("تم إرسال طلبك إلى الجهة."); }} /> : <button className="primary-btn full" onClick={onLogin}>سجّل الدخول للتقديم</button>}</div>}
+         {job.internal_applications && <div className="internal-application-box"><div className="job-v3-contact-title"><span><BriefcaseBusiness size={19} /></span><div><small>تقديم مباشر</small><h2>قدّم من ملفك المهني</h2></div></div><p>أرسل طلبك مباشرة إلى الجهة من خلال الملف المهني المحفوظ في IRAQ JOBS.</p>{submitted ? <div className="application-success"><Check size={18} /> تم إرسال طلبك بنجاح</div> : profile?.role === "candidate" ? <ApplicationForm jobId={job.id} onSubmitted={() => { setSubmitted(true); onNotify?.("تم إرسال طلبك إلى الجهة."); }} /> : <button className="primary-btn full" onClick={onLogin}>سجّل الدخول للتقديم</button>}</div>}
         <div className="job-v3-contact-title"><span><MessageCircle size={19} /></span><div><small>خطوة التقديم</small><h2>تواصل مع الجهة</h2></div></div>
         <p>استخدم إحدى وسائل التواصل التالية واذكر اسم الوظيفة عند مراسلة الجهة.</p>
         {hasContact ? <div className="contact-actions">{job.contact_whatsapp && <a className="contact-action whatsapp premium-contact" href={whatsappUrl(job.contact_whatsapp)} target="_blank" rel="noreferrer"><span className="contact-icon"><MessageCircle size={21} /></span><span className="contact-copy"><small>تواصل سريع</small><b>واتساب</b><em dir="ltr">{job.contact_whatsapp}</em></span><ArrowLeft className="contact-arrow" size={17} /></a>}{job.contact_email && <a className="contact-action email" href={`mailto:${job.contact_email}`}><Mail size={19} /><span><small>البريد الإلكتروني</small><b dir="ltr">{job.contact_email}</b></span></a>}</div> : <p className="contact-missing">لم تضف الجهة وسيلة تواصل لهذه الوظيفة بعد.</p>}

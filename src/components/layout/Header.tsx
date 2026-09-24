@@ -16,7 +16,7 @@ export function Header({ view, profile, onNavigate, onLogin, mobileMenu, setMobi
     { label: "الوظائف", view: "jobs" },
   ];
   return <header className="site-header"><div className="nav-wrap">
-    <button className="brand" onClick={() => onNavigate("home")} aria-label="iraq jobs - الصفحة الرئيسية"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><b>iraq jobs</b><small>for job seekers</small></span></button>
+    <button className="brand" onClick={() => onNavigate("home")} aria-label="IRAQ JOBS - الصفحة الرئيسية"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><b>IRAQ JOBS</b><small>FOR JOB SEEKERS</small></span></button>
     <nav className={mobileMenu ? "main-nav open" : "main-nav"}>
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}
     </nav>

@@ -496,6 +496,46 @@
   color: #879b8e;
 }
 
+.job-save-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid #dce6e0;
+  border-radius: 9px;
+  color: #557467;
+  background: #fff;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  transition: color .2s, border-color .2s, background .2s, transform .2s;
+}
+
+.job-save-button:hover {
+  transform: translateY(-1px);
+  border-color: #a7c9b6;
+  color: #28654f;
+  background: #f4faf6;
+}
+
+.job-save-button.saved {
+  border-color: #b8ddc6;
+  color: #1e7650;
+  background: #edf9f1;
+}
+
+.job-save-button.saved:hover {
+  border-color: #8fc8a5;
+  background: #e2f5e8;
+}
+
+.job-save-button svg {
+  flex: 0 0 auto;
+}
+
 .job-card-v3-main {
   flex: 1;
   padding: 25px 0 18px;

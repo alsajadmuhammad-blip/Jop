@@ -28,7 +28,7 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
       <div className="container">
         <div className="home-v3-hero-grid">
           <div className="home-v3-hero-copy">
-            <div className="home-v3-brand-lockup"><img src="/iraq-jobs-logo.jpg" alt="iraq jobs" /><span><strong>IRAQ JOBS</strong><small>FOR JOB SEEKERS</small></span></div>
+            <div className="home-v3-brand-lockup"><img src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><strong>IRAQ JOBS</strong><small>FOR JOB SEEKERS</small></span></div>
             <h1> وظيفتك القادمة<br /><span>تبدي بخطوة واضحة  .</span></h1>
             <p>اعثر على الفرصة المناسبة، راجع التفاصيل، وتواصل مع الجهة مباشرة.</p>
             <div className="home-v3-actions">
@@ -86,7 +86,7 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
     <section className="container home-v3-employer">
       <div className="home-v3-employer-mark"><Building2 size={21} /></div>
       <div><small>لأصحاب الشركات والـ HR</small><strong>لديك وظيفة شاغرة؟ أرسل تفاصيلها للمراجعة.</strong></div>
-      <span>iraq jobs</span>
+       <span>IRAQ JOBS</span>
     </section>
   </main>;
 }
