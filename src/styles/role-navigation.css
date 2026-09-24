@@ -191,7 +191,8 @@
 
 .role-sidebar-mobile-trigger,
 .role-sidebar-backdrop,
-.role-sidebar-close {
+.role-sidebar-close,
+.role-mobile-nav {
   display: none;
 }
 
@@ -253,8 +254,72 @@
     padding-top: 14px;
   }
 
-  .role-sidebar-mobile-trigger {
+  .role-mobile-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 54px;
+    margin-bottom: 12px;
+    padding: 7px 8px;
+    border: 1px solid #e1e4ee;
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 6px 16px rgba(24, 32, 79, .05);
+  }
+
+  .role-mobile-nav-title {
+    min-width: 0;
+    flex: 1;
+    padding: 0 5px;
+  }
+
+  .role-mobile-nav-title span,
+  .role-mobile-nav-title b {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .role-mobile-nav-title span {
+    color: #9299ad;
+    font-size: 8px;
+  }
+
+  .role-mobile-nav-title b {
+    margin-top: 3px;
+    color: #20285d;
+    font-size: 11px;
+  }
+
+  .role-mobile-nav select {
+    width: 128px;
+    min-height: 35px;
+    padding: 0 7px;
+    border: 1px solid #dfe3ed;
+    border-radius: 8px;
+    color: #344482;
+    background: #f8f9fd;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .role-mobile-logout {
     display: inline-flex;
+    width: 35px;
+    height: 35px;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    border: 1px solid #f0dadd;
+    border-radius: 8px;
+    color: #b6535d;
+    background: #fff7f7;
+  }
+
+  .role-sidebar-mobile-trigger {
+    display: none;
     width: 100%;
     min-height: 44px;
     justify-content: flex-start;
@@ -278,35 +343,7 @@
     overflow-y: auto;
     border: 0;
     border-radius: 0;
-    transform: translateX(110%);
-    transition: transform .22s ease;
-    box-shadow: -18px 0 40px rgba(18, 27, 68, .18);
-  }
-
-  .role-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .role-sidebar-close {
-    display: inline-flex;
-    width: 29px;
-    height: 29px;
-    align-items: center;
-    justify-content: center;
-    margin-right: auto;
-    border: 1px solid #e7e9f0;
-    border-radius: 8px;
-    color: #8991a8;
-    background: #fff;
-  }
-
-  .role-sidebar-backdrop {
-    position: fixed;
-    z-index: 34;
-    display: block;
-    inset: 0;
-    border: 0;
-    background: rgba(17, 25, 62, .42);
+    display: none;
   }
 
   .role-dashboard-shell .role-dashboard-main > .dashboard-page {
@@ -405,7 +442,7 @@
   }
 
   .hr-header-tags {
-    margin-top: 12px;
+    display: none;
   }
 
   .hr-header-tags span {
@@ -417,6 +454,10 @@
   .applications-section {
     padding: 13px !important;
     border-radius: 14px !important;
+  }
+
+  .hr-summary-strip {
+    display: none !important;
   }
 
   .results-heading h2,

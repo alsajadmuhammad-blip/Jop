@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export type RoleSidebarItem = {
   id: string;
@@ -29,26 +28,25 @@ export function RoleSidebar({
   onLogout,
   statusText = "الحساب متصل",
 }: RoleSidebarProps) {
-  const [open, setOpen] = useState(false);
-  const select = (id: string) => {
-    setOpen(false);
-    onSelect(id);
-  };
-
   return (
     <>
-      <button
-        type="button"
-        className="role-sidebar-mobile-trigger"
-        onClick={() => setOpen(true)}
-        aria-expanded={open}
-        aria-label="فتح قائمة مساحة العمل"
-      >
-        <Menu size={18} />
-        <span>قائمة مساحة العمل</span>
-      </button>
-      {open && <button type="button" className="role-sidebar-backdrop" onClick={() => setOpen(false)} aria-label="إغلاق القائمة" />}
-      <aside className={`role-sidebar ${open ? "open" : ""}`}>
+      <div className="role-mobile-nav">
+        <div className="role-mobile-nav-title">
+          <span>{eyebrow}</span>
+          <b>{title}</b>
+        </div>
+        <select
+          value={active}
+          onChange={(event) => onSelect(event.target.value)}
+          aria-label={`التنقل داخل ${title}`}
+        >
+          {items.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
+        </select>
+        <button type="button" className="role-mobile-logout" onClick={onLogout} aria-label="تسجيل الخروج">
+          <LogOut size={16} />
+        </button>
+      </div>
+      <aside className="role-sidebar">
         <div className="role-sidebar-heading">
           <div className="role-sidebar-mark">م</div>
           <div>
@@ -56,9 +54,6 @@ export function RoleSidebar({
             <b>{title}</b>
             <small>{subtitle}</small>
           </div>
-          <button type="button" className="role-sidebar-close" onClick={() => setOpen(false)} aria-label="إغلاق القائمة">
-            <X size={17} />
-          </button>
         </div>
         <div className="role-sidebar-label">مساحة العمل</div>
         <nav className="role-sidebar-nav" aria-label={`قائمة ${title}`}>
@@ -67,7 +62,7 @@ export function RoleSidebar({
               type="button"
               key={item.id}
               className={active === item.id ? "active" : ""}
-              onClick={() => select(item.id)}
+              onClick={() => onSelect(item.id)}
             >
               <span className="role-sidebar-icon">{item.icon}</span>
               <span>{item.label}</span>
