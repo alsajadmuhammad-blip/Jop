@@ -16,13 +16,14 @@ import {
 } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { formatDate } from "../../lib/format";
-import type { Application, ApplicationStatus, CandidateSearchResult, Profile } from "../../lib/types";
+import type { Application, ApplicationStatus, CandidateProfile, CandidateSearchResult, Profile } from "../../lib/types";
 import type { Notify } from "../../app/types";
 import type { View } from "../../app/types";
 import { openApplicationCv, updateApplicationStatus } from "../../services/applicationService";
 import {
   emptyCandidateSearchFilters,
   formatCandidateExperiences,
+  loadCandidateProfile,
   loadCandidateSearchOptions,
   searchCandidateProfiles,
   type CandidateSearchFilters,
@@ -54,7 +55,7 @@ export function HrDashboardPage({
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(true);
-  const [selected, setSelected] = useState<CandidateSearchResult | null>(null);
+  const [selected, setSelected] = useState<CandidateProfile | CandidateSearchResult | null>(null);
   const [opening, setOpening] = useState("");
 
   const canSearch = profile.can_search_candidates || profile.role === "admin";
@@ -131,11 +132,25 @@ export function HrDashboardPage({
     onRefresh();
   };
 
-  const openCv = async (application: Application) => {
-    if (!application.cv_path) return onNotify("هذا التقديم مبني على الملف المهني الداخلي.");
+  const openApplication = async (application: Application) => {
+    if (!application.candidate_id && !application.cv_path) {
+      return onNotify("لا يوجد ملف مرتبط بهذا التقديم.");
+    }
+
     setOpening(application.id);
+    setSelected(null);
+
+    if (application.candidate_id) {
+      const result = await loadCandidateProfile(application.candidate_id);
+      setOpening("");
+      if (result.error) return onNotify("تعذر فتح الملف المهني. تأكد من صلاحيات الوصول.");
+      if (!result.profile) return onNotify("لم يتم العثور على الملف المهني لهذا المتقدم.");
+      setSelected(result.profile);
+      return;
+    }
+
     try {
-      await openApplicationCv(application.cv_path);
+      await openApplicationCv(application.cv_path as string);
     } catch (error) {
       onNotify(error instanceof Error ? error.message : "تعذر فتح الملف.");
     } finally {
@@ -143,7 +158,7 @@ export function HrDashboardPage({
     }
   };
 
-  if (!canSearch) {
+  if (!canSearch && section === "search") {
     return (
       <section className="container page-section dashboard-page hr-locked-page">
         <div className="access-lock-card">
@@ -322,8 +337,8 @@ export function HrDashboardPage({
                       <option value="rejected">مرفوض</option>
                     </select>
                   </div>
-                  <button className="row-action" disabled={opening === application.id} onClick={() => void openCv(application)}>
-                    {opening === application.id ? "جاري الفتح..." : application.cv_path ? "فتح CV" : "فتح الملف"}
+                   <button className="row-action" disabled={opening === application.id || (!application.candidate_id && !application.cv_path)} onClick={() => void openApplication(application)}>
+                     {opening === application.id ? "جاري الفتح..." : application.candidate_id ? "فتح الملف المهني" : application.cv_path ? "فتح CV" : "فتح الملف"}
                   </button>
                 </div>
               ))}
