@@ -6,6 +6,8 @@ import "./admin-actions.css";
 import "./public-layout.css";
 import "./job-details-refresh.css";
 import "./public-v3.css";
+import "./home-refresh.css";
+import "./auth-pages.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

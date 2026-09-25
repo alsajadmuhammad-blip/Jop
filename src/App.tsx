@@ -23,12 +23,12 @@ import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminPostPage } from "./pages/admin/AdminPostPage";
 import { HrDashboardPage } from "./pages/hr/HrDashboardPage";
 import { RequestModal } from "./features/requests/RequestModal";
-import { LoginModal } from "./features/auth/LoginModal";
+import { AuthPage } from "./pages/auth/AuthPage";
 import "./styles/role-navigation.css";
 import type { AdminSection } from "./pages/admin/AdminDashboardPage";
 import type { HrSection } from "./pages/hr/HrDashboardPage";
 
-const views: View[] = ["home", "jobs", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
+const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
 
 function readRoute(): { view: View; jobId: string | null } {
   const value = window.location.hash.replace(/^#/, "");
@@ -49,7 +49,7 @@ function App() {
   const [jobRequests, setJobRequests] = useState<import("./lib/types").JobRequest[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<CVRequest | null>(null);
-  const [modal, setModal] = useState<"job" | "request" | "login" | null>(null);
+  const [modal, setModal] = useState<"request" | null>(null);
   const [loading, setLoading] = useState(true);
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -167,7 +167,7 @@ function App() {
   useEffect(() => {
     if (!authReady) return;
     if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved") && !profile) {
-      setModal("login");
+      navigate("login");
       return;
     }
     if ((view === "admin" || view === "admin-post") && profile?.role !== "admin") {
@@ -201,10 +201,6 @@ function App() {
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
   const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved";
-  const closeLogin = () => {
-    setModal(null);
-    if (view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved") navigate("home");
-  };
   const logout = async () => {
     const { error } = await signOut();
     if (error) {
@@ -216,15 +212,23 @@ function App() {
     notify("تم تسجيل الخروج");
   };
 
+  const handleAuthSuccess = (nextProfile: Profile) => {
+    setProfile(nextProfile);
+    navigate(nextProfile.role === "candidate" ? "candidate" : nextProfile.role === "admin" ? "admin" : "hr");
+    notify("تم تسجيل الدخول بنجاح");
+  };
+
   return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}`}>
-    <Header view={view} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
+    <Header view={view} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
     {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
         {view === "home" && <HomePage jobs={publishedJobs} requests={requests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
-         {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => setModal("login")} onNotify={notify} />}
-         {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => setModal("login")} onNotify={notify} />}
+          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
+          {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onNotify={notify} />}
+          {view === "login" && <AuthPage mode="sign-in" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
+          {view === "signup" && <AuthPage mode="sign-up" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
          {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell>}
            {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
@@ -235,7 +239,6 @@ function App() {
     </main>
     <Footer />
     {modal === "request" && selectedRequest && <RequestModal request={selectedRequest} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("تم إرسال سيرتك الذاتية إلى الجهة المختصة."); }} />}
-    {modal === "login" && <LoginModal onClose={closeLogin} onSuccess={(nextProfile) => { setProfile(nextProfile); setModal(null); notify("تم تسجيل الدخول"); }} />}
     {toast && <div className="toast"><Check size={17} />{toast}</div>}
   </div>;
 }

@@ -1,3 +1,3 @@
 export function Footer() {
-  return <footer><div className="container footer-inner"><div className="brand"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><b>IRAQ JOBS</b><small>FOR JOB SEEKERS</small></span></div><p>منصة عراقية تربط الباحثين عن عمل بالفرص المناسبة.</p><span>© {new Date().getFullYear()} IRAQ JOBS</span></div></footer>;
+  return <footer><div className="container footer-inner"><div className="brand"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><b>IRAQ JOBS</b><small>FOR JOB SEEKERS</small></span></div><p>منصة عراقية مجانية لنشر الوظائف وربط الباحثين بالجهات.</p><span>© {new Date().getFullYear()} IRAQ JOBS</span></div><div className="container footer-disclaimer">IRAQ JOBS تنشر الإعلانات الوظيفية فقط، ولا تضمن صحة المعلومات ولا تتحمل مسؤولية التوظيف أو التقديم. لا نستوفي أي أجور من الباحثين أو الجهات الناشرة.</div></footer>;
 }

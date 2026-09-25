@@ -1,4 +1,4 @@
-import { ArrowLeft, BriefcaseBusiness, Building2, MapPin } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BriefcaseBusiness, Building2, CheckCircle2, CircleDollarSign, HeartHandshake, MapPin, Search, Send, ShieldCheck, Users } from "lucide-react";
 import { JobCard } from "../../features/jobs/JobCard";
 import { RequestCard } from "../../features/requests/RequestCard";
 import type { View } from "../../app/types";
@@ -14,79 +14,81 @@ type HomePageProps = {
   onOpenRequest: (request: CVRequest) => void;
 };
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return <div className="home-v3-stat"><strong>{value}</strong><span>{label}</span></div>;
+function TrustItem({ icon: Icon, title, text }: { icon: typeof ShieldCheck; title: string; text: string }) {
+  return <article className="home-refresh-trust-item"><span><Icon size={20} /></span><div><strong>{title}</strong><p>{text}</p></div></article>;
 }
 
-function MethodStep({ number, title, text }: { number: string; title: string; text: string }) {
-  return <article className="home-v3-method"><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></article>;
+function Step({ number, icon: Icon, title, text }: { number: string; icon: typeof Search; title: string; text: string }) {
+  return <article className="home-refresh-step"><span className="home-refresh-step-number">{number}</span><span className="home-refresh-step-icon"><Icon size={20} /></span><div><h3>{title}</h3><p>{text}</p></div></article>;
 }
 
 export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
-  return <main className="home-page-v3">
-    <section className="home-v3-hero">
-      <div className="container">
-        <div className="home-v3-hero-grid">
-          <div className="home-v3-hero-copy">
-            <div className="home-v3-brand-lockup"><img src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><strong>IRAQ JOBS</strong><small>FOR JOB SEEKERS</small></span></div>
-            <h1> وظيفتك القادمة<br /><span>تبدي بخطوة واضحة  .</span></h1>
-            <p>اعثر على الفرصة المناسبة، راجع التفاصيل، وتواصل مع الجهة مباشرة.</p>
-            <div className="home-v3-actions">
-              <button className="primary-btn large" onClick={() => onNavigate("jobs")}>استعرض الوظائف <ArrowLeft size={18} /></button>
-              <span className="home-v3-action-note"><BriefcaseBusiness size={15} /> {jobs.length} وظيفة منشورة</span>
-            </div>
+  return <main className="home-refresh">
+    <section className="home-refresh-hero">
+      <div className="home-refresh-hero-orb home-refresh-hero-orb-one" />
+      <div className="home-refresh-hero-orb home-refresh-hero-orb-two" />
+      <div className="container home-refresh-hero-inner">
+        <div className="home-refresh-hero-copy">
+          <span className="home-refresh-eyebrow"><HeartHandshake size={16} /> فرصة عادلة للجميع</span>
+          <h1>نساعدك توصل<br /><em>للفرصة المناسبة.</em></h1>
+          <p>منصة عراقية مجانية تجمع الباحثين عن عمل مع الجهات التي تبحث عن كفاءات. تصفح، قدّم، وابدأ خطوتك القادمة بدون رسوم.</p>
+          <div className="home-refresh-actions">
+            <button className="primary-btn large" onClick={() => onNavigate("jobs")}>تصفح الوظائف <ArrowLeft size={18} /></button>
+            <button className="home-refresh-secondary-btn" onClick={() => onNavigate("signup")}>أنشئ حسابك مجاناً <UserPlusIcon /></button>
           </div>
-
-          <div className="home-v3-featured">
-            <div className="home-v3-featured-head">
-              <div><small>آخر التحديثات</small><h2>وظائف جديدة</h2></div>
-              <span>{jobs.length}</span>
-            </div>
-            <div className="home-v3-featured-list">
-              {jobs.slice(0, 3).map((job, index) => <button className="home-v3-featured-job" key={job.id} onClick={() => onOpenJob(job)}>
-                <span className="home-v3-job-number">{String(index + 1).padStart(2, "0")}</span>
-                <span className="home-v3-featured-job-copy"><strong>{job.title}</strong><small>{job.company_name}</small><em><MapPin size={12} /> {job.city}</em></span>
-                <ArrowLeft size={16} />
-              </button>)}
-              {jobs.length === 0 && <div className="home-v3-empty">لا توجد وظائف منشورة حالياً</div>}
-            </div>
-            <button className="home-v3-featured-link" onClick={() => onNavigate("jobs")}>مشاهدة كل الوظائف <ArrowLeft size={15} /></button>
+          <div className="home-refresh-proof"><span><CheckCircle2 size={15} /> مجاني للباحثين عن عمل</span><span><CheckCircle2 size={15} /> مجاني للجهات الناشرة</span></div>
+        </div>
+        <div className="home-refresh-hero-panel">
+          <div className="home-refresh-panel-top"><span className="home-refresh-live"><i /> فرص منشورة الآن</span><strong>{jobs.length}</strong></div>
+          <div className="home-refresh-panel-title"><small>أحدث الفرص</small><h2>ابدأ من هنا</h2></div>
+          <div className="home-refresh-job-list">
+            {jobs.slice(0, 3).map((job) => <button className="home-refresh-job-row" key={job.id} onClick={() => onOpenJob(job)}>
+              <span className="home-refresh-job-icon"><BriefcaseBusiness size={18} /></span><span><strong>{job.title}</strong><small>{job.company_name} · {job.city}</small></span><ArrowLeft size={16} />
+            </button>)}
+            {jobs.length === 0 && <div className="home-refresh-empty">لا توجد وظائف منشورة حالياً</div>}
           </div>
+          <button className="home-refresh-panel-link" onClick={() => onNavigate("jobs")}>شاهد كل الوظائف <ArrowLeft size={15} /></button>
         </div>
       </div>
     </section>
 
-    <section className="home-v3-stats">
-      <div className="container home-v3-stats-grid">
-        <Stat value={`${jobs.length || "—"}`} label="وظيفة منشورة" />
-        <Stat value={`${requests.length || "—"}`} label="طلب HR مفتوح" />
-        <Stat value="مباشر" label="التواصل مع الجهة" />
-        <Stat value="مجاني" label="للباحث عن عمل" />
+    <section className="home-refresh-trust">
+      <div className="container home-refresh-trust-grid">
+        <TrustItem icon={CircleDollarSign} title="بدون أي رسوم" text="لا نأخذ أجوراً من أي طرف." />
+        <TrustItem icon={ShieldCheck} title="منصة مستقلة" text="ننشر الفرص فقط ولا نوظف." />
+        <TrustItem icon={BadgeCheck} title="اختيارك بيدك" text="تتواصل مباشرة مع الجهة." />
       </div>
     </section>
 
-    <section className="container home-v3-section home-v3-jobs">
-      <div className="home-v3-section-head">
-        <div><span>الفرص الحالية</span><h2>وظائف تستحق نظرتك</h2></div>
-        <button className="home-v3-text-link" onClick={() => onNavigate("jobs")}>كل الوظائف <ArrowLeft size={15} /></button>
+    <section className="container home-refresh-section home-refresh-jobs">
+      <div className="home-refresh-section-heading"><div><span>آخر الفرص</span><h2>وظائف جديدة تستحق نظرتك</h2></div><button className="home-refresh-text-link" onClick={() => onNavigate("jobs")}>كل الوظائف <ArrowLeft size={15} /></button></div>
+      <div className="job-grid home-refresh-job-grid">{loading ? <LoadingCards /> : jobs.slice(0, 3).map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} />)}</div>
+      {!loading && jobs.length === 0 && <div className="home-refresh-jobs-empty"><BriefcaseBusiness size={20} /><p>ماكو وظائف منشورة حالياً. تابعنا حتى توصلك الفرص الجديدة.</p></div>}
+    </section>
+
+    <section className="home-refresh-audience-section">
+      <div className="container">
+        <div className="home-refresh-section-heading centered"><div><span>مصممة للطرفين</span><h2>كل طرف يلقى اللي يحتاجه</h2></div><p>حساب مجاني، تجربة واضحة، وبدون عمولات مخفية.</p></div>
+        <div className="home-refresh-audience-grid">
+          <article className="home-refresh-audience-card candidate"><span className="home-refresh-audience-icon"><Users size={24} /></span><small>للباحثين عن عمل</small><h3>دور على فرصتك بثقة</h3><p>استعرض الوظائف، احفظ اللي يعجبك، وقدّم أو تواصل مع الجهة الناشرة مباشرة.</p><button onClick={() => onNavigate("signup")}>إنشاء حساب باحث عن عمل <ArrowLeft size={16} /></button></article>
+          <article className="home-refresh-audience-card employer"><span className="home-refresh-audience-icon"><Building2 size={24} /></span><small>للشركات و HR</small><h3>انشر فرصتك مجاناً</h3><p>أرسل تفاصيل الوظيفة للمراجعة والنشر، ووصل إلى الباحثين عن عمل بدون أي تكلفة.</p><button onClick={() => onNavigate("job-request")}>أرسل وظيفة للنشر <Send size={16} /></button></article>
+        </div>
       </div>
-      <div className="job-grid home-v3-job-grid">{loading ? <LoadingCards /> : jobs.slice(0, 3).map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} />)}</div>
     </section>
 
-    <section className="container home-v3-section home-v3-method-section">
-      <div className="home-v3-section-head"><div><span>طريقة بسيطة</span><h2>من البحث إلى التواصل</h2></div><p>كل ما تحتاجه للوصول إلى فرصتك.</p></div>
-      <div className="home-v3-method-grid">
-        <MethodStep number="01" title="ابحث" text="استخدم المجال أو المدينة أو نوع الدوام." />
-        <MethodStep number="02" title="راجع" text="اقرأ الوصف والمتطلبات والراتب." />
-        <MethodStep number="03" title="تواصل" text="تواصل مباشرة مع الجهة الناشرة." />
-      </div>
+    <section className="container home-refresh-section home-refresh-how">
+      <div className="home-refresh-section-heading"><div><span>كيف تعمل المنصة؟</span><h2>ثلاث خطوات واضحة</h2></div><p>ماكو تعقيد، وماكو رسوم.</p></div>
+      <div className="home-refresh-steps"><Step number="01" icon={Search} title="ابحث" text="استخدم الوظائف المنشورة وابحث حسب المجال أو المدينة." /><Step number="02" icon={CheckCircle2} title="اختار" text="راجع التفاصيل والمتطلبات وتأكد أن الفرصة تناسبك." /><Step number="03" icon={Send} title="تواصل" text="قدّم أو تواصل مباشرة مع الجهة المعلنة." /></div>
     </section>
 
-
-    <section className="container home-v3-employer">
-      <div className="home-v3-employer-mark"><Building2 size={21} /></div>
-      <div><small>لأصحاب الشركات والـ HR</small><strong>لديك وظيفة شاغرة؟ أرسل تفاصيلها للمراجعة.</strong></div>
-       <span>IRAQ JOBS</span>
+    <section className="container home-refresh-notice">
+      <div className="home-refresh-notice-icon"><ShieldCheck size={24} /></div>
+      <div><strong>مهم تعرف</strong><p>IRAQ JOBS منصة مجانية وخيرية لنشر الوظائف فقط. لا نأخذ أجوراً مقابل نشر الوظائف أو التوظيف أو التقديم، ولا نتحمل مسؤولية صحة الإعلانات أو نتائج التواصل بين الأطراف.</p></div>
     </section>
+    {requests.length > 0 && <section className="container home-refresh-request-hint"><span>{requests.length} طلب توظيف مفتوح</span><button onClick={() => onNavigate("jobs")}>استعرض الفرص <ArrowLeft size={15} /></button></section>}
   </main>;
+}
+
+function UserPlusIcon() {
+  return <span aria-hidden="true">+</span>;
 }
