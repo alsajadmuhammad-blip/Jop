@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
+import { AppSelect } from "../../components/common/AppSelect";
 import { formatDate } from "../../lib/format";
 import type { Application, ApplicationStatus, CandidateProfile, CandidateSearchResult, Profile } from "../../lib/types";
 import type { Notify } from "../../app/types";
@@ -187,14 +188,14 @@ export function HrDashboardPage({
         <header className="hr-page-header">
           <div className="hr-page-header-copy">
             <span className="eyebrow"><Building2 size={14} /> مساحة صاحب العمل / HR</span>
-            <h1>ابحث عن الباحث المناسب بدقة</h1>
-            <p>الفلاتر هنا مبنية مباشرة على البيانات التي يضيفها الباحثون في ملفاتهم المهنية.</p>
+            <h1>اعثر على الكفاءة المناسبة لفريقك</h1>
+            <p>فلترة واضحة تساعدك على الوصول إلى المرشح الأقرب لمتطلبات الوظيفة.</p>
             <div className="hr-header-tags">
               <span><CheckCircle2 size={14} /> بيانات متطابقة مع ملفات الباحثين</span>
               <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
             </div>
           </div>
-          <div className="hr-page-header-mark"><Building2 size={27} /><b>IRAQ JOBS</b><small>دليل الباحثين</small></div>
+          <div className="hr-page-header-mark"><Building2 size={27} /><b>IRAQ JOBS</b><small>دليل الكفاءات</small></div>
         </header>
 
         <div className="hr-summary-strip">
@@ -225,52 +226,80 @@ export function HrDashboardPage({
             <div className="hr-filter-grid">
               <label>
                 <span>التخصص</span>
-                <select value={filters.specialization} onChange={(event) => updateFilter("specialization", event.target.value)} disabled={optionsLoading}>
-                  <option value="">كل التخصصات</option>
-                  {options?.specializations.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                <AppSelect
+                  value={filters.specialization}
+                  onChange={(value) => updateFilter("specialization", value)}
+                  placeholder="كل التخصصات"
+                  disabled={optionsLoading}
+                  options={(options?.specializations || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="التخصص"
+                />
               </label>
               <label>
                  <span>المحافظة</span>
-                 <select value={filters.province} onChange={(event) => updateFilter("province", event.target.value)} disabled={optionsLoading}>
-                   <option value="">كل المحافظات</option>
-                   {options?.provinces.map((value) => <option key={value} value={value}>{value}</option>)}
-                 </select>
+                 <AppSelect
+                   value={filters.province}
+                   onChange={(value) => updateFilter("province", value)}
+                   placeholder="كل المحافظات"
+                   disabled={optionsLoading}
+                   options={(options?.provinces || []).map((value) => ({ value, label: value }))}
+                   ariaLabel="المحافظة"
+                 />
                </label>
                <label>
                 <span>المدينة</span>
-                <select value={filters.city} onChange={(event) => updateFilter("city", event.target.value)} disabled={optionsLoading}>
-                  <option value="">كل المدن</option>
-                  {options?.cities.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                <AppSelect
+                  value={filters.city}
+                  onChange={(value) => updateFilter("city", value)}
+                  placeholder="كل المدن"
+                  disabled={optionsLoading}
+                  options={(options?.cities || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="المدينة"
+                />
               </label>
               <label>
                 <span>المهارة</span>
-                <select value={filters.skill} onChange={(event) => updateFilter("skill", event.target.value)} disabled={optionsLoading}>
-                  <option value="">كل المهارات</option>
-                  {options?.skills.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                <AppSelect
+                  value={filters.skill}
+                  onChange={(value) => updateFilter("skill", value)}
+                  placeholder="كل المهارات"
+                  disabled={optionsLoading}
+                  options={(options?.skills || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="المهارة"
+                />
               </label>
               <label>
                 <span>نوع العمل</span>
-                <select value={filters.workType} onChange={(event) => updateFilter("workType", event.target.value)} disabled={optionsLoading}>
-                  <option value="">كل الأنواع</option>
-                  {options?.workTypes.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                <AppSelect
+                  value={filters.workType}
+                  onChange={(value) => updateFilter("workType", value)}
+                  placeholder="كل الأنواع"
+                  disabled={optionsLoading}
+                  options={(options?.workTypes || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="نوع العمل"
+                />
               </label>
               <label>
                 <span>التوفر للعمل</span>
-                <select value={filters.availability} onChange={(event) => updateFilter("availability", event.target.value)} disabled={optionsLoading}>
-                  <option value="">كل حالات التوفر</option>
-                  {options?.availabilities.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                <AppSelect
+                  value={filters.availability}
+                  onChange={(value) => updateFilter("availability", value)}
+                  placeholder="كل حالات التوفر"
+                  disabled={optionsLoading}
+                  options={(options?.availabilities || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="التوفر للعمل"
+                />
               </label>
               <label>
                 <span>الخبرة</span>
-                <select value={filters.minExperience} onChange={(event) => updateFilter("minExperience", event.target.value)} disabled={optionsLoading}>
-                  <option value="">أي مستوى خبرة</option>
-                  {options?.experienceYears.map((value) => <option key={value} value={String(value)}>من {value} سنة فأكثر</option>)}
-                </select>
+                <AppSelect
+                  value={filters.minExperience}
+                  onChange={(value) => updateFilter("minExperience", value)}
+                  placeholder="أي مستوى خبرة"
+                  disabled={optionsLoading}
+                  options={(options?.experienceYears || []).map((value) => ({ value: String(value), label: `من ${value} سنة فأكثر` }))}
+                  ariaLabel="الخبرة"
+                />
               </label>
             </div>
 
@@ -339,12 +368,17 @@ export function HrDashboardPage({
                   </div>
                   <div className="application-row-status">
                     <small>حالة الطلب</small>
-                    <select value={application.status} onChange={(event) => void setStatus(application.id, event.target.value as ApplicationStatus)}>
-                      <option value="new">جديد</option>
-                      <option value="reviewing">قيد المراجعة</option>
-                      <option value="shortlisted">مرشح</option>
-                      <option value="rejected">مرفوض</option>
-                    </select>
+                    <AppSelect
+                      value={application.status}
+                      onChange={(value) => void setStatus(application.id, value as ApplicationStatus)}
+                      options={[
+                        { value: "new", label: "جديد" },
+                        { value: "reviewing", label: "قيد المراجعة" },
+                        { value: "shortlisted", label: "مرشح" },
+                        { value: "rejected", label: "مرفوض" },
+                      ]}
+                      ariaLabel="حالة الطلب"
+                    />
                   </div>
                    <button className="row-action" disabled={opening === application.id || (!application.candidate_id && !application.cv_path)} onClick={() => void openApplication(application)}>
                      {opening === application.id ? "جاري الفتح..." : application.candidate_id ? "فتح الملف المهني" : application.cv_path ? "فتح CV" : "فتح الملف"}

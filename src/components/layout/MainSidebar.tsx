@@ -62,7 +62,7 @@ export function MainSidebar({
     if (profile.role === "hr") {
       return [
         ...common,
-        { id: "hr-search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
+        { id: "hr-search", label: "البحث عن الكفاءات", icon: <Search size={17} /> },
       { id: "hr-applications", label: "الطلبات الواردة", icon: <FileText size={17} /> },
         { id: "hr-publish", label: "طلب نشر وظيفة", icon: <CheckCircle2 size={17} /> },
       ];

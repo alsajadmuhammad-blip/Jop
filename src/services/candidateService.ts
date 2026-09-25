@@ -10,7 +10,39 @@ export type CandidateExperience = {
   description: string;
 };
 
+export const languageLevels = ["اللغة الأم", "متقدم", "جيد جدًا", "متوسط", "مبتدئ"] as const;
+export type LanguageLevel = typeof languageLevels[number];
+export type CandidateLanguage = {
+  name: string;
+  level: LanguageLevel | "";
+};
+
 export const experienceStoragePrefix = "IRAQ_JOBS_EXPERIENCES_V1:";
+
+export function parseCandidateLanguages(values: string[]): CandidateLanguage[] {
+  return values
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => {
+      const separatorIndex = value.lastIndexOf(" — ");
+      const possibleLevel = separatorIndex >= 0 ? value.slice(separatorIndex + 3).trim() : "";
+      const level = languageLevels.includes(possibleLevel as LanguageLevel) ? possibleLevel as LanguageLevel : "";
+      return {
+        name: level ? value.slice(0, separatorIndex).trim() : value,
+        level,
+      };
+    });
+}
+
+export function formatCandidateLanguages(values: CandidateLanguage[]) {
+  return values
+    .map((language) => {
+      const name = language.name.trim();
+      return name ? `${name}${language.level ? ` — ${language.level}` : ""}` : "";
+    })
+    .filter(Boolean);
+}
 
 export function parseCandidateExperiences(value: string): CandidateExperience[] {
   if (value.startsWith(experienceStoragePrefix)) {

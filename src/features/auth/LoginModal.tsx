@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LoaderCircle, LogIn, ShieldCheck, UserPlus } from "lucide-react";
+import { AppSelect } from "../../components/common/AppSelect";
 import { ModalShell } from "../../components/common/ModalShell";
 import type { Profile } from "../../lib/types";
 import { signIn, signUp } from "../../services/authService";
@@ -32,7 +33,7 @@ export function LoginModal({ onClose, onSuccess }: { onClose: () => void; onSucc
     </div>
       <div className="login-intro"><span className="brand-mark"><ShieldCheck size={19} /></span><p>{mode === "sign-in" ? "ادخل إلى حسابك في IRAQ JOBS لمتابعة ملفك وفرصك." : "أنشئ حسابًا في IRAQ JOBS كباحث عن عمل أو كصاحب عمل/HR."}</p></div>
     <form className="application-form" onSubmit={submit}>
-      {mode === "sign-up" && <><label>الاسم الكامل<input required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label><label>نوع الحساب<select value={role} onChange={(event) => setRole(event.target.value as "candidate" | "hr")}><option value="candidate">باحث عن عمل</option><option value="hr">صاحب عمل / HR</option></select></label></>}
+      {mode === "sign-up" && <><label>الاسم الكامل<input required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label><label>نوع الحساب<AppSelect value={role} onChange={(value) => setRole(value as "candidate" | "hr")} options={[{ value: "candidate", label: "باحث عن عمل" }, { value: "hr", label: "صاحب عمل / HR" }]} ariaLabel="نوع الحساب" /></label></>}
       <label>البريد الإلكتروني<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} dir="ltr" /></label>
       <label>كلمة المرور<input required minLength={6} type="password" value={password} onChange={(event) => setPassword(event.target.value)} dir="ltr" /></label>
       {error && <p className="form-error">{error}</p>}

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, FileText, GraduationCap, Languages, MapPin, Plus, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { AppSelect } from "../../components/common/AppSelect";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
-import { experienceStoragePrefix, loadCandidateProfile, parseCandidateExperiences, saveCandidateProfile, type CandidateExperience } from "../../services/candidateService";
+import { experienceStoragePrefix, formatCandidateLanguages, languageLevels, loadCandidateProfile, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -41,8 +42,10 @@ function toInput(profile: CandidateProfile | null, account: Profile): CandidateP
 }
 
 export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify }: CandidatePageProps) {
-  const [form, setForm] = useState<CandidateProfileInput>(() => toInput(null, profile));
+  const initialForm = toInput(null, profile);
+  const [form, setForm] = useState<CandidateProfileInput>(initialForm);
   const [experiences, setExperiences] = useState<ExperienceEntry[]>([]);
+  const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
   const [skillDraft, setSkillDraft] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig);
   const [saving, setSaving] = useState(false);
@@ -57,6 +60,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       if (result.profile) {
         const nextForm = toInput(result.profile, profile);
         setForm(nextForm);
+        setLanguages(parseCandidateLanguages(nextForm.languages));
         setExperiences(parseCandidateExperiences(nextForm.experience_details));
       }
       if (result.error) setError("تعذر تحميل ملفك المهني.");
@@ -66,10 +70,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
 
   const update = <K extends keyof CandidateProfileInput>(key: K, value: CandidateProfileInput[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
-  };
-
-  const updateList = (key: "languages", value: string) => {
-    update(key, value.split(",").map((item) => item.trim()).filter(Boolean));
   };
 
   const addSkill = () => {
@@ -102,6 +102,18 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     setExperiences((current) => current.filter((item) => item.id !== id));
   };
 
+  const addLanguage = () => {
+    setLanguages((current) => [...current, { name: "", level: "" }]);
+  };
+
+  const updateLanguage = <K extends keyof CandidateLanguage>(index: number, key: K, value: CandidateLanguage[K]) => {
+    setLanguages((current) => current.map((language, languageIndex) => languageIndex === index ? { ...language, [key]: value } : language));
+  };
+
+  const removeLanguage = (index: number) => {
+    setLanguages((current) => current.filter((_, languageIndex) => languageIndex !== index));
+  };
+
   const completeness = useMemo(() => {
     const checks = [
       form.full_name,
@@ -125,7 +137,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     }
     setSaving(true);
     setError("");
-    const formToSave = { ...form, experience_details: serializeExperiences(experiences) };
+    const formToSave = { ...form, languages: formatCandidateLanguages(languages), experience_details: serializeExperiences(experiences) };
     if (!hasSupabaseConfig) {
       await new Promise((resolve) => setTimeout(resolve, 350));
       setSaving(false);
@@ -184,8 +196,8 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
 
         <section className="profile-editor-section">
           <div className="profile-section-heading"><span className="profile-section-icon violet"><GraduationCap size={18} /></span><div><span className="eyebrow">تفاصيل إضافية</span><h2>التعليم والجاهزية</h2><p>معلومات تساعد على اختيار الفرصة الأنسب لك.</p></div></div>
-          <div className="form-grid"><label>المؤهل والتعليم<input required value={form.education} onChange={(event) => update("education", event.target.value)} placeholder="بكالوريوس هندسة حاسبات" /></label><label>اللغات <span className="optional">افصل بينها بفاصلة</span><input value={form.languages.join(", ")} onChange={(event) => updateList("languages", event.target.value)} placeholder="العربية، English" /></label></div>
-          <div className="form-grid"><label>نوع العمل المطلوب<select value={form.work_type} onChange={(event) => update("work_type", event.target.value)}><option value="">اختر</option><option>دوام كامل</option><option>دوام جزئي</option><option>عن بُعد</option><option>تدريب</option><option>عمل حر</option></select></label><label>التوفر للعمل<select value={form.availability} onChange={(event) => update("availability", event.target.value)}><option value="">اختر</option><option>متاح فورًا</option><option>خلال أسبوعين</option><option>خلال شهر</option><option>غير محدد</option></select></label></div>
+           <div className="form-grid"><label>المؤهل والتعليم<input required value={form.education} onChange={(event) => update("education", event.target.value)} placeholder="بكالوريوس هندسة حاسبات" /></label><div className="language-editor-field"><div className="language-editor-heading"><span><b>اللغات</b><small>أضف كل لغة ومستواها بشكل مستقل.</small></span><button type="button" className="outline-btn language-add-btn" onClick={addLanguage}><Plus size={14} /> إضافة لغة</button></div><div className="language-entry-list">{languages.map((language, index) => <div className="language-entry" key={`language-${index}`}><input value={language.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} placeholder="مثال: العربية أو English" aria-label={`اسم اللغة ${index + 1}`} /><AppSelect value={language.level} onChange={(value) => updateLanguage(index, "level", value as LanguageLevel)} placeholder="اختر المستوى" options={languageLevels.map((level) => ({ value: level, label: level }))} ariaLabel={`مستوى اللغة ${index + 1}`} /><button type="button" className="language-remove-btn" onClick={() => removeLanguage(index)} aria-label="حذف اللغة"><X size={15} /></button></div>)}{languages.length === 0 && <p className="language-empty-hint"><Languages size={14} /> لم تضف لغة بعد. أضف اللغة الأم أو أي لغة تستخدمها في العمل.</p>}</div></div></div>
+           <div className="form-grid"><label>نوع العمل المطلوب<AppSelect value={form.work_type} onChange={(value) => update("work_type", value)} placeholder="اختر نوع العمل" options={["دوام كامل", "دوام جزئي", "عن بُعد", "تدريب", "عمل حر"].map((value) => ({ value, label: value }))} ariaLabel="نوع العمل المطلوب" /></label><label>التوفر للعمل<AppSelect value={form.availability} onChange={(value) => update("availability", value)} placeholder="اختر حالة التوفر" options={["متاح فورًا", "خلال أسبوعين", "خلال شهر", "غير محدد"].map((value) => ({ value, label: value }))} ariaLabel="التوفر للعمل" /></label></div>
           <div className="form-grid"><label>أقل راتب متوقع <span className="optional">اختياري</span><input type="number" min="0" value={form.expected_salary_min ?? ""} onChange={(event) => update("expected_salary_min", event.target.value ? Number(event.target.value) : null)} /></label><div className="profile-language-hint"><Languages size={17} /><span>كلما كانت تفاصيلك أوضح، يظهر ملفك في نتائج أكثر دقة.</span></div></div>
         </section>
 
