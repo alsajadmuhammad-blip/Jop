@@ -46,8 +46,8 @@ export function JobRequestPage({ profile, onNavigate, onSubmitted }: JobRequestP
     contact_email: "",
     contact_whatsapp: "",
     category: "",
-    city: "",
-    job_type: "" as JobType,
+    city: "بغداد",
+    job_type: "دوام كامل" as JobType,
     description: "",
     requirements: "",
     salary_range: "",
@@ -65,20 +65,11 @@ export function JobRequestPage({ profile, onNavigate, onSubmitted }: JobRequestP
 
   const chooseAdType = (adType: JobAdType) => {
     setForm((current) => ({
+      ...current,
       ad_type: adType,
-      title: "",
-      company_name: "",
-      contact_name: "",
-      contact_email: "",
-      contact_whatsapp: "",
-      category: "",
-      city: "",
-      job_type: "" as JobType,
-      description: "",
-      requirements: "",
-      salary_range: "",
-      deadline: "",
-      internal_applications: canEnableInternalApplications ? false : current.internal_applications,
+      ...(adType === "quick"
+        ? { category: "عام", city: "العراق", job_type: "دوام كامل" as JobType }
+        : { category: current.category === "عام" ? "" : current.category, city: "بغداد" }),
     }));
     setCurrentStep(1);
     setError("");

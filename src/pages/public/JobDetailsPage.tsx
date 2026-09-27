@@ -50,11 +50,6 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
   return <main className={`container page-section job-v3-page ${isQuick ? "quick-job-details" : ""}`}>
     <button className="back-link job-v3-back" onClick={() => onNavigate("jobs")}><ArrowRight size={16} /> العودة إلى الوظائف</button>
     <header className="job-v3-header">
-      <div className="job-v3-heritage-mark" aria-hidden="true">
-        <span>✦</span>
-        <div><b>من أرض الرافدين</b><small>فرص اليوم بطابع عراقي</small></div>
-        <i /><i /><i />
-      </div>
       <div className="job-v3-header-main">
         <span className="company-logo large"><Building2 size={25} /></span>
         <div>
