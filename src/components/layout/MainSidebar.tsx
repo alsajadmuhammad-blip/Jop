@@ -141,6 +141,11 @@ export function MainSidebar({
             ))}
           </div>)}
         </nav>
+        <div className="main-sidebar-heritage" aria-hidden="true">
+          <span className="main-sidebar-heritage-sun">✦</span>
+          <div className="main-sidebar-heritage-steps"><i /><i /><i /></div>
+          <small>من أرض الرافدين</small>
+        </div>
         <button type="button" className="main-sidebar-logout" onClick={onLogout}>
           <LogOut size={17} />
           تسجيل الخروج
