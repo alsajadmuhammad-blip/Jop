@@ -1,9 +1,10 @@
 import { supabase } from "../lib/supabase";
-import type { EmployerAccount, Job, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
+import type { EmployerAccount, Job, JobAdType, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
 
 export type JobPostInput = {
   title: string;
   company_name: string;
+  ad_type: JobAdType;
   category: string;
   city: string;
   job_type: JobType;

@@ -482,6 +482,12 @@
   font-weight: 700;
 }
 
+.job-card-badge.quick {
+  color: #936323;
+  background: #fff6e8;
+  border-color: #f3dfb9;
+}
+
 .job-card-date {
   position: static;
   display: inline-flex;

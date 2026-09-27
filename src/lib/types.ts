@@ -1,4 +1,5 @@
 export type JobType = "دوام كامل" | "دوام جزئي" | "عن بُعد" | "تدريب" | "عمل حر";
+export type JobAdType = "detailed" | "quick";
 export type PostStatus = "draft" | "published" | "closed";
 export type ApplicationStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
 export type JobRequestStatus = "pending" | "approved" | "rejected";
@@ -46,6 +47,7 @@ export interface Job {
   id: string;
   title: string;
   company_name: string;
+  ad_type: JobAdType;
   category: string;
   city: string;
   job_type: JobType;
@@ -65,6 +67,7 @@ export interface JobRequest {
   id: string;
   title: string;
   company_name: string;
+  ad_type: JobAdType;
   contact_name: string;
   contact_email: string | null;
   contact_whatsapp: string | null;

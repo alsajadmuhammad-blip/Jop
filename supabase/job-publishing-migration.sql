@@ -8,6 +8,10 @@ end $$;
 
 alter table public.jobs add column if not exists contact_email text;
 alter table public.jobs add column if not exists contact_whatsapp text;
+alter table public.jobs add column if not exists ad_type text not null default 'detailed';
+alter table public.jobs drop constraint if exists jobs_ad_type_check;
+alter table public.jobs add constraint jobs_ad_type_check
+  check (ad_type in ('detailed', 'quick')) not valid;
 alter table public.jobs drop constraint if exists job_contact_method_check;
 alter table public.jobs add constraint job_contact_method_check
   check (contact_email is not null or contact_whatsapp is not null) not valid;
@@ -16,6 +20,7 @@ create table if not exists public.job_requests (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   company_name text not null,
+  ad_type text not null default 'detailed',
   contact_name text not null,
   contact_email text,
   contact_whatsapp text,
@@ -33,6 +38,11 @@ create table if not exists public.job_requests (
   constraint job_request_contact_method_check
     check (contact_email is not null or contact_whatsapp is not null)
 );
+
+alter table public.job_requests add column if not exists ad_type text not null default 'detailed';
+alter table public.job_requests drop constraint if exists job_requests_ad_type_check;
+alter table public.job_requests add constraint job_requests_ad_type_check
+  check (ad_type in ('detailed', 'quick')) not valid;
 
 create index if not exists job_requests_status_created_at_idx
   on public.job_requests(status, created_at desc);
@@ -85,11 +95,11 @@ begin
   end if;
 
   insert into public.jobs (
-    title, company_name, category, city, job_type, description, requirements,
+    title, company_name, ad_type, category, city, job_type, description, requirements,
     salary_range, contact_email, contact_whatsapp, status, deadline, created_by
   )
   values (
-    request_row.title, request_row.company_name, request_row.category, request_row.city,
+    request_row.title, request_row.company_name, request_row.ad_type, request_row.category, request_row.city,
     request_row.job_type, request_row.description, request_row.requirements,
     request_row.salary_range, request_row.contact_email, request_row.contact_whatsapp,
     'published', request_row.deadline, auth.uid()

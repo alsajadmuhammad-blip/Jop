@@ -41,6 +41,7 @@ create table if not exists public.jobs (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   company_name text not null,
+  ad_type text not null default 'detailed',
   category text not null default 'عام',
   city text not null default 'العراق',
   job_type text not null default 'دوام كامل',
@@ -56,6 +57,10 @@ create table if not exists public.jobs (
   constraint job_contact_method_check check (contact_email is not null or contact_whatsapp is not null)
 );
 
+alter table public.jobs add column if not exists ad_type text not null default 'detailed';
+alter table public.jobs drop constraint if exists jobs_ad_type_check;
+alter table public.jobs add constraint jobs_ad_type_check check (ad_type in ('detailed', 'quick')) not valid;
+
 alter table public.jobs add column if not exists contact_email text;
 alter table public.jobs add column if not exists contact_whatsapp text;
 alter table public.jobs drop constraint if exists job_contact_method_check;
@@ -66,6 +71,7 @@ create table if not exists public.job_requests (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   company_name text not null,
+  ad_type text not null default 'detailed',
   contact_name text not null,
   contact_email text,
   contact_whatsapp text,
@@ -82,6 +88,10 @@ create table if not exists public.job_requests (
   created_at timestamptz not null default now(),
   constraint job_request_contact_method_check check (contact_email is not null or contact_whatsapp is not null)
 );
+
+alter table public.job_requests add column if not exists ad_type text not null default 'detailed';
+alter table public.job_requests drop constraint if exists job_requests_ad_type_check;
+alter table public.job_requests add constraint job_requests_ad_type_check check (ad_type in ('detailed', 'quick')) not valid;
 
 create table if not exists public.cv_requests (
   id uuid primary key default gen_random_uuid(),
@@ -171,6 +181,7 @@ begin
   insert into public.jobs (
     title,
     company_name,
+    ad_type,
     category,
     city,
     job_type,
@@ -186,6 +197,7 @@ begin
   values (
     request_row.title,
     request_row.company_name,
+    request_row.ad_type,
     request_row.category,
     request_row.city,
     request_row.job_type,

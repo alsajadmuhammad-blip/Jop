@@ -42,6 +42,11 @@ with check (
       and cv_path is null
       and exists (
         select 1
+        from public.candidate_profiles
+        where candidate_profiles.user_id = auth.uid()
+      )
+      and exists (
+        select 1
         from public.jobs
         where jobs.id = applications.job_id
           and jobs.status = 'published'
