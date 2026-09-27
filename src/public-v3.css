@@ -430,6 +430,51 @@
   transition: .2s ease;
 }
 
+.job-card.quick-job-card {
+  min-height: 0;
+}
+
+.quick-job-card .job-card-v3-main {
+  padding: 20px 0 15px;
+}
+
+.quick-job-card .job-card-v3-main h3 {
+  min-height: 0;
+  margin-top: 10px;
+}
+
+.quick-job-description {
+  display: -webkit-box;
+  margin: 9px 0 0;
+  overflow: hidden;
+  color: #7d8b83;
+  font-size: 11px;
+  line-height: 1.8;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.quick-job-card .job-card-v3-footer {
+  margin-top: auto;
+}
+
+.quick-contact-summary {
+  min-width: 0;
+}
+
+.quick-job-details .job-v3-content {
+  align-self: start;
+}
+
+.quick-job-details .job-v3-description {
+  margin-bottom: 0;
+}
+
+.quick-job-details .job-v3-tags > span {
+  color: #936323;
+  background: #fff6e8;
+}
+
 .job-card:before {
   display: none;
 }

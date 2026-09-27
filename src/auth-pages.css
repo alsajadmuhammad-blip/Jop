@@ -1,14 +1,14 @@
 .auth-page {
   min-height: calc(100vh - 168px);
-  padding: 54px 0 78px;
+  padding: 36px 0 58px;
   background: linear-gradient(135deg, #f8f9ff 0%, #fff 52%, #fff9f4 100%);
 }
 
 .auth-page-grid {
   display: grid;
-  grid-template-columns: minmax(0, .9fr) minmax(420px, .75fr);
+  grid-template-columns: minmax(0, .8fr) minmax(390px, .7fr);
   align-items: center;
-  gap: clamp(45px, 8vw, 112px);
+  gap: clamp(34px, 7vw, 82px);
   max-width: 1050px;
 }
 
@@ -20,7 +20,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 63px;
+  margin-bottom: 42px;
   padding: 0;
   border: 0;
   color: #70799e;
@@ -60,7 +60,7 @@
   margin: 11px 0 14px;
   color: #20285e;
   font-family: "Readex Pro", sans-serif;
-  font-size: clamp(31px, 4.4vw, 51px);
+  font-size: clamp(29px, 4vw, 45px);
   line-height: 1.4;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .auth-card {
-  padding: 30px 28px 24px;
+  padding: 25px 25px 21px;
   border: 1px solid #e0e3f2;
   border-radius: 19px;
   background: #fff;
@@ -133,13 +133,13 @@
 }
 
 .auth-card-intro {
-  margin: 9px 0 22px;
+  margin: 8px 0 17px;
   color: #8a92aa;
   font-size: 11px;
 }
 
 .auth-form {
-  gap: 14px;
+  gap: 11px;
 }
 
 .auth-form label {
@@ -182,7 +182,7 @@
   align-items: flex-start;
   gap: 8px;
   min-width: 0;
-  padding: 11px 10px;
+  padding: 10px;
   border: 1px solid #e4e6f2;
   border-radius: 10px;
   color: #9299af;
@@ -216,9 +216,7 @@
 }
 
 .auth-role-options small {
-  margin-top: 4px;
-  color: #9aa1b5;
-  font-size: 8px;
+  display: none;
 }
 
 .auth-submit {

@@ -46,13 +46,14 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
   };
 
   const hasContact = Boolean(job.contact_email || job.contact_whatsapp);
-  return <main className="container page-section job-v3-page">
+  const isQuick = job.ad_type === "quick";
+  return <main className={`container page-section job-v3-page ${isQuick ? "quick-job-details" : ""}`}>
     <button className="back-link job-v3-back" onClick={() => onNavigate("jobs")}><ArrowRight size={16} /> العودة إلى الوظائف</button>
     <header className="job-v3-header">
       <div className="job-v3-header-main">
         <span className="company-logo large"><Building2 size={25} /></span>
         <div>
-          <div className="job-v3-tags"><span>{job.category || "عام"}</span><small><CalendarDays size={12} /> {formatDate(job.created_at)}</small></div>
+           <div className="job-v3-tags"><span>{isQuick ? "إعلان سريع" : job.category || "عام"}</span><small><CalendarDays size={12} /> {formatDate(job.created_at)}</small></div>
           <h1>{job.title}</h1>
           <p>{job.company_name}</p>
         </div>
@@ -63,18 +64,18 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
        </div>
     </header>
 
-    <div className="job-v3-facts" aria-label="معلومات الوظيفة">
+     {!isQuick && <div className="job-v3-facts" aria-label="معلومات الوظيفة">
       <span><MapPin size={16} /><small>الموقع</small><strong>{job.city}</strong></span>
       <span><Clock3 size={16} /><small>نوع الدوام</small><strong>{job.job_type}</strong></span>
       <span><BriefcaseBusiness size={16} /><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>
-    </div>
+     </div>}
 
     <div className="job-v3-layout">
       <article className="job-v3-content">
         <DetailSection number="01" eyebrow="نبذة عن الدور" title="عن الوظيفة"><p className="job-v3-description">{job.description}</p></DetailSection>
-        <DetailSection number="02" eyebrow="ما نبحث عنه" title="المتطلبات">
+         {!isQuick && <DetailSection number="02" eyebrow="ما نبحث عنه" title="المتطلبات">
           <ul className="job-v3-requirements">{job.requirements.length ? job.requirements.map((item) => <li key={item}><Check size={16} />{item}</li>) : <li><Check size={16} />لم تتم إضافة متطلبات محددة.</li>}</ul>
-        </DetailSection>
+         </DetailSection>}
       </article>
 
        <aside className="job-v3-contact">

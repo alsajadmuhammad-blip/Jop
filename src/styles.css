@@ -1,3 +1,133 @@
+/* Expanded admin request details */
+.review-card-toggle {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: right;
+}
+
+.review-card-toggle .card-top-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.review-card-summary {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.review-card-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green-2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.review-card-expand svg {
+  transition: transform .2s ease;
+}
+
+.job-request-review-card.expanded .review-card-expand svg {
+  transform: rotate(180deg);
+}
+
+.full-review-details {
+  gap: 13px;
+  margin-top: 13px;
+  padding: 14px;
+}
+
+.review-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.review-detail-grid span,
+.review-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-detail-grid span {
+  min-width: 0;
+}
+
+.review-detail-grid small,
+.review-detail-block > small {
+  color: #8ba097;
+  font-size: 10px;
+}
+
+.review-detail-grid b {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-detail-block {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.review-detail-block p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.review-detail-block ul {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0 17px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.review-detail-block li::marker {
+  color: var(--green-2);
+}
+
+.quick-single-page .wizard-form {
+  gap: 12px;
+}
+
+.quick-single-page .wizard-panel {
+  min-height: 0;
+}
+
+.quick-single-page .wizard-panel + .wizard-panel {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 560px) {
+  .review-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-single-page .wizard-actions .primary-btn {
+    width: 100%;
+  }
+}
 /* HR phone layout: keep each control full-width and remove desktop density. */
 @media (max-width: 640px) {
   .dashboard-page.hr-workspace-page {
