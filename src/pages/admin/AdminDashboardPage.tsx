@@ -106,6 +106,15 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
   return <section className="container page-section dashboard-page">
     <div className="admin-main">
         <div className="admin-topbar"><div><span className="eyebrow"><BarChart3 size={14} /> IRAQ JOBS / الإدارة</span><h1>{section === "overview" ? "صباح الخير، خلّينا نرتّب الفرص" : sectionItems.find((item) => item.id === section)?.label}</h1><p>{section === "overview" ? "تابع حركة المنصة واتخذ الإجراء المناسب من مكان واحد." : "إدارة واضحة للمنشورات وطلبات الشركات وملفات المتقدمين."}</p></div><button className="admin-refresh-btn" onClick={() => void refresh()}><RefreshCw className={refreshing ? "spin" : ""} size={16} /> تحديث البيانات</button></div>
+          <div className="admin-control-strip">
+            <span className="admin-control-mark"><ShieldCheck size={19} /></span>
+            <div className="admin-control-copy"><small>مركز التحكم</small><b>كل ما يحتاج متابعة، في مكان واحد</b></div>
+            <div className="admin-control-metrics">
+              <span><b>{publishedJobs.length}</b><small>منشور نشط</small></span>
+              <span><b>{pendingJobRequests.length}</b><small>طلب بانتظارك</small></span>
+              <span><b>{newApplications.length}</b><small>تقديم جديد</small></span>
+            </div>
+          </div>
          {section === "overview" && <AdminOverview jobs={jobs} applications={jobApplications} jobRequests={jobRequests} pendingJobRequests={pendingJobRequests} publishedJobs={publishedJobs} draftJobs={draftJobs} closedJobs={closedJobs} newApplications={newApplications} onSection={selectSection} onNavigate={onNavigate} onCopyLink={() => void copyJobRequestLink()} />}
          {section === "jobs" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>الوظائف</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div><div className="admin-toolbar-actions"><button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button><button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> وظيفة جديدة</button></div></div><div className="admin-filter-row">{(["all", "published", "draft", "closed"] as const).map((item) => <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "الكل" : statusLabel(item)}</button>)}</div><div className="admin-list">{filteredJobs.map((job) => <AdminPost key={job.id} title={job.title} subtitle={`${job.company_name} · ${job.city}`} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />)}{filteredJobs.length === 0 && <EmptyState title="لا توجد وظائف" text="ابدأ بإضافة أول وظيفة من زر وظيفة جديدة." />}</div></section>}
         {section === "job-requests" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>طلبات نشر الوظائف</h2><p>راجع طلبات الشركات قبل نشرها للعامة.</p></div><button className="outline-btn" onClick={() => void copyJobRequestLink()}><Link2 size={15} /> نسخ رابط الطلب العام</button></div><JobRequestReviewList requests={jobRequests} onRefresh={onRefresh} onNotify={onNotify} /></section>}
@@ -144,12 +153,12 @@ function AdminOverview({ jobs, applications, jobRequests, pendingJobRequests, pu
 export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initialJob?: Job | null }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", city: initialJob?.city || "بغداد", job_type: initialJob?.job_type || "دوام كامل" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false }));
+  const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false }));
   const editing = Boolean(initialJob);
   const quick = form.ad_type === "quick";
 
   useEffect(() => {
-    setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", city: initialJob?.city || "بغداد", job_type: initialJob?.job_type || "دوام كامل" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false });
+    setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false });
     setError("");
   }, [initialJob?.id]);
 
@@ -157,13 +166,23 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
   const chooseAdType = (adType: JobAdType) => setForm((current) => ({
     ...current,
     ad_type: adType,
-    ...(adType === "quick" ? { category: "عام", city: "العراق", job_type: "دوام كامل" as JobType } : { category: current.category === "عام" ? "" : current.category, city: "بغداد" }),
+    title: "",
+    company_name: "",
+    category: "",
+    city: "",
+    job_type: "" as JobType,
+    description: "",
+    requirements: "",
+    salary_range: "",
+    contact_email: "",
+    contact_whatsapp: "",
+    internal_applications: false,
   }));
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.contact_email.trim() && !form.contact_whatsapp.trim()) return setError("أضف البريد الإلكتروني أو رقم الواتساب على الأقل.");
-    if (!form.title.trim() || !form.company_name.trim() || !form.description.trim() || (!quick && !form.category.trim())) return setError(quick ? "أكمل العنوان واسم الجهة وتفاصيل الوظيفة أولاً." : "أكمل العنوان واسم الجهة والتصنيف وتفاصيل الوظيفة أولاً.");
+    if (!form.title.trim() || !form.company_name.trim() || !form.description.trim() || (!quick && (!form.category.trim() || !form.city.trim() || !form.job_type.trim()))) return setError(quick ? "أكمل العنوان واسم الجهة وتفاصيل الوظيفة أولاً." : "أكمل العنوان واسم الجهة والتصنيف والمدينة ونوع الدوام وتفاصيل الوظيفة أولاً.");
     setSaving(true);
     setError("");
     const jobInput = { title: form.title.trim(), company_name: form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, city: quick ? "العراق" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, internal_applications: form.internal_applications };

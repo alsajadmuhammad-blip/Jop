@@ -27,6 +27,11 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
     <section className="home-refresh-hero">
       <div className="home-refresh-hero-orb home-refresh-hero-orb-one" />
       <div className="home-refresh-hero-orb home-refresh-hero-orb-two" />
+      <div className="home-refresh-heritage" aria-hidden="true">
+        <span className="home-refresh-heritage-sun">✦</span>
+        <div className="home-refresh-heritage-ziggurat"><i /><i /><i /></div>
+        <span className="home-refresh-heritage-label">بلاد الرافدين</span>
+      </div>
       <div className="container home-refresh-hero-inner">
         <div className="home-refresh-hero-copy">
           <span className="home-refresh-eyebrow"><HeartHandshake size={16} /> فرصة عادلة للجميع</span>
