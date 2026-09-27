@@ -20,7 +20,7 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
     <div className="job-card-v3-footer">
        {!isQuick && <span><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>}
        {isQuick && <span className="quick-contact-summary"><small>طريقة التواصل</small><strong>{job.contact_whatsapp ? "واتساب" : job.contact_email ? "البريد الإلكتروني" : "التفاصيل"}</strong></span>}
-       <b>{job.internal_applications ? "تقديم مباشر" : "التفاصيل"} <ArrowLeft size={14} /></b>
+        <b>تفاصيل الوظيفة <ArrowLeft size={14} /></b>
     </div>
   </article>;
 }
