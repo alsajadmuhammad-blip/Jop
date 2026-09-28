@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import {
   BriefcaseBusiness,
   CheckCircle2,
+  ClipboardCheck,
   FileText,
   Home,
   LayoutDashboard,
@@ -64,6 +65,7 @@ export function MainSidebar({
         { label: "مساحتي", items: [
           { id: "candidate", label: "ملفي المهني", icon: <UserRound size={17} /> },
           { id: "saved", label: "الوظائف المحفوظة", icon: <FileText size={17} /> },
+          { id: "applied", label: "الوظائف المتقدّم لها", icon: <ClipboardCheck size={17} /> },
         ] },
       ];
     }
@@ -90,7 +92,7 @@ export function MainSidebar({
   }, [profile.role]);
 
   const active = profile.role === "candidate"
-    ? view === "saved" ? "saved" : view === "candidate" ? "candidate" : view
+    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "candidate" ? "candidate" : view
     : profile.role === "hr"
       ? view === "job-request" ? "hr-publish" : view === "hr" ? `hr-${hrSection}` : view
       : view === "admin"
@@ -99,7 +101,7 @@ export function MainSidebar({
 
   const select = (id: string) => {
     onClose();
-    if (id === "home" || id === "jobs" || id === "candidate" || id === "saved" || id === "hr-publish") {
+    if (id === "home" || id === "jobs" || id === "candidate" || id === "saved" || id === "applied" || id === "hr-publish") {
       onNavigate(id === "hr-publish" ? "job-request" : id as View);
       return;
     }

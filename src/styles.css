@@ -2379,6 +2379,354 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   }
 }
 
+/* Candidate workspace: keep the role focused on profile, discovery, and follow-up. */
+.candidate-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 21px;
+}
+
+.candidate-hero-primary,
+.candidate-hero-secondary {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.candidate-hero-primary {
+  border: 1px solid #f4a057;
+  color: #3a2450;
+  background: #ffb66e;
+}
+
+.candidate-hero-primary:hover {
+  background: #ffc58b;
+}
+
+.candidate-hero-secondary {
+  border: 1px solid rgba(255,255,255,.22);
+  color: #eef1ff;
+  background: rgba(255,255,255,.09);
+}
+
+.candidate-hero-secondary:hover {
+  background: rgba(255,255,255,.16);
+}
+
+/* Applied jobs page */
+.applied-jobs-page {
+  padding-top: 30px;
+  padding-bottom: 92px;
+}
+
+.applied-jobs-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 27px 30px;
+  border: 1px solid #dce8e1;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(70, 152, 121, .14), transparent 30%),
+    linear-gradient(135deg, #f1f8f3, #f9fcfa);
+}
+
+.applied-jobs-hero h1 {
+  margin: 8px 0 6px;
+  color: #193f35;
+  font-family: "Readex Pro", sans-serif;
+  font-size: clamp(24px, 3.7vw, 37px);
+}
+
+.applied-jobs-hero p {
+  max-width: 600px;
+  margin: 0;
+  color: #6d8178;
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.applied-heading-mark {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  border-radius: 7px;
+  color: #2e7a61;
+  background: #d9eee0;
+  vertical-align: middle;
+}
+
+.applied-jobs-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.applied-jobs-summary > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 15px 17px;
+  border: 1px solid #e3ebe5;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.applied-summary-icon {
+  grid-row: span 2;
+  display: inline-flex;
+  width: 35px;
+  height: 35px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.applied-summary-icon.blue { color: #4167a7; background: #eaf0ff; }
+.applied-summary-icon.orange { color: #ae6e27; background: #fff3df; }
+.applied-summary-icon.green { color: #2e7b5c; background: #e3f5e9; }
+
+.applied-jobs-summary strong {
+  color: #203d35;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.applied-jobs-summary small {
+  color: #84978e;
+  font-size: 10px;
+}
+
+.applied-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.applied-job-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 17px;
+  border: 1px solid #e0e7e2;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(28, 67, 52, .035);
+}
+
+.applied-job-mark {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: #2f7d68;
+  background: #e9f5ee;
+}
+
+.applied-job-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.applied-job-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.applied-job-title-row h2 {
+  margin: 0;
+  color: #223f36;
+  font-family: "Readex Pro", sans-serif;
+  font-size: 15px;
+}
+
+.applied-job-title-row p {
+  margin: 4px 0 0;
+  color: #7d9087;
+  font-size: 11px;
+}
+
+.candidate-application-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.candidate-application-status.new { color: #3b6da2; background: #eaf3ff; }
+.candidate-application-status.reviewing { color: #9a701e; background: #fff1d4; }
+.candidate-application-status.shortlisted,
+.candidate-application-status.hired { color: #267853; background: #def4e8; }
+.candidate-application-status.rejected { color: #a2504e; background: #ffeded; }
+
+.applied-job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  margin-top: 12px;
+  color: #87978f;
+  font-size: 10px;
+}
+
+.applied-job-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.applied-job-meta svg {
+  color: #5a9c7d;
+}
+
+.applied-job-note {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid #edf1ee;
+  color: #6e8278;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.applied-job-note b {
+  color: #3b5e50;
+}
+
+.applied-job-action {
+  align-self: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.applied-jobs-loading,
+.applied-jobs-empty {
+  display: flex;
+  min-height: 270px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 30px;
+  border: 1px dashed #cfe0d5;
+  border-radius: 17px;
+  color: #789087;
+  background: #fbfdfb;
+  text-align: center;
+}
+
+.applied-jobs-loading p,
+.applied-jobs-empty p {
+  margin: 0;
+  font-size: 11px;
+}
+
+.applied-jobs-empty > span {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  border-radius: 17px;
+  color: #2e7b5c;
+  background: #e3f5e9;
+}
+
+.applied-jobs-empty h2 {
+  margin: 0;
+  color: #244b3e;
+  font-family: "Readex Pro", sans-serif;
+  font-size: 18px;
+}
+
+.applied-jobs-empty p {
+  max-width: 360px;
+  margin-bottom: 7px;
+  line-height: 1.8;
+}
+
+@media (max-width: 700px) {
+  .applied-jobs-hero {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 22px 19px;
+  }
+
+  .applied-jobs-hero .primary-btn {
+    align-self: flex-start;
+  }
+
+  .applied-jobs-summary {
+    gap: 8px;
+  }
+
+  .applied-jobs-summary > div {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    row-gap: 5px;
+    padding: 13px 8px;
+    text-align: center;
+  }
+
+  .applied-summary-icon {
+    grid-row: auto;
+  }
+
+  .applied-job-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .applied-job-action {
+    align-self: flex-start;
+    margin-top: 55px;
+    padding-inline: 9px;
+  }
+}
+
+@media (max-width: 460px) {
+  .applied-job-card {
+    gap: 9px;
+    padding: 13px;
+  }
+
+  .applied-job-mark {
+    width: 35px;
+    height: 35px;
+  }
+
+  .applied-job-action {
+    font-size: 0;
+  }
+
+  .applied-job-action::after {
+    content: "فتح";
+    font-size: 10px;
+  }
+}
+
 /* Input polish: make every field feel intentional, readable, and easy to scan. */
 .candidate-profile-editor .form-grid {
   gap: 16px;

@@ -18,6 +18,7 @@ import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
 import { CandidatePage } from "./pages/candidate/CandidatePage";
 import { SavedJobsPage } from "./pages/candidate/SavedJobsPage";
+import { AppliedJobsPage } from "./pages/candidate/AppliedJobsPage";
 import { CandidateDashboardShell } from "./pages/candidate/CandidateDashboardShell";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminPostPage } from "./pages/admin/AdminPostPage";
@@ -28,7 +29,7 @@ import "./styles/role-navigation.css";
 import type { AdminSection } from "./pages/admin/AdminDashboardPage";
 import type { HrSection } from "./pages/hr/HrDashboardPage";
 
-const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "admin", "admin-post", "hr", "job", "job-request"];
+const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
 
 function readRoute(): { view: View; jobId: string | null } {
   const value = window.location.hash.replace(/^#/, "");
@@ -70,6 +71,14 @@ function App() {
     setRouteJobId(job.id);
     setMobileMenu(false);
     window.location.hash = `job/${encodeURIComponent(job.id)}`;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const navigateToJobId = (jobId: string) => {
+    setView("job");
+    setRouteJobId(jobId);
+    setMobileMenu(false);
+    window.location.hash = `job/${encodeURIComponent(jobId)}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -166,7 +175,7 @@ function App() {
 
   useEffect(() => {
     if (!authReady) return;
-    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved") && !profile) {
+    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied") && !profile) {
       navigate("login");
       return;
     }
@@ -188,6 +197,10 @@ function App() {
       notify("هذه الصفحة مخصصة للباحثين عن عمل");
       navigate("home");
     }
+    if (view === "applied" && profile?.role !== "candidate") {
+      notify("هذه الصفحة مخصصة للباحثين عن عمل");
+      navigate("home");
+    }
   }, [view, profile, authReady]);
 
   useEffect(() => {
@@ -200,7 +213,7 @@ function App() {
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
-  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved";
+  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied";
   const logout = async () => {
     const { error } = await signOut();
     if (error) {
@@ -232,6 +245,7 @@ function App() {
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
          {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell>}
            {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
+           {view === "applied" && profile?.role === "candidate" && <CandidateDashboardShell><AppliedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJobId} onNotify={notify} /></CandidateDashboardShell>}
           {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} applications={applications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
         {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId ? "تم حفظ التعديلات" : "تم نشر الوظيفة بنجاح"); }} />}
          {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} section={hrSection} onSection={setHrSection} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}

@@ -8,9 +8,18 @@ export type ApplicationFormData = {
 export async function loadApplications(jobsOnly = false) {
   const query = supabase
     .from("applications")
-    .select("*, jobs(title, company_name), cv_requests(title, organization_name)");
+    .select("*, jobs(title, company_name, city, job_type, deadline), cv_requests(title, organization_name)");
   const result = await (jobsOnly ? query.not("job_id", "is", null) : query).order("created_at", { ascending: false });
   return { applications: (result.data as Application[]) || [], error: result.error };
+}
+
+export async function loadCandidateApplications(candidateId: string) {
+  const { data, error } = await supabase
+    .from("applications")
+    .select("*, jobs(title, company_name, city, job_type, deadline), cv_requests(title, organization_name)")
+    .eq("candidate_id", candidateId)
+    .order("created_at", { ascending: false });
+  return { applications: (data as Application[]) || [], error };
 }
 
 export async function submitApplication(

@@ -206,7 +206,8 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
         <span className="eyebrow"><Sparkles size={14} /> مساحة الباحث عن عمل</span>
         <h1>خلّي ملفك يحكي عنك</h1>
         <p>ملف مهني مرتب يخلّي أصحاب العمل يشوفون قيمتك بسرعة، ويزيد فرص وصول الفرصة المناسبة لك.</p>
-        <div className="candidate-hero-meta"><span><UserRound size={14} /> {form.full_name || "اسمك الكامل"}</span><span><MapPin size={14} /> {form.city || "أضف مدينتك"}</span></div>
+         <div className="candidate-hero-meta"><span><UserRound size={14} /> {form.full_name || "اسمك الكامل"}</span><span><MapPin size={14} /> {form.city || "أضف مدينتك"}</span></div>
+         <div className="candidate-hero-actions"><button type="button" className="candidate-hero-primary" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button><button type="button" className="candidate-hero-secondary" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button></div>
       </div>
       <div className="candidate-hero-score">
         <div className="candidate-avatar-large">{(form.full_name || "م").slice(0, 1)}</div>
