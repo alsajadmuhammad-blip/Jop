@@ -236,6 +236,8 @@
   justify-content: center;
   min-height: 40px;
   padding-inline: 10px;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .ats-export-actions .primary-btn {

@@ -160,29 +160,33 @@ export function buildStandardCvDocument(data: ResumeData) {
     <style>
       @page { size: A4; margin: 0; }
       * { box-sizing: border-box; }
+      html, body { width: 210mm; min-height: 297mm; }
       body { margin: 0; color: #26324a; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.6; }
-      .cv-page { display: grid; grid-template-columns: 30% 70%; max-width: 820px; min-height: 1160px; margin: 0 auto; }
-      .sidebar { padding: 42px 25px; color: #e9efff; background: #18294d; }
-      .main { padding: 42px 38px 42px 34px; }
-      h1 { margin: 0; color: #fff; font-size: 25pt; line-height: 1.1; letter-spacing: -.3px; }
+      .cv-page { display: table; width: 210mm; min-height: 297mm; margin: 0 auto; table-layout: fixed; }
+      .sidebar { display: table-cell; width: 63mm; min-height: 297mm; padding: 42px 23px; vertical-align: top; color: #e9efff; background: #18294d; overflow-wrap: anywhere; }
+      .main { display: table-cell; width: 147mm; padding: 42px 31px 42px 34px; vertical-align: top; overflow-wrap: anywhere; }
+      h1 { margin: 0; color: #fff; font-size: 25pt; line-height: 1.1; letter-spacing: -.3px; overflow-wrap: anywhere; }
       .sidebar-headline { margin: 10px 0 28px; color: #b9c9f5; font-size: 11pt; font-weight: 700; line-height: 1.5; }
-      .sidebar-section { margin-top: 25px; }
+      .sidebar-section { margin-top: 25px; break-inside: avoid; page-break-inside: avoid; }
       .sidebar-section h2 { margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(233,239,255,.35); color: #fff; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 1.2px; }
       .sidebar-section p, .sidebar-section li { color: #d7e0f6; font-size: 9.5pt; line-height: 1.65; overflow-wrap: anywhere; }
       .sidebar-section ul { margin: 0; padding: 0 0 0 16px; }
       .sidebar-section li { margin: 4px 0; }
-      .main-header { padding-bottom: 22px; border-bottom: 3px solid #d5a648; }
+      .main-header { padding-bottom: 22px; border-bottom: 3px solid #d5a648; break-inside: avoid; page-break-inside: avoid; }
       .main-header h2 { margin: 0 0 9px; color: #18294d; font-size: 12pt; text-transform: uppercase; letter-spacing: 1.1px; }
       .main-header p { margin: 0; color: #4d5a72; line-height: 1.75; }
-      .main-section { margin-top: 23px; }
+      .main-section { margin-top: 23px; break-inside: avoid; page-break-inside: avoid; }
       .main-section > h2 { margin: 0 0 13px; color: #18294d; font-size: 12pt; text-transform: uppercase; letter-spacing: 1px; }
-      .standard-experience { margin: 0 0 18px; }
+      .standard-experience { margin: 0 0 18px; break-inside: avoid; page-break-inside: avoid; }
       .standard-experience:last-child { margin-bottom: 0; }
       h3 { margin: 0; color: #253e76; font-size: 11.5pt; line-height: 1.4; }
       .meta { margin: 3px 0 6px; color: #a17628; font-size: 9.5pt; font-weight: 700; }
       .standard-experience p:last-child, .education-copy { color: #4d5a72; }
       .education-copy { white-space: pre-line; }
-      @media print { .cv-page { max-width: none; } }
+      @media print {
+        html, body { width: 210mm; min-height: 297mm; }
+        .cv-page { width: 210mm; min-height: 297mm; max-width: none; margin: 0; }
+      }
     </style>
   </head>
   <body>

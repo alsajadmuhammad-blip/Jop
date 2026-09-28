@@ -143,7 +143,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       return;
     }
     downloadAtsResume(atsData());
-    onNotify?.("تم تنزيل ATS Resume باللغة الإنكليزية.");
+    onNotify?.("تم تنزيل ملف Word لـ ATS ويمكنك تعديله.");
   };
 
   const printAts = () => {
@@ -151,7 +151,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       onNotify?.("أكمل البيانات الأساسية أولاً حتى نجهز نسخة PDF مرتبة.");
       return;
     }
-    if (!printAtsResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ السيرة كـ PDF.");
+    if (!printAtsResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ ATS كـ PDF.");
   };
 
   const exportStandardCv = () => {
@@ -160,7 +160,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       return;
     }
     downloadStandardCv(atsData());
-    onNotify?.("تم تنزيل CV الاحترافي باللغة الإنكليزية.");
+    onNotify?.("تم تنزيل ملف Word لـ CV ويمكنك تعديله.");
   };
 
   const printStandardCvVersion = () => {
@@ -252,8 +252,8 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           <div className="aside-card-heading"><div><span className="eyebrow">English application version</span><h3>ATS Resume</h3></div><FileText size={20} /></div>
           <p>نسخة إنكليزية رسمية بخط خطي واضح وترتيب مناسب لأنظمة التوظيف الآلية.</p>
           <div className="ats-export-actions">
-            <button type="button" className="primary-btn" onClick={exportAts}><Download size={16} /> تنزيل ATS</button>
-            <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> طباعة / PDF</button>
+            <button type="button" className="primary-btn" onClick={exportAts}><Download size={16} /> تنزيل Word ATS</button>
+            <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> حفظ ATS كـ PDF</button>
           </div>
           {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>
@@ -261,8 +261,8 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           <div className="aside-card-heading"><div><span className="eyebrow">Professional presentation</span><h3>Professional CV</h3></div><FileText size={20} /></div>
           <p>نسخة إنكليزية أنيقة للتقديم المباشر، بتصميم احترافي مختلف عن نسخة ATS.</p>
           <div className="ats-export-actions">
-            <button type="button" className="primary-btn" onClick={exportStandardCv}><Download size={16} /> تنزيل CV</button>
-            <button type="button" className="outline-btn" onClick={printStandardCvVersion}><Printer size={15} /> طباعة / PDF</button>
+            <button type="button" className="primary-btn" onClick={exportStandardCv}><Download size={16} /> تنزيل Word قابل للتعديل</button>
+            <button type="button" className="outline-btn" onClick={printStandardCvVersion}><Printer size={15} /> حفظ CV كـ PDF</button>
           </div>
           {!canExportAts && <small className="ats-export-hint">أكمل الاسم والمسمى وبيانات الاتصال والنبذة أولاً.</small>}
         </div>
