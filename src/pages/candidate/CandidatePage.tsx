@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, FileText, GraduationCap, Languages, MapPin, Plus, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
 import { experienceStoragePrefix, formatCandidateLanguages, languageLevels, loadCandidateProfile, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
+import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -128,6 +129,30 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [experiences.length, form]);
+  const canExportAts = Boolean(form.full_name.trim() && form.headline.trim() && form.email.trim() && form.phone.trim() && form.summary.trim());
+
+  const atsData = () => ({
+    ...form,
+    languages,
+    experiences,
+  });
+
+  const exportAts = () => {
+    if (!canExportAts) {
+      onNotify?.("أكمل الاسم والمسمى والبريد والهاتف والنبذة أولاً حتى نخرج سيرة قوية.");
+      return;
+    }
+    downloadAtsResume(atsData());
+    onNotify?.("تم تنزيل سيرتك الذاتية بصيغة ATS.");
+  };
+
+  const printAts = () => {
+    if (!canExportAts) {
+      onNotify?.("أكمل البيانات الأساسية أولاً حتى نجهز نسخة PDF مرتبة.");
+      return;
+    }
+    if (!printAtsResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ السيرة كـ PDF.");
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -206,6 +231,15 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       </form>
 
       <aside className="candidate-profile-aside">
+        <div className="profile-aside-card ats-export-card">
+          <div className="aside-card-heading"><div><span className="eyebrow">جاهزة للتقديم</span><h3>سيرة ذاتية ATS</h3></div><FileText size={20} /></div>
+          <p>نسخة رسمية بخط واضح وأقسام مرتبة، قابلة للقراءة من أنظمة التوظيف وأصحاب العمل.</p>
+          <div className="ats-export-actions">
+            <button type="button" className="primary-btn" onClick={exportAts}><Download size={16} /> تنزيل ATS</button>
+            <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> طباعة / PDF</button>
+          </div>
+          {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
+        </div>
         <div className="profile-aside-card privacy-card"><div className="aside-card-icon"><ShieldCheck size={19} /></div><div><b>ملفك يظهر لأصحاب العمل المصرّح لهم</b><p>يظهر ملفك فقط لأصحاب العمل الذين لديهم صلاحية الوصول إلى ملفات الباحثين عن العمل، والتي يفعّلها المشرف.</p></div><span className="privacy-status"><Check size={13} /> وصول مقيّد</span></div>
         <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={form.full_name ? "done" : ""}><span>{form.full_name ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={form.headline ? "done" : ""}><span>{form.headline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={form.skills.length ? "done" : ""}><span>{form.skills.length ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={experiences.length ? "done" : ""}><span>{experiences.length ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={form.summary ? "done" : ""}><span>{form.summary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
         <div className="profile-aside-card tip-card"><div className="aside-card-heading"><div><span className="eyebrow">نصيحة سريعة</span><h3>اكتب إنجازك بالأرقام</h3></div><Sparkles size={20} /></div><p>بدل «أدرت حسابات التواصل»، جرّب «رفعت التفاعل 35% خلال 6 أشهر». التفاصيل الصغيرة تفرق.</p></div>
