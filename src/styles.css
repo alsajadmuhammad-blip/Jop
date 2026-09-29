@@ -3390,6 +3390,18 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   white-space: nowrap;
 }
 
+.application-row-note {
+  margin: 2px 0 0;
+  color: #687493;
+  font-size: 10px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.application-row-note b {
+  color: #46568f;
+}
+
 .application-row-status {
   display: flex;
   align-items: flex-start;

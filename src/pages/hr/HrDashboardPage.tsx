@@ -365,6 +365,7 @@ export function HrDashboardPage({
                   <div className="application-row-main">
                     <b>{application.full_name}</b>
                     <small>{application.cv_requests?.title || application.jobs?.title || "طلب CV"} · {formatDate(application.created_at)}</small>
+                    {application.note && <p className="application-row-note"><b>ملاحظة الباحث:</b> {application.note}</p>}
                   </div>
                   <div className="application-row-status">
                     <small>حالة الطلب</small>

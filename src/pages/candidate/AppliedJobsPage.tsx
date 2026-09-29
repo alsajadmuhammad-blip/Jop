@@ -61,7 +61,6 @@ export function AppliedJobsPage({ profile, onNavigate, onOpenJob, onNotify }: Ap
       <div>
         <span className="eyebrow"><ClipboardMark /> مساحة الباحث عن عمل</span>
         <h1>الوظائف المتقدّم لها</h1>
-        <p>تابع كل طلباتك من مكان واحد، واعرف أين وصل كل تقديم بدون ما تضيع بين الرسائل.</p>
       </div>
       <button type="button" className="primary-btn" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={16} /> تصفح وظائف جديدة</button>
     </header>

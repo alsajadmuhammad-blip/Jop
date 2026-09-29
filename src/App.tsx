@@ -9,7 +9,7 @@ import type { Application, CVRequest, Job, Profile } from "./lib/types";
 import type { View } from "./app/types";
 import { getCurrentProfile, getProfile, signOut } from "./services/authService";
 import { getPublicContent } from "./services/publicService";
-import { loadApplications } from "./services/applicationService";
+import { loadApplications, loadCandidateApplications } from "./services/applicationService";
 import { loadAdminPosts, loadJobRequests } from "./services/adminService";
 import { HomePage } from "./pages/public/HomePage";
 import { JobsPage } from "./pages/public/JobsPage";
@@ -28,6 +28,7 @@ import { AuthPage } from "./pages/auth/AuthPage";
 import "./styles/role-navigation.css";
 import type { AdminSection } from "./pages/admin/AdminDashboardPage";
 import type { HrSection } from "./pages/hr/HrDashboardPage";
+import type { AppNotification } from "./components/layout/NotificationBell";
 
 const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
 
@@ -40,6 +41,16 @@ function readRoute(): { view: View; jobId: string | null } {
   return { view: views.includes(value as View) ? value as View : "home", jobId: null };
 }
 
+function applicationStatusLabel(status: Application["status"]) {
+  return ({
+    new: "تم استلام الطلب",
+    reviewing: "قيد المراجعة",
+    shortlisted: "ضمن القائمة المختصرة",
+    rejected: "غير مناسب حاليًا",
+    hired: "تم القبول",
+  } as Record<Application["status"], string>)[status];
+}
+
 function App() {
   const initialRoute = readRoute();
   const [view, setView] = useState<View>(initialRoute.view);
@@ -47,6 +58,7 @@ function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [requests, setRequests] = useState<CVRequest[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [candidateApplications, setCandidateApplications] = useState<Application[]>([]);
   const [jobRequests, setJobRequests] = useState<import("./lib/types").JobRequest[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<CVRequest | null>(null);
@@ -206,6 +218,11 @@ function App() {
   useEffect(() => {
     if (profile?.role === "admin" || profile?.role === "hr") void refreshApplications();
     else setApplications([]);
+    if (profile?.role === "candidate" && hasSupabaseConfig) {
+      void loadCandidateApplications(profile.id).then((result) => setCandidateApplications(result.applications));
+    } else {
+      setCandidateApplications([]);
+    }
     if (profile?.role === "admin") void refreshJobRequests();
     else setJobRequests([]);
     if (profile?.role === "admin") void refreshAdminPosts();
@@ -213,6 +230,61 @@ function App() {
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
+  const notifications = useMemo<AppNotification[]>(() => {
+    if (!profile) return [];
+
+    if (profile.role === "candidate") {
+      return candidateApplications.map((application) => {
+        const status = applicationStatusLabel(application.status);
+        const title = application.status === "new" ? "تم استلام تقديمك" : `تحديث على تقديمك: ${status}`;
+        const jobTitle = application.jobs?.title || application.cv_requests?.title || "طلب تقديم";
+        return {
+          id: `candidate-application-${application.id}-${application.status}`,
+          title,
+          body: jobTitle,
+          target: "applied",
+          createdAt: application.created_at,
+          tone: application.status === "hired" || application.status === "shortlisted" ? "green" : application.status === "reviewing" ? "orange" : "blue",
+        };
+      });
+    }
+
+    if (profile.role === "hr") {
+      return applications
+        .filter((application) => application.status === "new")
+        .map((application) => ({
+          id: `hr-application-${application.id}-new`,
+          title: "تقديم جديد يحتاج متابعة",
+          body: application.jobs?.title || application.cv_requests?.title || "طلب تقديم",
+          target: "hr" as const,
+          createdAt: application.created_at,
+          tone: "orange" as const,
+        }));
+    }
+
+    return [
+      ...jobRequests
+        .filter((request) => request.status === "pending")
+        .map((request) => ({
+          id: `admin-job-request-${request.id}-pending`,
+          title: "طلب نشر وظيفة جديد",
+          body: `${request.title} · ${request.company_name}`,
+          target: "admin" as const,
+          createdAt: request.created_at,
+          tone: "orange" as const,
+        })),
+      ...applications
+        .filter((application) => application.status === "new")
+        .map((application) => ({
+          id: `admin-application-${application.id}-new`,
+          title: "تقديم وظيفة جديد",
+          body: application.jobs?.title || "تقديم جديد",
+          target: "admin" as const,
+          createdAt: application.created_at,
+          tone: "blue" as const,
+        })),
+    ];
+  }, [applications, candidateApplications, jobRequests, profile]);
   const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied";
   const logout = async () => {
     const { error } = await signOut();
@@ -232,7 +304,7 @@ function App() {
   };
 
   return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}`}>
-    <Header view={view} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
+    <Header view={view} profile={profile} notifications={notifications} onNavigate={navigate} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
     {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}

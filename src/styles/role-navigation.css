@@ -221,6 +221,203 @@
   flex-wrap: nowrap;
 }
 
+.notification-center {
+  position: relative;
+  direction: rtl;
+}
+
+.notification-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #e1e5f1;
+  border-radius: 10px;
+  color: #5f698b;
+  background: #fff;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.notification-trigger:hover,
+.notification-trigger.open {
+  border-color: #cbd2ef;
+  color: #3d4d9d;
+  background: #f7f8ff;
+}
+
+.notification-trigger-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-trigger-icon em {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 2px 4px;
+  border: 2px solid #fff;
+  border-radius: 99px;
+  color: #fff;
+  background: #ef7e2b;
+  font-size: 8px;
+  font-style: normal;
+  line-height: 10px;
+  text-align: center;
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  width: 342px;
+  overflow: hidden;
+  border: 1px solid #e1e5f1;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(24, 32, 79, .16);
+}
+
+.notification-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 15px 12px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.notification-panel-heading b,
+.notification-panel-heading small {
+  display: block;
+}
+
+.notification-panel-heading b {
+  color: #1c2457;
+  font-family: "Readex Pro", sans-serif;
+  font-size: 13px;
+}
+
+.notification-panel-heading small {
+  margin-top: 4px;
+  color: #9ba3ba;
+  font-size: 9px;
+}
+
+.notification-mark-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+  border: 0;
+  color: #4d5eb0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.notification-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 15px;
+  border: 0;
+  border-bottom: 1px solid #f0f2f6;
+  color: inherit;
+  background: #fff;
+  font-family: inherit;
+  text-align: right;
+}
+
+.notification-item:hover,
+.notification-item.unread {
+  background: #f8f9ff;
+}
+
+.notification-item-icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+}
+
+.notification-item-icon.blue { color: #4d62ae; background: #edf0ff; }
+.notification-item-icon.orange { color: #d47a2f; background: #fff0e3; }
+.notification-item-icon.green { color: #2f9564; background: #e8f8ef; }
+
+.notification-item-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.notification-item-copy b,
+.notification-item-copy small,
+.notification-item-copy time {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-item-copy b { color: #293362; font-size: 10px; }
+.notification-item-copy small { margin-top: 4px; color: #7d86a0; font-size: 9px; }
+.notification-item-copy time { margin-top: 4px; color: #abb1c2; font-size: 8px; }
+
+.notification-item > i {
+  width: 6px;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #ef7e2b;
+  box-shadow: 0 0 0 3px rgba(239, 126, 43, .12);
+}
+
+.notification-empty {
+  display: flex;
+  min-height: 150px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+  color: #9aa2b7;
+  text-align: center;
+}
+
+.notification-empty > span {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3px;
+  border-radius: 12px;
+  color: #5366c4;
+  background: #edf0ff;
+}
+
+.notification-empty b { color: #4f587a; font-size: 11px; }
+.notification-empty small { font-size: 9px; }
+
 .profile-chip,
 .header-logout-btn {
   white-space: nowrap;
@@ -407,6 +604,18 @@
   .header-logout-btn svg {
     width: 17px;
     height: 17px;
+  }
+
+  .notification-trigger b {
+    display: none;
+  }
+
+  .notification-panel {
+    position: fixed;
+    top: 75px;
+    right: 10px;
+    left: 10px;
+    width: auto;
   }
 
   .menu-btn {
