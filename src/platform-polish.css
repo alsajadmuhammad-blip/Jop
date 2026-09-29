@@ -188,16 +188,7 @@
   background: linear-gradient(145deg, #f5f6ff, #fff);
 }
 
-.standard-cv-export-card {
-  border-color: #eadfca;
-  background: linear-gradient(145deg, #fffaf1, #fff);
-}
-
 .ats-export-card .aside-card-heading {
-  margin-bottom: 9px;
-}
-
-.standard-cv-export-card .aside-card-heading {
   margin-bottom: 9px;
 }
 
@@ -205,20 +196,9 @@
   color: #5366c4;
 }
 
-.standard-cv-export-card .aside-card-heading > svg {
-  color: #ae7d2b;
-}
-
 .ats-export-card p {
   margin: 0;
   color: #697394;
-  font-size: 10px;
-  line-height: 1.85;
-}
-
-.standard-cv-export-card p {
-  margin: 0;
-  color: #776b55;
   font-size: 10px;
   line-height: 1.85;
 }
@@ -245,19 +225,10 @@
   background: #303d98;
 }
 
-.standard-cv-export-card .ats-export-actions .primary-btn {
-  background: #9b7029;
-}
-
 .ats-export-actions .outline-btn {
   color: #4455a9;
   border-color: #ccd4f4;
   background: #fff;
-}
-
-.standard-cv-export-card .ats-export-actions .outline-btn {
-  color: #896526;
-  border-color: #e3d4b5;
 }
 
 .ats-export-hint {
