@@ -218,7 +218,97 @@
 }
 
 .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: nowrap;
+}
+
+.nav-wrap {
+  gap: 18px;
+}
+
+.main-nav {
+  flex: 1;
+  justify-content: center;
+  margin-inline: 0;
+}
+
+.brand {
+  flex: 0 0 auto;
+}
+
+.profile-chip {
+  min-height: 42px;
+  padding: 4px 7px 4px 10px;
+  border-color: #e0e4ef;
+  border-radius: 12px;
+  color: #293362;
+  background: #fff;
+  text-align: right;
+}
+
+.profile-chip:hover {
+  border-color: #cbd2ef;
+  background: #f8f9ff;
+}
+
+.profile-chip .profile-avatar {
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  background: linear-gradient(145deg, #3c4d9b, #6677ca);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.profile-chip .profile-copy {
+  display: flex;
+  width: auto;
+  height: auto;
+  min-width: 70px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.profile-chip .profile-copy b,
+.profile-chip .profile-copy small {
+  display: block;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-chip .profile-copy b {
+  color: #293362;
+  font-size: 10px;
+}
+
+.profile-chip .profile-copy small {
+  color: #9ba3b7;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.profile-chip > svg {
+  color: #8c94ac;
+}
+
+.auth-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.auth-header-actions .login-btn,
+.auth-header-actions .register-btn {
+  min-height: 38px;
+  border-radius: 11px;
 }
 
 .notification-center {
@@ -292,6 +382,24 @@
   gap: 10px;
   padding: 14px 15px 12px;
   border-bottom: 1px solid #edf0f5;
+}
+
+.notification-panel-heading > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.notification-heading-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  color: #4d62ae;
+  background: #edf0ff;
 }
 
 .notification-panel-heading b,
@@ -389,6 +497,12 @@
   border-radius: 50%;
   background: #ef7e2b;
   box-shadow: 0 0 0 3px rgba(239, 126, 43, .12);
+}
+
+.notification-item-arrow {
+  align-self: center;
+  flex: 0 0 auto;
+  color: #b1b7c7;
 }
 
 .notification-empty {
@@ -591,6 +705,18 @@
     max-width: 105px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .profile-chip .profile-copy,
+  .profile-chip > svg {
+    display: none;
+  }
+
+  .profile-chip {
+    min-width: 38px;
+    width: 38px;
+    justify-content: center;
+    padding: 4px;
   }
 
   .header-logout-btn {

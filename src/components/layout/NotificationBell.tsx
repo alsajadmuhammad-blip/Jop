@@ -1,4 +1,4 @@
-import { Bell, CheckCheck, Clock3, FileText } from "lucide-react";
+import { Bell, CheckCheck, ChevronLeft, Clock3, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
@@ -8,15 +8,21 @@ export type AppNotification = {
   id: string;
   title: string;
   body: string;
-  target: View;
+  target: NotificationDestination;
   createdAt?: string;
   tone?: "blue" | "orange" | "green";
+};
+
+export type NotificationDestination = {
+  view: View;
+  adminSection?: "overview" | "jobs" | "job-requests" | "applications" | "employer-access";
+  hrSection?: "search" | "applications";
 };
 
 type NotificationBellProps = {
   profile: Profile;
   notifications: AppNotification[];
-  onNavigate: (view: View) => void;
+  onNavigate: (destination: NotificationDestination) => void;
 };
 
 const readStorageKey = (profileId: string) => `iraq-jobs-read-notifications:${profileId}`;
@@ -84,9 +90,12 @@ export function NotificationBell({ profile, notifications, onNavigate }: Notific
       {open && (
         <div className="notification-panel" role="dialog" aria-label="الإشعارات">
           <div className="notification-panel-heading">
-            <div>
-              <b>الإشعارات</b>
-              <small>{unreadCount ? `${unreadCount} غير مقروءة` : "لا توجد إشعارات جديدة"}</small>
+            <div className="notification-heading-content">
+              <span className="notification-heading-icon"><Bell size={17} /></span>
+              <div>
+                <b>مركز التنبيهات</b>
+                <small>{unreadCount ? `${unreadCount} غير مقروءة` : "كل شيء محدث"}</small>
+              </div>
             </div>
             {unreadCount > 0 && (
               <button type="button" className="notification-mark-all" onClick={markAllAsRead}>
@@ -118,6 +127,7 @@ export function NotificationBell({ profile, notifications, onNavigate }: Notific
                     {notification.createdAt && <time>{formatDate(notification.createdAt)}</time>}
                   </span>
                   {unread && <i aria-label="غير مقروءة" />}
+                  <ChevronLeft className="notification-item-arrow" size={15} aria-hidden="true" />
                 </button>
               );
             }) : (

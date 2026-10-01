@@ -1,7 +1,7 @@
-import { LogIn, Menu, UserPlus } from "lucide-react";
+import { ChevronDown, LogIn, Menu, UserPlus } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
-import { NotificationBell, type AppNotification } from "./NotificationBell";
+import { NotificationBell, type AppNotification, type NotificationDestination } from "./NotificationBell";
 
 type HeaderProps = {
   view: View;
@@ -12,9 +12,14 @@ type HeaderProps = {
   mobileMenu: boolean;
   setMobileMenu: (value: boolean) => void;
   notifications: AppNotification[];
+  onOpenNotification: (destination: NotificationDestination) => void;
 };
 
-export function Header({ view, profile, onNavigate, onLogin, onRegister, mobileMenu, setMobileMenu, notifications }: HeaderProps) {
+function roleLabel(profile: Profile) {
+  return profile.role === "candidate" ? "باحث عن عمل" : profile.role === "hr" ? "حساب HR" : "مدير المنصة";
+}
+
+export function Header({ view, profile, onNavigate, onLogin, onRegister, mobileMenu, setMobileMenu, notifications, onOpenNotification }: HeaderProps) {
   const links: { label: string; view: View }[] = [
     { label: "الرئيسية", view: "home" },
     { label: "الوظائف", view: "jobs" },
@@ -25,7 +30,11 @@ export function Header({ view, profile, onNavigate, onLogin, onRegister, mobileM
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}
     </nav>
     <div className="header-actions">
-       {profile ? <><NotificationBell profile={profile} notifications={notifications} onNavigate={onNavigate} /><button className="profile-chip" onClick={() => profile.role === "candidate" ? onNavigate("candidate") : onNavigate(profile.role === "admin" ? "admin" : "hr")}><span>{(profile.full_name || "مستخدم").slice(0, 1)}</span>{profile.full_name || "حسابي"}</button><button className="menu-btn" onClick={() => setMobileMenu(!mobileMenu)} aria-label="فتح القائمة الرئيسية" aria-expanded={mobileMenu}><Menu size={21} /></button></> : <div className="auth-header-actions"><button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button><button className="register-btn" onClick={onRegister}><UserPlus size={16} /> حساب مجاني</button></div>}
+       {profile ? <><NotificationBell profile={profile} notifications={notifications} onNavigate={onOpenNotification} /><button className="profile-chip" onClick={() => profile.role === "candidate" ? onNavigate("candidate") : onNavigate(profile.role === "admin" ? "admin" : "hr")} aria-label={`فتح ${roleLabel(profile)}`}>
+         <span className="profile-avatar">{(profile.full_name || "مستخدم").slice(0, 1)}</span>
+         <span className="profile-copy"><b>{profile.full_name || "حسابي"}</b><small>{roleLabel(profile)}</small></span>
+         <ChevronDown size={14} aria-hidden="true" />
+       </button><button className="menu-btn" onClick={() => setMobileMenu(!mobileMenu)} aria-label="فتح القائمة الرئيسية" aria-expanded={mobileMenu}><Menu size={21} /></button></> : <div className="auth-header-actions"><button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button><button className="register-btn" onClick={onRegister}><UserPlus size={16} /> حساب مجاني</button></div>}
     </div>
   </div></header>;
 }

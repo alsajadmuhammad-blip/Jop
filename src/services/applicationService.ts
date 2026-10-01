@@ -1,6 +1,10 @@
 import { supabase } from "../lib/supabase";
 import type { Application, ApplicationStatus } from "../lib/types";
 
+const CANDIDATE_APPLICATIONS_CACHE_TTL = 30 * 1000;
+const candidateApplicationsCache = new Map<string, { applications: Application[]; cachedAt: number }>();
+const candidateApplicationsRequests = new Map<string, Promise<{ applications: Application[]; error: unknown | null }>>();
+
 export type ApplicationFormData = {
   note: string;
 };
@@ -13,13 +17,34 @@ export async function loadApplications(jobsOnly = false) {
   return { applications: (result.data as Application[]) || [], error: result.error };
 }
 
-export async function loadCandidateApplications(candidateId: string) {
-  const { data, error } = await supabase
-    .from("applications")
-    .select("*, jobs(title, company_name, city, job_type, deadline), cv_requests(title, organization_name)")
-    .eq("candidate_id", candidateId)
-    .order("created_at", { ascending: false });
-  return { applications: (data as Application[]) || [], error };
+export async function loadCandidateApplications(candidateId: string, options: { forceRefresh?: boolean } = {}) {
+  const cached = candidateApplicationsCache.get(candidateId);
+  if (!options.forceRefresh && cached && Date.now() - cached.cachedAt < CANDIDATE_APPLICATIONS_CACHE_TTL) {
+    return { applications: cached.applications, error: null };
+  }
+
+  if (!options.forceRefresh) {
+    const pending = candidateApplicationsRequests.get(candidateId);
+    if (pending) return pending;
+  }
+
+  const request = (async () => {
+    const { data, error } = await supabase
+      .from("applications")
+      .select("*, jobs(title, company_name, city, job_type, deadline), cv_requests(title, organization_name)")
+      .eq("candidate_id", candidateId)
+      .order("created_at", { ascending: false });
+    const applications = (data as Application[]) || [];
+    if (!error) candidateApplicationsCache.set(candidateId, { applications, cachedAt: Date.now() });
+    return { applications, error };
+  })();
+
+  if (!options.forceRefresh) candidateApplicationsRequests.set(candidateId, request);
+  try {
+    return await request;
+  } finally {
+    if (!options.forceRefresh) candidateApplicationsRequests.delete(candidateId);
+  }
 }
 
 export async function submitApplication(

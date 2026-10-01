@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 import { Header } from "./components/layout/Header";
 import { MainSidebar } from "./components/layout/MainSidebar";
@@ -28,7 +28,7 @@ import { AuthPage } from "./pages/auth/AuthPage";
 import "./styles/role-navigation.css";
 import type { AdminSection } from "./pages/admin/AdminDashboardPage";
 import type { HrSection } from "./pages/hr/HrDashboardPage";
-import type { AppNotification } from "./components/layout/NotificationBell";
+import type { AppNotification, NotificationDestination } from "./components/layout/NotificationBell";
 
 const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
 
@@ -102,10 +102,16 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const notify = (message: string) => {
+  const openNotification = (destination: NotificationDestination) => {
+    if (destination.adminSection) setAdminSection(destination.adminSection);
+    if (destination.hrSection) setHrSection(destination.hrSection);
+    navigate(destination.view);
+  };
+
+  const notify = useCallback((message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 3500);
-  };
+  }, []);
 
   const refreshPublicContent = async () => {
     if (!hasSupabaseConfig) {
@@ -242,7 +248,7 @@ function App() {
           id: `candidate-application-${application.id}-${application.status}`,
           title,
           body: jobTitle,
-          target: "applied",
+          target: { view: "applied" },
           createdAt: application.created_at,
           tone: application.status === "hired" || application.status === "shortlisted" ? "green" : application.status === "reviewing" ? "orange" : "blue",
         };
@@ -256,7 +262,7 @@ function App() {
           id: `hr-application-${application.id}-new`,
           title: "تقديم جديد يحتاج متابعة",
           body: application.jobs?.title || application.cv_requests?.title || "طلب تقديم",
-          target: "hr" as const,
+          target: { view: "hr", hrSection: "applications" },
           createdAt: application.created_at,
           tone: "orange" as const,
         }));
@@ -269,7 +275,7 @@ function App() {
           id: `admin-job-request-${request.id}-pending`,
           title: "طلب نشر وظيفة جديد",
           body: `${request.title} · ${request.company_name}`,
-          target: "admin" as const,
+          target: { view: "admin", adminSection: "job-requests" } as const,
           createdAt: request.created_at,
           tone: "orange" as const,
         })),
@@ -279,7 +285,7 @@ function App() {
           id: `admin-application-${application.id}-new`,
           title: "تقديم وظيفة جديد",
           body: application.jobs?.title || "تقديم جديد",
-          target: "admin" as const,
+          target: { view: "admin", adminSection: "applications" } as const,
           createdAt: application.created_at,
           tone: "blue" as const,
         })),
@@ -304,7 +310,7 @@ function App() {
   };
 
   return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}`}>
-    <Header view={view} profile={profile} notifications={notifications} onNavigate={navigate} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
+    <Header view={view} profile={profile} notifications={notifications} onNavigate={navigate} onOpenNotification={openNotification} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
     {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
