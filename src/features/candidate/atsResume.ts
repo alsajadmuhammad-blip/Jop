@@ -1,5 +1,5 @@
 import type { CandidateProfileInput } from "../../lib/types";
-import type { CandidateExperience, CandidateLanguage } from "../../services/candidateService";
+import { formatCandidateExperiencePeriodForAts, type CandidateExperience, type CandidateLanguage } from "../../services/candidateService";
 
 export type ResumeData = Omit<CandidateProfileInput, "languages"> & {
   experiences: CandidateExperience[];
@@ -56,14 +56,7 @@ function englishLanguageLevel(level: CandidateLanguage["level"]) {
 
 function experienceEntries(data: ResumeData, className = "experience") {
   return data.experiences
-    .map((experience) => {
-      const period = experience.startYear && experience.isCurrent
-        ? `${experience.startYear} – Present`
-        : experience.startYear && experience.endYear
-          ? `${experience.startYear} – ${experience.endYear}`
-          : experience.startYear || experience.endYear || experience.legacyPeriod;
-      return { experience, period };
-    })
+    .map((experience) => ({ experience, period: formatCandidateExperiencePeriodForAts(experience) }))
     .filter(({ experience, period }) => [experience.title, experience.company, experience.location, period, experience.description].some((value) => value.trim()))
     .map(({ experience, period }) => `
       <article class="${className}">

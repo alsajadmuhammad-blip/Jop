@@ -6,8 +6,8 @@ export type CandidateExperience = {
   title: string;
   company: string;
   location: string;
-  startYear: string;
-  endYear: string;
+  startMonth: string;
+  endMonth: string;
   isCurrent: boolean;
   legacyPeriod: string;
   description: string;
@@ -31,22 +31,20 @@ export type CandidateLanguage = {
 export const experienceStoragePrefix = "IRAQ_JOBS_EXPERIENCES_V1:";
 export const educationStoragePrefix = "IRAQ_JOBS_EDUCATION_V1:";
 
-function normalizeExperience(item: Partial<CandidateExperience> & { period?: unknown }, index: number): CandidateExperience {
-  let startYear = typeof item.startYear === "string" ? item.startYear : "";
-  let endYear = typeof item.endYear === "string" ? item.endYear : "";
+type LegacyExperienceFields = { period?: unknown; startYear?: unknown; endYear?: unknown };
+
+function normalizeExperience(item: Partial<CandidateExperience> & LegacyExperienceFields, index: number): CandidateExperience {
+  let startMonth = typeof item.startMonth === "string" ? item.startMonth : "";
+  let endMonth = typeof item.endMonth === "string" ? item.endMonth : "";
   let isCurrent = item.isCurrent === true;
   let legacyPeriod = typeof item.legacyPeriod === "string"
     ? item.legacyPeriod
     : typeof item.period === "string" ? item.period : "";
 
-  if (!startYear && !endYear && legacyPeriod) {
-    const match = legacyPeriod.trim().match(/^((?:19|20|21)\d{2})(?:\s*(?:-|–|—|to|إلى)\s*((?:19|20|21)\d{2}|الآن|حتى الآن|مستمر|present|current))?$/i);
-    if (match) {
-      startYear = match[1];
-      endYear = /^\d{4}$/.test(match[2] || "") ? match[2] : "";
-      isCurrent = Boolean(match[2] && !endYear);
-      legacyPeriod = "";
-    }
+  const priorStartYear = typeof item.startYear === "string" ? item.startYear : "";
+  const priorEndYear = typeof item.endYear === "string" ? item.endYear : "";
+  if (!startMonth && !endMonth && (priorStartYear || priorEndYear) && !legacyPeriod) {
+    legacyPeriod = [priorStartYear, isCurrent ? "حتى الآن" : priorEndYear].filter(Boolean).join(" – ");
   }
 
   return {
@@ -54,20 +52,40 @@ function normalizeExperience(item: Partial<CandidateExperience> & { period?: unk
     title: typeof item.title === "string" ? item.title : "",
     company: typeof item.company === "string" ? item.company : "",
     location: typeof item.location === "string" ? item.location : "",
-    startYear,
-    endYear,
+    startMonth,
+    endMonth,
     isCurrent,
     legacyPeriod,
     description: typeof item.description === "string" ? item.description : "",
   };
 }
 
+function formatCandidateMonth(value: string, locale: string) {
+  const match = value.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  if (!match) return value;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
 export function formatCandidateExperiencePeriod(experience: CandidateExperience) {
-  if (experience.startYear && experience.isCurrent) return `${experience.startYear} – حتى الآن`;
-  if (experience.startYear && experience.endYear) return `${experience.startYear} – ${experience.endYear}`;
+  const start = formatCandidateMonth(experience.startMonth, "ar-IQ");
+  const end = formatCandidateMonth(experience.endMonth, "ar-IQ");
+  if (start && experience.isCurrent) return `${start} – حتى الآن`;
+  if (start && end) return `${start} – ${end}`;
   if (experience.isCurrent) return "حتى الآن";
-  if (experience.startYear) return experience.startYear;
-  if (experience.endYear) return `حتى ${experience.endYear}`;
+  if (start) return start;
+  if (end) return `حتى ${end}`;
+  return experience.legacyPeriod;
+}
+
+export function formatCandidateExperiencePeriodForAts(experience: CandidateExperience) {
+  const start = formatCandidateMonth(experience.startMonth, "en");
+  const end = formatCandidateMonth(experience.endMonth, "en");
+  if (start && experience.isCurrent) return `${start} – Present`;
+  if (start && end) return `${start} – ${end}`;
+  if (experience.isCurrent) return "Present";
+  if (start) return start;
+  if (end) return `Until ${end}`;
   return experience.legacyPeriod;
 }
 
@@ -100,7 +118,7 @@ export function parseCandidateExperiences(value: string): CandidateExperience[] 
   const storedValue = typeof value === "string" ? value : "";
   if (storedValue.startsWith(experienceStoragePrefix)) {
     try {
-      const parsed = JSON.parse(storedValue.slice(experienceStoragePrefix.length)) as Array<Partial<CandidateExperience> & { period?: unknown }>;
+      const parsed = JSON.parse(storedValue.slice(experienceStoragePrefix.length)) as Array<Partial<CandidateExperience> & LegacyExperienceFields>;
       if (Array.isArray(parsed)) {
         return parsed
           .filter((item) => item && typeof item === "object")
@@ -116,8 +134,8 @@ export function parseCandidateExperiences(value: string): CandidateExperience[] 
     title: "الخبرة المهنية",
     company: "",
     location: "",
-    startYear: "",
-    endYear: "",
+    startMonth: "",
+    endMonth: "",
     isCurrent: false,
     legacyPeriod: "",
     description: storedValue,
@@ -126,7 +144,7 @@ export function parseCandidateExperiences(value: string): CandidateExperience[] 
 
 export function serializeCandidateExperiences(experiences: CandidateExperience[]) {
   const completed = experiences.filter((experience) =>
-    [experience.title, experience.company, experience.location, experience.startYear, experience.endYear, experience.legacyPeriod, experience.description]
+    [experience.title, experience.company, experience.location, experience.startMonth, experience.endMonth, experience.legacyPeriod, experience.description]
       .some((value) => value.trim()) || experience.isCurrent,
   );
   return completed.length ? `${experienceStoragePrefix}${JSON.stringify(completed)}` : "";
