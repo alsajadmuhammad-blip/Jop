@@ -1,1 +1,2 @@
 - [Supervisor hiring workflow](supervisor-hiring-workflow.md) — supervisors search candidates and manage intake for jobs they publish; direct applications are an opt-in per job.
+- [Candidate profile editing](candidate-profile-editing.md) — job seekers expect edits to save automatically, with structured education and start/end experience dates.

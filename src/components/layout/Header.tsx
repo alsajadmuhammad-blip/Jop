@@ -34,7 +34,7 @@ export function Header({ view, profile, onNavigate, onLogin, onRegister, mobileM
          <span className="profile-avatar">{(profile.full_name || "مستخدم").slice(0, 1)}</span>
          <span className="profile-copy"><b>{profile.full_name || "حسابي"}</b><small>{roleLabel(profile)}</small></span>
          <ChevronDown size={14} aria-hidden="true" />
-       </button><button className="menu-btn" onClick={() => setMobileMenu(!mobileMenu)} aria-label="فتح القائمة الرئيسية" aria-expanded={mobileMenu}><Menu size={21} /></button></> : <div className="auth-header-actions"><button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button><button className="register-btn" onClick={onRegister}><UserPlus size={16} /> حساب مجاني</button></div>}
+        </button><button className={`menu-btn ${profile.role === "candidate" ? "candidate-menu-btn" : ""}`} onClick={() => setMobileMenu(!mobileMenu)} aria-label="فتح القائمة الرئيسية" aria-expanded={mobileMenu}><Menu size={21} /></button></> : <div className="auth-header-actions"><button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button><button className="register-btn" onClick={onRegister}><UserPlus size={16} /> حساب مجاني</button></div>}
     </div>
   </div></header>;
 }

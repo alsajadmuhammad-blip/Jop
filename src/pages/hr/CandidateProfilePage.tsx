@@ -1,6 +1,6 @@
 import { ArrowRight, BriefcaseBusiness, CalendarDays, GraduationCap, Languages, Mail, MapPin, Phone, UserRound } from "lucide-react";
 import type { CandidateProfile } from "../../lib/types";
-import { parseCandidateExperiences, parseCandidateLanguages } from "../../services/candidateService";
+import { formatCandidateExperiencePeriod, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages } from "../../services/candidateService";
 
 type CandidateProfilePageProps = {
   candidate: CandidateProfile;
@@ -10,6 +10,7 @@ type CandidateProfilePageProps = {
 
 export function CandidateProfilePage({ candidate, source, onBack }: CandidateProfilePageProps) {
   const experiences = parseCandidateExperiences(candidate.experience_details);
+  const education = parseCandidateEducation(candidate.education);
   const languages = parseCandidateLanguages(candidate.languages);
 
   return (
@@ -41,12 +42,15 @@ export function CandidateProfilePage({ candidate, source, onBack }: CandidatePro
 
             <section className="candidate-detail-section">
               <div className="candidate-section-title"><span className="candidate-section-icon blue"><BriefcaseBusiness size={16} /></span><div><h3>الخبرة العملية</h3><small>المسار المهني والإنجازات الأساسية</small></div></div>
-              {experiences.length ? <div className="candidate-experience-list">{experiences.map((experience) => <article className="candidate-experience-item" key={experience.id}><div className="candidate-experience-heading"><b>{experience.title || "خبرة مهنية"}</b><span>{experience.company || "جهة العمل غير محددة"}</span></div>{(experience.period || experience.location) && <small className="candidate-experience-meta"><CalendarDays size={13} /> {[experience.period, experience.location].filter(Boolean).join(" · ")}</small>}<p>{experience.description || "لا توجد تفاصيل مضافة."}</p></article>)}</div> : <p>لا توجد تفاصيل مضافة.</p>}
+              {experiences.length ? <div className="candidate-experience-list">{experiences.map((experience) => {
+                const period = formatCandidateExperiencePeriod(experience);
+                return <article className="candidate-experience-item" key={experience.id}><div className="candidate-experience-heading"><b>{experience.title || "خبرة مهنية"}</b><span>{experience.company || "جهة العمل غير محددة"}</span></div>{(period || experience.location) && <small className="candidate-experience-meta"><CalendarDays size={13} /> {[period, experience.location].filter(Boolean).join(" · ")}</small>}<p>{experience.description || "لا توجد تفاصيل مضافة."}</p></article>;
+              })}</div> : <p>لا توجد تفاصيل مضافة.</p>}
             </section>
 
             <section className="candidate-detail-section candidate-education-section">
               <div className="candidate-section-title"><span className="candidate-section-icon violet"><GraduationCap size={16} /></span><div><h3>التعليم واللغات</h3><small>المؤهل واللغات المستخدمة في العمل</small></div></div>
-              <div className="candidate-education-block"><b>المؤهل العلمي</b><p>{candidate.education || "لا توجد بيانات تعليمية."}</p></div>
+              <div className="candidate-education-block">{education.length ? education.map((entry) => <article className="candidate-education-entry" key={entry.id}><b>{entry.degree || "المؤهل العلمي"}</b><p>{[entry.specialization && `التخصص: ${entry.specialization}`, entry.institution && `الجهة التعليمية: ${entry.institution}`, entry.graduationYear && `سنة التخرج: ${entry.graduationYear}`].filter(Boolean).join(" · ") || "لا توجد تفاصيل إضافية."}</p></article>) : <p>لا توجد بيانات تعليمية.</p>}</div>
               <div className="candidate-language-block"><b><Languages size={14} /> اللغات</b><div className="candidate-language-list">{languages.length ? languages.map((language, index) => <span key={`${language.name}-${index}`}><strong>{language.name}</strong>{language.level && <small>{language.level}</small>}</span>) : <p>لا توجد لغات مضافة.</p>}</div></div>
             </section>
           </div>

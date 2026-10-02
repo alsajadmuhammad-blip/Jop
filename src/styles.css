@@ -2894,6 +2894,146 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   border-top: 1px solid #e7e9f2;
 }
 
+.candidate-profile-editor .candidate-autosave-status {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #dfe9e2;
+  border-radius: 13px;
+  color: #426b56;
+  background: linear-gradient(135deg, #f7fbf8, #f0f7f2);
+}
+
+.candidate-autosave-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: #397455;
+  background: #e2f0e7;
+}
+
+.candidate-autosave-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.candidate-autosave-copy b {
+  color: #315b45;
+  font-size: 11px;
+}
+
+.candidate-autosave-copy small {
+  color: #758b7b;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.candidate-autosave-status.pending,
+.candidate-autosave-status.saving {
+  border-color: #e7e6d8;
+  background: linear-gradient(135deg, #fbfaf5, #f6f6ee);
+}
+
+.candidate-autosave-status.pending .candidate-autosave-icon,
+.candidate-autosave-status.saving .candidate-autosave-icon {
+  color: #897531;
+  background: #f2efd9;
+}
+
+.candidate-autosave-status.error {
+  border-color: #ecd5d3;
+  color: #9b4744;
+  background: linear-gradient(135deg, #fff8f7, #fdf2f1);
+}
+
+.candidate-autosave-status.error .candidate-autosave-icon {
+  color: #a34540;
+  background: #f9e4e1;
+}
+
+.candidate-autosave-status.error .candidate-autosave-copy b {
+  color: #8e3e3a;
+}
+
+.candidate-autosave-status.error .candidate-autosave-copy small {
+  color: #9c625d;
+}
+
+.candidate-autosave-status > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 1px solid #e5c4c1;
+  border-radius: 9px;
+  color: #934743;
+  background: #fff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.education-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.education-editor-card .experience-card-top small {
+  white-space: normal;
+}
+
+.profile-languages-section {
+  margin-top: 24px;
+}
+
+.profile-autosave-note {
+  color: #74827a;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.candidate-profile-editor .profile-form-actions {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.candidate-education-block {
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-education-entry {
+  padding: 10px 12px;
+  border: 1px solid #e8ebf3;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.candidate-education-entry + .candidate-education-entry {
+  margin-top: 1px;
+}
+
+.candidate-education-entry b {
+  color: #40517e;
+  font-size: 11px;
+}
+
+.candidate-education-entry p {
+  margin-top: 6px;
+  line-height: 1.8;
+}
+
 @media (max-width: 620px) {
   .candidate-profile-editor .form-grid {
     gap: 14px;
@@ -2909,6 +3049,24 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   .candidate-profile-editor select {
     min-height: 45px;
     border-radius: 11px;
+  }
+
+  .candidate-profile-editor .candidate-autosave-status {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .candidate-autosave-copy {
+    padding-top: 2px;
+  }
+
+  .candidate-autosave-status > button {
+    margin-right: 43px;
+  }
+
+  .candidate-profile-editor .profile-form-actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

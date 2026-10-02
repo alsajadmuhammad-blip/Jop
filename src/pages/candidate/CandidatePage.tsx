@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, BriefcaseBusiness, Check, CheckCircle2, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
-import { experienceStoragePrefix, formatCandidateLanguages, languageLevels, loadCandidateProfile, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
+import { formatCandidateLanguages, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
 
 type CandidatePageProps = {
@@ -15,9 +15,22 @@ type CandidatePageProps = {
 };
 
 type ExperienceEntry = CandidateExperience;
+type EducationEntry = CandidateEducation;
 
-function serializeExperiences(experiences: ExperienceEntry[]) {
-  return experiences.length ? `${experienceStoragePrefix}${JSON.stringify(experiences)}` : "";
+type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
+
+function buildProfilePayload(
+  form: CandidateProfileInput,
+  experiences: ExperienceEntry[],
+  education: EducationEntry[],
+  languages: CandidateLanguage[],
+): CandidateProfileInput {
+  return {
+    ...form,
+    education: serializeCandidateEducation(education),
+    languages: formatCandidateLanguages(languages),
+    experience_details: serializeCandidateExperiences(experiences),
+  };
 }
 
 function toInput(profile: CandidateProfile | null, account: Profile): CandidateProfileInput {
@@ -46,28 +59,164 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
   const initialForm = toInput(null, profile);
   const [form, setForm] = useState<CandidateProfileInput>(initialForm);
   const [experiences, setExperiences] = useState<ExperienceEntry[]>([]);
+  const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
   const [skillDraft, setSkillDraft] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>(hasSupabaseConfig ? "loading" : "unavailable");
+  const [autosaveError, setAutosaveError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+  const [reloadCount, setReloadCount] = useState(0);
+  const loadedRef = useRef(false);
+  const mountedRef = useRef(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSaveRef = useRef<{ payload: CandidateProfileInput; signature: string } | null>(null);
+  const queuedSaveRef = useRef<{ payload: CandidateProfileInput; signature: string } | null>(null);
+  const inFlightSignatureRef = useRef("");
+  const lastSavedSignatureRef = useRef("");
+  const processingSaveRef = useRef(false);
+  const flushAutosaveRef = useRef<() => void>(() => undefined);
+
+  const processAutosaveQueue = useCallback(async () => {
+    if (processingSaveRef.current) return;
+    processingSaveRef.current = true;
+    try {
+      while (queuedSaveRef.current) {
+        const queued = queuedSaveRef.current;
+        queuedSaveRef.current = null;
+        if (queued.signature !== latestSaveRef.current?.signature) continue;
+        inFlightSignatureRef.current = queued.signature;
+        try {
+          const result = await saveCandidateProfile(profile.id, queued.payload);
+          if (result.error) {
+            if (latestSaveRef.current?.signature === queued.signature && mountedRef.current) {
+              setAutosaveError("تعذر حفظ التعديلات. تحقق من الاتصال ثم أعد المحاولة.");
+              setAutosaveStatus("error");
+            }
+            continue;
+          }
+          lastSavedSignatureRef.current = queued.signature;
+          if (latestSaveRef.current?.signature === queued.signature && mountedRef.current) {
+            setAutosaveError("");
+            setAutosaveStatus("saved");
+            onProfileUpdated?.();
+          }
+        } catch {
+          if (latestSaveRef.current?.signature === queued.signature && mountedRef.current) {
+            setAutosaveError("تعذر حفظ التعديلات. تحقق من الاتصال ثم أعد المحاولة.");
+            setAutosaveStatus("error");
+          }
+        } finally {
+          inFlightSignatureRef.current = "";
+        }
+      }
+    } finally {
+      processingSaveRef.current = false;
+    }
+  }, [onProfileUpdated, profile.id]);
+
+  const enqueueAutosave = useCallback((payload: CandidateProfileInput, signature: string) => {
+    if (!hasSupabaseConfig || !loadedRef.current || signature === lastSavedSignatureRef.current) return;
+    if (signature === inFlightSignatureRef.current || queuedSaveRef.current?.signature === signature) return;
+    queuedSaveRef.current = { payload, signature };
+    if (mountedRef.current) setAutosaveStatus("saving");
+    void processAutosaveQueue();
+  }, [processAutosaveQueue]);
+
+  const flushAutosave = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    const latest = latestSaveRef.current;
+    if (latest && latest.signature !== lastSavedSignatureRef.current) {
+      enqueueAutosave(latest.payload, latest.signature);
+    }
+  }, [enqueueAutosave]);
+  flushAutosaveRef.current = flushAutosave;
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      flushAutosaveRef.current();
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    loadedRef.current = false;
+    queuedSaveRef.current = null;
+    latestSaveRef.current = null;
+    setError("");
     if (!hasSupabaseConfig) {
       setLoading(false);
+      setAutosaveStatus("unavailable");
       return;
     }
+    setLoading(true);
+    setAutosaveStatus("loading");
     void loadCandidateProfile(profile.id).then((result) => {
-      if (result.profile) {
-        const nextForm = toInput(result.profile, profile);
-        setForm(nextForm);
-        setLanguages(parseCandidateLanguages(nextForm.languages));
-        setExperiences(parseCandidateExperiences(nextForm.experience_details));
+      if (!active) return;
+      if (result.error) {
+        setError("تعذر تحميل ملفك المهني، لم تُحفظ أي تعديلات حتى لا يُستبدل محتوى غير محمّل.");
+        setAutosaveStatus("error");
+        setLoading(false);
+        return;
       }
-      if (result.error) setError("تعذر تحميل ملفك المهني.");
+      const nextForm = toInput(result.profile, profile);
+      const nextLanguages = parseCandidateLanguages(nextForm.languages);
+      const nextExperiences = parseCandidateExperiences(nextForm.experience_details);
+      const nextEducation = parseCandidateEducation(nextForm.education);
+      const baseline = buildProfilePayload(nextForm, nextExperiences, nextEducation, nextLanguages);
+      const signature = JSON.stringify(baseline);
+      setForm(nextForm);
+      setLanguages(nextLanguages);
+      setExperiences(nextExperiences);
+      setEducation(nextEducation);
+      lastSavedSignatureRef.current = signature;
+      latestSaveRef.current = { payload: baseline, signature };
+      loadedRef.current = true;
+      setAutosaveStatus("idle");
       setLoading(false);
     });
-  }, [profile]);
+    return () => {
+      active = false;
+    };
+  }, [profile.id, profile.full_name, reloadCount]);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig || !loadedRef.current) return;
+    const payload = buildProfilePayload(form, experiences, education, languages);
+    const signature = JSON.stringify(payload);
+    latestSaveRef.current = { payload, signature };
+    if (queuedSaveRef.current && queuedSaveRef.current.signature !== signature) {
+      queuedSaveRef.current = null;
+    }
+    if (signature === lastSavedSignatureRef.current) {
+      setAutosaveStatus("saved");
+      setAutosaveError("");
+      return;
+    }
+    setAutosaveStatus("pending");
+    setAutosaveError("");
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      enqueueAutosave(payload, signature);
+    }, 650);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [education, enqueueAutosave, experiences, form, languages, retryCount]);
 
   const update = <K extends keyof CandidateProfileInput>(key: K, value: CandidateProfileInput[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -90,17 +239,45 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       title: "",
       company: "",
       location: "",
-      period: "",
+      startYear: "",
+      endYear: "",
+      isCurrent: false,
+      legacyPeriod: "",
       description: "",
     }]);
   };
 
   const updateExperience = <K extends keyof ExperienceEntry>(id: string, key: K, value: ExperienceEntry[K]) => {
-    setExperiences((current) => current.map((item) => item.id === id ? { ...item, [key]: value } : item));
+    setExperiences((current) => current.map((item) => {
+      if (item.id !== id) return item;
+      const next = { ...item, [key]: value };
+      if (key === "startYear" || key === "endYear" || key === "isCurrent") next.legacyPeriod = "";
+      if (key === "endYear" && value) next.isCurrent = false;
+      if (key === "isCurrent" && value) next.endYear = "";
+      return next;
+    }));
   };
 
   const removeExperience = (id: string) => {
     setExperiences((current) => current.filter((item) => item.id !== id));
+  };
+
+  const addEducation = () => {
+    setEducation((current) => [...current, {
+      id: `education-${Date.now()}`,
+      degree: "",
+      specialization: "",
+      institution: "",
+      graduationYear: "",
+    }]);
+  };
+
+  const updateEducation = <K extends keyof EducationEntry>(id: string, key: K, value: EducationEntry[K]) => {
+    setEducation((current) => current.map((item) => item.id === id ? { ...item, [key]: value } : item));
+  };
+
+  const removeEducation = (id: string) => {
+    setEducation((current) => current.filter((item) => item.id !== id));
   };
 
   const addLanguage = () => {
@@ -115,6 +292,11 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     setLanguages((current) => current.filter((_, languageIndex) => languageIndex !== index));
   };
 
+  const completedExperiences = experiences.filter((experience) =>
+    [experience.title, experience.company, experience.location, experience.startYear, experience.endYear, experience.legacyPeriod, experience.description]
+      .some((value) => value.trim()) || experience.isCurrent,
+  );
+  const hasEducation = education.some((entry) => [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()));
   const completeness = useMemo(() => {
     const checks = [
       form.full_name,
@@ -123,16 +305,35 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       form.province,
       form.city,
       form.skills.length,
-      experiences.length,
-      form.education,
+      completedExperiences.length,
+      hasEducation,
       form.summary,
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [experiences.length, form]);
+  }, [completedExperiences.length, form, hasEducation]);
   const canExportAts = Boolean(form.full_name.trim() && form.headline.trim() && form.email.trim() && form.phone.trim() && form.summary.trim());
+  const autosaveMessage = !hasSupabaseConfig
+    ? "الحفظ التلقائي غير متاح في وضع المعاينة."
+    : autosaveStatus === "loading"
+      ? "جاري تحميل بيانات الملف..."
+      : autosaveStatus === "pending"
+        ? "سيتم الحفظ تلقائيًا بعد توقفك عن الكتابة."
+        : autosaveStatus === "saving"
+          ? "جاري حفظ التعديلات..."
+          : autosaveStatus === "saved"
+            ? "تم حفظ آخر التعديلات."
+            : autosaveStatus === "error"
+              ? error || autosaveError || "تعذر حفظ التعديلات."
+              : "تُحفظ التعديلات تلقائيًا أثناء التحرير.";
 
   const atsData = () => ({
     ...form,
+    education: education.map((entry) => [
+      entry.degree,
+      entry.specialization ? `Specialization: ${entry.specialization}` : "",
+      entry.institution ? `Institution: ${entry.institution}` : "",
+      entry.graduationYear ? `Graduation year: ${entry.graduationYear}` : "",
+    ].filter(Boolean).join(" | ")).filter(Boolean).join("\n"),
     languages,
     experiences,
   });
@@ -154,31 +355,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     if (!printAtsResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ ATS كـ PDF.");
   };
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!form.full_name.trim() || !form.headline.trim() || !form.specialization.trim()) {
-      setError("أكمل الاسم والمسمى الوظيفي والتخصص أولاً.");
-      return;
-    }
-    setSaving(true);
-    setError("");
-    const formToSave = { ...form, languages: formatCandidateLanguages(languages), experience_details: serializeExperiences(experiences) };
-    if (!hasSupabaseConfig) {
-      await new Promise((resolve) => setTimeout(resolve, 350));
-      setSaving(false);
-      onNotify?.("تم حفظ ملفك في وضع المعاينة.");
-      return;
-    }
-    const result = await saveCandidateProfile(profile.id, formToSave);
-    setSaving(false);
-    if (result.error) {
-      setError(result.error.message || "تعذر حفظ الملف.");
-      return;
-    }
-    onNotify?.("تم حفظ ملفك المهني");
-    onProfileUpdated?.();
-  };
-
   if (loading) {
     return <section className="container page-section centered-state"><span className="live-dot" /><p>جاري تحميل ملفك المهني...</p></section>;
   }
@@ -198,7 +374,25 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       </div>
     </div>
     <div className="candidate-profile-grid">
-      <form className="candidate-profile-form candidate-profile-editor" onSubmit={submit}>
+      <form
+        className="candidate-profile-form candidate-profile-editor"
+        onSubmit={(event) => event.preventDefault()}
+        onBlurCapture={(event) => {
+          if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget as Node)) {
+            flushAutosaveRef.current();
+          }
+        }}
+      >
+        <div className={`candidate-autosave-status ${autosaveStatus}`} role="status" aria-live="polite">
+          <span className="candidate-autosave-icon">
+            {autosaveStatus === "saved" ? <CheckCircle2 size={16} /> : autosaveStatus === "error" ? <X size={16} /> : <Save size={16} />}
+          </span>
+          <span className="candidate-autosave-copy">
+            <b>{autosaveStatus === "saved" ? "الحفظ التلقائي" : autosaveStatus === "error" ? "تعذر الحفظ" : "الحفظ التلقائي"}</b>
+            <small>{autosaveMessage}</small>
+          </span>
+          {autosaveStatus === "error" && <button type="button" onClick={() => loadedRef.current ? setRetryCount((count) => count + 1) : setReloadCount((count) => count + 1)}><RotateCw size={14} /> {loadedRef.current ? "إعادة المحاولة" : "إعادة تحميل الملف"}</button>}
+        </div>
         <section className="profile-editor-section">
           <div className="profile-section-heading"><span className="profile-section-icon"><FileText size={18} /></span><div><span className="eyebrow">الخطوة الأولى</span><h2>معلوماتك المهنية</h2><p>البيانات التي تظهر أولاً عندما يجدك صاحب عمل.</p></div></div>
           <div className="form-grid"><label>الاسم الكامل<input required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} placeholder="مثال: أحمد محمد" /></label><label>المسمى الوظيفي<input required value={form.headline} onChange={(event) => update("headline", event.target.value)} placeholder="مثال: مطور واجهات أمامية" /></label></div>
@@ -217,18 +411,18 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
 
         <section className="profile-editor-section">
           <div className="profile-section-heading experience-heading"><span className="profile-section-icon blue"><BriefcaseBusiness size={18} /></span><div><span className="eyebrow">مسارك المهني</span><h2>الخبرات العملية</h2><p>أضف كل تجربة بشكل مستقل مع إنجازاتك الأساسية.</p></div><button type="button" className="outline-btn add-experience-btn" onClick={addExperience}><Plus size={16} /> إضافة خبرة</button></div>
-          <div className="experience-editor-list">{experiences.map((experience, index) => <article className="experience-editor-card" key={experience.id}><div className="experience-card-top"><span className="experience-number">{String(index + 1).padStart(2, "0")}</span><div><b>{experience.title || "خبرة جديدة"}</b><small>{experience.company || "أضف جهة العمل والمدة"}</small></div><button type="button" className="remove-experience-btn" onClick={() => removeExperience(experience.id)} aria-label="حذف الخبرة"><Trash2 size={16} /></button></div><div className="form-grid"><label>المسمى الوظيفي<input value={experience.title} onChange={(event) => updateExperience(experience.id, "title", event.target.value)} placeholder="مثال: مسؤول تسويق" /></label><label>جهة العمل<input value={experience.company} onChange={(event) => updateExperience(experience.id, "company", event.target.value)} placeholder="اسم الشركة أو المشروع" /></label></div><div className="form-grid"><label>المدة<input value={experience.period} onChange={(event) => updateExperience(experience.id, "period", event.target.value)} placeholder="مثال: 2022 – 2024" /></label><label>الموقع<input value={experience.location} onChange={(event) => updateExperience(experience.id, "location", event.target.value)} placeholder="بغداد / عن بُعد" /></label></div><label>أبرز المسؤوليات والإنجازات<textarea rows={3} value={experience.description} onChange={(event) => updateExperience(experience.id, "description", event.target.value)} placeholder="اذكر ما أنجزته، وليس فقط ما كانت مهمتك..." /></label></article>)}{experiences.length === 0 && <button type="button" className="empty-experience-card" onClick={addExperience}><span><Plus size={21} /></span><b>أضف أول خبرة مهنية</b><small>رتّب مسارك الوظيفي حتى يقرأه صاحب العمل بسهولة.</small></button>}</div>
+          <div className="experience-editor-list">{experiences.map((experience, index) => <article className="experience-editor-card" key={experience.id}><div className="experience-card-top"><span className="experience-number">{String(index + 1).padStart(2, "0")}</span><div><b>{experience.title || "خبرة جديدة"}</b><small>{experience.company || "أضف جهة العمل والمدة"}</small></div><button type="button" className="remove-experience-btn" onClick={() => removeExperience(experience.id)} aria-label="حذف الخبرة"><Trash2 size={16} /></button></div><div className="form-grid"><label>المسمى الوظيفي<input value={experience.title} onChange={(event) => updateExperience(experience.id, "title", event.target.value)} placeholder="مثال: مسؤول تسويق" /></label><label>جهة العمل<input value={experience.company} onChange={(event) => updateExperience(experience.id, "company", event.target.value)} placeholder="اسم الشركة أو المشروع" /></label></div><div className="form-grid single-label-row"><label>من سنة<input type="number" min="1900" max={new Date().getFullYear()} value={experience.startYear} onChange={(event) => updateExperience(experience.id, "startYear", event.target.value)} placeholder="2022" /></label><label>إلى سنة<input type="number" min="1900" max={new Date().getFullYear()} value={experience.endYear} disabled={experience.isCurrent} onChange={(event) => updateExperience(experience.id, "endYear", event.target.value)} placeholder={experience.isCurrent ? "حتى الآن" : "2024"} /></label><label className="checkbox-field"><input type="checkbox" checked={experience.isCurrent} onChange={(event) => updateExperience(experience.id, "isCurrent", event.target.checked)} /><span>ما زلت أعمل هنا</span></label><label>الموقع<input value={experience.location} onChange={(event) => updateExperience(experience.id, "location", event.target.value)} placeholder="بغداد / عن بُعد" /></label></div><label>أبرز المسؤوليات والإنجازات<textarea rows={3} value={experience.description} onChange={(event) => updateExperience(experience.id, "description", event.target.value)} placeholder="اذكر ما أنجزته، وليس فقط ما كانت مهمتك..." /></label></article>)}{experiences.length === 0 && <button type="button" className="empty-experience-card" onClick={addExperience}><span><Plus size={21} /></span><b>أضف أول خبرة مهنية</b><small>رتّب مسارك الوظيفي حتى يقرأه صاحب العمل بسهولة.</small></button>}</div>
         </section>
 
         <section className="profile-editor-section">
-          <div className="profile-section-heading"><span className="profile-section-icon violet"><GraduationCap size={18} /></span><div><span className="eyebrow">تفاصيل إضافية</span><h2>التعليم والجاهزية</h2><p>معلومات تساعد على اختيار الفرصة الأنسب لك.</p></div></div>
-           <div className="form-grid"><label>المؤهل والتعليم<input required value={form.education} onChange={(event) => update("education", event.target.value)} placeholder="بكالوريوس هندسة حاسبات" /></label><div className="language-editor-field"><div className="language-editor-heading"><span><b>اللغات</b><small>أضف كل لغة ومستواها بشكل مستقل.</small></span><button type="button" className="outline-btn language-add-btn" onClick={addLanguage}><Plus size={14} /> إضافة لغة</button></div><div className="language-entry-list">{languages.map((language, index) => <div className="language-entry" key={`language-${index}`}><input value={language.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} placeholder="مثال: العربية أو English" aria-label={`اسم اللغة ${index + 1}`} /><AppSelect value={language.level} onChange={(value) => updateLanguage(index, "level", value as LanguageLevel)} placeholder="اختر المستوى" options={languageLevels.map((level) => ({ value: level, label: level }))} ariaLabel={`مستوى اللغة ${index + 1}`} /><button type="button" className="language-remove-btn" onClick={() => removeLanguage(index)} aria-label="حذف اللغة"><X size={15} /></button></div>)}{languages.length === 0 && <p className="language-empty-hint"><Languages size={14} /> لم تضف لغة بعد. أضف اللغة الأم أو أي لغة تستخدمها في العمل.</p>}</div></div></div>
+          <div className="profile-section-heading experience-heading"><span className="profile-section-icon violet"><GraduationCap size={18} /></span><div><span className="eyebrow">تفاصيل إضافية</span><h2>التعليم والجاهزية</h2><p>أضف المؤهل والتخصص والجهة التعليمية وسنة التخرج.</p></div><button type="button" className="outline-btn add-experience-btn" onClick={addEducation}><Plus size={16} /> إضافة شهادة</button></div>
+          <div className="education-editor-list">{education.map((entry, index) => <article className="experience-editor-card education-editor-card" key={entry.id}><div className="experience-card-top"><span className="experience-number">{String(index + 1).padStart(2, "0")}</span><div><b>{entry.degree || "مؤهل تعليمي جديد"}</b><small>{entry.institution || entry.specialization || "أضف تفاصيل الشهادة"}</small></div><button type="button" className="remove-experience-btn" onClick={() => removeEducation(entry.id)} aria-label="حذف المؤهل"><Trash2 size={16} /></button></div><div className="form-grid"><label>الشهادة أو المؤهل<input value={entry.degree} onChange={(event) => updateEducation(entry.id, "degree", event.target.value)} placeholder="مثال: بكالوريوس" /></label><label>التخصص<input value={entry.specialization} onChange={(event) => updateEducation(entry.id, "specialization", event.target.value)} placeholder="مثال: هندسة الحاسبات" /></label></div><div className="form-grid"><label>الجامعة أو المعهد<input value={entry.institution} onChange={(event) => updateEducation(entry.id, "institution", event.target.value)} placeholder="اسم الجامعة أو المعهد" /></label><label>سنة التخرج<input type="number" min="1950" max={new Date().getFullYear() + 10} value={entry.graduationYear} onChange={(event) => updateEducation(entry.id, "graduationYear", event.target.value)} placeholder="2024" /></label></div></article>)}{education.length === 0 && <button type="button" className="empty-experience-card" onClick={addEducation}><span><Plus size={21} /></span><b>أضف مؤهلك التعليمي</b><small>سجّل الشهادة والتخصص وسنة التخرج لعرضها بوضوح لأصحاب العمل.</small></button>}</div>
+          <div className="language-editor-field profile-languages-section"><div className="language-editor-heading"><span><b>اللغات</b><small>أضف كل لغة ومستواها بشكل مستقل.</small></span><button type="button" className="outline-btn language-add-btn" onClick={addLanguage}><Plus size={14} /> إضافة لغة</button></div><div className="language-entry-list">{languages.map((language, index) => <div className="language-entry" key={`language-${index}`}><input value={language.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} placeholder="مثال: العربية أو English" aria-label={`اسم اللغة ${index + 1}`} /><AppSelect value={language.level} onChange={(value) => updateLanguage(index, "level", value as LanguageLevel)} placeholder="اختر المستوى" options={languageLevels.map((level) => ({ value: level, label: level }))} ariaLabel={`مستوى اللغة ${index + 1}`} /><button type="button" className="language-remove-btn" onClick={() => removeLanguage(index)} aria-label="حذف اللغة"><X size={15} /></button></div>)}{languages.length === 0 && <p className="language-empty-hint"><Languages size={14} /> لم تضف لغة بعد. أضف اللغة الأم أو أي لغة تستخدمها في العمل.</p>}</div></div>
            <div className="form-grid"><label>نوع العمل المطلوب<AppSelect value={form.work_type} onChange={(value) => update("work_type", value)} placeholder="اختر نوع العمل" options={["دوام كامل", "دوام جزئي", "عن بُعد", "تدريب", "عمل حر"].map((value) => ({ value, label: value }))} ariaLabel="نوع العمل المطلوب" /></label><label>التوفر للعمل<AppSelect value={form.availability} onChange={(value) => update("availability", value)} placeholder="اختر حالة التوفر" options={["متاح فورًا", "خلال أسبوعين", "خلال شهر", "غير محدد"].map((value) => ({ value, label: value }))} ariaLabel="التوفر للعمل" /></label></div>
           <div className="form-grid"><label>أقل راتب متوقع <span className="optional">اختياري</span><input type="number" min="0" value={form.expected_salary_min ?? ""} onChange={(event) => update("expected_salary_min", event.target.value ? Number(event.target.value) : null)} /></label><div className="profile-language-hint"><Languages size={17} /><span>كلما كانت تفاصيلك أوضح، يظهر ملفك في نتائج أكثر دقة.</span></div></div>
         </section>
 
-        {error && <p className="form-error">{error}</p>}
-        <div className="profile-form-actions"><button className="primary-btn save-profile-btn" disabled={saving}>{saving ? "جاري الحفظ..." : "حفظ الملف المهني"} <Save size={17} /></button><button type="button" className="text-btn" onClick={() => onNavigate("jobs")}><ArrowLeft size={16} /> تصفح الوظائف</button></div>
+        <div className="profile-form-actions"><span className="profile-autosave-note">لا حاجة للضغط على حفظ؛ تُخزّن تعديلاتك تلقائيًا.</span><button type="button" className="text-btn" onClick={() => { flushAutosaveRef.current(); onNavigate("jobs"); }}><ArrowLeft size={16} /> تصفح الوظائف</button></div>
       </form>
 
       <aside className="candidate-profile-aside">
@@ -242,7 +436,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>
         <div className="profile-aside-card privacy-card"><div className="aside-card-icon"><ShieldCheck size={19} /></div><div><b>ملفك يظهر لأصحاب العمل المصرّح لهم</b><p>يظهر ملفك فقط لأصحاب العمل الذين لديهم صلاحية الوصول إلى ملفات الباحثين عن العمل، والتي يفعّلها المشرف.</p></div><span className="privacy-status"><Check size={13} /> وصول مقيّد</span></div>
-        <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={form.full_name ? "done" : ""}><span>{form.full_name ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={form.headline ? "done" : ""}><span>{form.headline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={form.skills.length ? "done" : ""}><span>{form.skills.length ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={experiences.length ? "done" : ""}><span>{experiences.length ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={form.summary ? "done" : ""}><span>{form.summary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
+        <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={form.full_name ? "done" : ""}><span>{form.full_name ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={form.headline ? "done" : ""}><span>{form.headline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={form.skills.length ? "done" : ""}><span>{form.skills.length ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={completedExperiences.length ? "done" : ""}><span>{completedExperiences.length ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={form.summary ? "done" : ""}><span>{form.summary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
         <div className="profile-aside-card tip-card"><div className="aside-card-heading"><div><span className="eyebrow">نصيحة سريعة</span><h3>اكتب إنجازك بالأرقام</h3></div><Sparkles size={20} /></div><p>بدل «أدرت حسابات التواصل»، جرّب «رفعت التفاعل 35% خلال 6 أشهر». التفاصيل الصغيرة تفرق.</p></div>
         <div className="profile-aside-card mini-contact-card"><div className="mini-contact-icon"><FileText size={17} /></div><div><b>تحتاج تحديث سيرتك؟</b><small>أكمل الملف هنا، وبعدها استخدمه للتقديم على الفرص.</small></div></div>
       </aside>

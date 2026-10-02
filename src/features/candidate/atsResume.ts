@@ -56,11 +56,19 @@ function englishLanguageLevel(level: CandidateLanguage["level"]) {
 
 function experienceEntries(data: ResumeData, className = "experience") {
   return data.experiences
-    .filter((experience) => [experience.title, experience.company, experience.period, experience.description].some((value) => value.trim()))
-    .map((experience) => `
+    .map((experience) => {
+      const period = experience.startYear && experience.isCurrent
+        ? `${experience.startYear} – Present`
+        : experience.startYear && experience.endYear
+          ? `${experience.startYear} – ${experience.endYear}`
+          : experience.startYear || experience.endYear || experience.legacyPeriod;
+      return { experience, period };
+    })
+    .filter(({ experience, period }) => [experience.title, experience.company, experience.location, period, experience.description].some((value) => value.trim()))
+    .map(({ experience, period }) => `
       <article class="${className}">
         <h3>${clean(experience.title || "Professional Experience")}</h3>
-        <p class="meta">${[experience.company, experience.location, experience.period].filter(Boolean).map(clean).join(" | ")}</p>
+        <p class="meta">${[experience.company, experience.location, period].filter(Boolean).map(clean).join(" | ")}</p>
         ${experience.description.trim() ? `<p>${lines(experience.description)}</p>` : ""}
       </article>
     `).join("");

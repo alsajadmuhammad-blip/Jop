@@ -6,8 +6,19 @@ export type CandidateExperience = {
   title: string;
   company: string;
   location: string;
-  period: string;
+  startYear: string;
+  endYear: string;
+  isCurrent: boolean;
+  legacyPeriod: string;
   description: string;
+};
+
+export type CandidateEducation = {
+  id: string;
+  degree: string;
+  specialization: string;
+  institution: string;
+  graduationYear: string;
 };
 
 export const languageLevels = ["اللغة الأم", "متقدم", "جيد جدًا", "متوسط", "مبتدئ"] as const;
@@ -18,6 +29,47 @@ export type CandidateLanguage = {
 };
 
 export const experienceStoragePrefix = "IRAQ_JOBS_EXPERIENCES_V1:";
+export const educationStoragePrefix = "IRAQ_JOBS_EDUCATION_V1:";
+
+function normalizeExperience(item: Partial<CandidateExperience> & { period?: unknown }, index: number): CandidateExperience {
+  let startYear = typeof item.startYear === "string" ? item.startYear : "";
+  let endYear = typeof item.endYear === "string" ? item.endYear : "";
+  let isCurrent = item.isCurrent === true;
+  let legacyPeriod = typeof item.legacyPeriod === "string"
+    ? item.legacyPeriod
+    : typeof item.period === "string" ? item.period : "";
+
+  if (!startYear && !endYear && legacyPeriod) {
+    const match = legacyPeriod.trim().match(/^((?:19|20|21)\d{2})(?:\s*(?:-|–|—|to|إلى)\s*((?:19|20|21)\d{2}|الآن|حتى الآن|مستمر|present|current))?$/i);
+    if (match) {
+      startYear = match[1];
+      endYear = /^\d{4}$/.test(match[2] || "") ? match[2] : "";
+      isCurrent = Boolean(match[2] && !endYear);
+      legacyPeriod = "";
+    }
+  }
+
+  return {
+    id: typeof item.id === "string" && item.id ? item.id : `experience-${index + 1}`,
+    title: typeof item.title === "string" ? item.title : "",
+    company: typeof item.company === "string" ? item.company : "",
+    location: typeof item.location === "string" ? item.location : "",
+    startYear,
+    endYear,
+    isCurrent,
+    legacyPeriod,
+    description: typeof item.description === "string" ? item.description : "",
+  };
+}
+
+export function formatCandidateExperiencePeriod(experience: CandidateExperience) {
+  if (experience.startYear && experience.isCurrent) return `${experience.startYear} – حتى الآن`;
+  if (experience.startYear && experience.endYear) return `${experience.startYear} – ${experience.endYear}`;
+  if (experience.isCurrent) return "حتى الآن";
+  if (experience.startYear) return experience.startYear;
+  if (experience.endYear) return `حتى ${experience.endYear}`;
+  return experience.legacyPeriod;
+}
 
 export function parseCandidateLanguages(values: string[]): CandidateLanguage[] {
   return values
@@ -45,23 +97,39 @@ export function formatCandidateLanguages(values: CandidateLanguage[]) {
 }
 
 export function parseCandidateExperiences(value: string): CandidateExperience[] {
-  if (value.startsWith(experienceStoragePrefix)) {
+  const storedValue = typeof value === "string" ? value : "";
+  if (storedValue.startsWith(experienceStoragePrefix)) {
     try {
-      const parsed = JSON.parse(value.slice(experienceStoragePrefix.length)) as CandidateExperience[];
-      if (Array.isArray(parsed)) return parsed.filter((item) => item && typeof item === "object");
+      const parsed = JSON.parse(storedValue.slice(experienceStoragePrefix.length)) as Array<Partial<CandidateExperience> & { period?: unknown }>;
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((item) => item && typeof item === "object")
+          .map((item, index) => normalizeExperience(item, index));
+      }
     } catch {
       // Fall through to the legacy text format.
     }
   }
-  if (!value.trim()) return [];
-  return [{
+  if (!storedValue.trim()) return [];
+  return [normalizeExperience({
     id: "legacy-experience",
     title: "الخبرة المهنية",
     company: "",
     location: "",
-    period: "",
-    description: value,
-  }];
+    startYear: "",
+    endYear: "",
+    isCurrent: false,
+    legacyPeriod: "",
+    description: storedValue,
+  }, 0)];
+}
+
+export function serializeCandidateExperiences(experiences: CandidateExperience[]) {
+  const completed = experiences.filter((experience) =>
+    [experience.title, experience.company, experience.location, experience.startYear, experience.endYear, experience.legacyPeriod, experience.description]
+      .some((value) => value.trim()) || experience.isCurrent,
+  );
+  return completed.length ? `${experienceStoragePrefix}${JSON.stringify(completed)}` : "";
 }
 
 export function formatCandidateExperiences(value: string) {
@@ -69,9 +137,50 @@ export function formatCandidateExperiences(value: string) {
   if (!experiences.length) return "";
   return experiences.map((experience) => {
     const heading = [experience.title, experience.company].filter(Boolean).join(" — ");
-    const meta = [experience.period, experience.location].filter(Boolean).join(" · ");
+    const meta = [formatCandidateExperiencePeriod(experience), experience.location].filter(Boolean).join(" · ");
     return [heading, meta, experience.description].filter(Boolean).join("\n");
   }).join("\n\n");
+}
+
+export function parseCandidateEducation(value: string): CandidateEducation[] {
+  const storedValue = typeof value === "string" ? value : "";
+  if (storedValue.startsWith(educationStoragePrefix)) {
+    try {
+      const parsed = JSON.parse(storedValue.slice(educationStoragePrefix.length)) as Partial<CandidateEducation>[];
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((item) => item && typeof item === "object")
+          .map((item, index) => ({
+            id: typeof item.id === "string" && item.id ? item.id : `education-${index + 1}`,
+            degree: typeof item.degree === "string" ? item.degree : "",
+            specialization: typeof item.specialization === "string" ? item.specialization : "",
+            institution: typeof item.institution === "string" ? item.institution : "",
+            graduationYear: typeof item.graduationYear === "string" ? item.graduationYear : "",
+          }));
+      }
+    } catch {
+      // Keep the legacy plain-text education value readable.
+    }
+  }
+  return storedValue.trim()
+    ? [{ id: "legacy-education", degree: storedValue, specialization: "", institution: "", graduationYear: "" }]
+    : [];
+}
+
+export function serializeCandidateEducation(education: CandidateEducation[]) {
+  const completed = education.filter((entry) =>
+    [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()),
+  );
+  return completed.length ? `${educationStoragePrefix}${JSON.stringify(completed)}` : "";
+}
+
+export function formatCandidateEducation(education: CandidateEducation[]) {
+  return education.map((entry) => [
+    entry.degree,
+    entry.specialization ? `التخصص: ${entry.specialization}` : "",
+    entry.institution ? `الجهة التعليمية: ${entry.institution}` : "",
+    entry.graduationYear ? `سنة التخرج: ${entry.graduationYear}` : "",
+  ].filter(Boolean).join(" · ")).filter(Boolean).join("\n");
 }
 
 export type CandidateSearchFilters = {
@@ -185,8 +294,8 @@ export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
     candidate.specialization,
     candidate.province,
     candidate.city,
-    candidate.experience_details,
-    candidate.education,
+    formatCandidateExperiences(candidate.experience_details),
+    formatCandidateEducation(parseCandidateEducation(candidate.education)),
     candidate.summary,
     ...candidate.skills,
     ...candidate.languages,

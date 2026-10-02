@@ -93,12 +93,20 @@ export function MainSidebar({
   }, [profile.role]);
 
   const active = profile.role === "candidate"
-    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "candidate" ? "candidate" : view
+    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "candidate" ? "candidate" : view === "job" ? "jobs" : view
     : profile.role === "hr"
       ? view === "job-request" ? "hr-publish" : view === "hr" ? `hr-${hrSection}` : view
       : view === "admin"
         ? `admin-${adminSection === "job-requests" ? "requests" : adminSection === "employer-access" ? "access" : adminSection}`
         : view;
+
+  const candidateMobileItems: MainItem[] = [
+    { id: "home", label: "الرئيسية", icon: <Home size={19} /> },
+    { id: "jobs", label: "الوظائف", icon: <BriefcaseBusiness size={19} /> },
+    { id: "saved", label: "المحفوظة", icon: <FileText size={19} /> },
+    { id: "applied", label: "تقديماتي", icon: <ClipboardCheck size={19} /> },
+    { id: "candidate", label: "ملفي", icon: <UserRound size={19} /> },
+  ];
 
   const select = (id: string) => {
     onClose();
@@ -120,8 +128,8 @@ export function MainSidebar({
 
   return (
     <>
-      {open && <button type="button" className="main-sidebar-backdrop" onClick={onClose} aria-label="إغلاق القائمة الرئيسية" />}
-      <aside className={`main-sidebar ${open ? "open" : ""}`}>
+      {open && profile.role !== "candidate" && <button type="button" className="main-sidebar-backdrop" onClick={onClose} aria-label="إغلاق القائمة الرئيسية" />}
+      <aside className={`main-sidebar ${profile.role === "candidate" ? "candidate-sidebar" : ""} ${open ? "open" : ""}`}>
         <div className="main-sidebar-brand">
           <span className="main-sidebar-logo">م</span>
           <div>
@@ -137,7 +145,7 @@ export function MainSidebar({
           {groups.map((group) => <div className="main-sidebar-group" key={group.label}>
             <div className="main-sidebar-label">{group.label}</div>
             {group.items.map((item) => (
-              <button type="button" key={item.id} className={active === item.id ? "active" : ""} onClick={() => select(item.id)}>
+              <button type="button" key={item.id} className={active === item.id ? "active" : ""} onClick={() => select(item.id)} aria-current={active === item.id ? "page" : undefined}>
                 <span>{item.icon}</span>
                 <b>{item.label}</b>
               </button>
@@ -149,6 +157,23 @@ export function MainSidebar({
           تسجيل الخروج
         </button>
       </aside>
+      {profile.role === "candidate" && (
+        <nav className="candidate-mobile-nav" aria-label="التنقل الرئيسي للباحث عن عمل" dir="rtl">
+          {candidateMobileItems.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className={active === item.id ? "active" : ""}
+              onClick={() => select(item.id)}
+              aria-label={item.id === "saved" ? "الوظائف المحفوظة" : item.id === "applied" ? "الوظائف المتقدّم لها" : item.label}
+              aria-current={active === item.id ? "page" : undefined}
+            >
+              <span className="candidate-mobile-nav-icon" aria-hidden="true">{item.icon}</span>
+              <span className="candidate-mobile-nav-label">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </>
   );
 }
