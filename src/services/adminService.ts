@@ -17,7 +17,9 @@ export type JobPostInput = {
 };
 
 export async function createJob(input: JobPostInput) {
-  const { error } = await supabase.from("jobs").insert({ ...input, status: "published" });
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return userError || new Error("سجّل الدخول قبل نشر الوظيفة.");
+  const { error } = await supabase.from("jobs").insert({ ...input, status: "published", created_by: user.id });
   return error;
 }
 

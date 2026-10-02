@@ -20,10 +20,10 @@ export function AdminPostPage({ job, onNavigate, onSaved }: AdminPostPageProps) 
         <div>
           <span className="eyebrow"><ShieldCheck size={14} /> {editing ? "تعديل منشور" : "مركز النشر"}</span>
           <h1>{editing ? "تعديل بيانات الوظيفة" : "إنشاء وظيفة جديدة"}</h1>
-          <p>{editing ? "حدّث بيانات الوظيفة ثم احفظ التغييرات حتى تظهر المعلومات الجديدة للباحثين." : "أدخل تفاصيل الوظيفة وبيانات التواصل ثم انشرها للعامة."}</p>
+          <p>{editing ? "حدّث بيانات الوظيفة وخيار استقبال التقديمات المباشرة ثم احفظ التغييرات." : "أدخل تفاصيل الوظيفة، واختر إن كنت تريد استقبال التقديمات من الباحثين مباشرة عبر المنصة."}</p>
         </div>
       </div>
-       <div className="admin-post-note"><BriefcaseBusiness size={18} /><span><b>{editing ? "مراجعة قبل الحفظ" : "ملاحظة قبل النشر"}</b><small>{editing ? "تأكد من البيانات قبل حفظ التعديلات." : "راجع بيانات التواصل والوصف جيداً؛ المنشور سيظهر للباحثين فور حفظه."}</small></span></div>
+       <div className="admin-post-note"><BriefcaseBusiness size={18} /><span><b>{editing ? "مراجعة قبل الحفظ" : "ملاحظة قبل النشر"}</b><small>{editing ? "تأكد من البيانات وخيار استقبال التقديمات قبل حفظ التعديلات." : "الوظيفة تظهر بعد النشر، ويستقبل المشرف التقديمات داخل اللوحة فقط عند تفعيل خيار التقديم المباشر."}</small></span></div>
       <div className="admin-post-form-card">
           <div className="admin-post-form-header"><div><b>{editing ? "تحديث بيانات الوظيفة" : "بيانات الوظيفة"}</b><span>الحقول المعلّمة مطلوبة</span></div><span className="admin-post-step">01 <small>/ 01</small></span></div>
           <PostForm onSaved={onSaved} initialJob={job} />

@@ -59,7 +59,8 @@ export function HrDashboardPage({
   const [selectedSource, setSelectedSource] = useState<"search" | "applications">("search");
   const [opening, setOpening] = useState("");
 
-  const canSearch = profile.can_search_candidates || profile.role === "admin";
+  const isSupervisor = profile.role === "admin";
+  const canSearch = profile.can_search_candidates || isSupervisor;
 
   useEffect(() => {
     if (!canSearch) {
@@ -187,9 +188,9 @@ export function HrDashboardPage({
       {section === "search" && <>
         <header className="hr-page-header">
           <div className="hr-page-header-copy">
-            <span className="eyebrow"><Building2 size={14} /> مساحة صاحب العمل / HR</span>
+              <span className="eyebrow"><Building2 size={14} /> {isSupervisor ? "مساحة المشرف" : "مساحة صاحب العمل / HR"}</span>
             <h1>اعثر على الكفاءة المناسبة لفريقك</h1>
-            <p>فلترة واضحة تساعدك على الوصول إلى المرشح الأقرب لمتطلبات الوظيفة.</p>
+              <p>{isSupervisor ? "ابحث في ملفات الباحثين عن عمل وساعد في مطابقة الكفاءات مع الوظائف المنشورة." : "فلترة واضحة تساعدك على الوصول إلى المرشح الأقرب لمتطلبات الوظيفة."}</p>
             <div className="hr-header-tags">
               <span><CheckCircle2 size={14} /> بيانات متطابقة مع ملفات الباحثين</span>
               <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
@@ -201,7 +202,7 @@ export function HrDashboardPage({
         <div className="hr-summary-strip">
           <div><span><UserRound size={16} /></span><p><b>{options?.total ?? "—"}</b><small>ملف باحث متاح</small></p></div>
           <div><span><Search size={16} /></span><p><b>{searched ? results.length : "—"}</b><small>نتيجة مطابقة</small></p></div>
-          <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>طلب وارد</small></p></div>
+          <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>{isSupervisor ? "تقديم على وظائفك" : "طلب وارد"}</small></p></div>
           <div className="hr-summary-note"><SlidersHorizontal size={16} /><span>كل خيار يظهر فقط إذا كان موجودًا في ملفات الباحثين الحالية.</span></div>
         </div>
       </>}
@@ -354,7 +355,7 @@ export function HrDashboardPage({
       {section === "applications" && (
         <div className="applications-section">
           <div className="applications-section-heading">
-            <div><span className="eyebrow">متابعة التقديمات</span><h2>الطلبات الواردة</h2><p>راجع الطلبات وحدّث حالتها حتى يبقى مسار المتابعة واضحًا.</p></div>
+            <div><span className="eyebrow">متابعة التقديمات</span><h2>{isSupervisor ? "التقديمات على وظائفك" : "الطلبات الواردة"}</h2><p>{isSupervisor ? "تابع المتقدمين على الوظائف التي نشرتها، وافتح ملفاتهم وحدّث حالة كل طلب." : "راجع الطلبات وحدّث حالتها حتى يبقى مسار المتابعة واضحًا."}</p></div>
             <span className="applications-total"><FileText size={16} /> {applications.length} طلب</span>
           </div>
           {applications.length ? (
@@ -377,10 +378,11 @@ export function HrDashboardPage({
                         { value: "reviewing", label: "قيد المراجعة" },
                         { value: "shortlisted", label: "مرشح" },
                         { value: "rejected", label: "مرفوض" },
+                        { value: "hired", label: "مقبول" },
                       ]}
                       ariaLabel="حالة الطلب"
                     />
-                  </div>
+                   </div>
                    <button className="row-action" disabled={opening === application.id || (!application.candidate_id && !application.cv_path)} onClick={() => void openApplication(application)}>
                      {opening === application.id ? "جاري الفتح..." : application.candidate_id ? "فتح الملف المهني" : application.cv_path ? "فتح CV" : "فتح الملف"}
                   </button>
@@ -388,7 +390,7 @@ export function HrDashboardPage({
               ))}
             </div>
           ) : (
-            <EmptyState title="لا توجد طلبات واردة بعد" text="عند إرسال الباحثين لطلبات HR راح تظهر هنا." />
+            <EmptyState title={isSupervisor ? "لا توجد تقديمات على وظائفك بعد" : "لا توجد طلبات واردة بعد"} text={isSupervisor ? "انشر وظيفة وفعّل استقبال التقديمات المباشر لتصل الطلبات إلى هذه الصفحة." : "عند إرسال الباحثين لطلبات HR راح تظهر هنا."} />
           )}
         </div>
       )}

@@ -85,7 +85,8 @@ export function MainSidebar({
         { id: "admin-overview", label: "نظرة عامة", icon: <LayoutDashboard size={17} /> },
         { id: "admin-jobs", label: "إدارة الوظائف", icon: <BriefcaseBusiness size={17} /> },
         { id: "admin-requests", label: "طلبات النشر", icon: <CheckCircle2 size={17} /> },
-        { id: "admin-applications", label: "التقديمات", icon: <FileText size={17} /> },
+        { id: "admin-applications", label: "تقديمات وظائفك", icon: <FileText size={17} /> },
+        { id: "admin-candidate-search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
         { id: "admin-access", label: "صلاحيات البحث", icon: <Settings2 size={17} /> },
       ] },
     ];
@@ -112,8 +113,8 @@ export function MainSidebar({
     }
     if (id.startsWith("admin-")) {
       onNavigate("admin");
-      const section = id.replace("admin-", "");
-      onAdminSection(section === "requests" ? "job-requests" : section === "access" ? "employer-access" : section as AdminSection);
+         const section = id.replace("admin-", "");
+         onAdminSection(section === "requests" ? "job-requests" : section === "access" ? "employer-access" : section === "candidate-search" ? "candidate-search" : section as AdminSection);
     }
   };
 

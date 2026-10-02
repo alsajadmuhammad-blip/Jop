@@ -236,6 +236,14 @@ function App() {
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
   const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
+  const supervisorJobIds = useMemo(
+    () => new Set(jobs.filter((job) => profile?.role === "admin" && job.created_by === profile.id).map((job) => job.id)),
+    [jobs, profile],
+  );
+  const supervisorApplications = useMemo(
+    () => applications.filter((application) => application.job_id && supervisorJobIds.has(application.job_id)),
+    [applications, supervisorJobIds],
+  );
   const notifications = useMemo<AppNotification[]>(() => {
     if (!profile) return [];
 
@@ -280,6 +288,7 @@ function App() {
           tone: "orange" as const,
         })),
       ...applications
+        .filter((application) => application.job_id && supervisorJobIds.has(application.job_id))
         .filter((application) => application.status === "new")
         .map((application) => ({
           id: `admin-application-${application.id}-new`,
@@ -290,7 +299,7 @@ function App() {
           tone: "blue" as const,
         })),
     ];
-  }, [applications, candidateApplications, jobRequests, profile]);
+  }, [applications, candidateApplications, jobRequests, profile, supervisorJobIds]);
   const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied";
   const logout = async () => {
     const { error } = await signOut();
@@ -324,7 +333,9 @@ function App() {
          {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell>}
            {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
            {view === "applied" && profile?.role === "candidate" && <CandidateDashboardShell><AppliedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJobId} onNotify={notify} /></CandidateDashboardShell>}
-          {view === "admin" && profile?.role === "admin" && <AdminDashboardPage jobs={jobs} applications={applications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
+           {view === "admin" && profile?.role === "admin" && adminSection === "candidate-search" && <HrDashboardPage profile={profile} applications={supervisorApplications} section="search" onSection={() => setAdminSection("candidate-search")} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={navigate} />}
+           {view === "admin" && profile?.role === "admin" && adminSection === "applications" && <HrDashboardPage profile={profile} applications={supervisorApplications} section="applications" onSection={() => setAdminSection("applications")} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={navigate} />}
+           {view === "admin" && profile?.role === "admin" && adminSection !== "candidate-search" && adminSection !== "applications" && <AdminDashboardPage jobs={jobs} applications={supervisorApplications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
         {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId ? "تم حفظ التعديلات" : "تم نشر الوظيفة بنجاح"); }} />}
          {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} section={hrSection} onSection={setHrSection} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}
       </>}

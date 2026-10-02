@@ -1,0 +1,1 @@
+- [Supervisor hiring workflow](supervisor-hiring-workflow.md) — supervisors search candidates and manage intake for jobs they publish; direct applications are an opt-in per job.
