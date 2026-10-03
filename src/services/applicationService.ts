@@ -1,9 +1,29 @@
 import { supabase } from "../lib/supabase";
 import type { Application, ApplicationStatus } from "../lib/types";
 
-const CANDIDATE_APPLICATIONS_CACHE_TTL = 30 * 1000;
+const CANDIDATE_APPLICATIONS_CACHE_TTL = 5 * 60 * 1000;
 const candidateApplicationsCache = new Map<string, { applications: Application[]; cachedAt: number }>();
 const candidateApplicationsRequests = new Map<string, Promise<{ applications: Application[]; error: unknown | null }>>();
+
+export function getCachedCandidateApplications(candidateId: string) {
+  const cached = candidateApplicationsCache.get(candidateId);
+  if (!cached) return undefined;
+  if (Date.now() - cached.cachedAt >= CANDIDATE_APPLICATIONS_CACHE_TTL) {
+    candidateApplicationsCache.delete(candidateId);
+    return undefined;
+  }
+  return cached.applications;
+}
+
+export function clearCandidateApplicationsCache(candidateId?: string) {
+  if (candidateId) {
+    candidateApplicationsCache.delete(candidateId);
+    candidateApplicationsRequests.delete(candidateId);
+    return;
+  }
+  candidateApplicationsCache.clear();
+  candidateApplicationsRequests.clear();
+}
 
 export type ApplicationFormData = {
   note: string;
@@ -18,9 +38,9 @@ export async function loadApplications(jobsOnly = false) {
 }
 
 export async function loadCandidateApplications(candidateId: string, options: { forceRefresh?: boolean } = {}) {
-  const cached = candidateApplicationsCache.get(candidateId);
-  if (!options.forceRefresh && cached && Date.now() - cached.cachedAt < CANDIDATE_APPLICATIONS_CACHE_TTL) {
-    return { applications: cached.applications, error: null };
+  const cached = getCachedCandidateApplications(candidateId);
+  if (!options.forceRefresh && cached !== undefined) {
+    return { applications: cached, error: null };
   }
 
   if (!options.forceRefresh) {
@@ -83,6 +103,7 @@ export async function submitApplication(
     cv_path: null,
   });
   if (error?.code === "23505") return new Error("لقد تقدمت على هذه الوظيفة مسبقًا.");
+  if (!error) clearCandidateApplicationsCache(userResult.user.id);
   return error;
 }
 
@@ -102,6 +123,7 @@ export async function hasCandidateAppliedToJob(jobId: string) {
 
 export async function updateApplicationStatus(id: string, status: ApplicationStatus) {
   const { error } = await supabase.from("applications").update({ status }).eq("id", id);
+  if (!error) clearCandidateApplicationsCache();
   return error;
 }
 

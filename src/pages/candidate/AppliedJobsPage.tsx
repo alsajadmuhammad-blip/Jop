@@ -4,7 +4,7 @@ import type { View } from "../../app/types";
 import type { Application, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
 import { formatDate } from "../../lib/format";
-import { loadCandidateApplications } from "../../services/applicationService";
+import { getCachedCandidateApplications, loadCandidateApplications } from "../../services/applicationService";
 
 type AppliedJobsPageProps = {
   profile: Profile;
@@ -28,8 +28,9 @@ function ApplicationStatus({ status }: { status: Application["status"] }) {
 }
 
 export function AppliedJobsPage({ profile, onNavigate, onOpenJob, onNotify }: AppliedJobsPageProps) {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedApplications = getCachedCandidateApplications(profile.id);
+  const [applications, setApplications] = useState<Application[]>(() => cachedApplications ?? []);
+  const [loading, setLoading] = useState(hasSupabaseConfig && cachedApplications === undefined);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {

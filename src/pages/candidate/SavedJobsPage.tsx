@@ -4,19 +4,20 @@ import type { View } from "../../app/types";
 import type { Profile, SavedJob } from "../../lib/types";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { JobCard } from "../../features/jobs/JobCard";
-import { loadSavedJobs, toggleSavedJob } from "../../services/savedJobService";
+import { getCachedSavedJobs, loadSavedJobs, toggleSavedJob } from "../../services/savedJobService";
 
 export function SavedJobsPage({ profile, onNavigate, onOpenJob, onNotify }: { profile: Profile; onNavigate: (view: View) => void; onOpenJob: (job: SavedJob) => void; onNotify: (message: string) => void }) {
-  const [jobs, setJobs] = useState<SavedJob[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedJobs = getCachedSavedJobs(profile.id);
+  const [jobs, setJobs] = useState<SavedJob[]>(() => cachedJobs ?? []);
+  const [loading, setLoading] = useState(cachedJobs === undefined);
 
   useEffect(() => {
-    void loadSavedJobs().then((result) => {
+    void loadSavedJobs(profile.id).then((result) => {
       setJobs(result.jobs);
       setLoading(false);
       if (result.error) onNotify("تعذر تحميل الوظائف المحفوظة.");
     });
-  }, []);
+  }, [onNotify, profile.id]);
 
   const remove = async (job: SavedJob) => {
     const error = await toggleSavedJob(job.id, true);

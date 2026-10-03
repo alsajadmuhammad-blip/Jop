@@ -9,7 +9,9 @@ import type { Application, CVRequest, Job, Profile } from "./lib/types";
 import type { View } from "./app/types";
 import { getCurrentProfile, getProfile, signOut } from "./services/authService";
 import { getPublicContent } from "./services/publicService";
-import { loadApplications, loadCandidateApplications } from "./services/applicationService";
+import { clearCandidateApplicationsCache, loadApplications, loadCandidateApplications } from "./services/applicationService";
+import { clearCandidateProfileCache } from "./services/candidateService";
+import { clearSavedJobsCache } from "./services/savedJobService";
 import { loadAdminPosts, loadJobRequests } from "./services/adminService";
 import { HomePage } from "./pages/public/HomePage";
 import { JobsPage } from "./pages/public/JobsPage";
@@ -181,6 +183,9 @@ function App() {
            .finally(() => setAuthReady(true));
        } else {
          setProfile(null);
+          clearCandidateProfileCache();
+          clearCandidateApplicationsCache();
+          clearSavedJobsCache();
          setAuthReady(true);
        }
     });
@@ -308,6 +313,9 @@ function App() {
       return;
     }
     setProfile(null);
+    clearCandidateProfileCache();
+    clearCandidateApplicationsCache();
+    clearSavedJobsCache();
     navigate("home");
     notify("تم تسجيل الخروج");
   };

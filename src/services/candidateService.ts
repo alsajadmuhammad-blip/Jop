@@ -28,6 +28,23 @@ export type CandidateLanguage = {
   level: LanguageLevel | "";
 };
 
+const candidateProfileCache = new Map<string, CandidateProfile | null>();
+const candidateProfileRequests = new Map<string, Promise<{ profile: CandidateProfile | null; error: unknown | null }>>();
+
+export function getCachedCandidateProfile(userId: string) {
+  return candidateProfileCache.get(userId);
+}
+
+export function clearCandidateProfileCache(userId?: string) {
+  if (userId) {
+    candidateProfileCache.delete(userId);
+    candidateProfileRequests.delete(userId);
+    return;
+  }
+  candidateProfileCache.clear();
+  candidateProfileRequests.clear();
+}
+
 export const experienceStoragePrefix = "IRAQ_JOBS_EXPERIENCES_V1:";
 export const educationStoragePrefix = "IRAQ_JOBS_EDUCATION_V1:";
 
@@ -271,13 +288,35 @@ export async function loadCandidateSearchOptions() {
   return { options, error: null };
 }
 
-export async function loadCandidateProfile(userId: string) {
-  const { data, error } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-  return { profile: (data as CandidateProfile | null) || null, error };
+export async function loadCandidateProfile(userId: string, options: { forceRefresh?: boolean } = {}) {
+  if (!options.forceRefresh && candidateProfileCache.has(userId)) {
+    return { profile: candidateProfileCache.get(userId) ?? null, error: null };
+  }
+
+  if (!options.forceRefresh) {
+    const pending = candidateProfileRequests.get(userId);
+    if (pending) return pending;
+  }
+
+  const request = (async () => {
+    const { data, error } = await supabase
+      .from("candidate_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const profile = (data as CandidateProfile | null) || null;
+    if (!error) candidateProfileCache.set(userId, profile);
+    return { profile, error };
+  })();
+
+  if (!options.forceRefresh) candidateProfileRequests.set(userId, request);
+  try {
+    return await request;
+  } finally {
+    if (!options.forceRefresh && candidateProfileRequests.get(userId) === request) {
+      candidateProfileRequests.delete(userId);
+    }
+  }
 }
 
 export async function saveCandidateProfile(userId: string, input: CandidateProfileInput) {
@@ -286,7 +325,9 @@ export async function saveCandidateProfile(userId: string, input: CandidateProfi
     .upsert({ user_id: userId, ...input }, { onConflict: "user_id" })
     .select("*")
     .single();
-  return { profile: (data as CandidateProfile | null) || null, error };
+  const profile = (data as CandidateProfile | null) || null;
+  if (!error) candidateProfileCache.set(userId, profile);
+  return { profile, error };
 }
 
 export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
