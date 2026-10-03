@@ -137,10 +137,6 @@ export function MainSidebar({
             <small>{profile.role === "candidate" ? "الباحث عن عمل" : profile.role === "hr" ? "صاحب العمل / HR" : "لوحة المشرف"}</small>
           </div>
         </div>
-        <div className="main-sidebar-account">
-          <span>{(profile.full_name || "م").slice(0, 1)}</span>
-          <div><b>{profile.full_name || "مستخدم"}</b><small>{profile.organization || "حساب IRAQ JOBS"}</small></div>
-        </div>
         <nav className="main-sidebar-nav" aria-label="التنقل الرئيسي">
           {groups.map((group) => <div className="main-sidebar-group" key={group.label}>
             <div className="main-sidebar-label">{group.label}</div>

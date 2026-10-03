@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
+import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
-import { formatCandidateLanguages, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
+import { formatCandidateExperiencePeriod, formatCandidateLanguages, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
 
 type CandidatePageProps = {
@@ -53,6 +54,11 @@ function toInput(profile: CandidateProfile | null, account: Profile): CandidateP
     availability: profile?.availability || "",
     summary: profile?.summary || "",
   };
+}
+
+function localMonthValue() {
+  const currentDate = new Date();
+  return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify }: CandidatePageProps) {
@@ -253,6 +259,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
       if (item.id !== id) return item;
       const next = { ...item, [key]: value };
       if (key === "startMonth" || key === "endMonth") next.legacyPeriod = "";
+      if (key === "startMonth" && typeof value === "string" && value && next.endMonth && next.endMonth < value) {
+        next.endMonth = value;
+      }
       if (key === "endMonth" && value) next.isCurrent = false;
       if (key === "isCurrent" && value) next.endMonth = "";
       return next;
@@ -313,6 +322,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [completedExperiences.length, form, hasEducation]);
   const canExportAts = Boolean(form.full_name.trim() && form.headline.trim() && form.email.trim() && form.phone.trim() && form.summary.trim());
+  const currentMonth = localMonthValue();
   const autosaveMessage = !hasSupabaseConfig
     ? "الحفظ التلقائي غير متاح في وضع المعاينة."
     : autosaveStatus === "loading"
@@ -369,9 +379,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
         <div className="candidate-hero-meta"><span><UserRound size={14} /> {form.full_name || "اسمك الكامل"}</span><span><MapPin size={14} /> {form.city || "أضف مدينتك"}</span></div>
         <div className="candidate-hero-actions"><button type="button" className="candidate-hero-primary" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button><button type="button" className="candidate-hero-secondary" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button></div>
       </div>
-      <div className="candidate-hero-score">
-        <div className="candidate-avatar-large">{(form.full_name || "م").slice(0, 1)}</div>
-        <div className="score-ring" style={{ "--score": `${completeness * 3.6}deg` } as React.CSSProperties}><strong>{completeness}%</strong><span>اكتمال الملف</span></div>
+      <div className="candidate-hero-score" aria-label={`اكتمال الملف ${completeness}%`}>
+        <strong>{completeness}%</strong>
+        <span>اكتمال الملف</span>
       </div>
     </div>
     <div className="candidate-profile-grid">
@@ -434,13 +444,14 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
             <div className="experience-editor-list">{experiences.map((experience, index) => <article className="experience-editor-card" key={experience.id}>
               <div className="experience-card-top"><span className="experience-number">{String(index + 1).padStart(2, "0")}</span><div><b>{experience.title || "خبرة جديدة"}</b><small>{experience.company || "أضف جهة العمل والمدة"}</small></div><button type="button" className="remove-experience-btn" onClick={() => removeExperience(experience.id)} aria-label={`حذف الخبرة ${index + 1}`}><Trash2 size={16} /></button></div>
               <div className="form-grid"><label>المسمى الوظيفي<input value={experience.title} onChange={(event) => updateExperience(experience.id, "title", event.target.value)} placeholder="مثال: مسؤول تسويق" /></label><label>جهة العمل<input value={experience.company} onChange={(event) => updateExperience(experience.id, "company", event.target.value)} placeholder="اسم الشركة أو المشروع" /></label></div>
-              {(experience.legacyPeriod || experience.startMonth || experience.endMonth) && <div className="experience-period-readout"><CalendarDays size={14} /><span>{experience.legacyPeriod ? <>المدة المحفوظة كما أُدخلت: <b dir="auto">{experience.legacyPeriod}</b></> : <>{experience.startMonth || "—"} – {experience.isCurrent ? "حتى الآن" : experience.endMonth || "—"}</>}</span></div>}
+              {(experience.legacyPeriod || experience.startMonth || experience.endMonth) && <div className="experience-period-readout"><CalendarDays size={14} /><span>{experience.legacyPeriod ? <>المدة المحفوظة كما أُدخلت: <b dir="auto">{experience.legacyPeriod}</b></> : <>{formatCandidateExperiencePeriod(experience)}</>}</span></div>}
               <div className="form-grid experience-date-grid">
-                <label>من شهر / سنة<input type="month" dir="ltr" value={experience.startMonth} onChange={(event) => updateExperience(experience.id, "startMonth", event.target.value)} aria-label={`تاريخ بداية ${experience.title || "الخبرة"}`} /></label>
-                <label>إلى شهر / سنة<input type="month" dir="ltr" value={experience.endMonth} disabled={experience.isCurrent} onChange={(event) => updateExperience(experience.id, "endMonth", event.target.value)} aria-label={`تاريخ نهاية ${experience.title || "الخبرة"}`} /></label>
+                <label>من شهر / سنة<MonthYearField value={experience.startMonth} maxValue={currentMonth} onChange={(value) => updateExperience(experience.id, "startMonth", value)} ariaLabel={`تاريخ بداية ${experience.title || "الخبرة"}`} /></label>
+                <label>إلى شهر / سنة<MonthYearField value={experience.endMonth} minValue={experience.startMonth} maxValue={currentMonth} disabled={experience.isCurrent} onChange={(value) => updateExperience(experience.id, "endMonth", value)} ariaLabel={`تاريخ نهاية ${experience.title || "الخبرة"}`} /></label>
                 <label className="checkbox-field experience-current-field"><input type="checkbox" checked={experience.isCurrent} onChange={(event) => updateExperience(experience.id, "isCurrent", event.target.checked)} /><span>ما زلت أعمل هنا</span></label>
                 <label>الموقع<input value={experience.location} onChange={(event) => updateExperience(experience.id, "location", event.target.value)} placeholder="بغداد / عن بُعد" /></label>
               </div>
+              {experience.startMonth && experience.endMonth && experience.endMonth < experience.startMonth && <p className="experience-date-error" role="alert">تاريخ نهاية الخبرة أسبق من تاريخ بدايتها؛ غيّر أحد الشهرين لتصحيح الفترة.</p>}
               <label>أبرز المسؤوليات والإنجازات<textarea rows={2} value={experience.description} onChange={(event) => updateExperience(experience.id, "description", event.target.value)} placeholder="اذكر ما أنجزته، وليس فقط ما كانت مهمتك..." /></label>
             </article>)}{experiences.length === 0 && <button type="button" className="empty-experience-card" onClick={addExperience}><span><Plus size={21} /></span><b>أضف أول خبرة مهنية</b><small>رتّب مسارك الوظيفي حتى يقرأه صاحب العمل بسهولة.</small></button>}</div>
           </div>

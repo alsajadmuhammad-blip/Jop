@@ -253,15 +253,6 @@
   background: #f8f9ff;
 }
 
-.profile-chip .profile-avatar {
-  width: 30px;
-  height: 30px;
-  color: #fff;
-  background: linear-gradient(145deg, #3c4d9b, #6677ca);
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .profile-chip .profile-copy {
   display: flex;
   width: auto;
@@ -293,10 +284,6 @@
   color: #9ba3b7;
   font-size: 8px;
   font-weight: 500;
-}
-
-.profile-chip > svg {
-  color: #8c94ac;
 }
 
 .auth-header-actions {
@@ -848,9 +835,7 @@
 }
 
 .main-sidebar-brand b,
-.main-sidebar-brand small,
-.main-sidebar-account b,
-.main-sidebar-account small {
+.main-sidebar-brand small {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -869,48 +854,8 @@
   font-size: 9px;
 }
 
-.main-sidebar-account {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  margin: 17px 4px 3px;
-  padding: 9px;
-  border-radius: 11px;
-  background: #f7f8fc;
-}
-
-.main-sidebar-account > span {
-  display: inline-flex;
-  width: 31px;
-  height: 31px;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  color: #fff;
-  background: #5c6fc0;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.main-sidebar-account > div {
-  min-width: 0;
-}
-
-.main-sidebar-account b {
-  color: #303861;
-  font-size: 10px;
-}
-
-.main-sidebar-account small {
-  margin-top: 3px;
-  color: #9299ad;
-  font-size: 8px;
-}
-
 .main-sidebar-label {
-  padding: 20px 8px 8px;
+  padding: 13px 8px 8px;
   color: #a0a7ba;
   font-size: 9px;
   font-weight: 800;
@@ -1124,5 +1069,108 @@
 
   .has-main-sidebar:has(.candidate-mobile-nav) > main {
     padding-bottom: calc(94px + env(safe-area-inset-bottom));
+  }
+}
+
+.main-sidebar-logo {
+  color: #f47b20;
+  border: 1px solid rgba(244, 123, 32, .38);
+  background: linear-gradient(145deg, #1a2059, #30377c);
+  box-shadow: 0 8px 18px rgba(26, 32, 89, .2);
+}
+
+.role-site-header .profile-chip {
+  min-height: 38px;
+  padding: 5px 8px;
+  border-color: transparent;
+  color: #25296e;
+  background: transparent;
+  box-shadow: none;
+}
+
+.role-site-header .profile-chip:hover {
+  border-color: transparent;
+  color: #25296e;
+  background: rgba(244, 123, 32, .08);
+}
+
+.role-site-header .profile-chip .profile-copy {
+  min-width: 0;
+}
+
+.role-site-header .profile-chip .profile-copy b {
+  color: #25296e;
+}
+
+.role-site-header .profile-chip .profile-copy small {
+  color: #a95a14;
+}
+
+.candidate-site-header {
+  border-bottom: 2px solid rgba(244, 123, 32, .72);
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 5px 18px rgba(31, 39, 103, .06);
+}
+
+.candidate-site-header .nav-link:hover,
+.candidate-site-header .nav-link.active {
+  color: #25296e;
+  background: rgba(37, 41, 110, .08);
+}
+
+.candidate-site-header .profile-chip:focus-visible {
+  outline: 2px solid #f47b20;
+  outline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .role-site-header .profile-chip {
+    width: auto;
+    min-width: 0;
+    max-width: 130px;
+    justify-content: flex-start;
+    padding: 5px 7px;
+  }
+
+  .role-site-header .profile-chip .profile-copy {
+    display: flex;
+    min-width: 0;
+  }
+
+  .role-site-header .profile-chip .profile-copy b {
+    display: none;
+  }
+
+  .role-site-header .profile-chip .profile-copy small {
+    display: block;
+    max-width: 116px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 767px) {
+  .candidate-mobile-nav {
+    border-color: rgba(37, 41, 110, .2);
+    background: rgba(255, 255, 255, .95);
+    box-shadow: 0 12px 34px rgba(31, 39, 103, .14), 0 2px 7px rgba(31, 39, 103, .06);
+  }
+
+  .candidate-mobile-nav button {
+    color: #434776;
+  }
+
+  .candidate-mobile-nav button:hover {
+    color: #25296e;
+    background: rgba(244, 123, 32, .08);
+  }
+
+  .candidate-mobile-nav button.active {
+    color: #fff;
+    background: #25296e;
+    box-shadow: inset 0 -3px 0 #f47b20, 0 4px 11px rgba(37, 41, 110, .16);
+  }
+
+  .candidate-mobile-nav button:focus-visible {
+    outline-color: #f47b20;
   }
 }
