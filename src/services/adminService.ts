@@ -14,6 +14,7 @@ export type JobPostInput = {
   salary_range: string | null;
   contact_email: string | null;
   contact_whatsapp: string | null;
+  deadline: string;
   internal_applications: boolean;
 };
 
@@ -46,8 +47,18 @@ export async function loadJobRequests() {
   const { data, error } = await supabase
     .from("job_requests")
     .select("*")
+    .eq("status", "pending")
     .order("created_at", { ascending: false });
   return { requests: (data as JobRequest[]) || [], error };
+}
+
+export async function updateJobRequestDeadline(id: string, deadline: string) {
+  const { error } = await supabase
+    .from("job_requests")
+    .update({ deadline })
+    .eq("id", id)
+    .eq("status", "pending");
+  return error;
 }
 
 export async function submitJobRequest(input: Omit<JobRequest, "id" | "status" | "approved_job_id" | "reviewed_at" | "created_at">) {

@@ -1,4 +1,5 @@
 import type { Job, JobType } from "./types";
+import { getBaghdadDateAfterDays } from "./date";
 
 export const jobTypes: JobType[] = ["دوام كامل", "دوام جزئي", "عن بُعد", "تدريب", "عمل حر"];
 export const categories = ["تقنية", "إدارة", "تسويق", "تصميم", "مالية", "هندسة", "موارد بشرية", "خدمة عملاء"];
@@ -42,7 +43,7 @@ export const demoJobs: Job[] = [
     internal_applications: false,
     status: "published",
     created_at: new Date().toISOString(),
-    deadline: null,
+    deadline: getBaghdadDateAfterDays(14),
     created_by: null,
   },
   {
@@ -62,7 +63,7 @@ export const demoJobs: Job[] = [
     internal_applications: false,
     status: "published",
     created_at: new Date(Date.now() - 86400000).toISOString(),
-    deadline: null,
+    deadline: getBaghdadDateAfterDays(21),
     created_by: null,
   },
 ];

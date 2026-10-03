@@ -201,6 +201,48 @@
   gap: 7px;
 }
 
+.deadline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.deadline-field > label {
+  color: #263149;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.request-deadline-editor {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #ead9a7;
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.request-deadline-editor label {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 6px;
+  color: #755d22;
+  font-size: 12px;
+}
+
+.request-deadline-editor input[type="date"] {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #dfd7c4;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+}
+
 .deadline-control input[type="date"] {
   min-width: 0;
   color-scheme: light;

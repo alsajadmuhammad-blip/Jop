@@ -1,12 +1,14 @@
 import { Check, ChevronDown, FileText, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
-import { approveJobRequest, updateJobRequestStatus } from "../../services/adminService";
+import { approveJobRequest, updateJobRequestDeadline, updateJobRequestStatus } from "../../services/adminService";
 import { formatJobLocation } from "../../lib/format";
+import { getBaghdadToday } from "../../lib/date";
 import type { JobRequest } from "../../lib/types";
 import type { Notify } from "../../app/types";
 import { useState } from "react";
 
 export function JobRequestReviewList({ requests, onRefresh, onNotify }: { requests: JobRequest[]; onRefresh: () => void; onNotify: Notify }) {
+  const pendingRequests = requests.filter((request) => request.status === "pending");
   const review = async (request: JobRequest, action: "approve" | "reject") => {
     const error = action === "approve"
       ? await approveJobRequest(request.id)
@@ -16,12 +18,29 @@ export function JobRequestReviewList({ requests, onRefresh, onNotify }: { reques
     onRefresh();
   };
 
-  return <div className="job-request-review-list">{requests.length ? requests.map((request) => <JobRequestReviewCard key={request.id} request={request} onReview={review} />) : <EmptyState title="لا توجد طلبات نشر" text="عند إرسال شركة لطلب نشر وظيفة سيظهر هنا للمراجعة." />}</div>;
+  const saveDeadline = async (request: JobRequest, deadline: string) => {
+    const error = await updateJobRequestDeadline(request.id, deadline);
+    if (error) return onNotify(error.message);
+    onNotify("تم حفظ آخر موعد للتقديم");
+    onRefresh();
+  };
+
+  return <div className="job-request-review-list">{pendingRequests.length ? pendingRequests.map((request) => <JobRequestReviewCard key={request.id} request={request} onReview={review} onSaveDeadline={saveDeadline} />) : <EmptyState title="لا توجد طلبات بانتظار المراجعة" text="طلبات النشر المعتمدة أو المرفوضة لا تظهر هنا." />}</div>;
 }
 
-function JobRequestReviewCard({ request, onReview }: { request: JobRequest; onReview: (request: JobRequest, action: "approve" | "reject") => Promise<void> }) {
+function JobRequestReviewCard({ request, onReview, onSaveDeadline }: { request: JobRequest; onReview: (request: JobRequest, action: "approve" | "reject") => Promise<void>; onSaveDeadline: (request: JobRequest, deadline: string) => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
+  const [deadlineDraft, setDeadlineDraft] = useState(request.deadline || "");
+  const [savingDeadline, setSavingDeadline] = useState(false);
+  const today = getBaghdadToday();
+  const needsDeadline = !request.deadline || request.deadline < today;
   const statusText = request.status === "pending" ? "قيد المراجعة" : request.status === "approved" ? "تمت الموافقة" : "مرفوض";
+  const saveDeadline = async () => {
+    if (!deadlineDraft || deadlineDraft < today) return;
+    setSavingDeadline(true);
+    await onSaveDeadline(request, deadlineDraft);
+    setSavingDeadline(false);
+  };
   return <div className={`job-request-review-card ${expanded ? "expanded" : ""}`}>
     <span className="row-icon"><FileText size={18} /></span>
     <div className="job-request-review-content">
@@ -46,7 +65,11 @@ function JobRequestReviewCard({ request, onReview }: { request: JobRequest; onRe
         <div className="review-detail-block"><small>المتطلبات</small>{request.requirements.length ? <ul>{request.requirements.map((item) => <li key={item}>{item}</li>)}</ul> : <p>لا توجد متطلبات محددة.</p>}</div>
         <div className="review-detail-block"><small>التقديم المباشر</small><p>{request.internal_applications ? "مفعّل للباحثين المسجلين والمكملين لملفهم." : "غير مفعّل."}</p></div>
       </div>}
+      {request.status === "pending" && needsDeadline && <div className="request-deadline-editor">
+        <label htmlFor={`request-deadline-${request.id}`}>حدد موعداً صالحاً قبل الموافقة<input id={`request-deadline-${request.id}`} type="date" min={today} value={deadlineDraft} onChange={(event) => setDeadlineDraft(event.target.value)} /></label>
+        <button type="button" className="row-action approve" disabled={savingDeadline || !deadlineDraft || deadlineDraft < today} onClick={() => void saveDeadline()}>{savingDeadline ? "جاري الحفظ..." : "حفظ الموعد"}</button>
+      </div>}
     </div>
-    {request.status === "pending" && <div className="review-actions"><button className="row-action approve" onClick={() => void onReview(request, "approve")}><Check size={14} /> موافقة ونشر</button><button className="row-action reject" onClick={() => void onReview(request, "reject")}><X size={14} /> رفض</button></div>}
+    {request.status === "pending" && <div className="review-actions">{!needsDeadline && <button className="row-action approve" onClick={() => void onReview(request, "approve")}><Check size={14} /> موافقة ونشر</button>}<button className="row-action reject" onClick={() => void onReview(request, "reject")}><X size={14} /> رفض</button></div>}
   </div>;
 }

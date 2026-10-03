@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import type { Application, ApplicationStatus } from "../lib/types";
+import { getBaghdadToday } from "../lib/date";
 
 const CANDIDATE_APPLICATIONS_CACHE_TTL = 5 * 60 * 1000;
 const candidateApplicationsCache = new Map<string, { applications: Application[]; cachedAt: number }>();
@@ -76,6 +77,16 @@ export async function submitApplication(
   if (!target.requestId && !target.jobId) return new Error("حدد الوظيفة أو الطلب قبل الإرسال.");
 
   if (target.jobId) {
+    const activeJob = await supabase
+      .from("jobs")
+      .select("id")
+      .eq("id", target.jobId)
+      .eq("status", "published")
+      .gte("deadline", getBaghdadToday())
+      .maybeSingle();
+    if (activeJob.error) return activeJob.error;
+    if (!activeJob.data) return new Error("انتهى موعد التقديم لهذه الوظيفة.");
+
     const existing = await supabase
       .from("applications")
       .select("id")

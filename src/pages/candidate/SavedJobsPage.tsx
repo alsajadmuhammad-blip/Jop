@@ -5,11 +5,14 @@ import type { Profile, SavedJob } from "../../lib/types";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { JobCard } from "../../features/jobs/JobCard";
 import { getCachedSavedJobs, loadSavedJobs, toggleSavedJob } from "../../services/savedJobService";
+import { getBaghdadToday } from "../../lib/date";
 
 export function SavedJobsPage({ profile, active, onNavigate, onOpenJob, onNotify }: { profile: Profile; active: boolean; onNavigate: (view: View) => void; onOpenJob: (job: SavedJob) => void; onNotify: (message: string) => void }) {
   const cachedJobs = getCachedSavedJobs(profile.id);
   const [jobs, setJobs] = useState<SavedJob[]>(() => cachedJobs ?? []);
   const [loading, setLoading] = useState(cachedJobs === undefined);
+  const today = getBaghdadToday();
+  const availableJobs = jobs.filter((job) => Boolean(job.deadline) && job.deadline! >= today);
 
   useEffect(() => {
     if (!active) return;
@@ -29,7 +32,7 @@ export function SavedJobsPage({ profile, active, onNavigate, onOpenJob, onNotify
 
   return <section className="container page-section dashboard-page saved-jobs-page">
     <button className="back-link" onClick={() => onNavigate("candidate")}><ArrowRight size={16} /> العودة إلى حسابي</button>
-    <div className="saved-jobs-heading"><div><span className="eyebrow"><Bookmark size={14} /> مساحة الباحث عن عمل</span><h1>الوظائف المحفوظة</h1><p>احتفظ بالفرص التي تريد الرجوع إليها والتقديم عليها لاحقًا.</p></div><span className="jobs-total"><BriefcaseBusiness size={16} /> {jobs.length} وظيفة</span></div>
-    {loading ? <LoadingCards /> : jobs.length ? <div className="job-grid wide">{jobs.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved onToggleSaved={() => void remove(job)} />)}</div> : <EmptyState title="لا توجد وظائف محفوظة" text="اضغط على زر حفظ في أي وظيفة حتى تظهر هنا." />}
+     <div className="saved-jobs-heading"><div><span className="eyebrow"><Bookmark size={14} /> مساحة الباحث عن عمل</span><h1>الوظائف المحفوظة</h1><p>احتفظ بالفرص التي تريد الرجوع إليها والتقديم عليها لاحقًا.</p></div><span className="jobs-total"><BriefcaseBusiness size={16} /> {availableJobs.length} وظيفة</span></div>
+     {loading ? <LoadingCards /> : availableJobs.length ? <div className="job-grid wide">{availableJobs.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved onToggleSaved={() => void remove(job)} />)}</div> : <EmptyState title="لا توجد وظائف محفوظة" text="اضغط على زر حفظ في أي وظيفة حتى تظهر هنا." />}
   </section>;
 }

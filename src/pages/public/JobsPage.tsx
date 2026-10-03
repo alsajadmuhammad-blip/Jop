@@ -5,6 +5,7 @@ import { categories, jobTypes } from "../../lib/constants";
 import type { Job, JobType, Profile } from "../../lib/types";
 import { JobCard } from "../../features/jobs/JobCard";
 import { hasSupabaseConfig } from "../../lib/supabase";
+import { getBaghdadToday } from "../../lib/date";
 import { loadSavedJobIds, toggleSavedJob } from "../../services/savedJobService";
 import {
   loadPublicJobFilterOptions,
@@ -26,6 +27,7 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<PublicJobCursor | null>(null);
+  const today = getBaghdadToday();
   const requestSequence = useRef(0);
   const notifyRef = useRef(onNotify);
 
@@ -75,11 +77,12 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
       && filters.province === "الكل";
 
     if (isDefaultSearch) {
-      const firstPage = jobs.slice(0, PUBLIC_PAGE_SIZE);
+      const availableJobs = jobs.filter((job) => Boolean(job.deadline) && job.deadline! >= today);
+      const firstPage = availableJobs.slice(0, PUBLIC_PAGE_SIZE);
       const lastJob = firstPage[firstPage.length - 1];
       setPageJobs(firstPage);
-      setHasMore(initialHasMoreJobs || jobs.length > PUBLIC_PAGE_SIZE);
-      setNextCursor(lastJob && (initialHasMoreJobs || jobs.length > PUBLIC_PAGE_SIZE)
+      setHasMore(initialHasMoreJobs || availableJobs.length > PUBLIC_PAGE_SIZE);
+      setNextCursor(lastJob && (initialHasMoreJobs || availableJobs.length > PUBLIC_PAGE_SIZE)
         ? { id: lastJob.id, created_at: lastJob.created_at }
         : null);
       setLoadingJobs(false);
@@ -130,18 +133,19 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
     return jobs
       .filter((job) => {
         const searchable = `${job.title} ${job.company_name} ${job.province} ${job.city} ${job.category} ${job.job_type}`.toLocaleLowerCase("ar");
-        return (!search || searchable.includes(search))
+        return Boolean(job.deadline) && job.deadline! >= today
+          && (!search || searchable.includes(search))
           && (category === "الكل" || job.category === category)
           && (jobType === "الكل" || job.job_type === jobType)
           && (province === "الكل" || job.province === province);
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [jobs, query, category, jobType, province]);
+  }, [jobs, query, category, jobType, province, today]);
   const visibleJobs = hasSupabaseConfig ? pageJobs : localFilteredJobs;
   const pageLoading = hasSupabaseConfig ? loadingJobs : loading;
   const provinces = hasSupabaseConfig && serverProvinces.length
     ? serverProvinces
-    : Array.from(new Set(jobs.filter((job) => job.status === "published").map((job) => job.province).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ar"));
+    : Array.from(new Set(jobs.filter((job) => job.status === "published" && Boolean(job.deadline) && job.deadline! >= today).map((job) => job.province).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ar"));
   const hasActiveFilters = Boolean(query.trim() || category !== "الكل" || jobType !== "الكل" || province !== "الكل");
   const clearFilters = () => {
     setQuery("");

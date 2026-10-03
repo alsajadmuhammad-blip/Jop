@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
-import type { CVRequest, Job } from "../lib/types";
+import type { Job } from "../lib/types";
 import type { PublicContent } from "../app/types";
+import { getBaghdadToday } from "../lib/date";
 
 export const PUBLIC_PAGE_SIZE = 10;
 const publicJobColumns = "id,title,company_name,ad_type,category,province,city,job_type,description,requirements,salary_range,contact_email,contact_whatsapp,internal_applications,status,created_at,deadline,created_by";
@@ -32,20 +33,21 @@ let publicJobFilterOptionsCache: PublicJobFilterOptions | null = null;
 let publicJobFilterOptionsRequest: Promise<{ options: PublicJobFilterOptions | null; error: unknown | null }> | null = null;
 
 export async function getPublicContent(): Promise<{ content: PublicContent; error: Error | null }> {
-  const [jobsResult, requestsResult] = await Promise.all([
-    supabase.from("jobs").select(publicJobColumns).eq("status", "published").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(PUBLIC_PAGE_SIZE + 1),
-    supabase.from("cv_requests").select("*").eq("status", "published").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(PUBLIC_PAGE_SIZE + 1),
-  ]);
-
-  const error = jobsResult.error || requestsResult.error;
-  const jobs = (jobsResult.data as Job[]) || [];
-  const requests = (requestsResult.data as CVRequest[]) || [];
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(publicJobColumns)
+    .eq("status", "published")
+    .gte("deadline", getBaghdadToday())
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(PUBLIC_PAGE_SIZE + 1);
+  const jobs = (data as Job[]) || [];
   return {
     content: {
       jobs: jobs.slice(0, PUBLIC_PAGE_SIZE),
-      requests: requests.slice(0, PUBLIC_PAGE_SIZE),
+      requests: [],
       hasMoreJobs: jobs.length > PUBLIC_PAGE_SIZE,
-      hasMoreRequests: requests.length > PUBLIC_PAGE_SIZE,
+      hasMoreRequests: false,
     },
     error: error ? new Error(error.message) : null,
   };
@@ -77,7 +79,7 @@ export async function loadPublicJobsPage(
   filters: PublicJobFilters,
   cursor: PublicJobCursor | null = null,
 ): Promise<PublicJobPage> {
-  let query = supabase.from("jobs").select(publicJobColumns).eq("status", "published");
+  let query = supabase.from("jobs").select(publicJobColumns).eq("status", "published").gte("deadline", getBaghdadToday());
   const keyword = filters.keyword.trim().replace(/[%_\\]/g, " ").replace(/\s+/g, " ");
 
   if (keyword) query = query.ilike("search_text", `%${keyword}%`);
@@ -112,6 +114,7 @@ export async function loadPublicJobById(jobId: string) {
     .select(publicJobColumns)
     .eq("id", jobId)
     .eq("status", "published")
+    .gte("deadline", getBaghdadToday())
     .maybeSingle();
   return { job: (data as Job | null) || null, error };
 }

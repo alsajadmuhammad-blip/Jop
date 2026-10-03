@@ -4,6 +4,7 @@ import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
 import { categories, governorates, jobTypes } from "../../lib/constants";
 import { formatDate, formatJobLocation } from "../../lib/format";
+import { getBaghdadToday } from "../../lib/date";
 import type { Application, EmployerAccount, Job, JobAdType, JobRequest, JobType, PostStatus } from "../../lib/types";
 import { createJob, deleteJob, loadEmployerAccounts, updateCandidateSearchPermission, updateJob, updatePostStatus } from "../../services/adminService";
 import type { Notify, View } from "../../app/types";
@@ -180,12 +181,13 @@ function AdminOverview({ jobs, applications, jobRequests, pendingJobRequests, pu
 export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initialJob?: Job | null }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false }));
+  const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", deadline: initialJob?.deadline || "", internal_applications: initialJob?.internal_applications || false }));
   const editing = Boolean(initialJob);
   const quick = form.ad_type === "quick";
+  const today = getBaghdadToday();
 
   useEffect(() => {
-    setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false });
+    setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", deadline: initialJob?.deadline || "", internal_applications: initialJob?.internal_applications || false });
     setError("");
   }, [initialJob?.id]);
 
@@ -209,11 +211,12 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!form.deadline || form.deadline < today) return setError("حدد آخر موعد للتقديم بتاريخ اليوم أو بعده.");
     if (!form.contact_email.trim() && !form.contact_whatsapp.trim()) return setError("أضف البريد الإلكتروني أو رقم الواتساب على الأقل.");
     if (!form.title.trim() || !form.company_name.trim() || !form.description.trim() || !form.province || (!quick && (!form.category.trim() || !form.city.trim() || !form.job_type.trim()))) return setError(quick ? "أكمل العنوان واسم الجهة واختر المحافظة وأضف تفاصيل الوظيفة." : "أكمل العنوان واسم الجهة والتصنيف والمحافظة والمدينة ونوع الدوام وتفاصيل الوظيفة.");
     setSaving(true);
     setError("");
-    const jobInput = { title: form.title.trim(), company_name: form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, province: form.province, city: quick ? "" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, internal_applications: form.internal_applications };
+    const jobInput = { title: form.title.trim(), company_name: form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, province: form.province, city: quick ? "" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, deadline: form.deadline, internal_applications: form.internal_applications };
     const error = await (initialJob ? updateJob(initialJob.id, jobInput) : createJob(jobInput));
     setSaving(false);
     if (error) return setError(error.message);
@@ -246,6 +249,7 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
     </div>
     <label>تفاصيل الوظيفة *<textarea required rows={quick ? 6 : 4} value={form.description} onChange={(event) => update("description", event.target.value)} placeholder={quick ? "العنوان، طبيعة العمل، وأهم المعلومات..." : "اكتب وصف الوظيفة والمسؤوليات..."} /></label>
     {!quick && <label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label>}
+     <label>آخر موعد للتقديم *<input type="date" required min={today} value={form.deadline} onChange={(event) => update("deadline", event.target.value)} /></label>
     <DirectApplicationToggle checked={form.internal_applications} onChange={(checked) => setForm((current) => ({ ...current, internal_applications: checked }))} />
     {error && <p className="form-error">{error}</p>}
     <button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "نشر الوظيفة"} <Send size={16} /></button>

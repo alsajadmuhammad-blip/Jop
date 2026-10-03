@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { ApplicationForm } from "../../features/applications/ApplicationForm";
 import { hasSupabaseConfig } from "../../lib/supabase";
 import { loadSavedJobIds, toggleSavedJob } from "../../services/savedJobService";
+import { getBaghdadToday } from "../../lib/date";
 
 function whatsappUrl(value: string) {
   const digits = value.replace(/\D/g, "");
@@ -28,7 +29,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
     void loadSavedJobIds().then((result) => setSaved(result.ids.includes(job.id)));
   }, [job, profile]);
 
-  if (!job) {
+  if (!job || !job.deadline || job.deadline < getBaghdadToday()) {
     return <section className="container page-section"><PageIntro eyebrow="الوظيفة" title="الوظيفة غير متاحة" description="قد تكون الوظيفة أُغلقت أو أن الرابط غير صحيح." /><button className="outline-btn" onClick={() => onNavigate("jobs")}><ArrowRight size={16} /> العودة إلى الوظائف</button></section>;
   }
 
@@ -67,6 +68,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
 
       <div className="job-v3-facts" aria-label="معلومات الوظيفة">
        <span><MapPin size={16} /><small>الموقع</small><strong>{location}</strong></span>
+        <span><CalendarDays size={16} /><small>آخر موعد للتقديم</small><strong>{formatDate(job.deadline)}</strong></span>
        {!isQuick && <><span><Clock3 size={16} /><small>نوع الدوام</small><strong>{job.job_type}</strong></span>
        <span><BriefcaseBusiness size={16} /><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span></>}
       </div>
