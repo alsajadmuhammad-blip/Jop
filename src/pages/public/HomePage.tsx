@@ -28,34 +28,51 @@ function Step({ number, icon: Icon, title, text }: { number: string; icon: typeo
 export function HomePage({ jobs, requests, hasMoreJobs, hasMoreRequests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
   return <main className="home-refresh">
     <section className="home-refresh-hero">
-      <div className="home-refresh-hero-orb home-refresh-hero-orb-one" />
-      <div className="home-refresh-hero-orb home-refresh-hero-orb-two" />
-      <div className="home-refresh-heritage" aria-hidden="true">
-        <span className="home-refresh-heritage-sun">✦</span>
-        <div className="home-refresh-heritage-ziggurat"><i /><i /><i /></div>
-        <span className="home-refresh-heritage-label">بلاد الرافدين</span>
-      </div>
       <div className="container home-refresh-hero-inner">
-        <div className="home-refresh-hero-copy">
-          <span className="home-refresh-eyebrow"><HeartHandshake size={16} /> فرصة عادلة للجميع</span>
-          <h1>نساعدك توصل<br /><em>للفرصة المناسبة.</em></h1>
-          <p>منصة عراقية مجانية تجمع الباحثين عن عمل مع الجهات التي تبحث عن كفاءات. تصفح، قدّم، وابدأ خطوتك القادمة بدون رسوم.</p>
-          <div className="home-refresh-actions">
-            <button className="primary-btn large" onClick={() => onNavigate("jobs")}>تصفح الوظائف <ArrowLeft size={18} /></button>
-            <button className="home-refresh-secondary-btn" onClick={() => onNavigate("signup")}>أنشئ حسابك مجاناً <UserPlusIcon /></button>
+        <div className="home-refresh-frame">
+          <div className="home-refresh-image-wrap">
+            <img
+              className="home-refresh-hero-image"
+              src="/images/iraq-heritage-home.webp"
+              alt="مشهد فني لمعالم العراق وعلم العراق عند الغروب"
+              fetchPriority="high"
+            />
           </div>
-          <div className="home-refresh-proof"><span><CheckCircle2 size={15} /> مجاني للباحثين عن عمل</span><span><CheckCircle2 size={15} /> مجاني للجهات الناشرة</span></div>
-        </div>
-        <div className="home-refresh-hero-panel">
-          <div className="home-refresh-panel-top"><span className="home-refresh-live"><i /> فرص منشورة الآن</span><strong>{jobs.length}{hasMoreJobs ? "+" : ""}</strong></div>
-          <div className="home-refresh-panel-title"><small>أحدث الفرص</small><h2>ابدأ من هنا</h2></div>
-          <div className="home-refresh-job-list">
-            {jobs.slice(0, 3).map((job) => <button className="home-refresh-job-row" key={job.id} onClick={() => onOpenJob(job)}>
-              <span className="home-refresh-job-icon"><BriefcaseBusiness size={18} /></span><span><strong>{job.title}</strong><small>{job.company_name} · {formatJobLocation(job)}</small></span><ArrowLeft size={16} />
-            </button>)}
-            {jobs.length === 0 && <div className="home-refresh-empty">لا توجد وظائف منشورة حالياً</div>}
+
+          <div className="home-refresh-hero-content">
+            <div className="home-refresh-hero-copy">
+              <span className="home-refresh-eyebrow"><HeartHandshake size={16} /> فرصة عادلة للجميع</span>
+              <h1>نساعدك توصل<br /><em>للفرصة المناسبة.</em></h1>
+              <p>منصة عراقية مجانية تجمع الباحثين عن عمل مع الجهات التي تبحث عن كفاءات. تصفح، قدّم، وابدأ خطوتك القادمة بدون رسوم.</p>
+              <div className="home-refresh-actions">
+                <button className="primary-btn large" onClick={() => onNavigate("jobs")}>تصفح الوظائف <ArrowLeft size={18} /></button>
+                <button className="home-refresh-secondary-btn" onClick={() => onNavigate("signup")}>أنشئ حسابك مجاناً <UserPlusIcon /></button>
+              </div>
+              <div className="home-refresh-proof">
+                <span><CheckCircle2 size={15} /> مجاني للباحثين عن عمل</span>
+                <span><CheckCircle2 size={15} /> مجاني للجهات الناشرة</span>
+              </div>
+            </div>
+
+            <aside className="home-refresh-hero-panel" aria-label="أحدث الوظائف المنشورة">
+              <div className="home-refresh-panel-top">
+                <span className="home-refresh-live"><i /> فرص منشورة الآن</span>
+                <strong>{jobs.length}{hasMoreJobs ? "+" : ""}</strong>
+              </div>
+              <div className="home-refresh-panel-title"><small>أحدث الفرص</small><h2>ابدأ من هنا</h2></div>
+              <div className="home-refresh-job-list">
+                {jobs.slice(0, 3).map((job) => (
+                  <button className="home-refresh-job-row" key={job.id} onClick={() => onOpenJob(job)}>
+                    <span className="home-refresh-job-icon"><BriefcaseBusiness size={18} /></span>
+                    <span><strong>{job.title}</strong><small>{job.company_name} · {formatJobLocation(job)}</small></span>
+                    <ArrowLeft size={16} />
+                  </button>
+                ))}
+                {jobs.length === 0 && <div className="home-refresh-empty">لا توجد وظائف منشورة حالياً</div>}
+              </div>
+              <button className="home-refresh-panel-link" onClick={() => onNavigate("jobs")}>شاهد كل الوظائف <ArrowLeft size={15} /></button>
+            </aside>
           </div>
-          <button className="home-refresh-panel-link" onClick={() => onNavigate("jobs")}>شاهد كل الوظائف <ArrowLeft size={15} /></button>
         </div>
       </div>
     </section>
