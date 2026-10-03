@@ -1,13 +1,15 @@
-import { ArrowLeft, BadgeCheck, BriefcaseBusiness, Building2, CheckCircle2, CircleDollarSign, HeartHandshake, Search, Send, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BriefcaseBusiness, Building2, CheckCircle2, CircleDollarSign, HeartHandshake, MapPin, Search, Send, ShieldCheck, Users } from "lucide-react";
 import { JobCard } from "../../features/jobs/JobCard";
 import { RequestCard } from "../../features/requests/RequestCard";
 import type { View } from "../../app/types";
 import type { CVRequest, Job } from "../../lib/types";
 import { LoadingCards } from "../../components/common/Feedback";
+import { formatJobLocation } from "../../lib/format";
 
 type HomePageProps = {
   jobs: Job[];
   requests: CVRequest[];
+  hasMoreJobs: boolean;
   hasMoreRequests: boolean;
   loading: boolean;
   onNavigate: (view: View) => void;
@@ -23,7 +25,7 @@ function Step({ number, icon: Icon, title, text }: { number: string; icon: typeo
   return <article className="home-refresh-step"><span className="home-refresh-step-number">{number}</span><span className="home-refresh-step-icon"><Icon size={20} /></span><div><h3>{title}</h3><p>{text}</p></div></article>;
 }
 
-export function HomePage({ jobs, requests, hasMoreRequests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
+export function HomePage({ jobs, requests, hasMoreJobs, hasMoreRequests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
   return <main className="home-refresh">
     <section className="home-refresh-hero">
       <div className="container home-refresh-hero-inner">
@@ -52,6 +54,24 @@ export function HomePage({ jobs, requests, hasMoreRequests, loading, onNavigate,
               </div>
             </div>
 
+            <aside className="home-refresh-hero-panel" aria-label="أحدث الوظائف المنشورة">
+              <div className="home-refresh-panel-top">
+                <span className="home-refresh-live"><i /> فرص منشورة الآن</span>
+                <strong>{jobs.length}{hasMoreJobs ? "+" : ""}</strong>
+              </div>
+              <div className="home-refresh-panel-title"><small>أحدث الفرص</small><h2>ابدأ من هنا</h2></div>
+              <div className="home-refresh-job-list">
+                {jobs.slice(0, 3).map((job) => (
+                  <button className="home-refresh-job-row" key={job.id} onClick={() => onOpenJob(job)}>
+                    <span className="home-refresh-job-icon"><BriefcaseBusiness size={18} /></span>
+                    <span><strong>{job.title}</strong><small>{job.company_name} · {formatJobLocation(job)}</small></span>
+                    <ArrowLeft size={16} />
+                  </button>
+                ))}
+                {jobs.length === 0 && <div className="home-refresh-empty">لا توجد وظائف منشورة حالياً</div>}
+              </div>
+              <button className="home-refresh-panel-link" onClick={() => onNavigate("jobs")}>شاهد كل الوظائف <ArrowLeft size={15} /></button>
+            </aside>
           </div>
         </div>
       </div>

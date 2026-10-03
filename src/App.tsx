@@ -376,7 +376,7 @@ function App() {
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
       <Suspense fallback={<section className="container page-section centered-state"><span className="live-dot" /><p>جاري فتح الصفحة...</p></section>}>
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
-        {view === "home" && <HomePage jobs={publishedJobs} requests={requests} hasMoreRequests={hasMorePublicRequests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
+        {view === "home" && <HomePage jobs={publishedJobs} requests={requests} hasMoreJobs={hasMorePublicJobs} hasMoreRequests={hasMorePublicRequests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
           {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} initialHasMoreJobs={hasMorePublicJobs} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "login" && <AuthPage mode="sign-in" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
