@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownAZ, BriefcaseBusiness, Filter, MapPin, Search, X } from "lucide-react";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { PageIntro } from "../../components/common/PageIntro";
@@ -7,8 +7,15 @@ import type { Job, JobAdType, JobType, Profile } from "../../lib/types";
 import { JobCard } from "../../features/jobs/JobCard";
 import { hasSupabaseConfig } from "../../lib/supabase";
 import { loadSavedJobIds, toggleSavedJob } from "../../services/savedJobService";
+import {
+  loadPublicJobFilterOptions,
+  loadPublicJobsPage,
+  PUBLIC_PAGE_SIZE,
+  type PublicJobCursor,
+  type PublicJobFilters,
+} from "../../services/publicService";
 
-export function JobsPage({ jobs, loading, onOpenJob, profile, onLogin, onNotify }: { jobs: Job[]; loading: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void }) {
+export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile, onLogin, onNotify }: { jobs: Job[]; loading: boolean; initialHasMoreJobs: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("الكل");
   const [jobType, setJobType] = useState<"الكل" | JobType>("الكل");
@@ -17,6 +24,94 @@ export function JobsPage({ jobs, loading, onOpenJob, profile, onLogin, onNotify 
   const [sort, setSort] = useState<"newest" | "title">("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [pageJobs, setPageJobs] = useState<Job[]>([]);
+  const [serverCities, setServerCities] = useState<string[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(hasSupabaseConfig);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<PublicJobCursor | null>(null);
+  const requestSequence = useRef(0);
+  const notifyRef = useRef(onNotify);
+
+  useEffect(() => {
+    notifyRef.current = onNotify;
+  }, [onNotify]);
+
+  const filters = useMemo<PublicJobFilters>(() => ({
+    keyword: query,
+    category,
+    jobType,
+    city,
+    adType,
+    sort,
+  }), [query, category, jobType, city, adType, sort]);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) return;
+    let active = true;
+    void loadPublicJobFilterOptions().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        notifyRef.current?.("تعذر تحميل قائمة المدن.");
+        return;
+      }
+      setServerCities(result.options?.cities || []);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) {
+      setLoadingJobs(false);
+      return;
+    }
+
+    const sequence = ++requestSequence.current;
+    setPageJobs([]);
+    setHasMore(false);
+    setNextCursor(null);
+    setLoadingJobs(true);
+    if (loading) return;
+
+    const isDefaultSearch = !filters.keyword.trim()
+      && filters.category === "الكل"
+      && filters.jobType === "الكل"
+      && filters.city === "الكل"
+      && filters.adType === "الكل"
+      && filters.sort === "newest";
+
+    if (isDefaultSearch) {
+      const firstPage = jobs.slice(0, PUBLIC_PAGE_SIZE);
+      const lastJob = firstPage[firstPage.length - 1];
+      setPageJobs(firstPage);
+      setHasMore(initialHasMoreJobs || jobs.length > PUBLIC_PAGE_SIZE);
+      setNextCursor(lastJob && (initialHasMoreJobs || jobs.length > PUBLIC_PAGE_SIZE)
+        ? { id: lastJob.id, created_at: lastJob.created_at }
+        : null);
+      setLoadingJobs(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void loadPublicJobsPage(filters).then((result) => {
+        if (requestSequence.current !== sequence) return;
+        setLoadingJobs(false);
+        if (result.error) {
+          notifyRef.current?.("تعذر تحميل الوظائف. تأكد من تطبيق تحديث قاعدة البيانات.");
+          return;
+        }
+        setPageJobs(result.jobs);
+        setHasMore(result.hasMore);
+        setNextCursor(result.nextCursor);
+      });
+    }, filters.keyword.trim() ? 350 : 0);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [filters, initialHasMoreJobs, jobs, loading]);
 
   useEffect(() => {
     if (profile?.role !== "candidate" || !hasSupabaseConfig) {
@@ -38,18 +133,7 @@ export function JobsPage({ jobs, loading, onOpenJob, profile, onLogin, onNotify 
     onNotify?.(saved ? "أزيلت الوظيفة من المحفوظات" : "تم حفظ الوظيفة");
   };
 
-  const cities = useMemo(() => Array.from(new Set(jobs.map((job) => job.city).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ar")), [jobs]);
-  const activeFilterCount = [category !== "الكل", jobType !== "الكل", city !== "الكل", adType !== "الكل"].filter(Boolean).length;
-  const clearFilters = () => {
-    setQuery("");
-    setCategory("الكل");
-    setJobType("الكل");
-    setCity("الكل");
-    setAdType("الكل");
-    setSort("newest");
-  };
-
-  const filtered = useMemo(() => {
+  const localFilteredJobs = useMemo(() => {
     const search = query.trim().toLocaleLowerCase("ar");
     return jobs
       .filter((job) => {
@@ -64,9 +148,42 @@ export function JobsPage({ jobs, loading, onOpenJob, profile, onLogin, onNotify 
         ? a.title.localeCompare(b.title, "ar")
         : new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [jobs, query, category, jobType, city, adType, sort]);
+  const visibleJobs = hasSupabaseConfig ? pageJobs : localFilteredJobs;
+  const pageLoading = hasSupabaseConfig ? loadingJobs : loading;
+  const cities = hasSupabaseConfig && serverCities.length
+    ? serverCities
+    : Array.from(new Set(jobs.map((job) => job.city).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ar"));
+  const activeFilterCount = [category !== "الكل", jobType !== "الكل", city !== "الكل", adType !== "الكل"].filter(Boolean).length;
+  const clearFilters = () => {
+    setQuery("");
+    setCategory("الكل");
+    setJobType("الكل");
+    setCity("الكل");
+    setAdType("الكل");
+    setSort("newest");
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    const sequence = requestSequence.current;
+    setLoadingMore(true);
+    const result = await loadPublicJobsPage(filters, nextCursor);
+    if (requestSequence.current !== sequence) {
+      setLoadingMore(false);
+      return;
+    }
+    setLoadingMore(false);
+    if (result.error) {
+      onNotify?.("تعذر تحميل بقية الوظائف.");
+      return;
+    }
+    setPageJobs((current) => [...current, ...result.jobs]);
+    setHasMore(result.hasMore);
+    setNextCursor(result.nextCursor);
+  };
 
   return <section className="container page-section jobs-page">
-    <div className="jobs-page-heading"><PageIntro eyebrow="فرص العمل" title="اختار فرصتك بسهولة" description="ابحث بالاسم أو الشركة، واستخدم الفلاتر للوصول للوظيفة المناسبة بسرعة." /><span className="jobs-total"><BriefcaseBusiness size={16} /> {loading ? "..." : `${filtered.length} وظيفة`}</span></div>
+    <div className="jobs-page-heading"><PageIntro eyebrow="فرص العمل" title="اختار فرصتك بسهولة" description="ابحث بالاسم أو الشركة، واستخدم الفلاتر للوصول للوظيفة المناسبة بسرعة." /><span className="jobs-total"><BriefcaseBusiness size={16} /> {pageLoading ? "..." : `${visibleJobs.length}${hasMore ? "+" : ""} وظيفة`}</span></div>
     <div className="filters-bar">
       <div className="search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن وظيفة، شركة، أو مدينة..." aria-label="البحث عن وظيفة" /></div>
       <button className={showFilters ? "filter-toggle active" : "filter-toggle"} onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters}><Filter size={17} /> الفلاتر {activeFilterCount > 0 && <b>{activeFilterCount}</b>}</button>
@@ -81,7 +198,8 @@ export function JobsPage({ jobs, loading, onOpenJob, profile, onLogin, onNotify 
       </div>}
     </div>
       {(category !== "الكل" || jobType !== "الكل" || city !== "الكل" || adType !== "الكل") && <div className="active-filter-list"><span>الفلاتر الحالية:</span>{category !== "الكل" && <button onClick={() => setCategory("الكل")}>{category} <X size={13} /></button>}{jobType !== "الكل" && <button onClick={() => setJobType("الكل")}>{jobType} <X size={13} /></button>}{city !== "الكل" && <button onClick={() => setCity("الكل")}>{city} <X size={13} /></button>}{adType !== "الكل" && <button onClick={() => setAdType("الكل")}>{adType === "quick" ? "إعلان سريع" : "إعلان مفصل"} <X size={13} /></button>}</div>}
-     <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{loading ? "جاري التحميل..." : `${filtered.length} وظيفة متاحة`}</strong></div><span>{sort === "newest" ? "مرتبة حسب الأحدث" : "مرتبة حسب الاسم"}</span></div>
-     {loading ? <LoadingCards /> : filtered.length ? <div className="job-grid wide">{filtered.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved={savedIds.includes(job.id)} onToggleSaved={() => void toggleSaved(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
+      <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{pageLoading ? "جاري التحميل..." : `${visibleJobs.length}${hasMore ? "+" : ""} وظيفة متاحة`}</strong></div><span>{sort === "newest" ? "مرتبة حسب الأحدث" : "مرتبة حسب الاسم"}</span></div>
+      {pageLoading ? <LoadingCards /> : visibleJobs.length ? <div className="job-grid wide">{visibleJobs.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved={savedIds.includes(job.id)} onToggleSaved={() => void toggleSaved(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
+      {!pageLoading && hasMore && <button type="button" className="primary-btn jobs-load-more" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "جاري تحميل المزيد..." : `عرض ${PUBLIC_PAGE_SIZE} وظائف إضافية`}</button>}
   </section>;
 }

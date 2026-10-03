@@ -8,6 +8,8 @@ import { LoadingCards } from "../../components/common/Feedback";
 type HomePageProps = {
   jobs: Job[];
   requests: CVRequest[];
+  hasMoreJobs: boolean;
+  hasMoreRequests: boolean;
   loading: boolean;
   onNavigate: (view: View) => void;
   onOpenJob: (job: Job) => void;
@@ -22,7 +24,7 @@ function Step({ number, icon: Icon, title, text }: { number: string; icon: typeo
   return <article className="home-refresh-step"><span className="home-refresh-step-number">{number}</span><span className="home-refresh-step-icon"><Icon size={20} /></span><div><h3>{title}</h3><p>{text}</p></div></article>;
 }
 
-export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
+export function HomePage({ jobs, requests, hasMoreJobs, hasMoreRequests, loading, onNavigate, onOpenJob, onOpenRequest }: HomePageProps) {
   return <main className="home-refresh">
     <section className="home-refresh-hero">
       <div className="home-refresh-hero-orb home-refresh-hero-orb-one" />
@@ -44,7 +46,7 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
           <div className="home-refresh-proof"><span><CheckCircle2 size={15} /> مجاني للباحثين عن عمل</span><span><CheckCircle2 size={15} /> مجاني للجهات الناشرة</span></div>
         </div>
         <div className="home-refresh-hero-panel">
-          <div className="home-refresh-panel-top"><span className="home-refresh-live"><i /> فرص منشورة الآن</span><strong>{jobs.length}</strong></div>
+          <div className="home-refresh-panel-top"><span className="home-refresh-live"><i /> فرص منشورة الآن</span><strong>{jobs.length}{hasMoreJobs ? "+" : ""}</strong></div>
           <div className="home-refresh-panel-title"><small>أحدث الفرص</small><h2>ابدأ من هنا</h2></div>
           <div className="home-refresh-job-list">
             {jobs.slice(0, 3).map((job) => <button className="home-refresh-job-row" key={job.id} onClick={() => onOpenJob(job)}>
@@ -90,7 +92,7 @@ export function HomePage({ jobs, requests, loading, onNavigate, onOpenJob, onOpe
       <div className="home-refresh-notice-icon"><ShieldCheck size={24} /></div>
       <div><strong>مهم تعرف</strong><p>IRAQ JOBS منصة مجانية وخيرية لنشر الوظائف فقط. لا نأخذ أجوراً مقابل نشر الوظائف أو التوظيف أو التقديم، ولا نتحمل مسؤولية صحة الإعلانات أو نتائج التواصل بين الأطراف.</p></div>
     </section>
-    {requests.length > 0 && <section className="container home-refresh-request-hint"><span>{requests.length} طلب توظيف مفتوح</span><button onClick={() => onNavigate("jobs")}>استعرض الفرص <ArrowLeft size={15} /></button></section>}
+    {requests.length > 0 && <section className="container home-refresh-request-hint"><span>{requests.length}{hasMoreRequests ? "+" : ""} طلب توظيف مفتوح</span><button onClick={() => onNavigate("jobs")}>استعرض الفرص <ArrowLeft size={15} /></button></section>}
   </main>;
 }
 

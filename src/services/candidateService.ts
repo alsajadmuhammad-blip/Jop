@@ -332,39 +332,40 @@ export type CandidateSearchOptions = {
   experienceYears: number[];
 };
 
-type CandidateSearchOptionRow = Pick<
-  CandidateProfile,
-  "specialization" | "province" | "city" | "work_type" | "skills" | "availability" | "experience_years"
->;
-
-const normalizeSearchValue = (value: string) => value.trim().toLocaleLowerCase();
-
-const uniqueSorted = (values: string[]) => Array.from(
-  new Set(values.map((value) => value.trim()).filter(Boolean)),
-).sort((a, b) => a.localeCompare(b, "ar"));
+let candidateSearchOptionsCache: { options: CandidateSearchOptions; expiresAt: number } | null = null;
+let candidateSearchOptionsRequest: Promise<{ options: CandidateSearchOptions | null; error: unknown | null }> | null = null;
 
 export async function loadCandidateSearchOptions() {
-  const { data, error } = await supabase
-    .from("candidate_profiles")
-    .select("specialization, province, city, work_type, skills, availability, experience_years")
-    .limit(1000);
+  if (candidateSearchOptionsCache && candidateSearchOptionsCache.expiresAt > Date.now()) {
+    return { options: candidateSearchOptionsCache.options, error: null };
+  }
+  if (candidateSearchOptionsRequest) return candidateSearchOptionsRequest;
 
-  if (error) return { options: null, error };
+  const request = (async () => {
+    const { data, error } = await supabase.rpc("get_candidate_search_options");
+    if (error) return { options: null, error };
 
-  const rows = (data as CandidateSearchOptionRow[]) || [];
-  const options: CandidateSearchOptions = {
-    total: rows.length,
-    specializations: uniqueSorted(rows.map((row) => row.specialization)),
-    provinces: uniqueSorted(rows.map((row) => row.province)),
-    cities: uniqueSorted(rows.map((row) => row.city)),
-    workTypes: uniqueSorted(rows.map((row) => row.work_type)),
-    skills: uniqueSorted(rows.flatMap((row) => row.skills || [])),
-    availabilities: uniqueSorted(rows.map((row) => row.availability)),
-    experienceYears: Array.from(new Set(rows.map((row) => Number(row.experience_years)).filter((value) => Number.isFinite(value))))
-      .sort((a, b) => a - b),
-  };
+    const rawOptions = data as CandidateSearchOptions;
+    const options: CandidateSearchOptions = {
+      total: Number(rawOptions?.total) || 0,
+      specializations: Array.isArray(rawOptions?.specializations) ? rawOptions.specializations : [],
+      provinces: Array.isArray(rawOptions?.provinces) ? rawOptions.provinces : [],
+      cities: Array.isArray(rawOptions?.cities) ? rawOptions.cities : [],
+      workTypes: Array.isArray(rawOptions?.workTypes) ? rawOptions.workTypes : [],
+      skills: Array.isArray(rawOptions?.skills) ? rawOptions.skills : [],
+      availabilities: Array.isArray(rawOptions?.availabilities) ? rawOptions.availabilities : [],
+      experienceYears: Array.isArray(rawOptions?.experienceYears) ? rawOptions.experienceYears.map(Number).filter(Number.isFinite) : [],
+    };
+    candidateSearchOptionsCache = { options, expiresAt: Date.now() + 60_000 };
+    return { options, error: null };
+  })();
 
-  return { options, error: null };
+  candidateSearchOptionsRequest = request;
+  try {
+    return await request;
+  } finally {
+    if (candidateSearchOptionsRequest === request) candidateSearchOptionsRequest = null;
+  }
 }
 
 export async function loadCandidateProfile(userId: string, options: { forceRefresh?: boolean } = {}) {
@@ -415,57 +416,53 @@ export async function saveCandidateProfile(userId: string, input: CandidateProfi
   return { profile: error ? null : candidateProfileCache.get(userId) || null, error };
 }
 
-export async function searchCandidateProfiles(filters: CandidateSearchFilters) {
-  const { data, error } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(1000);
+export type CandidateSearchCursor = Pick<CandidateSearchResult, "user_id" | "updated_at" | "relevance">;
+export type CandidateSearchPage = {
+  profiles: CandidateSearchResult[];
+  hasMore: boolean;
+  nextCursor: CandidateSearchCursor | null;
+  error: unknown | null;
+};
 
-  if (error) return { profiles: [], error };
+export const CANDIDATE_SEARCH_PAGE_SIZE = 10;
 
-  const keyword = normalizeSearchValue(filters.keyword);
-  const specialization = normalizeSearchValue(filters.specialization);
-  const province = normalizeSearchValue(filters.province);
-  const city = normalizeSearchValue(filters.city);
-  const workType = normalizeSearchValue(filters.workType);
-  const skill = normalizeSearchValue(filters.skill);
-  const availability = normalizeSearchValue(filters.availability);
-  const minExperience = filters.minExperience ? Number(filters.minExperience) : null;
-  const searchableText = (candidate: CandidateProfile) => normalizeSearchValue([
-    candidate.full_name,
-    candidate.headline,
-    candidate.specialization,
-    candidate.province,
-    candidate.city,
-    formatCandidateExperiences(candidate.experience_details),
-    formatCandidateEducation(parseCandidateEducation(candidate.education)),
-    candidate.summary,
-    ...candidate.skills,
-    ...candidate.languages,
-  ].join(" "));
+export async function searchCandidateProfiles(
+  filters: CandidateSearchFilters,
+  cursor: CandidateSearchCursor | null = null,
+): Promise<CandidateSearchPage> {
+  const { data, error } = await supabase.rpc("search_candidate_profiles_page", {
+    p_keyword: filters.keyword.trim() || null,
+    p_specialization: filters.specialization || null,
+    p_province: filters.province || null,
+    p_city: filters.city || null,
+    p_min_experience: filters.minExperience ? Number(filters.minExperience) : null,
+    p_work_type: filters.workType || null,
+    p_skill: filters.skill || null,
+    p_availability: filters.availability || null,
+    p_remote_available: filters.remoteOnly ? true : null,
+    p_after_relevance: cursor?.relevance ?? null,
+    p_after_updated_at: cursor?.updated_at ?? null,
+    p_after_user_id: cursor?.user_id ?? null,
+    p_limit: CANDIDATE_SEARCH_PAGE_SIZE + 1,
+  });
 
-  const profiles = ((data as CandidateProfile[]) || [])
-    .filter((candidate) => {
-      const candidateSkills = (candidate.skills || []).map(normalizeSearchValue);
-      return (
-        (!keyword || searchableText(candidate).includes(keyword)) &&
-        (!specialization || normalizeSearchValue(candidate.specialization) === specialization) &&
-        (!province || normalizeSearchValue(candidate.province) === province) &&
-        (!city || normalizeSearchValue(candidate.city) === city) &&
-        (!workType || normalizeSearchValue(candidate.work_type) === workType) &&
-        (!skill || candidateSkills.includes(skill)) &&
-        (!availability || normalizeSearchValue(candidate.availability) === availability) &&
-        (minExperience === null || Number(candidate.experience_years) >= minExperience) &&
-        (!filters.remoteOnly || candidate.remote_available)
-      );
-    })
-    .map((candidate) => ({
-      ...candidate,
-      relevance: keyword && searchableText(candidate).includes(keyword) ? 10 : 0,
-    } satisfies CandidateSearchResult))
-    .sort((a, b) => b.relevance - a.relevance || Date.parse(b.updated_at) - Date.parse(a.updated_at))
-    .slice(0, 50);
+  if (error) return { profiles: [], hasMore: false, nextCursor: null, error };
 
-  return { profiles, error: null };
+  const rows = (data as CandidateSearchResult[]) || [];
+  const hasMore = rows.length > CANDIDATE_SEARCH_PAGE_SIZE;
+  const profiles = rows.slice(0, CANDIDATE_SEARCH_PAGE_SIZE);
+  const lastProfile = profiles[profiles.length - 1];
+
+  return {
+    profiles,
+    hasMore,
+    nextCursor: hasMore && lastProfile
+      ? {
+          user_id: lastProfile.user_id,
+          updated_at: lastProfile.updated_at,
+          relevance: lastProfile.relevance,
+        }
+      : null,
+    error: null,
+  };
 }

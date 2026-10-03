@@ -8,7 +8,7 @@ import { demoJobs } from "./lib/constants";
 import type { Application, CVRequest, Job, Profile } from "./lib/types";
 import type { View } from "./app/types";
 import { getCurrentProfile, getProfile, signOut } from "./services/authService";
-import { getPublicContent } from "./services/publicService";
+import { getPublicContent, loadPublicJobById } from "./services/publicService";
 import { clearCandidateApplicationsCache, loadApplications, loadCandidateApplications } from "./services/applicationService";
 import { clearCandidateProfileCache } from "./services/candidateService";
 import { clearSavedJobsCache } from "./services/savedJobService";
@@ -62,6 +62,9 @@ function App() {
   const [routeJobId, setRouteJobId] = useState<string | null>(initialRoute.jobId);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [requests, setRequests] = useState<CVRequest[]>([]);
+  const [hasMorePublicJobs, setHasMorePublicJobs] = useState(false);
+  const [hasMorePublicRequests, setHasMorePublicRequests] = useState(false);
+  const [selectedJobOverride, setSelectedJobOverride] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [candidateApplications, setCandidateApplications] = useState<Application[]>([]);
   const [jobRequests, setJobRequests] = useState<import("./lib/types").JobRequest[]>([]);
@@ -79,6 +82,7 @@ function App() {
   const navigate = (next: View) => {
     setView(next);
     setRouteJobId(null);
+    setSelectedJobOverride(null);
     setMobileMenu(false);
     window.location.hash = next;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -87,6 +91,7 @@ function App() {
   const navigateToJob = (job: Job) => {
     setView("job");
     setRouteJobId(job.id);
+    setSelectedJobOverride(job);
     setMobileMenu(false);
     window.location.hash = `job/${encodeURIComponent(job.id)}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -95,6 +100,7 @@ function App() {
   const navigateToJobId = (jobId: string) => {
     setView("job");
     setRouteJobId(jobId);
+    setSelectedJobOverride(null);
     setMobileMenu(false);
     window.location.hash = `job/${encodeURIComponent(jobId)}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -123,6 +129,8 @@ function App() {
     if (!hasSupabaseConfig) {
       setJobs(demoJobs);
       setRequests([]);
+      setHasMorePublicJobs(false);
+      setHasMorePublicRequests(false);
       setLoading(false);
       return;
     }
@@ -131,6 +139,8 @@ function App() {
     if (result.error) notify("تعذر تحميل البيانات. نفّذ ملف Supabase schema.sql أولاً.");
     setJobs(result.content.jobs);
     setRequests(result.content.requests);
+    setHasMorePublicJobs(result.content.hasMoreJobs);
+    setHasMorePublicRequests(result.content.hasMoreRequests);
     setLoading(false);
   };
 
@@ -159,13 +169,17 @@ function App() {
     let active = true;
     void (async () => {
       const [publicResult, currentProfile] = await Promise.all([
-        hasSupabaseConfig ? getPublicContent() : Promise.resolve({ content: { jobs: demoJobs, requests: [] }, error: null }),
+        hasSupabaseConfig
+          ? getPublicContent()
+          : Promise.resolve({ content: { jobs: demoJobs, requests: [], hasMoreJobs: false, hasMoreRequests: false }, error: null }),
         hasSupabaseConfig ? getCurrentProfile() : Promise.resolve(null),
       ]);
       if (!active) return;
       if (publicResult.error) notify("تعذر تحميل البيانات. نفّذ ملف Supabase schema.sql أولاً.");
       setJobs(publicResult.content.jobs);
       setRequests(publicResult.content.requests);
+      setHasMorePublicJobs(publicResult.content.hasMoreJobs);
+      setHasMorePublicRequests(publicResult.content.hasMoreRequests);
       setProfile(currentProfile);
       setLoading(false);
        setAuthReady(true);
@@ -175,6 +189,7 @@ function App() {
       const route = readRoute();
       setView(route.view);
       setRouteJobId(route.jobId);
+      setSelectedJobOverride((current) => current?.id === route.jobId ? current : null);
     };
     window.addEventListener("hashchange", onHashChange);
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -250,7 +265,25 @@ function App() {
   }, [profile]);
 
   const publishedJobs = useMemo(() => jobs.filter((job) => job.status === "published"), [jobs]);
-  const selectedJob = useMemo(() => jobs.find((job) => job.id === routeJobId) || null, [jobs, routeJobId]);
+  const selectedJob = useMemo(
+    () => jobs.find((job) => job.id === routeJobId) || (selectedJobOverride?.id === routeJobId ? selectedJobOverride : null),
+    [jobs, routeJobId, selectedJobOverride],
+  );
+  useEffect(() => {
+    if (!hasSupabaseConfig || loading || view !== "job" || !routeJobId || selectedJob) return;
+    let active = true;
+    void loadPublicJobById(routeJobId).then(({ job, error }) => {
+      if (!active) return;
+      if (error || !job) {
+        notify("تعذر تحميل الوظيفة المطلوبة.");
+        return;
+      }
+      setSelectedJobOverride(job);
+    });
+    return () => {
+      active = false;
+    };
+  }, [loading, notify, routeJobId, selectedJob, view]);
   const supervisorJobIds = useMemo(
     () => new Set(jobs.filter((job) => profile?.role === "admin" && job.created_by === profile.id).map((job) => job.id)),
     [jobs, profile],
@@ -343,8 +376,8 @@ function App() {
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
       <Suspense fallback={<section className="container page-section centered-state"><span className="live-dot" /><p>جاري فتح الصفحة...</p></section>}>
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
-        {view === "home" && <HomePage jobs={publishedJobs} requests={requests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
-          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
+        {view === "home" && <HomePage jobs={publishedJobs} requests={requests} hasMoreJobs={hasMorePublicJobs} hasMoreRequests={hasMorePublicRequests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
+          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} initialHasMoreJobs={hasMorePublicJobs} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "login" && <AuthPage mode="sign-in" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
           {view === "signup" && <AuthPage mode="sign-up" onNavigate={navigate} onSuccess={handleAuthSuccess} />}

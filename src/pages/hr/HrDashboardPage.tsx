@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   BriefcaseBusiness,
@@ -23,9 +23,11 @@ import { openApplicationCv, updateApplicationStatus } from "../../services/appli
 import { CandidateProfilePage } from "./CandidateProfilePage";
 import {
   emptyCandidateSearchFilters,
+  CANDIDATE_SEARCH_PAGE_SIZE,
   loadCandidateProfile,
   loadCandidateSearchOptions,
   searchCandidateProfiles,
+  type CandidateSearchCursor,
   type CandidateSearchFilters,
   type CandidateSearchOptions,
 } from "../../services/candidateService";
@@ -54,21 +56,28 @@ export function HrDashboardPage({
   const [results, setResults] = useState<CandidateSearchResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [nextCursor, setNextCursor] = useState<CandidateSearchCursor | null>(null);
+  const [resultsFilterSignature, setResultsFilterSignature] = useState("");
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [selected, setSelected] = useState<CandidateProfile | null>(null);
   const [selectedSource, setSelectedSource] = useState<"search" | "applications">("search");
   const [opening, setOpening] = useState("");
+  const searchSequence = useRef(0);
 
   const isSupervisor = profile.role === "admin";
   const canSearch = profile.can_search_candidates || isSupervisor;
 
   useEffect(() => {
-    if (!canSearch) {
+    let active = true;
+    if (!canSearch || section !== "search") {
       setOptionsLoading(false);
-      return;
+      return () => {
+        active = false;
+      };
     }
 
-    let active = true;
     setOptionsLoading(true);
     void loadCandidateSearchOptions().then((result) => {
       if (!active) return;
@@ -83,7 +92,7 @@ export function HrDashboardPage({
     return () => {
       active = false;
     };
-  }, [canSearch]);
+  }, [canSearch, section]);
 
   useEffect(() => {
     setSelected(null);
@@ -110,25 +119,63 @@ export function HrDashboardPage({
     ].filter(Boolean).length,
     [filters],
   );
+  const resultsAreCurrent = resultsFilterSignature === JSON.stringify(filters);
 
   const resetFilters = () => {
     setFilters(emptyCandidateSearchFilters);
     setResults([]);
     setSearched(false);
+    setHasMoreResults(false);
+    setNextCursor(null);
+    setResultsFilterSignature("");
+    setSearching(false);
+    setLoadingMore(false);
+    searchSequence.current += 1;
   };
 
   const search = async (event: React.FormEvent) => {
     event.preventDefault();
+    const sequence = ++searchSequence.current;
     setSearching(true);
+    setLoadingMore(false);
+    setResults([]);
+    setSearched(false);
+    setResultsFilterSignature("");
+    setHasMoreResults(false);
+    setNextCursor(null);
     const result = await searchCandidateProfiles(filters);
+    if (sequence !== searchSequence.current) return;
     setSearching(false);
     setSearched(true);
     if (result.error) {
       setResults([]);
-      onNotify(result.error.message || "تعذر تنفيذ البحث.");
+      setResultsFilterSignature(JSON.stringify(filters));
+      onNotify(String((result.error as { message?: string }).message || "تعذر تنفيذ البحث."));
       return;
     }
     setResults(result.profiles);
+    setHasMoreResults(result.hasMore);
+    setNextCursor(result.nextCursor);
+    setResultsFilterSignature(JSON.stringify(filters));
+  };
+
+  const loadMoreCandidates = async () => {
+    if (!nextCursor || loadingMore || resultsFilterSignature !== JSON.stringify(filters)) return;
+    const sequence = searchSequence.current;
+    setLoadingMore(true);
+    const result = await searchCandidateProfiles(filters, nextCursor);
+    if (sequence !== searchSequence.current) {
+      setLoadingMore(false);
+      return;
+    }
+    setLoadingMore(false);
+    if (result.error) {
+      onNotify(String((result.error as { message?: string }).message || "تعذر تحميل بقية الباحثين."));
+      return;
+    }
+    setResults((current) => [...current, ...result.profiles]);
+    setHasMoreResults(result.hasMore);
+    setNextCursor(result.nextCursor);
   };
 
   const setStatus = async (id: string, status: ApplicationStatus) => {
@@ -323,11 +370,15 @@ export function HrDashboardPage({
             <div className="results-heading">
               <div>
                 <span className="eyebrow">النتائج المطابقة</span>
-                <h2>{searched ? `${results.length} ملف مطابق` : "اختر معايير البحث"}</h2>
+                <h2>{searching ? "جاري البحث..." : searched && resultsAreCurrent ? `${results.length}${hasMoreResults ? "+" : ""} ملف مطابق` : searched ? "أعد البحث بالمعايير الجديدة" : "اختر معايير البحث"}</h2>
               </div>
               <small>{searched ? "تمت المطابقة من بيانات الملف مباشرة" : "الملفات الداخلية المصرّح بها"}</small>
             </div>
-            {results.length ? (
+            {searching ? (
+              <div className="candidate-search-loading"><span className="live-dot" /><p>جاري البحث في الملفات المطابقة...</p></div>
+            ) : searched && !resultsAreCurrent ? (
+              <EmptyState title="تغيّرت معايير البحث" text="اضغط «عرض الباحثين» حتى نحدّث النتائج حسب خياراتك الجديدة." />
+            ) : results.length ? (
               <div className="candidate-result-list">
                  {results.map((candidate) => (
                    <button type="button" className="candidate-result-card" key={candidate.user_id} onClick={() => { setSelectedSource("search"); setSelected(candidate); }}>
@@ -348,6 +399,14 @@ export function HrDashboardPage({
                 text={searched ? "جرّب إزالة فلتر واحد أو اختيار قيمة أخرى من القوائم." : "القوائم تعرض فقط التخصصات والمدن والمهارات الموجودة في ملفات الباحثين."}
               />
             )}
+            {hasMoreResults && resultsFilterSignature === JSON.stringify(filters) && <button
+              type="button"
+              className="primary-btn candidate-load-more"
+              disabled={loadingMore || searching}
+              onClick={() => void loadMoreCandidates()}
+            >
+              {loadingMore ? "جاري تحميل المزيد..." : `عرض ${CANDIDATE_SEARCH_PAGE_SIZE} باحثين إضافيين`}
+            </button>}
           </div>
         </div>
       )}

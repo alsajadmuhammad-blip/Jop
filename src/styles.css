@@ -1224,6 +1224,22 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   margin-top: 14px;
 }
 
+.candidate-load-more {
+  display: flex;
+  width: fit-content;
+  margin: 16px auto 0;
+}
+
+.candidate-search-loading {
+  display: flex;
+  min-height: 150px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #66756d;
+  font-size: 13px;
+}
+
 .candidate-result-card {
   width: 100%;
   display: grid;

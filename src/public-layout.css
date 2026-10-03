@@ -234,6 +234,12 @@
   font-size: 13px;
 }
 
+.jobs-load-more {
+  display: flex;
+  width: fit-content;
+  margin: 20px auto 0;
+}
+
 .job-grid.wide {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 19px;
