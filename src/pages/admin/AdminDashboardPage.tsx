@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
+import { DatePickerField } from "../../components/common/DatePickerField";
 import { categories, governorates, jobTypes } from "../../lib/constants";
 import { formatDate, formatJobLocation } from "../../lib/format";
 import { getBaghdadToday } from "../../lib/date";
@@ -249,7 +250,7 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
     </div>
     <label>تفاصيل الوظيفة *<textarea required rows={quick ? 6 : 4} value={form.description} onChange={(event) => update("description", event.target.value)} placeholder={quick ? "العنوان، طبيعة العمل، وأهم المعلومات..." : "اكتب وصف الوظيفة والمسؤوليات..."} /></label>
     {!quick && <label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label>}
-     <label>آخر موعد للتقديم *<input type="date" required min={today} value={form.deadline} onChange={(event) => update("deadline", event.target.value)} /></label>
+     <DatePickerField id="admin-job-deadline" label="آخر موعد للتقديم" required min={today} value={form.deadline} onChange={(value) => update("deadline", value)} />
     <DirectApplicationToggle checked={form.internal_applications} onChange={(checked) => setForm((current) => ({ ...current, internal_applications: checked }))} />
     {error && <p className="form-error">{error}</p>}
     <button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "نشر الوظيفة"} <Send size={16} /></button>

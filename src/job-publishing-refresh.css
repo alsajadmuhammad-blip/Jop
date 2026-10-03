@@ -278,6 +278,200 @@
   outline-offset: 2px;
 }
 
+.admin-date-picker-field {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.admin-date-picker-label {
+  color: #4f5976;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-date-picker-anchor {
+  position: relative;
+}
+
+.admin-date-picker-trigger {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 13px;
+  border: 1px solid #e0e3ef;
+  border-radius: 12px;
+  color: #5366c4;
+  background: linear-gradient(135deg, #fff, #fbfcff);
+  text-align: right;
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.admin-date-picker-trigger:hover,
+.admin-date-picker-trigger.is-open {
+  border-color: #aab5e5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(83, 102, 196, .08);
+}
+
+.admin-date-picker-value {
+  min-width: 0;
+  flex: 1;
+  color: #30385f;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-date-picker-value.is-placeholder {
+  color: #8b93ab;
+  font-weight: 450;
+}
+
+.admin-date-picker-chevron {
+  color: #9199b0;
+  transition: transform .18s ease;
+}
+
+.admin-date-picker-trigger.is-open .admin-date-picker-chevron {
+  transform: rotate(180deg);
+}
+
+.admin-date-picker-trigger:focus-visible,
+.admin-date-picker-nav:focus-visible,
+.admin-date-picker-day:focus-visible {
+  outline: 3px solid rgba(83, 102, 196, .2);
+  outline-offset: 2px;
+}
+
+.admin-date-picker-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  width: min(310px, calc(100vw - 40px));
+  padding: 14px;
+  border: 1px solid #e1e5f2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(35, 45, 94, .16);
+  animation: date-picker-enter .16s ease-out;
+}
+
+.admin-date-picker-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #27305d;
+}
+
+.admin-date-picker-month strong {
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.admin-date-picker-nav {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid #e7e9f2;
+  border-radius: 10px;
+  color: #5967ad;
+  background: #f8f9ff;
+  cursor: pointer;
+}
+
+.admin-date-picker-nav:hover:not(:disabled) {
+  border-color: #c4cbed;
+  background: #eff1ff;
+}
+
+.admin-date-picker-nav:disabled {
+  color: #c4c8d6;
+  background: #fafbfc;
+  cursor: not-allowed;
+}
+
+.admin-date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  text-align: center;
+}
+
+.admin-date-picker-weekdays {
+  margin-bottom: 5px;
+}
+
+.admin-date-picker-weekdays span {
+  padding: 6px 0;
+  color: #929ab0;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-date-picker-days > span,
+.admin-date-picker-day {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.admin-date-picker-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #414967;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.admin-date-picker-day:hover:not(:disabled) {
+  border-color: #dce1f5;
+  color: #303d98;
+  background: #f4f5ff;
+}
+
+.admin-date-picker-day.is-today {
+  border-color: #c5cbed;
+  color: #303d98;
+  font-weight: 750;
+}
+
+.admin-date-picker-day.is-selected,
+.admin-date-picker-day.is-selected:hover {
+  border-color: #5366c4;
+  color: #fff;
+  background: #5366c4;
+  box-shadow: 0 3px 8px rgba(48, 61, 152, .2);
+}
+
+.admin-date-picker-day:disabled {
+  color: #c8cbd5;
+  cursor: not-allowed;
+}
+
+.request-deadline-editor .admin-date-picker-field {
+  flex: 1 1 220px;
+}
+
+@keyframes date-picker-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .contact-input-card {
   border-color: #e1e4f0;
   background: #fbfcff;

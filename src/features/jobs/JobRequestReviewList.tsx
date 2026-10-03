@@ -1,5 +1,6 @@
 import { Check, ChevronDown, FileText, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
+import { DatePickerField } from "../../components/common/DatePickerField";
 import { approveJobRequest, updateJobRequestDeadline, updateJobRequestStatus } from "../../services/adminService";
 import { formatJobLocation } from "../../lib/format";
 import { getBaghdadToday } from "../../lib/date";
@@ -66,7 +67,7 @@ function JobRequestReviewCard({ request, onReview, onSaveDeadline }: { request: 
         <div className="review-detail-block"><small>التقديم المباشر</small><p>{request.internal_applications ? "مفعّل للباحثين المسجلين والمكملين لملفهم." : "غير مفعّل."}</p></div>
       </div>}
       {request.status === "pending" && needsDeadline && <div className="request-deadline-editor">
-        <label htmlFor={`request-deadline-${request.id}`}>حدد موعداً صالحاً قبل الموافقة<input id={`request-deadline-${request.id}`} type="date" min={today} value={deadlineDraft} onChange={(event) => setDeadlineDraft(event.target.value)} /></label>
+        <DatePickerField id={`request-deadline-${request.id}`} label="حدد موعداً صالحاً قبل الموافقة" min={today} value={deadlineDraft} onChange={setDeadlineDraft} />
         <button type="button" className="row-action approve" disabled={savingDeadline || !deadlineDraft || deadlineDraft < today} onClick={() => void saveDeadline()}>{savingDeadline ? "جاري الحفظ..." : "حفظ الموعد"}</button>
       </div>}
     </div>
