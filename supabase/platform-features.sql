@@ -3,10 +3,12 @@
 
 alter table public.candidate_profiles add column if not exists province text not null default '';
 alter table public.jobs add column if not exists internal_applications boolean not null default false;
+alter table public.jobs add column if not exists province text not null default '';
 alter table public.jobs add column if not exists ad_type text not null default 'detailed';
 alter table public.jobs drop constraint if exists jobs_ad_type_check;
 alter table public.jobs add constraint jobs_ad_type_check check (ad_type in ('detailed', 'quick')) not valid;
 alter table public.job_requests add column if not exists internal_applications boolean not null default false;
+alter table public.job_requests add column if not exists province text not null default '';
 alter table public.job_requests add column if not exists ad_type text not null default 'detailed';
 alter table public.job_requests drop constraint if exists job_requests_ad_type_check;
 alter table public.job_requests add constraint job_requests_ad_type_check check (ad_type in ('detailed', 'quick')) not valid;
@@ -51,12 +53,12 @@ begin
   if request_row.status <> 'pending' then raise exception 'تمت مراجعة هذا الطلب مسبقاً'; end if;
 
   insert into public.jobs (
-    title, company_name, ad_type, category, city, job_type, description, requirements,
+    title, company_name, ad_type, category, province, city, job_type, description, requirements,
     salary_range, contact_email, contact_whatsapp, internal_applications,
     status, deadline, created_by
   )
   values (
-    request_row.title, request_row.company_name, request_row.ad_type, request_row.category, request_row.city,
+    request_row.title, request_row.company_name, request_row.ad_type, request_row.category, request_row.province, request_row.city,
     request_row.job_type, request_row.description, request_row.requirements,
     request_row.salary_range, request_row.contact_email, request_row.contact_whatsapp,
     request_row.internal_applications, 'published', request_row.deadline,

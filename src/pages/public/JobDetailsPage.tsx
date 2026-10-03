@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, BriefcaseBusiness, Buil
 import { PageIntro } from "../../components/common/PageIntro";
 import type { View } from "../../app/types";
 import type { Job, Profile } from "../../lib/types";
-import { formatDate } from "../../lib/format";
+import { formatDate, formatJobLocation } from "../../lib/format";
 import { useEffect, useState } from "react";
 import { ApplicationForm } from "../../features/applications/ApplicationForm";
 import { hasSupabaseConfig } from "../../lib/supabase";
@@ -47,6 +47,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
 
   const hasContact = Boolean(job.contact_email || job.contact_whatsapp);
   const isQuick = job.ad_type === "quick";
+  const location = formatJobLocation(job);
   return <main className={`container page-section job-v3-page ${isQuick ? "quick-job-details" : ""}`}>
     <button className="back-link job-v3-back" onClick={() => onNavigate("jobs")}><ArrowRight size={16} /> العودة إلى الوظائف</button>
     <header className="job-v3-header">
@@ -64,11 +65,11 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
        </div>
     </header>
 
-     {!isQuick && <div className="job-v3-facts" aria-label="معلومات الوظيفة">
-      <span><MapPin size={16} /><small>الموقع</small><strong>{job.city}</strong></span>
-      <span><Clock3 size={16} /><small>نوع الدوام</small><strong>{job.job_type}</strong></span>
-      <span><BriefcaseBusiness size={16} /><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>
-     </div>}
+      <div className="job-v3-facts" aria-label="معلومات الوظيفة">
+       <span><MapPin size={16} /><small>الموقع</small><strong>{location}</strong></span>
+       {!isQuick && <><span><Clock3 size={16} /><small>نوع الدوام</small><strong>{job.job_type}</strong></span>
+       <span><BriefcaseBusiness size={16} /><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span></>}
+      </div>
 
     <div className="job-v3-layout">
       <article className="job-v3-content">

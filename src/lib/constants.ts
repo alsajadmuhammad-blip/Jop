@@ -2,6 +2,27 @@ import type { Job, JobType } from "./types";
 
 export const jobTypes: JobType[] = ["دوام كامل", "دوام جزئي", "عن بُعد", "تدريب", "عمل حر"];
 export const categories = ["تقنية", "إدارة", "تسويق", "تصميم", "مالية", "هندسة", "موارد بشرية", "خدمة عملاء"];
+export const governorates = [
+  "الأنبار",
+  "بابل",
+  "بغداد",
+  "البصرة",
+  "حلبجة",
+  "دهوك",
+  "ديالى",
+  "ذي قار",
+  "السليمانية",
+  "صلاح الدين",
+  "كركوك",
+  "كربلاء",
+  "المثنى",
+  "ميسان",
+  "النجف",
+  "نينوى",
+  "القادسية",
+  "أربيل",
+  "واسط",
+];
 
 export const demoJobs: Job[] = [
   {
@@ -10,6 +31,7 @@ export const demoJobs: Job[] = [
     company_name: "شركة حلول رقمية",
     ad_type: "detailed",
     category: "تقنية",
+    province: "بغداد",
     city: "بغداد",
     job_type: "دوام كامل",
     description: "نبحث عن مطور واجهات أمامية للانضمام إلى فريق منتج يعمل على حلول رقمية تخدم السوق العراقي.",
@@ -29,6 +51,7 @@ export const demoJobs: Job[] = [
     company_name: "مجموعة النخبة",
     ad_type: "quick",
     category: "موارد بشرية",
+    province: "أربيل",
     city: "أربيل",
     job_type: "دوام كامل",
     description: "فرصة لمسؤول موارد بشرية لديه شغف ببناء فرق قوية وتحسين تجربة الموظفين.",

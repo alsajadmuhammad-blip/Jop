@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
-import { categories, jobTypes } from "../../lib/constants";
-import { formatDate } from "../../lib/format";
+import { categories, governorates, jobTypes } from "../../lib/constants";
+import { formatDate, formatJobLocation } from "../../lib/format";
 import type { Application, EmployerAccount, Job, JobAdType, JobRequest, JobType, PostStatus } from "../../lib/types";
 import { createJob, deleteJob, loadEmployerAccounts, updateCandidateSearchPermission, updateJob, updatePostStatus } from "../../services/adminService";
 import type { Notify, View } from "../../app/types";
@@ -121,7 +121,30 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
             </div>
           </div>
          {section === "overview" && <AdminOverview jobs={jobs} applications={jobApplications} jobRequests={jobRequests} pendingJobRequests={pendingJobRequests} publishedJobs={publishedJobs} draftJobs={draftJobs} closedJobs={closedJobs} newApplications={newApplications} onSection={selectSection} onNavigate={onNavigate} onCopyLink={() => void copyJobRequestLink()} />}
-         {section === "jobs" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>الوظائف</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div><div className="admin-toolbar-actions"><button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button><button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> وظيفة جديدة</button></div></div><div className="admin-filter-row">{(["all", "published", "draft", "closed"] as const).map((item) => <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "الكل" : statusLabel(item)}</button>)}</div><div className="admin-list">{filteredJobs.map((job) => <AdminPost key={job.id} title={job.title} subtitle={`${job.company_name} · ${job.city}`} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />)}{filteredJobs.length === 0 && <EmptyState title="لا توجد وظائف" text="ابدأ بإضافة أول وظيفة من زر وظيفة جديدة." />}</div></section>}
+         {section === "jobs" && (
+           <section className="admin-content-section">
+             <div className="admin-section-toolbar">
+               <div><h2>الوظائف</h2><p>أنشئ الوظائف وتابع حالة كل منشور.</p></div>
+               <div className="admin-toolbar-actions">
+                 <button className="outline-btn" onClick={() => onNavigate("job-request")}><Link2 size={15} /> النموذج العام</button>
+                 <button className="primary-btn" onClick={() => onNavigate("admin-post")}><Plus size={16} /> وظيفة جديدة</button>
+               </div>
+             </div>
+             <div className="admin-filter-row">
+               {(["all", "published", "draft", "closed"] as const).map((item) => (
+                 <button key={item} className={statusFilter === item ? "selected" : ""} onClick={() => setStatusFilter(item)}>
+                   {item === "all" ? "الكل" : statusLabel(item)}
+                 </button>
+               ))}
+             </div>
+             <div className="admin-list">
+               {filteredJobs.map((job) => (
+                 <AdminPost key={job.id} title={job.title} subtitle={[job.company_name, formatJobLocation(job)].join(" · ")} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />
+               ))}
+               {filteredJobs.length === 0 && <EmptyState title="لا توجد وظائف" text="ابدأ بإضافة أول وظيفة من زر وظيفة جديدة." />}
+             </div>
+           </section>
+         )}
          {section === "job-requests" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>طلبات نشر الوظائف</h2><p>راجع طلبات الشركات قبل نشرها للعامة.</p></div><button className="outline-btn" onClick={() => void copyJobRequestLink()}><Link2 size={15} /> نسخ رابط الطلب العام</button></div><JobRequestReviewList requests={jobRequests} onRefresh={onRefresh} onNotify={onNotify} /></section>}
          {section === "employer-access" && <EmployerAccessSection accounts={employerAccounts} loading={employerAccountsLoading} onNotify={onNotify} onChanged={(next) => setEmployerAccounts((current) => current.map((account) => account.id === next.id ? next : account))} />}
     </div>
@@ -150,19 +173,19 @@ function AdminOverview({ jobs, applications, jobRequests, pendingJobRequests, pu
      <div className="admin-summary-grid"><StatCard tone="navy" icon={<BriefcaseBusiness size={19} />} value={publishedJobs.length} label="وظائف منشورة" detail={`${draftJobs.length} مسودة تحتاج متابعة`} /><StatCard tone="orange" icon={<Clock3 size={19} />} value={pendingJobRequests.length} label="طلبات قيد المراجعة" detail="بانتظار قرار الإدارة" /><StatCard tone="violet" icon={<FileText size={19} />} value={applications.length} label="إجمالي تقديمات الوظائف" detail={`${newApplications.length} جديدة`} /><StatCard tone="green" icon={<CheckCircle2 size={19} />} value={`${publicationPercent}%`} label="نسبة المنشورات النشطة" detail={`${closedJobs.length} منشور مغلق`} /></div>
      <div className="admin-quick-actions"><div><b>إجراءات سريعة</b><span>أكثر العمليات استخداماً</span></div><button onClick={() => onNavigate("admin-post")}><Plus size={17} /><span><b>إضافة وظيفة</b><small>إنشاء وظيفة جديدة</small></span></button><button onClick={() => onSection("job-requests")}><CheckCircle2 size={17} /><span><b>مراجعة الطلبات</b><small>{pendingJobRequests.length ? `${pendingJobRequests.length} بانتظارك` : "لا توجد طلبات جديدة"}</small></span></button><button onClick={onCopyLink}><Link2 size={17} /><span><b>رابط طلب وظيفة</b><small>نسخ الرابط العام</small></span></button></div>
      <div className="admin-overview-grid"><div className="admin-report-card"><div className="report-card-header"><div><span className="eyebrow">تقرير النشر</span><h2>حالة المحتوى</h2></div><BarChart3 size={20} /></div><div className="report-bar-row"><div><span>منشور</span><b>{publishedPosts}</b></div><div className="report-bar"><span className="published-bar" style={{ width: `${totalPosts ? (publishedPosts / totalPosts) * 100 : 0}%` }} /></div></div><div className="report-bar-row"><div><span>مسودات</span><b>{draftJobs.length}</b></div><div className="report-bar"><span className="draft-bar" style={{ width: `${totalPosts ? (draftJobs.length / totalPosts) * 100 : 0}%` }} /></div></div><div className="report-bar-row"><div><span>مغلق</span><b>{closedJobs.length}</b></div><div className="report-bar"><span className="closed-bar" style={{ width: `${totalPosts ? (closedJobs.length / totalPosts) * 100 : 0}%` }} /></div></div><div className="report-total"><span>إجمالي المنشورات</span><strong>{totalPosts}</strong></div></div><div className="admin-report-card"><div className="report-card-header"><div><span className="eyebrow">آخر النشاطات</span><h2>ما يحتاج انتباهك</h2></div><button className="report-link" onClick={() => onSection("job-requests")}>عرض الكل</button></div><div className="activity-list">{pendingJobRequests.slice(0, 3).map((request) => <button className="activity-item" key={request.id} onClick={() => onSection("job-requests")}><span className="activity-icon orange"><Clock3 size={16} /></span><span><b>طلب نشر وظيفة جديد</b><small>{request.title} · {request.company_name}</small></span><small>{formatDate(request.created_at)}</small></button>)}{applications.slice(0, 2).map((application) => <button className="activity-item" key={application.id} onClick={() => onSection("applications")}><span className="activity-icon blue"><FileText size={16} /></span><span><b>تقديم وظيفة جديد</b><small>{application.full_name}</small></span><small>{formatDate(application.created_at)}</small></button>)}{pendingJobRequests.length === 0 && applications.length === 0 && <div className="activity-empty">لا توجد نشاطات جديدة حالياً</div>}</div></div></div>
-    <div className="admin-recent-card"><div className="report-card-header"><div><span className="eyebrow">آخر الوظائف</span><h2>الفرص المنشورة حديثاً</h2></div><button className="report-link" onClick={() => onSection("jobs")}>إدارة المنشورات</button></div><div className="recent-jobs-grid">{jobs.slice(0, 4).map((job) => <button className="recent-job-item" key={job.id} onClick={() => onSection("jobs")}><span className="company-logo"><BriefcaseBusiness size={17} /></span><span><b>{job.title}</b><small>{job.company_name} · {job.city}</small></span><span className={`status ${job.status}`}>{statusLabel(job.status)}</span></button>)}{jobs.length === 0 && <div className="activity-empty">لا توجد وظائف بعد.</div>}</div></div>
+     <div className="admin-recent-card"><div className="report-card-header"><div><span className="eyebrow">آخر الوظائف</span><h2>الفرص المنشورة حديثاً</h2></div><button className="report-link" onClick={() => onSection("jobs")}>إدارة المنشورات</button></div><div className="recent-jobs-grid">{jobs.slice(0, 4).map((job) => <button className="recent-job-item" key={job.id} onClick={() => onSection("jobs")}><span className="company-logo"><BriefcaseBusiness size={17} /></span><span><b>{job.title}</b><small>{job.company_name} · {formatJobLocation(job)}</small></span><span className={`status ${job.status}`}>{statusLabel(job.status)}</span></button>)}{jobs.length === 0 && <div className="activity-empty">لا توجد وظائف بعد.</div>}</div></div>
   </div>;
 }
 
 export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initialJob?: Job | null }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false }));
+  const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false }));
   const editing = Boolean(initialJob);
   const quick = form.ad_type === "quick";
 
   useEffect(() => {
-    setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false });
+    setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", internal_applications: initialJob?.internal_applications || false });
     setError("");
   }, [initialJob?.id]);
 
@@ -173,6 +196,7 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
     title: "",
     company_name: "",
     category: "",
+    province: "",
     city: "",
     job_type: "" as JobType,
     description: "",
@@ -186,17 +210,46 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.contact_email.trim() && !form.contact_whatsapp.trim()) return setError("أضف البريد الإلكتروني أو رقم الواتساب على الأقل.");
-    if (!form.title.trim() || !form.company_name.trim() || !form.description.trim() || (!quick && (!form.category.trim() || !form.city.trim() || !form.job_type.trim()))) return setError(quick ? "أكمل العنوان واسم الجهة وتفاصيل الوظيفة أولاً." : "أكمل العنوان واسم الجهة والتصنيف والمدينة ونوع الدوام وتفاصيل الوظيفة أولاً.");
+    if (!form.title.trim() || !form.company_name.trim() || !form.description.trim() || !form.province || (!quick && (!form.category.trim() || !form.city.trim() || !form.job_type.trim()))) return setError(quick ? "أكمل العنوان واسم الجهة واختر المحافظة وأضف تفاصيل الوظيفة." : "أكمل العنوان واسم الجهة والتصنيف والمحافظة والمدينة ونوع الدوام وتفاصيل الوظيفة.");
     setSaving(true);
     setError("");
-    const jobInput = { title: form.title.trim(), company_name: form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, city: quick ? "العراق" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, internal_applications: form.internal_applications };
+    const jobInput = { title: form.title.trim(), company_name: form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, province: form.province, city: quick ? "" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, internal_applications: form.internal_applications };
     const error = await (initialJob ? updateJob(initialJob.id, jobInput) : createJob(jobInput));
     setSaving(false);
     if (error) return setError(error.message);
     onSaved();
   };
 
-  return <form className="post-form admin-post-form" onSubmit={submit}><div className="post-type-selector compact" aria-label="نوع الإعلان"><button type="button" className={quick ? "" : "selected"} onClick={() => chooseAdType("detailed")}><b>إعلان مفصل</b><small>كل الحقول</small></button><button type="button" className={quick ? "selected" : ""} onClick={() => chooseAdType("quick")}><b>إعلان سريع</b><small>مختصر</small></button></div><div className="form-grid"><label>العنوان الوظيفي *<input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder="مثال: مطور تطبيقات" /></label><label>اسم الشركة أو الجهة *<input required value={form.company_name} onChange={(event) => update("company_name", event.target.value)} /></label></div>{!quick && <><div className="form-grid"><label>التصنيف *<AppSelect value={form.category} onChange={(value) => update("category", value)} options={categories.map((value) => ({ value, label: value }))} placeholder="اختر التصنيف" ariaLabel="التصنيف" /></label><label>المدينة *<input required value={form.city} onChange={(event) => update("city", event.target.value)} /></label></div><div className="form-grid"><label>نوع الدوام<AppSelect value={form.job_type} onChange={(value) => update("job_type", value)} options={jobTypes.map((value) => ({ value, label: value }))} ariaLabel="نوع الدوام" /></label><label>الراتب <span className="optional">اختياري</span><input value={form.salary_range} onChange={(event) => update("salary_range", event.target.value)} /></label></div></>}<div className="form-grid"><label>البريد الإلكتروني *<input type="email" value={form.contact_email} onChange={(event) => update("contact_email", event.target.value)} dir="ltr" /></label><label>واتساب *<input value={form.contact_whatsapp} onChange={(event) => update("contact_whatsapp", event.target.value)} dir="ltr" /></label></div><label>تفاصيل الوظيفة *<textarea required rows={quick ? 6 : 4} value={form.description} onChange={(event) => update("description", event.target.value)} placeholder={quick ? "العنوان، طبيعة العمل، وأهم المعلومات..." : "اكتب وصف الوظيفة والمسؤوليات..."}/></label>{!quick && <label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label>}<DirectApplicationToggle checked={form.internal_applications} onChange={(checked) => setForm((current) => ({ ...current, internal_applications: checked }))} />{error && <p className="form-error">{error}</p>}<button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "نشر الوظيفة"} <Send size={16} /></button></form>;
+  return <form className="post-form admin-post-form" onSubmit={submit}>
+    <div className="post-type-selector compact" aria-label="نوع الإعلان">
+      <button type="button" className={quick ? "" : "selected"} onClick={() => chooseAdType("detailed")}><b>إعلان مفصل</b><small>كل الحقول</small></button>
+      <button type="button" className={quick ? "selected" : ""} onClick={() => chooseAdType("quick")}><b>إعلان سريع</b><small>مختصر</small></button>
+    </div>
+    <div className="form-grid">
+      <label>العنوان الوظيفي *<input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder="مثال: مطور تطبيقات" /></label>
+      <label>اسم الشركة أو الجهة *<input required value={form.company_name} onChange={(event) => update("company_name", event.target.value)} /></label>
+    </div>
+    <div className="form-grid">
+      <label>المحافظة *<AppSelect value={form.province} onChange={(value) => update("province", value)} options={governorates.map((value) => ({ value, label: value }))} placeholder="اختر المحافظة" ariaLabel="المحافظة" /></label>
+      {!quick && <label>المدينة *<input required value={form.city} onChange={(event) => update("city", event.target.value)} /></label>}
+    </div>
+    {!quick && <>
+      <div className="form-grid">
+        <label>التصنيف *<AppSelect value={form.category} onChange={(value) => update("category", value)} options={categories.map((value) => ({ value, label: value }))} placeholder="اختر التصنيف" ariaLabel="التصنيف" /></label>
+        <label>نوع الدوام<AppSelect value={form.job_type} onChange={(value) => update("job_type", value)} options={jobTypes.map((value) => ({ value, label: value }))} ariaLabel="نوع الدوام" /></label>
+      </div>
+      <label>الراتب <span className="optional">اختياري</span><input value={form.salary_range} onChange={(event) => update("salary_range", event.target.value)} /></label>
+    </>}
+    <div className="form-grid">
+      <label>البريد الإلكتروني *<input type="email" value={form.contact_email} onChange={(event) => update("contact_email", event.target.value)} dir="ltr" /></label>
+      <label>واتساب *<input value={form.contact_whatsapp} onChange={(event) => update("contact_whatsapp", event.target.value)} dir="ltr" /></label>
+    </div>
+    <label>تفاصيل الوظيفة *<textarea required rows={quick ? 6 : 4} value={form.description} onChange={(event) => update("description", event.target.value)} placeholder={quick ? "العنوان، طبيعة العمل، وأهم المعلومات..." : "اكتب وصف الوظيفة والمسؤوليات..."} /></label>
+    {!quick && <label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label>}
+    <DirectApplicationToggle checked={form.internal_applications} onChange={(checked) => setForm((current) => ({ ...current, internal_applications: checked }))} />
+    {error && <p className="form-error">{error}</p>}
+    <button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "نشر الوظيفة"} <Send size={16} /></button>
+  </form>;
 }
 
 function DirectApplicationToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {

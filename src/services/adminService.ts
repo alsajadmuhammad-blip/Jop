@@ -6,6 +6,7 @@ export type JobPostInput = {
   company_name: string;
   ad_type: JobAdType;
   category: string;
+  province: string;
   city: string;
   job_type: JobType;
   description: string;

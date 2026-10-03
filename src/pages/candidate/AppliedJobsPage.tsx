@@ -87,7 +87,7 @@ export function AppliedJobsPage({ profile, active, onNavigate, onOpenJob, onNoti
               <div className="applied-job-title-row"><div><h2>{title}</h2><p>{company}</p></div><ApplicationStatus status={application.status} /></div>
               <div className="applied-job-meta">
                 <span><CalendarDays size={14} /> قُدّم في {formatDate(application.created_at)}</span>
-                {job?.city && <span><MapPin size={14} /> {job.city}</span>}
+                {job && (job.city || job.province) && <span><MapPin size={14} /> {[job.city, job.province].filter(Boolean).join("، ")}</span>}
                 {job?.job_type && <span>{job.job_type}</span>}
               </div>
               {application.note && <p className="applied-job-note"><b>ملاحظتك:</b> {application.note}</p>}

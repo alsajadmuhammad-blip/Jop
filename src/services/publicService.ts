@@ -3,22 +3,18 @@ import type { CVRequest, Job } from "../lib/types";
 import type { PublicContent } from "../app/types";
 
 export const PUBLIC_PAGE_SIZE = 10;
-const publicJobColumns = "id,title,company_name,ad_type,category,city,job_type,description,requirements,salary_range,contact_email,contact_whatsapp,internal_applications,status,created_at,deadline,created_by";
+const publicJobColumns = "id,title,company_name,ad_type,category,province,city,job_type,description,requirements,salary_range,contact_email,contact_whatsapp,internal_applications,status,created_at,deadline,created_by";
 
-export type PublicJobSort = "newest" | "title";
 export type PublicJobFilters = {
   keyword: string;
   category: string;
   jobType: string;
-  city: string;
-  adType: string;
-  sort: PublicJobSort;
+  province: string;
 };
 
 export type PublicJobCursor = {
   id: string;
-  created_at?: string;
-  title?: string;
+  created_at: string;
 };
 
 export type PublicJobPage = {
@@ -29,7 +25,7 @@ export type PublicJobPage = {
 };
 
 export type PublicJobFilterOptions = {
-  cities: string[];
+  provinces: string[];
 };
 
 let publicJobFilterOptionsCache: PublicJobFilterOptions | null = null;
@@ -64,7 +60,7 @@ export async function loadPublicJobFilterOptions() {
     if (error) return { options: null, error };
     const options = data as PublicJobFilterOptions;
     publicJobFilterOptionsCache = {
-      cities: Array.isArray(options?.cities) ? options.cities.filter((city) => typeof city === "string") : [],
+      provinces: Array.isArray(options?.provinces) ? options.provinces.filter((province) => typeof province === "string") : [],
     };
     return { options: publicJobFilterOptionsCache, error: null };
   })();
@@ -87,43 +83,25 @@ export async function loadPublicJobsPage(
   if (keyword) query = query.ilike("search_text", `%${keyword}%`);
   if (filters.category !== "الكل") query = query.eq("category", filters.category);
   if (filters.jobType !== "الكل") query = query.eq("job_type", filters.jobType);
-  if (filters.city !== "الكل") query = query.eq("city", filters.city);
-  if (filters.adType !== "الكل") query = query.eq("ad_type", filters.adType);
-
-  if (filters.sort === "title") {
-    if (cursor?.title !== undefined) {
-      const titleValue = `"${cursor.title.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-      query = query.or(`title.gt.${titleValue},and(title.eq.${titleValue},id.gt.${cursor.id})`);
-    }
-    const { data, error } = await query
-      .order("title", { ascending: true })
-      .order("id", { ascending: true })
-      .limit(PUBLIC_PAGE_SIZE + 1);
-    return toPublicJobPage(data as Job[] | null, error, filters.sort);
-  } else {
-    if (cursor?.created_at) {
-      query = query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`);
-    }
-    const { data, error } = await query
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(PUBLIC_PAGE_SIZE + 1);
-    return toPublicJobPage(data as Job[] | null, error, filters.sort);
+  if (filters.province !== "الكل") query = query.eq("province", filters.province);
+  if (cursor?.created_at) {
+    query = query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`);
   }
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(PUBLIC_PAGE_SIZE + 1);
+  return toPublicJobPage(data as Job[] | null, error);
 }
 
-function toPublicJobPage(data: Job[] | null, error: { message: string } | null, sort: PublicJobSort): PublicJobPage {
+function toPublicJobPage(data: Job[] | null, error: { message: string } | null): PublicJobPage {
   if (error) return { jobs: [], hasMore: false, nextCursor: null, error: new Error(error.message) };
 
   const rows = data || [];
   const hasMore = rows.length > PUBLIC_PAGE_SIZE;
   const jobs = rows.slice(0, PUBLIC_PAGE_SIZE);
   const lastJob = jobs[jobs.length - 1];
-  const nextCursor = hasMore && lastJob
-    ? sort === "title"
-      ? { id: lastJob.id, title: lastJob.title }
-      : { id: lastJob.id, created_at: lastJob.created_at }
-    : null;
+  const nextCursor = hasMore && lastJob ? { id: lastJob.id, created_at: lastJob.created_at } : null;
 
   return { jobs, hasMore, nextCursor, error: null };
 }

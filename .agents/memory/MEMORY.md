@@ -1,0 +1,1 @@
+- [Readable JSX branches](readable-jsx-branches.md) — keep nested view conditionals multiline so their boundaries are easy to verify.

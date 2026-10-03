@@ -49,6 +49,7 @@ export interface Job {
   company_name: string;
   ad_type: JobAdType;
   category: string;
+  province: string;
   city: string;
   job_type: JobType;
   description: string;
@@ -72,6 +73,7 @@ export interface JobRequest {
   contact_email: string | null;
   contact_whatsapp: string | null;
   category: string;
+  province: string;
   city: string;
   job_type: JobType;
   description: string;
@@ -110,7 +112,7 @@ export interface Application {
   note: string | null;
   status: ApplicationStatus;
   created_at: string;
-  jobs?: Pick<Job, "title" | "company_name" | "city" | "job_type" | "deadline"> | null;
+  jobs?: Pick<Job, "title" | "company_name" | "province" | "city" | "job_type" | "deadline"> | null;
   cv_requests?: Pick<CVRequest, "title" | "organization_name"> | null;
 }
 

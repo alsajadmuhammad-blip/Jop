@@ -14,6 +14,9 @@ alter table public.candidate_profiles
 alter table public.jobs
   add column if not exists search_text text not null default '';
 
+alter table public.jobs
+  add column if not exists province text not null default '';
+
 create or replace function public.refresh_candidate_profile_search_text()
 returns trigger
 language plpgsql
@@ -55,6 +58,7 @@ begin
     ' ',
     new.title,
     new.company_name,
+    new.province,
     new.city,
     new.category,
     new.job_type
@@ -65,7 +69,7 @@ $$;
 
 drop trigger if exists jobs_search_text on public.jobs;
 create trigger jobs_search_text
-before insert or update of title, company_name, city, category, job_type
+before insert or update of title, company_name, province, city, category, job_type
 on public.jobs
 for each row execute function public.refresh_job_search_text();
 
@@ -99,8 +103,8 @@ where search_text is distinct from lower(concat_ws(
 ));
 
 update public.jobs
-set search_text = lower(concat_ws(' ', title, company_name, city, category, job_type))
-where search_text is distinct from lower(concat_ws(' ', title, company_name, city, category, job_type));
+set search_text = lower(concat_ws(' ', title, company_name, province, city, category, job_type))
+where search_text is distinct from lower(concat_ws(' ', title, company_name, province, city, category, job_type));
 
 -- The extension can already exist in a different schema, so discover the
 -- operator class location instead of assuming it is in public or extensions.
@@ -356,15 +360,15 @@ security invoker
 set search_path = public
 as $$
   select jsonb_build_object(
-    'cities',
+    'provinces',
     coalesce((
-      select jsonb_agg(city_value order by city_value)
+      select jsonb_agg(province_value order by province_value)
       from (
-        select distinct nullif(btrim(city), '') as city_value
+        select distinct nullif(btrim(province), '') as province_value
         from public.jobs
         where status = 'published'
-          and nullif(btrim(city), '') is not null
-      ) public_cities
+          and nullif(btrim(province), '') is not null
+      ) public_provinces
     ), '[]'::jsonb)
   );
 $$;

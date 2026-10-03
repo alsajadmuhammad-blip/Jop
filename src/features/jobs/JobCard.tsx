@@ -1,9 +1,10 @@
 import { ArrowLeft, Bookmark, BookmarkCheck, Building2, CalendarDays, Clock3, MapPin } from "lucide-react";
-import { formatDate } from "../../lib/format";
+import { formatDate, formatJobLocation } from "../../lib/format";
 import type { Job } from "../../lib/types";
 
 export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onClick: () => void; saved?: boolean; onToggleSaved?: () => void }) {
   const isQuick = job.ad_type === "quick";
+  const location = formatJobLocation(job);
   return <article className={`job-card ${isQuick ? "quick-job-card" : ""}`} onClick={onClick} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onClick(); }}>
     <div className="job-card-v3-head">
       <span className="company-logo"><Building2 size={19} /></span>
@@ -16,7 +17,7 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
       <p className="company-name">{job.company_name}</p>
        {isQuick && <p className="quick-job-description">{job.description}</p>}
     </div>
-     {!isQuick && <div className="job-card-v3-meta"><span><MapPin size={14} />{job.city}</span><span><Clock3 size={14} />{job.job_type}</span></div>}
+      <div className="job-card-v3-meta"><span><MapPin size={14} />{location}</span>{!isQuick && <span><Clock3 size={14} />{job.job_type}</span>}</div>
     <div className="job-card-v3-footer">
        {!isQuick && <span><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>}
        {isQuick && <span className="quick-contact-summary"><small>طريقة التواصل</small><strong>{job.contact_whatsapp ? "واتساب" : job.contact_email ? "البريد الإلكتروني" : "التفاصيل"}</strong></span>}

@@ -1,6 +1,7 @@
 import { Check, ChevronDown, FileText, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { approveJobRequest, updateJobRequestStatus } from "../../services/adminService";
+import { formatJobLocation } from "../../lib/format";
 import type { JobRequest } from "../../lib/types";
 import type { Notify } from "../../app/types";
 import { useState } from "react";
@@ -26,13 +27,14 @@ function JobRequestReviewCard({ request, onReview }: { request: JobRequest; onRe
     <div className="job-request-review-content">
       <button className="review-card-toggle" type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
         <span className="card-top-line"><b>{request.title}</b><span className={`status ${request.status}`}>{statusText}</span></span>
-        <span className="review-card-summary">{request.company_name} · {request.city} · {request.contact_name}</span>
+         <span className="review-card-summary">{[request.company_name, formatJobLocation(request), request.contact_name].filter(Boolean).join(" · ")}</span>
         <span className="review-card-expand"><span>{expanded ? "إخفاء التفاصيل" : "عرض كامل الطلب"}</span><ChevronDown size={16} /></span>
       </button>
       {expanded && <div className="review-details full-review-details">
         <div className="review-detail-grid">
           <span><small>نوع الإعلان</small><b className={request.ad_type === "quick" ? "quick-review-label" : ""}>{request.ad_type === "quick" ? "إعلان سريع" : "إعلان مفصل"}</b></span>
           <span><small>التصنيف</small><b>{request.category || "عام"}</b></span>
+          <span><small>المحافظة</small><b>{request.province || "غير محددة"}</b></span>
           <span><small>المدينة</small><b>{request.city || "غير محددة"}</b></span>
           <span><small>نوع الدوام</small><b>{request.job_type || "غير محدد"}</b></span>
           <span><small>مسؤول التواصل</small><b>{request.contact_name || request.company_name}</b></span>

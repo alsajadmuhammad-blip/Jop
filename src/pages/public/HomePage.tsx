@@ -4,6 +4,7 @@ import { RequestCard } from "../../features/requests/RequestCard";
 import type { View } from "../../app/types";
 import type { CVRequest, Job } from "../../lib/types";
 import { LoadingCards } from "../../components/common/Feedback";
+import { formatJobLocation } from "../../lib/format";
 
 type HomePageProps = {
   jobs: Job[];
@@ -50,7 +51,7 @@ export function HomePage({ jobs, requests, hasMoreJobs, hasMoreRequests, loading
           <div className="home-refresh-panel-title"><small>أحدث الفرص</small><h2>ابدأ من هنا</h2></div>
           <div className="home-refresh-job-list">
             {jobs.slice(0, 3).map((job) => <button className="home-refresh-job-row" key={job.id} onClick={() => onOpenJob(job)}>
-              <span className="home-refresh-job-icon"><BriefcaseBusiness size={18} /></span><span><strong>{job.title}</strong><small>{job.company_name} · {job.city}</small></span><ArrowLeft size={16} />
+              <span className="home-refresh-job-icon"><BriefcaseBusiness size={18} /></span><span><strong>{job.title}</strong><small>{job.company_name} · {formatJobLocation(job)}</small></span><ArrowLeft size={16} />
             </button>)}
             {jobs.length === 0 && <div className="home-refresh-empty">لا توجد وظائف منشورة حالياً</div>}
           </div>
