@@ -813,9 +813,18 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
-  aspect-ratio: 1.45;
+  aspect-ratio: 3 / 2;
   border-radius: 20px;
   background: #18213d;
+}
+
+.home-refresh-image-wrap:after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(112deg, rgba(22, 30, 67, .24), rgba(31, 39, 75, .13) 54%, rgba(250, 239, 211, .2));
+  pointer-events: none;
 }
 
 .home-refresh-hero-image {
@@ -823,7 +832,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 12%;
+  object-position: center;
+  filter: saturate(.82) brightness(.93);
 }
 
 .home-refresh-hero-content {
@@ -908,7 +918,7 @@
   }
 
   .home-refresh-image-wrap {
-    aspect-ratio: 1.4;
+    aspect-ratio: 3 / 2;
     border-radius: 16px;
   }
 
@@ -938,7 +948,7 @@
   }
 
   .home-refresh-image-wrap {
-    aspect-ratio: 1.24;
+    aspect-ratio: 3 / 2;
     border-radius: 14px;
   }
 

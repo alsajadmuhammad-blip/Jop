@@ -34,7 +34,7 @@ export function HomePage({ jobs, requests, hasMoreJobs, hasMoreRequests, loading
             <img
               className="home-refresh-hero-image"
               src="/images/iraq-heritage-home.webp"
-              alt="مشهد فني لمعالم العراق وعلم العراق عند الغروب"
+              alt="مشهد فني لآثار ومعالم بلاد الرافدين التاريخية"
               fetchPriority="high"
             />
           </div>
