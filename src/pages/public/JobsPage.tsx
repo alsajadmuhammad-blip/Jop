@@ -14,7 +14,7 @@ import {
   type PublicJobFilters,
 } from "../../services/publicService";
 
-export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile, onLogin, onNotify }: { jobs: Job[]; loading: boolean; initialHasMoreJobs: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void }) {
+export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile, onLogin, onNotify, embedded = false }: { jobs: Job[]; loading: boolean; initialHasMoreJobs: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void; embedded?: boolean }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("الكل");
   const [jobType, setJobType] = useState<"الكل" | JobType>("الكل");
@@ -169,8 +169,8 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
     setNextCursor(result.nextCursor);
   };
 
-  return <section className="container page-section jobs-page">
-    <header className="jobs-hero-banner">
+  return <section className={embedded ? "jobs-page jobs-page-embedded" : "container page-section jobs-page"}>
+    {!embedded && <header className="jobs-hero-banner">
       <div className="jobs-hero-copy">
         <span className="jobs-hero-eyebrow"><BriefcaseBusiness size={15} /> IRAQ JOBS <i /> فرص العمل</span>
         <h1>خطوتك القادمة تبدأ من هنا</h1>
@@ -178,15 +178,15 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
       </div>
       <div className="jobs-hero-mark" aria-hidden="true"><MapPin size={30} /></div>
       <div className="jobs-hero-count"><strong>{pageLoading ? "…" : `${visibleJobs.length}${hasMore ? "+" : ""}`}</strong><span>فرصة في النتائج</span></div>
-    </header>
+    </header>}
 
-    <aside className="home-refresh-notice jobs-page-notice">
+    {!embedded && <aside className="home-refresh-notice jobs-page-notice">
       <div className="home-refresh-notice-icon"><ShieldCheck size={24} /></div>
       <div>
         <strong>مهم تعرف</strong>
         <p>IRAQ JOBS منصة مجانية وخيرية لنشر الوظائف فقط. لا نأخذ أجوراً مقابل نشر الوظائف أو التوظيف أو التقديم، ولا نتحمل مسؤولية صحة الإعلانات أو نتائج التواصل بين الأطراف.</p>
       </div>
-    </aside>
+    </aside>}
 
     <div className="jobs-browse-tools">
       <div className="jobs-classic-filters">
