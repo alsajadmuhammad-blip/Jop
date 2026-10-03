@@ -33,7 +33,7 @@ export function HomePage({ jobs, requests, hasMoreJobs, hasMoreRequests, loading
           <div className="home-refresh-image-wrap">
             <img
               className="home-refresh-hero-image"
-              src="/images/iraq-heritage-home.webp"
+              src="/images/iraq-heritage-home.webp?v=2"
               alt="مشهد فني لآثار ومعالم بلاد الرافدين التاريخية"
               fetchPriority="high"
             />
