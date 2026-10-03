@@ -19,15 +19,6 @@ type ExperienceEntry = CandidateExperience;
 type EducationEntry = CandidateEducation;
 
 type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
-type ProfileSection = "identity" | "skills" | "experience" | "education" | "preferences";
-
-const profileSectionLinks: { id: ProfileSection; label: string }[] = [
-  { id: "identity", label: "البيانات" },
-  { id: "skills", label: "المهارات" },
-  { id: "experience", label: "الخبرات" },
-  { id: "education", label: "التعليم" },
-  { id: "preferences", label: "التفضيلات" },
-];
 
 function buildProfilePayload(
   form: CandidateProfileInput,
@@ -86,7 +77,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
   const [openSections, setOpenSections] = useState({ identity: true, skills: false, experience: false, education: false, preferences: false });
-  const [activeProfileSection, setActiveProfileSection] = useState<ProfileSection>("identity");
   const [skillDraft, setSkillDraft] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig && cachedProfile === undefined);
   const [error, setError] = useState("");
@@ -347,17 +337,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     setLanguages((current) => current.filter((_, languageIndex) => languageIndex !== index));
   };
 
-  const jumpToProfileSection = (section: ProfileSection) => {
-    setOpenSections((current) => ({ ...current, [section]: true }));
-    setActiveProfileSection(section);
-    window.requestAnimationFrame(() => {
-      document.getElementById(`candidate-profile-section-${section}`)?.scrollIntoView({
-        behavior: "instant",
-        block: "start",
-      });
-    });
-  };
-
   const completedExperiences = experiences.filter((experience) =>
     [experience.title, experience.company, experience.location, experience.startMonth, experience.endMonth, experience.legacyPeriod, experience.description]
       .some((value) => value.trim()) || experience.isCurrent,
@@ -440,20 +419,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
         <span>اكتمال الملف</span>
       </div>
     </div>
-    <nav className="candidate-profile-section-nav" aria-label="التنقل بين أقسام الملف المهني" dir="rtl">
-      {profileSectionLinks.map((section) => (
-        <button
-          type="button"
-          key={section.id}
-          className={activeProfileSection === section.id ? "active" : ""}
-          aria-current={activeProfileSection === section.id ? "location" : undefined}
-          aria-controls={`candidate-profile-section-${section.id}`}
-          onClick={() => jumpToProfileSection(section.id)}
-        >
-          {section.label}
-        </button>
-      ))}
-    </nav>
     <div className="candidate-profile-grid">
       <form
         className="candidate-profile-form candidate-profile-editor"
@@ -475,7 +440,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           {autosaveStatus === "error" && <button type="button" onClick={() => loadedRef.current ? setRetryCount((count) => count + 1) : setReloadCount((count) => count + 1)}><RotateCw size={14} /> {loadedRef.current ? "إعادة المحاولة" : "إعادة تحميل الملف"}</button>}
         </div>
 
-        <details id="candidate-profile-section-identity" className="profile-editor-section profile-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); if (open) setActiveProfileSection("identity"); }}>
+        <details className="profile-editor-section profile-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon"><FileText size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">الظهور الأول</span><b>معلوماتك المهنية</b><small>البيانات التي يراها صاحب العمل أولاً</small></span>
@@ -490,7 +455,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           </div>}
         </details>
 
-        <details id="candidate-profile-section-skills" className="profile-editor-section profile-disclosure" open={openSections.skills} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, skills: open })); if (open) setActiveProfileSection("skills"); }}>
+        <details className="profile-editor-section profile-disclosure" open={openSections.skills} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, skills: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon orange"><Sparkles size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">نقاط قوتك</span><b>المهارات والخبرة</b><small>المهارات التي تظهر في بحث أصحاب العمل</small></span>
@@ -503,7 +468,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           </div>}
         </details>
 
-        <details id="candidate-profile-section-experience" className="profile-editor-section profile-disclosure" open={openSections.experience} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, experience: open })); if (open) setActiveProfileSection("experience"); }}>
+        <details className="profile-editor-section profile-disclosure" open={openSections.experience} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, experience: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon blue"><BriefcaseBusiness size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">مسارك المهني</span><b>الخبرات العملية</b><small>أضف مسؤولياتك وإنجازاتك لكل دور</small></span>
@@ -527,7 +492,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           </div>}
         </details>
 
-        <details id="candidate-profile-section-education" className="profile-editor-section profile-disclosure" open={openSections.education} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, education: open })); if (open) setActiveProfileSection("education"); }}>
+        <details className="profile-editor-section profile-disclosure" open={openSections.education} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, education: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon violet"><GraduationCap size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">المعرفة واللغات</span><b>التعليم واللغات</b><small>المؤهل والجهة التعليمية واللغات</small></span>
@@ -540,7 +505,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           </div>}
         </details>
 
-        <details id="candidate-profile-section-preferences" className="profile-editor-section profile-disclosure" open={openSections.preferences} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, preferences: open })); if (open) setActiveProfileSection("preferences"); }}>
+        <details className="profile-editor-section profile-disclosure" open={openSections.preferences} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, preferences: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon orange"><MapPin size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">الخطوة التالية</span><b>تفضيلات العمل</b><small>أخبر أصحاب العمل بموعدك ونوع الفرصة المناسبة</small></span>
