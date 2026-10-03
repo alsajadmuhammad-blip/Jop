@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BriefcaseBusiness, MapPin, Search, X } from "lucide-react";
+import { BriefcaseBusiness, MapPin, Search, ShieldCheck, X } from "lucide-react";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { categories, jobTypes } from "../../lib/constants";
 import type { Job, JobType, Profile } from "../../lib/types";
@@ -179,6 +179,14 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
       <div className="jobs-hero-mark" aria-hidden="true"><MapPin size={30} /></div>
       <div className="jobs-hero-count"><strong>{pageLoading ? "…" : `${visibleJobs.length}${hasMore ? "+" : ""}`}</strong><span>فرصة في النتائج</span></div>
     </header>
+
+    <aside className="home-refresh-notice jobs-page-notice">
+      <div className="home-refresh-notice-icon"><ShieldCheck size={24} /></div>
+      <div>
+        <strong>مهم تعرف</strong>
+        <p>IRAQ JOBS منصة مجانية وخيرية لنشر الوظائف فقط. لا نأخذ أجوراً مقابل نشر الوظائف أو التوظيف أو التقديم، ولا نتحمل مسؤولية صحة الإعلانات أو نتائج التواصل بين الأطراف.</p>
+      </div>
+    </aside>
 
     <div className="jobs-browse-tools">
       <div className="jobs-classic-filters">
