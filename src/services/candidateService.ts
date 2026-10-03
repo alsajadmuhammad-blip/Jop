@@ -30,6 +30,85 @@ export type CandidateLanguage = {
 
 const candidateProfileCache = new Map<string, CandidateProfile | null>();
 const candidateProfileRequests = new Map<string, Promise<{ profile: CandidateProfile | null; error: unknown | null }>>();
+const candidateProfileDraftPrefix = "IRAQ_JOBS_CANDIDATE_PROFILE_DRAFT_V1:";
+
+export type CandidateProfileDraft = {
+  payload: CandidateProfileInput;
+  savedAt: number;
+  signature: string;
+};
+
+function isCandidateProfileInput(value: unknown): value is CandidateProfileInput {
+  if (!value || typeof value !== "object") return false;
+  const profile = value as Record<string, unknown>;
+  return (
+    typeof profile.full_name === "string" &&
+    typeof profile.email === "string" &&
+    typeof profile.phone === "string" &&
+    typeof profile.headline === "string" &&
+    typeof profile.specialization === "string" &&
+    typeof profile.province === "string" &&
+    typeof profile.city === "string" &&
+    typeof profile.experience_years === "number" &&
+    Array.isArray(profile.skills) &&
+    profile.skills.every((skill) => typeof skill === "string") &&
+    typeof profile.experience_details === "string" &&
+    typeof profile.education === "string" &&
+    Array.isArray(profile.languages) &&
+    profile.languages.every((language) => typeof language === "string") &&
+    typeof profile.work_type === "string" &&
+    typeof profile.remote_available === "boolean" &&
+    (profile.expected_salary_min === null || typeof profile.expected_salary_min === "number") &&
+    typeof profile.availability === "string" &&
+    typeof profile.summary === "string"
+  );
+}
+
+export function getCandidateProfileDraft(userId: string): CandidateProfileDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(`${candidateProfileDraftPrefix}${userId}`);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as Partial<CandidateProfileDraft>;
+    if (
+      !isCandidateProfileInput(draft.payload) ||
+      typeof draft.savedAt !== "number" ||
+      typeof draft.signature !== "string"
+    ) {
+      window.localStorage.removeItem(`${candidateProfileDraftPrefix}${userId}`);
+      return null;
+    }
+    return draft as CandidateProfileDraft;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCandidateProfileDraft(userId: string, payload: CandidateProfileInput) {
+  if (typeof window === "undefined") return false;
+  const signature = JSON.stringify(payload);
+  try {
+    window.localStorage.setItem(
+      `${candidateProfileDraftPrefix}${userId}`,
+      JSON.stringify({ payload, savedAt: Date.now(), signature } satisfies CandidateProfileDraft),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearCandidateProfileDraft(userId: string, signature?: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const key = `${candidateProfileDraftPrefix}${userId}`;
+    if (!signature || getCandidateProfileDraft(userId)?.signature === signature) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // The cloud profile remains the source of truth if browser storage is unavailable.
+  }
+}
 
 export function getCachedCandidateProfile(userId: string) {
   return candidateProfileCache.get(userId);
@@ -320,14 +399,20 @@ export async function loadCandidateProfile(userId: string, options: { forceRefre
 }
 
 export async function saveCandidateProfile(userId: string, input: CandidateProfileInput) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("candidate_profiles")
-    .upsert({ user_id: userId, ...input }, { onConflict: "user_id" })
-    .select("*")
-    .single();
-  const profile = (data as CandidateProfile | null) || null;
-  if (!error) candidateProfileCache.set(userId, profile);
-  return { profile, error };
+    .upsert({ user_id: userId, ...input }, { onConflict: "user_id" });
+  if (!error) {
+    const previous = candidateProfileCache.get(userId);
+    const now = new Date().toISOString();
+    candidateProfileCache.set(userId, {
+      user_id: userId,
+      ...input,
+      created_at: previous?.created_at || now,
+      updated_at: now,
+    });
+  }
+  return { profile: error ? null : candidateProfileCache.get(userId) || null, error };
 }
 
 export async function searchCandidateProfiles(filters: CandidateSearchFilters) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 import { Header } from "./components/layout/Header";
 import { MainSidebar } from "./components/layout/MainSidebar";
@@ -18,7 +18,6 @@ import { JobsPage } from "./pages/public/JobsPage";
 import { RequestsPage } from "./pages/public/RequestsPage";
 import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
-import { CandidatePage } from "./pages/candidate/CandidatePage";
 import { SavedJobsPage } from "./pages/candidate/SavedJobsPage";
 import { AppliedJobsPage } from "./pages/candidate/AppliedJobsPage";
 import { CandidateDashboardShell } from "./pages/candidate/CandidateDashboardShell";
@@ -31,6 +30,10 @@ import "./styles/role-navigation.css";
 import type { AdminSection } from "./pages/admin/AdminDashboardPage";
 import type { HrSection } from "./pages/hr/HrDashboardPage";
 import type { AppNotification, NotificationDestination } from "./components/layout/NotificationBell";
+
+const CandidatePage = lazy(() =>
+  import("./pages/candidate/CandidatePage").then((module) => ({ default: module.CandidatePage })),
+);
 
 const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
 
@@ -63,6 +66,7 @@ function App() {
   const [candidateApplications, setCandidateApplications] = useState<Application[]>([]);
   const [jobRequests, setJobRequests] = useState<import("./lib/types").JobRequest[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [candidateWorkspaceVisited, setCandidateWorkspaceVisited] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<CVRequest | null>(null);
   const [modal, setModal] = useState<"request" | null>(null);
   const [loading, setLoading] = useState(true);
@@ -195,6 +199,12 @@ function App() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (profile?.role === "candidate" && ["candidate", "saved", "applied"].includes(view)) {
+      setCandidateWorkspaceVisited(true);
+    }
+  }, [profile?.role, view]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -331,6 +341,7 @@ function App() {
     {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
+      <Suspense fallback={<section className="container page-section centered-state"><span className="live-dot" /><p>جاري فتح الصفحة...</p></section>}>
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
         {view === "home" && <HomePage jobs={publishedJobs} requests={requests} loading={loading} onNavigate={navigate} onOpenJob={navigateToJob} onOpenRequest={(request) => { setSelectedRequest(request); setModal("request"); }} />}
           {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
@@ -338,15 +349,18 @@ function App() {
           {view === "login" && <AuthPage mode="sign-in" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
           {view === "signup" && <AuthPage mode="sign-up" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
-         {view === "candidate" && profile?.role === "candidate" && <CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell>}
-           {view === "saved" && profile?.role === "candidate" && <CandidateDashboardShell><SavedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell>}
-           {view === "applied" && profile?.role === "candidate" && <CandidateDashboardShell><AppliedJobsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJobId} onNotify={notify} /></CandidateDashboardShell>}
+         {profile?.role === "candidate" && candidateWorkspaceVisited && <>
+           <div hidden={view !== "candidate"}><CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} /></CandidateDashboardShell></div>
+           <div hidden={view !== "saved"}><CandidateDashboardShell><SavedJobsPage profile={profile} active={view === "saved"} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell></div>
+           <div hidden={view !== "applied"}><CandidateDashboardShell><AppliedJobsPage profile={profile} active={view === "applied"} onNavigate={navigate} onOpenJob={navigateToJobId} onNotify={notify} /></CandidateDashboardShell></div>
+         </>}
            {view === "admin" && profile?.role === "admin" && adminSection === "candidate-search" && <HrDashboardPage profile={profile} applications={supervisorApplications} section="search" onSection={() => setAdminSection("candidate-search")} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={navigate} />}
            {view === "admin" && profile?.role === "admin" && adminSection === "applications" && <HrDashboardPage profile={profile} applications={supervisorApplications} section="applications" onSection={() => setAdminSection("applications")} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={navigate} />}
            {view === "admin" && profile?.role === "admin" && adminSection !== "candidate-search" && adminSection !== "applications" && <AdminDashboardPage jobs={jobs} applications={supervisorApplications} jobRequests={jobRequests} adminSection={adminSection} onAdminSection={setAdminSection} onNavigate={navigate} onEditJob={navigateToAdminPost} onRefresh={() => { void refreshAdminPosts(); void refreshApplications(); void refreshJobRequests(); }} onNotify={notify} />}
         {view === "admin-post" && profile?.role === "admin" && <AdminPostPage job={selectedJob} onNavigate={navigate} onSaved={() => { void refreshAdminPosts(); navigate("admin"); notify(routeJobId ? "تم حفظ التعديلات" : "تم نشر الوظيفة بنجاح"); }} />}
          {view === "hr" && profile?.role === "hr" && <HrDashboardPage profile={profile} applications={applications} section={hrSection} onSection={setHrSection} onRefresh={() => void refreshApplications()} onNotify={notify} onNavigate={(next) => navigate(next)} />}
       </>}
+      </Suspense>
     </main>
     <Footer />
     {modal === "request" && selectedRequest && <RequestModal request={selectedRequest} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("تم إرسال سيرتك الذاتية إلى الجهة المختصة."); }} />}

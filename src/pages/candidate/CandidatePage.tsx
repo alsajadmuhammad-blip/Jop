@@ -5,7 +5,7 @@ import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
-import { formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
+import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, getCandidateProfileDraft, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, saveCandidateProfileDraft, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
 
 type CandidatePageProps = {
@@ -72,7 +72,15 @@ function localMonthValue() {
 
 export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify }: CandidatePageProps) {
   const cachedProfile = getCachedCandidateProfile(profile.id);
-  const initialForm = toInput(cachedProfile ?? null, profile);
+  const initialDraft = getCandidateProfileDraft(profile.id);
+  const cachedProfileUpdatedAt = cachedProfile?.updated_at ? Date.parse(cachedProfile.updated_at) : Number.NaN;
+  const initialForm = initialDraft && (
+    !cachedProfile ||
+    !Number.isFinite(cachedProfileUpdatedAt) ||
+    initialDraft.savedAt > cachedProfileUpdatedAt
+  )
+    ? initialDraft.payload
+    : toInput(cachedProfile ?? null, profile);
   const [form, setForm] = useState<CandidateProfileInput>(initialForm);
   const [experiences, setExperiences] = useState<ExperienceEntry[]>(() => parseCandidateExperiences(initialForm.experience_details));
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
@@ -116,6 +124,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
             }
             continue;
           }
+          clearCandidateProfileDraft(profile.id, queued.signature);
           lastSavedSignatureRef.current = queued.signature;
           if (latestSaveRef.current?.signature === queued.signature && mountedRef.current) {
             setAutosaveError("");
@@ -191,18 +200,38 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
         setLoading(false);
         return;
       }
-      const nextForm = toInput(result.profile, profile);
-      const nextLanguages = parseCandidateLanguages(nextForm.languages);
-      const nextExperiences = parseCandidateExperiences(nextForm.experience_details);
-      const nextEducation = parseCandidateEducation(nextForm.education);
-      const baseline = buildProfilePayload(nextForm, nextExperiences, nextEducation, nextLanguages);
-      const signature = JSON.stringify(baseline);
+      const cloudForm = toInput(result.profile, profile);
+      const cloudLanguages = parseCandidateLanguages(cloudForm.languages);
+      const cloudExperiences = parseCandidateExperiences(cloudForm.experience_details);
+      const cloudEducation = parseCandidateEducation(cloudForm.education);
+      const cloudBaseline = buildProfilePayload(cloudForm, cloudExperiences, cloudEducation, cloudLanguages);
+      const cloudSignature = JSON.stringify(cloudBaseline);
+      const localDraft = getCandidateProfileDraft(profile.id);
+      const cloudUpdatedAt = result.profile?.updated_at ? Date.parse(result.profile.updated_at) : Number.NaN;
+      const useLocalDraft = Boolean(localDraft && localDraft.signature !== cloudSignature && (
+        !result.profile ||
+        !Number.isFinite(cloudUpdatedAt) ||
+        localDraft.savedAt > cloudUpdatedAt
+      ));
+      const nextForm = useLocalDraft && localDraft ? localDraft.payload : cloudForm;
+      const nextLanguages = useLocalDraft && localDraft
+        ? parseCandidateLanguages(localDraft.payload.languages)
+        : cloudLanguages;
+      const nextExperiences = useLocalDraft && localDraft
+        ? parseCandidateExperiences(localDraft.payload.experience_details)
+        : cloudExperiences;
+      const nextEducation = useLocalDraft && localDraft
+        ? parseCandidateEducation(localDraft.payload.education)
+        : cloudEducation;
+      const selectedPayload = buildProfilePayload(nextForm, nextExperiences, nextEducation, nextLanguages);
+      const selectedSignature = JSON.stringify(selectedPayload);
       setForm(nextForm);
       setLanguages(nextLanguages);
       setExperiences(nextExperiences);
       setEducation(nextEducation);
-      lastSavedSignatureRef.current = signature;
-      latestSaveRef.current = { payload: baseline, signature };
+      lastSavedSignatureRef.current = cloudSignature;
+      latestSaveRef.current = { payload: selectedPayload, signature: selectedSignature };
+      if (!useLocalDraft && localDraft) clearCandidateProfileDraft(profile.id, localDraft.signature);
       loadedRef.current = true;
       setAutosaveStatus("idle");
       setLoading(false);
@@ -216,6 +245,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     if (!hasSupabaseConfig || !loadedRef.current) return;
     const payload = buildProfilePayload(form, experiences, education, languages);
     const signature = JSON.stringify(payload);
+    saveCandidateProfileDraft(profile.id, payload);
     latestSaveRef.current = { payload, signature };
     if (queuedSaveRef.current && queuedSaveRef.current.signature !== signature) {
       queuedSaveRef.current = null;
@@ -238,7 +268,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
         timerRef.current = null;
       }
     };
-  }, [education, enqueueAutosave, experiences, form, languages, retryCount]);
+  }, [education, enqueueAutosave, experiences, form, languages, profile.id, retryCount]);
 
   const update = <K extends keyof CandidateProfileInput>(key: K, value: CandidateProfileInput[K]) => {
     setForm((current) => ({ ...current, [key]: value }));

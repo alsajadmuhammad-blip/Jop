@@ -8,6 +8,7 @@ import { getCachedCandidateApplications, loadCandidateApplications } from "../..
 
 type AppliedJobsPageProps = {
   profile: Profile;
+  active: boolean;
   onNavigate: (view: View) => void;
   onOpenJob: (jobId: string) => void;
   onNotify: (message: string) => void;
@@ -27,27 +28,28 @@ function ApplicationStatus({ status }: { status: Application["status"] }) {
   return <span className={`candidate-application-status ${details.className}`}><Icon size={14} /> {details.label}</span>;
 }
 
-export function AppliedJobsPage({ profile, onNavigate, onOpenJob, onNotify }: AppliedJobsPageProps) {
+export function AppliedJobsPage({ profile, active, onNavigate, onOpenJob, onNotify }: AppliedJobsPageProps) {
   const cachedApplications = getCachedCandidateApplications(profile.id);
   const [applications, setApplications] = useState<Application[]>(() => cachedApplications ?? []);
   const [loading, setLoading] = useState(hasSupabaseConfig && cachedApplications === undefined);
 
   useEffect(() => {
+    if (!active) return;
     if (!hasSupabaseConfig) {
       setLoading(false);
       return;
     }
-    let active = true;
+    let mounted = true;
     void loadCandidateApplications(profile.id).then((result) => {
-      if (!active) return;
+      if (!mounted) return;
       setApplications(result.applications);
       setLoading(false);
       if (result.error) onNotify("تعذر تحميل الوظائف المتقدّم لها.");
     });
     return () => {
-      active = false;
+      mounted = false;
     };
-  }, [onNotify, profile.id]);
+  }, [active, onNotify, profile.id]);
 
   const summary = useMemo(() => ({
     total: applications.length,
