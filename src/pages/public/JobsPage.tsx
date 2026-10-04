@@ -192,7 +192,7 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
       </div>
     </aside>}
 
-    <div className="jobs-browse-tools">
+    <div className="jobs-browse-tools" role="search">
       <div className="jobs-classic-filters">
         <label className="jobs-search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث بالمسمى أو اسم الشركة" aria-label="البحث عن وظيفة" /></label>
         <label className="jobs-select-field"><span>التصنيف</span><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="تصفية حسب التصنيف"><option value="الكل">كل التصنيفات</option>{[...categories, "عام"].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
