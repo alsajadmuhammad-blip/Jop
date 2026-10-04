@@ -37,6 +37,12 @@ export async function deleteJob(id: string) {
       if (error.code === "PGRST202" || /admin_delete_job|schema cache/i.test(error.message)) {
         return new Error("دالة الحذف غير مفعّلة في قاعدة البيانات. نفّذ supabase/admin-delete-job.sql في SQL Editor، ثم أعد المحاولة.");
       }
+      if (/يجب تحديد آخر موعد صالح للتقديم قبل إرسال الطلب أو الموافقة عليه/.test(error.message)) {
+        return new Error("قاعدة البيانات تعيد فحص موعد طلب النشر المرتبط أثناء الحذف. نفّذ supabase/job-request-deadline-trigger-fix.sql في SQL Editor، ثم أعد المحاولة.");
+      }
+      if (/job_requests_deadline_required_check/.test(error.message)) {
+        return new Error("قاعدة البيانات تحتاج تحديث قيد موعد طلب النشر قبل حذف الوظيفة. نفّذ supabase/job-request-deadline-trigger-fix.sql في SQL Editor، ثم أعد المحاولة.");
+      }
       if (error.code === "42501") {
         return new Error("الحساب الحالي لا يملك صلاحية حذف الوظائف.");
       }

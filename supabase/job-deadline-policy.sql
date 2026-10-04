@@ -16,7 +16,11 @@ alter table public.job_requests
   drop constraint if exists job_requests_deadline_required_check;
 alter table public.job_requests
   add constraint job_requests_deadline_required_check
-  check (status not in ('pending', 'approved') or deadline is not null) not valid;
+  check (
+    status not in ('pending', 'approved')
+    or deadline is not null
+    or (status = 'approved' and approved_job_id is null)
+  ) not valid;
 
 create or replace function public.enforce_published_job_deadline()
 returns trigger
@@ -60,8 +64,13 @@ end;
 $$;
 
 drop trigger if exists job_requests_enforce_deadline on public.job_requests;
-create trigger job_requests_enforce_deadline
-before insert or update on public.job_requests
+drop trigger if exists job_requests_enforce_deadline_insert on public.job_requests;
+drop trigger if exists job_requests_enforce_deadline_update on public.job_requests;
+create trigger job_requests_enforce_deadline_insert
+before insert on public.job_requests
+for each row execute function public.enforce_job_request_deadline();
+create trigger job_requests_enforce_deadline_update
+before update of status, deadline on public.job_requests
 for each row execute function public.enforce_job_request_deadline();
 
 -- Keep expired, missing-deadline, and future jobs out of all non-admin reads.
