@@ -57,14 +57,6 @@ export function HomePage({ jobs, hasMoreJobs, loading, profile, onNavigate, onOp
               <h2>حوّل ملفك المهني إلى سيرة جاهزة للتقديم</h2>
               <p>أكمل بياناتك باللغة الإنكليزية، ثم صدّر سيرتك بصيغة ATS كملف Word أو PDF.</p>
             </div>
-            <button
-              type="button"
-              className="resume-promo-cta"
-              onClick={() => onNavigate(profile?.role === "candidate" ? "candidate" : "signup")}
-            >
-              {profile?.role === "candidate" ? "أكمل ملفك وصدّر سيرتك" : "أنشئ ملفك المهني"}
-              <ArrowLeft size={17} aria-hidden="true" />
-            </button>
           </div>
         </div>
       </section>
