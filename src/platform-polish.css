@@ -312,3 +312,193 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Desktop shell: keep the sticky header and role navigation in the same scroll context. */
+:root {
+  --platform-header-height: 78px;
+  --platform-sidebar-width: 250px;
+  --platform-sidebar-inset: 16px;
+  --platform-sidebar-gap: 20px;
+  --platform-canvas: #f5f6fb;
+  --platform-surface: #fff;
+  --platform-border: #e3e7f1;
+  --platform-shadow: 0 14px 36px rgba(31, 39, 103, .07);
+}
+
+html {
+  scroll-padding-top: calc(var(--platform-header-height) + 14px);
+}
+
+body {
+  overflow-x: clip;
+  color: #252b4b;
+  background: var(--platform-canvas);
+}
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.site-header {
+  z-index: 100;
+  border-bottom-color: rgba(218, 223, 238, .82);
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 5px 22px rgba(31, 39, 103, .045);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.container {
+  width: min(1200px, calc(100% - 48px));
+}
+
+.dashboard-page,
+.admin-main,
+.role-dashboard-main {
+  min-width: 0;
+}
+
+.admin-stat-card,
+.admin-report-card,
+.admin-recent-card,
+.admin-content-section,
+.job-request-review-card,
+.application-row,
+.admin-row {
+  border-color: var(--platform-border);
+  box-shadow: 0 8px 26px rgba(31, 39, 103, .045);
+}
+
+.job-card,
+.admin-stat-card,
+.admin-report-card,
+.admin-recent-card,
+.admin-content-section,
+.job-request-review-card,
+.application-row,
+.admin-row {
+  transition:
+    border-color .2s ease,
+    box-shadow .2s ease,
+    background-color .2s ease;
+}
+
+.job-card:hover,
+.admin-row:hover,
+.application-row:hover,
+.job-request-review-card:hover {
+  border-color: #cfd5ed;
+  box-shadow: 0 12px 32px rgba(31, 39, 103, .09);
+}
+
+.main-sidebar-nav {
+  min-height: 0;
+  flex: 1 1 auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #d8dced transparent;
+  scrollbar-width: thin;
+}
+
+.main-sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.main-sidebar-nav::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: #d8dced;
+}
+
+.role-sidebar {
+  align-self: start;
+  max-height: calc(100dvh - var(--platform-header-height) - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #d8dced transparent;
+  scrollbar-width: thin;
+}
+
+.main-sidebar-nav button,
+.main-sidebar-logout,
+.role-sidebar-nav button,
+.role-sidebar-logout,
+.profile-chip,
+.header-logout-btn,
+.nav-link {
+  transition:
+    color .18s ease,
+    background-color .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    transform .18s ease;
+}
+
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 3px solid rgba(83, 102, 196, .24);
+  outline-offset: 2px;
+}
+
+@media (min-width: 901px) {
+  .has-main-sidebar > main,
+  .has-main-sidebar > footer {
+    margin-right: calc(
+      var(--platform-sidebar-width) +
+      var(--platform-sidebar-inset) +
+      var(--platform-sidebar-gap)
+    );
+  }
+
+  .main-sidebar {
+    top: calc(var(--platform-header-height) + 14px);
+    right: var(--platform-sidebar-inset);
+    bottom: 14px;
+    width: var(--platform-sidebar-width);
+    min-height: 0;
+    border: 1px solid var(--platform-border);
+    border-radius: 18px;
+    box-shadow: var(--platform-shadow);
+    z-index: 90;
+  }
+
+  .role-sidebar {
+    top: calc(var(--platform-header-height) + 16px);
+  }
+
+  .role-dashboard-shell {
+    gap: clamp(22px, 2.2vw, 32px);
+    padding-top: 30px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .container {
+    width: min(1280px, calc(100% - 80px));
+  }
+
+  .nav-wrap {
+    width: min(1360px, calc(100% - 80px));
+  }
+}
+
+@media (max-width: 900px) {
+  .has-main-sidebar > main,
+  .has-main-sidebar > footer {
+    margin-right: 0;
+  }
+
+  .main-sidebar-backdrop {
+    z-index: 109;
+  }
+
+  .main-sidebar.open {
+    z-index: 110;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --platform-header-height: 66px;
+  }
+}
