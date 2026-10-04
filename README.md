@@ -30,10 +30,11 @@ cp .env.example .env
 4. نفّذ `supabase/candidate-search.sql` لإضافة ملفات ATS الداخلية وبحث الباحثين.
 5. نفّذ `supabase/platform-features.sql` ثم `supabase/application-prevent-duplicates.sql` لتفعيل استقبال التقديمات المباشرة على الوظائف، وربط الطلبات بالباحثين ومنع التقديم المكرر.
 6. نفّذ `supabase/search-pagination.sql` لإضافة البحث والصفحات وخيارات الفلاتر العامة.
-7. نفّذ `supabase/job-provinces-migration.sql` لإضافة المحافظة المستقلة للوظائف وتحديث شريط محافظات الوظائف المنشورة.
+7. في المشاريع التي سبق إعداد البحث فيها، نفّذ `supabase/candidate-search-complete-profiles.sql` لتقييد خيارات البحث والنتائج بالملفات المكتملة.
+8. نفّذ `supabase/job-provinces-migration.sql` لإضافة المحافظة المستقلة للوظائف وتحديث شريط محافظات الوظائف المنشورة.
    تربط التهيئة المواقع القديمة المعروفة بمحافظاتها؛ عدّل من لوحة الإدارة أي وظيفة بقيت محافظتها فارغة.
-8. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
-9. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
+9. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
+10. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
 
 تسجيل الحسابات العادية يتم عبر Edge Function حتى يتم إنشاء الحساب مؤكدًا مباشرة بدون رسالة بريد أو رابط تأكيد. الدالة تستخدم `SUPABASE_SERVICE_ROLE_KEY` داخل بيئة Supabase فقط، ولا يوضع هذا المفتاح داخل التطبيق.
 
