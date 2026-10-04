@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, BriefcaseBusiness, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Building2, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
 import { DatePickerField } from "../../components/common/DatePickerField";
@@ -7,7 +7,7 @@ import { categories, governorates, jobTypes } from "../../lib/constants";
 import { formatDate, formatJobLocation } from "../../lib/format";
 import { getBaghdadToday } from "../../lib/date";
 import type { Application, EmployerAccount, Job, JobAdType, JobRequest, JobType, PostStatus } from "../../lib/types";
-import { createJob, deleteJob, loadEmployerAccounts, updateCandidateSearchPermission, updateJob, updatePostStatus } from "../../services/adminService";
+import { createJob, deleteJob, loadAdminAccountStats, loadEmployerAccounts, updateCandidateSearchPermission, updateJob, updatePostStatus, type AdminAccountStats } from "../../services/adminService";
 import type { Notify, View } from "../../app/types";
 import { JobRequestReviewList } from "../../features/jobs/JobRequestReviewList";
 
@@ -56,6 +56,28 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
   const [refreshing, setRefreshing] = useState(false);
   const [employerAccounts, setEmployerAccounts] = useState<EmployerAccount[]>([]);
   const [employerAccountsLoading, setEmployerAccountsLoading] = useState(true);
+  const [accountStats, setAccountStats] = useState<AdminAccountStats | null>(null);
+  const [accountStatsLoading, setAccountStatsLoading] = useState(true);
+  const [accountStatsError, setAccountStatsError] = useState(false);
+
+  const refreshAccountStats = async () => {
+    setAccountStatsLoading(true);
+    try {
+      const result = await loadAdminAccountStats();
+      if (result.error) {
+        setAccountStatsError(true);
+        onNotify("تعذر تحميل إحصاءات الحسابات.");
+      } else {
+        setAccountStats(result.stats);
+        setAccountStatsError(false);
+      }
+    } catch {
+      setAccountStatsError(true);
+      onNotify("تعذر تحميل إحصاءات الحسابات.");
+    } finally {
+      setAccountStatsLoading(false);
+    }
+  };
 
   useEffect(() => {
     void loadEmployerAccounts().then((result) => {
@@ -63,6 +85,7 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
       setEmployerAccountsLoading(false);
       if (result.error) onNotify("تعذر تحميل حسابات أصحاب العمل.");
     });
+    void refreshAccountStats();
   }, []);
 
   const publishedJobs = jobs.filter((job) => job.status === "published");
@@ -76,6 +99,7 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
   const refresh = async () => {
     setRefreshing(true);
     onRefresh();
+    void refreshAccountStats();
     window.setTimeout(() => setRefreshing(false), 650);
   };
 
@@ -122,7 +146,7 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
               <span><b>{newApplications.length}</b><small>تقديم جديد</small></span>
             </div>
           </div>
-         {section === "overview" && <AdminOverview jobs={jobs} applications={jobApplications} jobRequests={jobRequests} pendingJobRequests={pendingJobRequests} publishedJobs={publishedJobs} draftJobs={draftJobs} closedJobs={closedJobs} newApplications={newApplications} onSection={selectSection} onNavigate={onNavigate} onCopyLink={() => void copyJobRequestLink()} />}
+         {section === "overview" && <AdminOverview jobs={jobs} applications={jobApplications} jobRequests={jobRequests} pendingJobRequests={pendingJobRequests} publishedJobs={publishedJobs} draftJobs={draftJobs} closedJobs={closedJobs} newApplications={newApplications} accountStats={accountStats} accountStatsLoading={accountStatsLoading} accountStatsError={accountStatsError} onSection={selectSection} onNavigate={onNavigate} onCopyLink={() => void copyJobRequestLink()} />}
          {section === "jobs" && (
            <section className="admin-content-section">
              <div className="admin-section-toolbar">
@@ -167,16 +191,58 @@ function EmployerAccessSection({ accounts, loading, onNotify, onChanged }: { acc
   return <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>صلاحيات البحث</h2><p>فعّل البحث عن الملفات الشخصية لكل صاحب عمل بشكل مستقل.</p></div><span className="section-count"><ShieldCheck size={15} /> {accounts.filter((account) => account.can_search_candidates).length} مفعّلة</span></div><div className="access-explanation"><ShieldCheck size={20} /><span><b>التحكم بيد المشرف</b><small>صاحب العمل لا يستطيع رؤية أو البحث عن أي ملف إلا بعد تفعيل هذه الصلاحية لحسابه.</small></span></div>{loading ? <div className="centered-state"><span className="live-dot" /><p>جاري تحميل الحسابات...</p></div> : <div className="employer-access-list">{accounts.length ? accounts.map((account) => <div className="employer-access-row" key={account.id}><span className="app-avatar">{(account.full_name || "ص").slice(0, 1)}</span><div><b>{account.full_name || "حساب بدون اسم"}</b><small>{account.organization || "صاحب عمل / HR"}</small></div><span className={`permission-status ${account.can_search_candidates ? "enabled" : "disabled"}`}>{account.can_search_candidates ? "البحث مفعّل" : "البحث غير مفعّل"}</span><button className={account.can_search_candidates ? "outline-btn danger-outline" : "primary-btn"} disabled={updating === account.id} onClick={() => void changePermission(account)}>{updating === account.id ? "جاري التحديث..." : account.can_search_candidates ? "إيقاف الصلاحية" : "تفعيل البحث"}</button></div>) : <EmptyState title="لا توجد حسابات أصحاب عمل" text="ستظهر حسابات HR هنا بعد التسجيل." />}</div>}</section>;
 }
 
-function AdminOverview({ jobs, applications, jobRequests, pendingJobRequests, publishedJobs, draftJobs, closedJobs, newApplications, onSection, onNavigate, onCopyLink }: { jobs: Job[]; applications: Application[]; jobRequests: JobRequest[]; pendingJobRequests: JobRequest[]; publishedJobs: Job[]; draftJobs: Job[]; closedJobs: Job[]; newApplications: Application[]; onSection: (section: AdminSection) => void; onNavigate: (view: View) => void; onCopyLink: () => void }) {
+function AdminOverview({ jobs, applications, jobRequests, pendingJobRequests, publishedJobs, draftJobs, closedJobs, newApplications, accountStats, accountStatsLoading, accountStatsError, onSection, onNavigate, onCopyLink }: { jobs: Job[]; applications: Application[]; jobRequests: JobRequest[]; pendingJobRequests: JobRequest[]; publishedJobs: Job[]; draftJobs: Job[]; closedJobs: Job[]; newApplications: Application[]; accountStats: AdminAccountStats | null; accountStatsLoading: boolean; accountStatsError: boolean; onSection: (section: AdminSection) => void; onNavigate: (view: View) => void; onCopyLink: () => void }) {
   const totalPosts = jobs.length;
   const publishedPosts = publishedJobs.length;
   const publicationPercent = totalPosts ? Math.round((publishedPosts / totalPosts) * 100) : 0;
   return <div className="admin-overview">
      <div className="admin-summary-grid"><StatCard tone="navy" icon={<BriefcaseBusiness size={19} />} value={publishedJobs.length} label="وظائف منشورة" detail={`${draftJobs.length} مسودة تحتاج متابعة`} /><StatCard tone="orange" icon={<Clock3 size={19} />} value={pendingJobRequests.length} label="طلبات قيد المراجعة" detail="بانتظار قرار الإدارة" /><StatCard tone="violet" icon={<FileText size={19} />} value={applications.length} label="إجمالي تقديمات الوظائف" detail={`${newApplications.length} جديدة`} /><StatCard tone="green" icon={<CheckCircle2 size={19} />} value={`${publicationPercent}%`} label="نسبة المنشورات النشطة" detail={`${closedJobs.length} منشور مغلق`} /></div>
+      <section className="admin-account-summary" aria-labelledby="admin-account-summary-title">
+        <div className="admin-account-summary-header">
+          <div>
+            <span className="admin-account-summary-kicker"><BarChart3 size={14} /> إحصاءات الحسابات</span>
+            <h2 id="admin-account-summary-title">حسابات المنصة</h2>
+            <p>الأعداد الفعلية للحسابات المسجلة حسب نوعها.</p>
+          </div>
+          <span className={`admin-account-summary-status${accountStatsError ? " is-warning" : ""}`} role="status">
+            {!accountStatsError && <span className="admin-account-summary-dot" />}
+            {accountStatsLoading ? "جارٍ التحديث" : accountStatsError ? "تعذّر التحديث" : "بيانات مباشرة"}
+          </span>
+        </div>
+        <div className="admin-account-stats-grid">
+          <AccountStatCard
+            tone="hr"
+            icon={<Building2 size={19} />}
+            label="حسابات HR"
+            value={accountStats ? accountStats.hrAccounts.toLocaleString("ar-IQ") : "—"}
+            detail={accountStatsError ? accountStats ? "آخر عدد تم تحميله بنجاح" : "تعذّر تحميل العدد" : "جهات التوظيف المسجّلة"}
+            loading={accountStatsLoading && !accountStats}
+          />
+          <AccountStatCard
+            tone="candidate"
+            icon={<UsersRound size={19} />}
+            label="حسابات الباحثين عن عمل"
+            value={accountStats ? accountStats.candidateAccounts.toLocaleString("ar-IQ") : "—"}
+            detail={accountStatsError ? accountStats ? "آخر عدد تم تحميله بنجاح" : "تعذّر تحميل العدد" : "الباحثون المسجّلون في المنصة"}
+            loading={accountStatsLoading && !accountStats}
+          />
+        </div>
+      </section>
      <div className="admin-quick-actions"><div><b>إجراءات سريعة</b><span>أكثر العمليات استخداماً</span></div><button onClick={() => onNavigate("admin-post")}><Plus size={17} /><span><b>إضافة وظيفة</b><small>إنشاء وظيفة جديدة</small></span></button><button onClick={() => onSection("job-requests")}><CheckCircle2 size={17} /><span><b>مراجعة الطلبات</b><small>{pendingJobRequests.length ? `${pendingJobRequests.length} بانتظارك` : "لا توجد طلبات جديدة"}</small></span></button><button onClick={onCopyLink}><Link2 size={17} /><span><b>رابط طلب وظيفة</b><small>نسخ الرابط العام</small></span></button></div>
      <div className="admin-overview-grid"><div className="admin-report-card"><div className="report-card-header"><div><span className="eyebrow">تقرير النشر</span><h2>حالة المحتوى</h2></div><BarChart3 size={20} /></div><div className="report-bar-row"><div><span>منشور</span><b>{publishedPosts}</b></div><div className="report-bar"><span className="published-bar" style={{ width: `${totalPosts ? (publishedPosts / totalPosts) * 100 : 0}%` }} /></div></div><div className="report-bar-row"><div><span>مسودات</span><b>{draftJobs.length}</b></div><div className="report-bar"><span className="draft-bar" style={{ width: `${totalPosts ? (draftJobs.length / totalPosts) * 100 : 0}%` }} /></div></div><div className="report-bar-row"><div><span>مغلق</span><b>{closedJobs.length}</b></div><div className="report-bar"><span className="closed-bar" style={{ width: `${totalPosts ? (closedJobs.length / totalPosts) * 100 : 0}%` }} /></div></div><div className="report-total"><span>إجمالي المنشورات</span><strong>{totalPosts}</strong></div></div><div className="admin-report-card"><div className="report-card-header"><div><span className="eyebrow">آخر النشاطات</span><h2>ما يحتاج انتباهك</h2></div><button className="report-link" onClick={() => onSection("job-requests")}>عرض الكل</button></div><div className="activity-list">{pendingJobRequests.slice(0, 3).map((request) => <button className="activity-item" key={request.id} onClick={() => onSection("job-requests")}><span className="activity-icon orange"><Clock3 size={16} /></span><span><b>طلب نشر وظيفة جديد</b><small>{request.title} · {request.company_name}</small></span><small>{formatDate(request.created_at)}</small></button>)}{applications.slice(0, 2).map((application) => <button className="activity-item" key={application.id} onClick={() => onSection("applications")}><span className="activity-icon blue"><FileText size={16} /></span><span><b>تقديم وظيفة جديد</b><small>{application.full_name}</small></span><small>{formatDate(application.created_at)}</small></button>)}{pendingJobRequests.length === 0 && applications.length === 0 && <div className="activity-empty">لا توجد نشاطات جديدة حالياً</div>}</div></div></div>
      <div className="admin-recent-card"><div className="report-card-header"><div><span className="eyebrow">آخر الوظائف</span><h2>الفرص المنشورة حديثاً</h2></div><button className="report-link" onClick={() => onSection("jobs")}>إدارة المنشورات</button></div><div className="recent-jobs-grid">{jobs.slice(0, 4).map((job) => <button className="recent-job-item" key={job.id} onClick={() => onSection("jobs")}><span className="company-logo"><BriefcaseBusiness size={17} /></span><span><b>{job.title}</b><small>{job.company_name} · {formatJobLocation(job)}</small></span><span className={`status ${job.status}`}>{statusLabel(job.status)}</span></button>)}{jobs.length === 0 && <div className="activity-empty">لا توجد وظائف بعد.</div>}</div></div>
   </div>;
+}
+
+function AccountStatCard({ tone, icon, label, value, detail, loading }: { tone: "hr" | "candidate"; icon: React.ReactNode; label: string; value: string; detail: string; loading: boolean }) {
+  return <article className={`admin-account-stat-card ${tone}`} aria-busy={loading} aria-live="polite" aria-atomic="true">
+    <span className="admin-account-stat-icon" aria-hidden="true">{icon}</span>
+    <div className="admin-account-stat-copy">
+      <span className="admin-account-stat-label">{label}</span>
+      <strong dir="ltr">{loading ? "…" : value}</strong>
+      <small>{detail}</small>
+    </div>
+  </article>;
 }
 
 export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initialJob?: Job | null }) {

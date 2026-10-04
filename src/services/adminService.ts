@@ -101,6 +101,29 @@ export async function loadEmployerAccounts() {
   return { accounts: (data as EmployerAccount[]) || [], error };
 }
 
+export type AdminAccountStats = {
+  hrAccounts: number;
+  candidateAccounts: number;
+};
+
+export async function loadAdminAccountStats() {
+  const [hrResult, candidateResult] = await Promise.all([
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "hr"),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "candidate"),
+  ]);
+  const error = hrResult.error ?? candidateResult.error;
+
+  return {
+    stats: error
+      ? null
+      : {
+          hrAccounts: hrResult.count ?? 0,
+          candidateAccounts: candidateResult.count ?? 0,
+        },
+    error,
+  };
+}
+
 export async function updateCandidateSearchPermission(userId: string, enabled: boolean) {
   const { error } = await supabase
     .from("profiles")
