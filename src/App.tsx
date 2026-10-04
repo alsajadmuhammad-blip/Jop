@@ -370,7 +370,7 @@ function App() {
   };
 
   return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}`}>
-    <Header view={view} profile={profile} notifications={notifications} onNavigate={navigate} onOpenNotification={openNotification} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
+    <Header view={view} profile={profile} onLogout={() => void logout()} notifications={notifications} onNavigate={navigate} onOpenNotification={openNotification} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
     {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}

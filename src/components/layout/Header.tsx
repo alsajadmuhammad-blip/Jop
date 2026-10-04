@@ -1,4 +1,4 @@
-import { LogIn, Menu, UserPlus } from "lucide-react";
+import { LogIn, LogOut, Menu, UserPlus } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
 import { NotificationBell, type AppNotification, type NotificationDestination } from "./NotificationBell";
@@ -6,6 +6,7 @@ import { NotificationBell, type AppNotification, type NotificationDestination } 
 type HeaderProps = {
   view: View;
   profile: Profile | null;
+  onLogout: () => void;
   onNavigate: (view: View) => void;
   onLogin: () => void;
   onRegister: () => void;
@@ -19,7 +20,7 @@ function roleLabel(profile: Profile) {
   return profile.role === "candidate" ? "باحث عن عمل" : profile.role === "hr" ? "حساب HR" : "مدير المنصة";
 }
 
-export function Header({ view, profile, onNavigate, onLogin, onRegister, mobileMenu, setMobileMenu, notifications, onOpenNotification }: HeaderProps) {
+export function Header({ view, profile, onLogout, onNavigate, onLogin, onRegister, mobileMenu, setMobileMenu, notifications, onOpenNotification }: HeaderProps) {
   const links: { label: string; view: View }[] = [
     { label: "الرئيسية", view: "home" },
     { label: "الوظائف", view: "jobs" },
@@ -30,9 +31,9 @@ export function Header({ view, profile, onNavigate, onLogin, onRegister, mobileM
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}
     </nav>
     <div className="header-actions">
-       {profile ? <><NotificationBell profile={profile} notifications={notifications} onNavigate={onOpenNotification} /><button className="profile-chip" onClick={() => profile.role === "candidate" ? onNavigate("candidate") : onNavigate(profile.role === "admin" ? "admin" : "hr")} aria-label={`فتح ${roleLabel(profile)}`}>
+        {profile ? <><NotificationBell profile={profile} notifications={notifications} onNavigate={onOpenNotification} /><button className="profile-chip" onClick={() => profile.role === "candidate" ? onNavigate("candidate") : onNavigate(profile.role === "admin" ? "admin" : "hr")} aria-label={`فتح ${roleLabel(profile)}`}>
          <span className="profile-copy"><b>{profile.full_name || "حسابي"}</b><small>{roleLabel(profile)}</small></span>
-        </button><button className={`menu-btn ${profile.role === "candidate" ? "candidate-menu-btn" : ""}`} onClick={() => setMobileMenu(!mobileMenu)} aria-label="فتح القائمة الرئيسية" aria-expanded={mobileMenu}><Menu size={21} /></button></> : <div className="auth-header-actions"><button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button><button className="register-btn" onClick={onRegister}><UserPlus size={16} /> حساب مجاني</button></div>}
+         </button>{profile.role === "candidate" && <button type="button" className="header-logout-btn candidate-header-logout" onClick={onLogout} aria-label="تسجيل الخروج" title="تسجيل الخروج"><LogOut size={16} /><span>تسجيل الخروج</span></button>}<button className={`menu-btn ${profile.role === "candidate" ? "candidate-menu-btn" : ""}`} onClick={() => setMobileMenu(!mobileMenu)} aria-label="فتح القائمة الرئيسية" aria-expanded={mobileMenu}><Menu size={21} /></button></> : <div className="auth-header-actions"><button className="login-btn" onClick={onLogin}><LogIn size={16} /> دخول</button><button className="register-btn" onClick={onRegister}><UserPlus size={16} /> حساب مجاني</button></div>}
     </div>
   </div></header>;
 }
