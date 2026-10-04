@@ -23,6 +23,75 @@
   background: #ffe3e1;
 }
 
+.admin-delete-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.admin-delete-description strong {
+  color: var(--ink);
+}
+
+.admin-delete-impact {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #8c4b48;
+  background: #fff6f5;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.admin-delete-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: #963e3a;
+  background: #fff0ef;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.admin-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.admin-delete-actions button {
+  min-height: 40px;
+}
+
+.admin-delete-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 1px solid #b0524e;
+  border-radius: 9px;
+  color: #fff;
+  background: #b0524e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-delete-confirm-btn:hover:not(:disabled) {
+  border-color: #963e3a;
+  background: #963e3a;
+}
+
+.admin-delete-confirm-btn:disabled,
+.admin-delete-actions .outline-btn:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
 @media (max-width: 640px) {
   .admin-row .row-action {
     min-height: 34px;
@@ -31,5 +100,9 @@
   .admin-row .row-edit-action,
   .admin-row .row-delete-action {
     padding-inline: 8px;
+  }
+
+  .admin-delete-actions button {
+    flex: 1;
   }
 }

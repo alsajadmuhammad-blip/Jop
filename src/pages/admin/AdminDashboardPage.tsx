@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, BriefcaseBusiness, Building2, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
+import { ModalShell } from "../../components/common/ModalShell";
 import { DatePickerField } from "../../components/common/DatePickerField";
 import { categories, governorates, jobTypes } from "../../lib/constants";
 import { formatDate, formatJobLocation } from "../../lib/format";
@@ -59,6 +60,9 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
   const [accountStats, setAccountStats] = useState<AdminAccountStats | null>(null);
   const [accountStatsLoading, setAccountStatsLoading] = useState(true);
   const [accountStatsError, setAccountStatsError] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
+  const [deletingJob, setDeletingJob] = useState(false);
+  const [deleteJobError, setDeleteJobError] = useState("");
 
   const refreshAccountStats = async () => {
     setAccountStatsLoading(true);
@@ -120,13 +124,33 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
     onRefresh();
   };
 
-  const removeJob = async (job: Job) => {
-    const confirmed = window.confirm(`هل أنت متأكد من حذف وظيفة «${job.title}»؟\nسيتم حذفها نهائياً، مع التقديمات والوظائف المحفوظة المرتبطة بها، ولا يمكن التراجع عن العملية.`);
-    if (!confirmed) return;
-    const error = await deleteJob(job.id);
-    if (error) return onNotify(error.message || "تعذر حذف الوظيفة.");
-    onNotify("تم حذف الوظيفة");
-    onRefresh();
+  const requestJobDeletion = (job: Job) => {
+    setDeleteJobError("");
+    setJobToDelete(job);
+  };
+
+  const closeDeleteDialog = () => {
+    if (deletingJob) return;
+    setDeleteJobError("");
+    setJobToDelete(null);
+  };
+
+  const removeJob = async () => {
+    if (!jobToDelete || deletingJob) return;
+    setDeletingJob(true);
+    setDeleteJobError("");
+    try {
+      const error = await deleteJob(jobToDelete.id);
+      if (error) {
+        setDeleteJobError(error.message || "تعذر حذف الوظيفة.");
+        return;
+      }
+      setJobToDelete(null);
+      onNotify("تم حذف الوظيفة والتقديمات والوظائف المحفوظة المرتبطة بها.");
+      onRefresh();
+    } finally {
+      setDeletingJob(false);
+    }
   };
 
   const selectSection = (next: AdminSection) => {
@@ -165,7 +189,7 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
              </div>
              <div className="admin-list">
                {filteredJobs.map((job) => (
-                 <AdminPost key={job.id} title={job.title} subtitle={[job.company_name, formatJobLocation(job)].join(" · ")} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => void removeJob(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />
+                  <AdminPost key={job.id} title={job.title} subtitle={[job.company_name, formatJobLocation(job)].join(" · ")} type="وظيفة" status={job.status} onEdit={() => onEditJob(job)} onDelete={() => requestJobDeletion(job)} onPublish={() => void changeStatus("jobs", job.id, job.status === "published" ? "closed" : "published")} />
                ))}
                {filteredJobs.length === 0 && <EmptyState title="لا توجد وظائف" text="ابدأ بإضافة أول وظيفة من زر وظيفة جديدة." />}
              </div>
@@ -173,6 +197,26 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
          )}
          {section === "job-requests" && <section className="admin-content-section"><div className="admin-section-toolbar"><div><h2>طلبات نشر الوظائف</h2><p>راجع طلبات الشركات قبل نشرها للعامة.</p></div><button className="outline-btn" onClick={() => void copyJobRequestLink()}><Link2 size={15} /> نسخ رابط الطلب العام</button></div><JobRequestReviewList requests={jobRequests} onRefresh={onRefresh} onNotify={onNotify} /></section>}
          {section === "employer-access" && <EmployerAccessSection accounts={employerAccounts} loading={employerAccountsLoading} onNotify={onNotify} onChanged={(next) => setEmployerAccounts((current) => current.map((account) => account.id === next.id ? next : account))} />}
+          {jobToDelete && (
+            <ModalShell title="تأكيد حذف الوظيفة" onClose={closeDeleteDialog}>
+              <div className="admin-delete-dialog" dir="rtl">
+                <p className="admin-delete-description">
+                  هل تريد حذف <strong>{jobToDelete.title}</strong> نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.
+                </p>
+                <div className="admin-delete-impact">
+                  <span>سيُحذف سجل الوظيفة.</span>
+                  <span>ستُحذف التقديمات والوظائف المحفوظة المرتبطة بها.</span>
+                </div>
+                {deleteJobError && <p className="admin-delete-error" role="alert">{deleteJobError}</p>}
+                <div className="admin-delete-actions">
+                  <button type="button" className="outline-btn" onClick={closeDeleteDialog} disabled={deletingJob}>إلغاء</button>
+                  <button type="button" className="admin-delete-confirm-btn" onClick={() => void removeJob()} disabled={deletingJob}>
+                    <Trash2 size={15} /> {deletingJob ? "جارٍ الحذف..." : "حذف نهائي"}
+                  </button>
+                </div>
+              </div>
+            </ModalShell>
+          )}
     </div>
   </section>;
 }

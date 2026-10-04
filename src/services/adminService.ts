@@ -31,10 +31,22 @@ export async function updateJob(id: string, input: JobPostInput) {
 }
 
 export async function deleteJob(id: string) {
-  const { data, error } = await supabase.rpc("admin_delete_job", { p_job_id: id });
-  if (error) return error;
-  if (data !== true) return new Error("لم يتم العثور على الوظيفة المطلوب حذفها.");
-  return null;
+  try {
+    const { data, error } = await supabase.rpc("admin_delete_job", { p_job_id: id });
+    if (error) {
+      if (error.code === "PGRST202" || /admin_delete_job|schema cache/i.test(error.message)) {
+        return new Error("دالة الحذف غير مفعّلة في قاعدة البيانات. نفّذ supabase/admin-delete-job.sql في SQL Editor، ثم أعد المحاولة.");
+      }
+      if (error.code === "42501") {
+        return new Error("الحساب الحالي لا يملك صلاحية حذف الوظائف.");
+      }
+      return new Error(error.message);
+    }
+    if (data !== true) return new Error("لم يتم العثور على الوظيفة المطلوب حذفها.");
+    return null;
+  } catch (error) {
+    return new Error(error instanceof Error ? error.message : "تعذر الاتصال بقاعدة البيانات.");
+  }
 }
 
 export async function loadAdminPosts() {

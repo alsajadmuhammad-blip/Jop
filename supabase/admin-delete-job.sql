@@ -18,3 +18,5 @@ $$;
 
 revoke all on function public.admin_delete_job(uuid) from public, anon;
 grant execute on function public.admin_delete_job(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
