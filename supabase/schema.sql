@@ -135,6 +135,25 @@ returns boolean language sql security definer set search_path = public stable as
   select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
 $$;
 
+create or replace function public.admin_delete_job(p_job_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'غير مصرح بحذف الوظائف';
+  end if;
+
+  delete from public.jobs where id = p_job_id;
+  return found;
+end;
+$$;
+
+revoke all on function public.admin_delete_job(uuid) from public, anon;
+grant execute on function public.admin_delete_job(uuid) to authenticated;
+
 create or replace function public.is_hr()
 returns boolean language sql security definer set search_path = public stable as $$
   select exists (select 1 from public.profiles where id = auth.uid() and role = 'hr');

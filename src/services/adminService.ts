@@ -31,8 +31,10 @@ export async function updateJob(id: string, input: JobPostInput) {
 }
 
 export async function deleteJob(id: string) {
-  const { error } = await supabase.from("jobs").delete().eq("id", id);
-  return error;
+  const { data, error } = await supabase.rpc("admin_delete_job", { p_job_id: id });
+  if (error) return error;
+  if (data !== true) return new Error("لم يتم العثور على الوظيفة المطلوب حذفها.");
+  return null;
 }
 
 export async function loadAdminPosts() {

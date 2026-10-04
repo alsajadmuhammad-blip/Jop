@@ -121,10 +121,10 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
   };
 
   const removeJob = async (job: Job) => {
-    const confirmed = window.confirm(`هل أنت متأكد من حذف وظيفة «${job.title}»؟\nسيتم حذفها نهائياً ولا يمكن التراجع عن العملية.`);
+    const confirmed = window.confirm(`هل أنت متأكد من حذف وظيفة «${job.title}»؟\nسيتم حذفها نهائياً، مع التقديمات والوظائف المحفوظة المرتبطة بها، ولا يمكن التراجع عن العملية.`);
     if (!confirmed) return;
     const error = await deleteJob(job.id);
-    if (error) return onNotify(error.message);
+    if (error) return onNotify(error.message || "تعذر حذف الوظيفة.");
     onNotify("تم حذف الوظيفة");
     onRefresh();
   };

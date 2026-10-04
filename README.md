@@ -36,6 +36,8 @@ cp .env.example .env
 9. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
 10. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
 
+في قاعدة بيانات أُعِدّت مسبقًا، نفّذ `supabase/admin-delete-job.sql` مرة واحدة لتفعيل دالة حذف الوظائف الجديدة.
+
 تسجيل الحسابات العادية يتم عبر Edge Function حتى يتم إنشاء الحساب مؤكدًا مباشرة بدون رسالة بريد أو رابط تأكيد. الدالة تستخدم `SUPABASE_SERVICE_ROLE_KEY` داخل بيئة Supabase فقط، ولا يوضع هذا المفتاح داخل التطبيق.
 
 ```sql
