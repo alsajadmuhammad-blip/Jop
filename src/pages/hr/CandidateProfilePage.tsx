@@ -1,6 +1,12 @@
-import { ArrowRight, BriefcaseBusiness, CalendarDays, GraduationCap, Languages, Mail, MapPin, Phone, UserRound } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import type { CandidateProfile } from "../../lib/types";
-import { formatCandidateExperiencePeriod, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages } from "../../services/candidateService";
+import {
+  formatCandidateExperiencePeriodForAts,
+  parseCandidateEducation,
+  parseCandidateExperiences,
+  parseCandidateLanguages,
+} from "../../services/candidateService";
 
 type CandidateProfilePageProps = {
   candidate: CandidateProfile;
@@ -8,64 +14,117 @@ type CandidateProfilePageProps = {
   onBack: () => void;
 };
 
+const englishLanguageLevels: Record<string, string> = {
+  "اللغة الأم": "Native",
+  "متقدم": "Advanced",
+  "جيد جدًا": "Very Good",
+  "متوسط": "Intermediate",
+  "مبتدئ": "Beginner",
+};
+
+function ResumeSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="candidate-ats-section">
+      <h2>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 export function CandidateProfilePage({ candidate, source, onBack }: CandidateProfilePageProps) {
-  const experiences = parseCandidateExperiences(candidate.experience_details);
-  const education = parseCandidateEducation(candidate.education);
-  const languages = parseCandidateLanguages(candidate.languages);
+  const experiences = parseCandidateExperiences(candidate.experience_details).filter((experience) =>
+    [experience.title, experience.company, experience.location, experience.description, experience.legacyPeriod, experience.startMonth, experience.endMonth]
+      .some((value) => value.trim()) || experience.isCurrent,
+  );
+  const education = parseCandidateEducation(candidate.education).filter((entry) =>
+    [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()),
+  );
+  const languages = parseCandidateLanguages(candidate.languages).filter((language) => language.name.trim());
+  const skills = candidate.skills.filter((skill) => skill.trim());
+  const location = [candidate.city, candidate.province].filter(Boolean).join(", ");
+  const contact = [candidate.email, candidate.phone, location].filter(Boolean);
+  const meta = [
+    candidate.specialization,
+    candidate.experience_years > 0 ? `${candidate.experience_years} years of experience` : "",
+  ].filter(Boolean);
 
   return (
-    <section className="container page-section hr-candidate-profile-page">
+    <section className="container page-section hr-candidate-profile-page candidate-ats-profile-page">
       <button type="button" className="back-link candidate-profile-back" onClick={onBack}>
         <ArrowRight size={16} />
         العودة إلى {source === "applications" ? "الطلبات الواردة" : "نتائج البحث"}
       </button>
 
-      <article className="candidate-detail-card candidate-profile-card">
-        <header className="candidate-profile-header">
-          <div className="candidate-detail-heading">
-            <span className="candidate-result-avatar"><UserRound size={21} /></span>
-            <div>
-              <span className="eyebrow">ملف مهني للمرشح</span>
-              <h1>{candidate.full_name}</h1>
-              <p>{candidate.headline} · {candidate.specialization}</p>
-            </div>
-          </div>
-          <span className="candidate-profile-badge"><BriefcaseBusiness size={14} /> {source === "applications" ? "متقدم على وظيفة" : "مرشح مطابق"}</span>
+      <div className="candidate-ats-viewbar" dir="rtl">
+        <div>
+          <span>معاينة الملف المهني</span>
+          <strong>مرتب للقراءة بأنظمة ATS</strong>
+        </div>
+        <span className="candidate-ats-source">{source === "applications" ? "متقدم على وظيفة" : "مرشح مطابق"}</span>
+      </div>
+
+      <article className="candidate-ats-document" lang="en" dir="ltr">
+        <header className="candidate-ats-header">
+          <h1>{candidate.full_name || "Full Name"}</h1>
+          <p className="candidate-ats-headline">{candidate.headline || "Professional Title"}</p>
+          {contact.length > 0 && <p className="candidate-ats-contact">{contact.join(" | ")}</p>}
+          {meta.length > 0 && <p className="candidate-ats-meta">{meta.join(" | ")}</p>}
         </header>
 
-        <div className="candidate-profile-layout">
-          <div className="candidate-profile-main">
-            <section className="candidate-detail-section candidate-summary-section">
-              <div className="candidate-section-title"><span className="candidate-section-icon"><UserRound size={16} /></span><div><h3>نبذة مهنية</h3><small>لمحة سريعة عن خبرة المرشح وقيمته</small></div></div>
-              <p>{candidate.summary || "لا توجد نبذة مضافة."}</p>
-            </section>
+        {candidate.summary.trim() && (
+          <ResumeSection title="Professional Summary">
+            <p>{candidate.summary}</p>
+          </ResumeSection>
+        )}
 
-            <section className="candidate-detail-section">
-              <div className="candidate-section-title"><span className="candidate-section-icon blue"><BriefcaseBusiness size={16} /></span><div><h3>الخبرة العملية</h3><small>المسار المهني والإنجازات الأساسية</small></div></div>
-              {experiences.length ? <div className="candidate-experience-list">{experiences.map((experience) => {
-                const period = formatCandidateExperiencePeriod(experience);
-                return <article className="candidate-experience-item" key={experience.id}><div className="candidate-experience-heading"><b>{experience.title || "خبرة مهنية"}</b><span>{experience.company || "جهة العمل غير محددة"}</span></div>{(period || experience.location) && <small className="candidate-experience-meta"><CalendarDays size={13} /> {[period, experience.location].filter(Boolean).join(" · ")}</small>}<p>{experience.description || "لا توجد تفاصيل مضافة."}</p></article>;
-              })}</div> : <p>لا توجد تفاصيل مضافة.</p>}
-            </section>
+        {skills.length > 0 && (
+          <ResumeSection title="Core Skills">
+            <ul className="candidate-ats-list candidate-ats-skills">
+              {skills.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}
+            </ul>
+          </ResumeSection>
+        )}
 
-            <section className="candidate-detail-section candidate-education-section">
-              <div className="candidate-section-title"><span className="candidate-section-icon violet"><GraduationCap size={16} /></span><div><h3>التعليم واللغات</h3><small>المؤهل واللغات المستخدمة في العمل</small></div></div>
-              <div className="candidate-education-block">{education.length ? education.map((entry) => <article className="candidate-education-entry" key={entry.id}><b>{entry.degree || "المؤهل العلمي"}</b><p>{[entry.specialization && `التخصص: ${entry.specialization}`, entry.institution && `الجهة التعليمية: ${entry.institution}`, entry.graduationYear && `سنة التخرج: ${entry.graduationYear}`].filter(Boolean).join(" · ") || "لا توجد تفاصيل إضافية."}</p></article>) : <p>لا توجد بيانات تعليمية.</p>}</div>
-              <div className="candidate-language-block"><b><Languages size={14} /> اللغات</b><div className="candidate-language-list">{languages.length ? languages.map((language, index) => <span key={`${language.name}-${index}`}><strong>{language.name}</strong>{language.level && <small>{language.level}</small>}</span>) : <p>لا توجد لغات مضافة.</p>}</div></div>
-            </section>
-          </div>
+        {experiences.length > 0 && (
+          <ResumeSection title="Professional Experience">
+            {experiences.map((experience) => {
+              const period = formatCandidateExperiencePeriodForAts(experience);
+              const experienceMeta = [experience.company, experience.location, period].filter(Boolean);
+              return (
+                <article className="candidate-ats-entry" key={experience.id}>
+                  <h3>{experience.title || "Professional Experience"}</h3>
+                  {experienceMeta.length > 0 && <p className="candidate-ats-entry-meta">{experienceMeta.join(" | ")}</p>}
+                  {experience.description.trim() && <p>{experience.description}</p>}
+                </article>
+              );
+            })}
+          </ResumeSection>
+        )}
 
-          <aside className="candidate-profile-side">
-            <div className="candidate-detail-facts">
-              <span><small><MapPin size={12} /> الموقع</small><b>{[candidate.province, candidate.city].filter(Boolean).join(" / ") || "غير محدد"}</b></span>
-              <span><small>الخبرة</small><b>{candidate.experience_years} سنوات</b></span>
-              <span><small>التوفر</small><b>{candidate.availability || "غير محدد"}</b></span>
-              <span><small>نوع العمل</small><b>{candidate.work_type || "غير محدد"}</b></span>
-            </div>
-            <section className="candidate-detail-section candidate-skills-section"><div className="candidate-section-title"><span className="candidate-section-icon orange"><BriefcaseBusiness size={16} /></span><div><h3>المهارات</h3><small>أبرز نقاط القوة</small></div></div><div className="skill-pills">{candidate.skills.length ? candidate.skills.map((skill) => <span key={skill}>{skill}</span>) : <p>لا توجد مهارات مضافة.</p>}</div></section>
-            <div className="candidate-contact-box"><b>بيانات التواصل</b><span><Mail size={14} /> {candidate.email || "لا يوجد بريد مضاف"}</span><span><Phone size={14} /> {candidate.phone || "لا يوجد رقم مضاف"}</span></div>
-          </aside>
-        </div>
+        {education.length > 0 && (
+          <ResumeSection title="Education">
+            {education.map((entry) => {
+              const details = [entry.specialization, entry.institution, entry.graduationYear].filter(Boolean);
+              return (
+                <article className="candidate-ats-entry" key={entry.id}>
+                  <h3>{entry.degree || "Education"}</h3>
+                  {details.length > 0 && <p className="candidate-ats-entry-meta">{details.join(" | ")}</p>}
+                </article>
+              );
+            })}
+          </ResumeSection>
+        )}
+
+        {languages.length > 0 && (
+          <ResumeSection title="Languages">
+            <ul className="candidate-ats-list">
+              {languages.map((language, index) => {
+                const level = language.level ? englishLanguageLevels[language.level] || language.level : "";
+                return <li key={`${language.name}-${index}`}>{[language.name, level].filter(Boolean).join(" — ")}</li>;
+              })}
+            </ul>
+          </ResumeSection>
+        )}
       </article>
     </section>
   );

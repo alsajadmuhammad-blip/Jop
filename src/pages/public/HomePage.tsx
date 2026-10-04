@@ -1,4 +1,4 @@
-import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, HeartHandshake } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, FileText, HeartHandshake } from "lucide-react";
 import { JobsPage } from "./JobsPage";
 import type { View } from "../../app/types";
 import type { Job, Profile } from "../../lib/types";
@@ -46,6 +46,29 @@ export function HomePage({ jobs, hasMoreJobs, loading, profile, onNavigate, onOp
         </div>
       </div>
     </section>
+
+    {(!profile || profile.role === "candidate") && (
+      <section className="resume-promo-section" aria-label="تصدير سيرة ذاتية احترافية">
+        <div className="container">
+          <div className="resume-promo-banner">
+            <span className="resume-promo-icon" aria-hidden="true"><FileText size={21} /></span>
+            <div className="resume-promo-copy">
+              <span className="resume-promo-kicker">ملف مهني أقوى، فرصة أقرب</span>
+              <h2>حوّل ملفك المهني إلى سيرة جاهزة للتقديم</h2>
+              <p>أكمل بياناتك باللغة الإنكليزية، ثم صدّر سيرتك بصيغة ATS كملف Word أو PDF.</p>
+            </div>
+            <button
+              type="button"
+              className="resume-promo-cta"
+              onClick={() => onNavigate(profile?.role === "candidate" ? "candidate" : "signup")}
+            >
+              {profile?.role === "candidate" ? "أكمل ملفك وصدّر سيرتك" : "أنشئ ملفك المهني"}
+              <ArrowLeft size={17} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </section>
+    )}
 
     <section className="home-app-workspace" aria-labelledby="home-app-heading">
       <div className="container">

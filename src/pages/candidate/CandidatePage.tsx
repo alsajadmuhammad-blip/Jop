@@ -406,6 +406,13 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
   }
 
   return <section className="container page-section dashboard-page candidate-profile-page">
+    <aside className="candidate-english-tip" role="note">
+      <span className="candidate-english-tip-icon" aria-hidden="true"><Languages size={18} /></span>
+      <span>
+        <b>نصيحة لتصدير سيرة احترافية</b>
+        <small>املأ حقول ملفك المهني باللغة الإنكليزية لتحصل على سيرة واضحة ومرتبة بصيغة ATS.</small>
+      </span>
+    </aside>
     <div className="candidate-profile-hero">
       <div className="candidate-hero-copy">
         <span className="eyebrow"><Sparkles size={14} /> مساحة الباحث عن عمل</span>

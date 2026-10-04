@@ -10,6 +10,7 @@ import "./home-refresh.css";
 import "./auth-pages.css";
 import "./job-publishing-refresh.css";
 import "./platform-polish.css";
+import "./candidate-resume.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
