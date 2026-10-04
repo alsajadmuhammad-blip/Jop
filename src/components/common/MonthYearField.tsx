@@ -10,7 +10,7 @@ type MonthYearFieldProps = {
 };
 
 const months = Array.from({ length: 12 }, (_, index) =>
-  new Intl.DateTimeFormat("ar-IQ", { month: "long", timeZone: "UTC" })
+  new Intl.DateTimeFormat("en-GB-u-ca-gregory-nu-latn", { month: "long", timeZone: "UTC" })
     .format(new Date(Date.UTC(2020, index, 1))),
 );
 

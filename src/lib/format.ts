@@ -1,5 +1,10 @@
 export function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ar-IQ", { timeZone: "Asia/Baghdad", day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-GB-u-ca-gregory-nu-latn", {
+    timeZone: "Asia/Baghdad",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export function formatJobLocation(location: { city?: string | null; province?: string | null }) {

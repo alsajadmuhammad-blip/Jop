@@ -164,13 +164,13 @@ function formatCandidateMonth(value: string, locale: string) {
 }
 
 export function formatCandidateExperiencePeriod(experience: CandidateExperience) {
-  const start = formatCandidateMonth(experience.startMonth, "ar-IQ");
-  const end = formatCandidateMonth(experience.endMonth, "ar-IQ");
-  if (start && experience.isCurrent) return `${start} – حتى الآن`;
+  const start = formatCandidateMonth(experience.startMonth, "en-GB-u-ca-gregory-nu-latn");
+  const end = formatCandidateMonth(experience.endMonth, "en-GB-u-ca-gregory-nu-latn");
+  if (start && experience.isCurrent) return `${start} – Present`;
   if (start && end) return `${start} – ${end}`;
-  if (experience.isCurrent) return "حتى الآن";
+  if (experience.isCurrent) return "Present";
   if (start) return start;
-  if (end) return `حتى ${end}`;
+  if (end) return `Until ${end}`;
   return experience.legacyPeriod;
 }
 

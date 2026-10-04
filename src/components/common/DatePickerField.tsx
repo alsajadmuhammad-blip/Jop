@@ -11,17 +11,8 @@ type DatePickerFieldProps = {
   onChange: (value: string) => void;
 };
 
-const weekdays = [
-  { short: "س", full: "السبت" },
-  { short: "ح", full: "الأحد" },
-  { short: "ن", full: "الإثنين" },
-  { short: "ث", full: "الثلاثاء" },
-  { short: "ر", full: "الأربعاء" },
-  { short: "خ", full: "الخميس" },
-  { short: "ج", full: "الجمعة" },
-];
-
-const arabicNumber = new Intl.NumberFormat("ar-IQ");
+const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const englishDateLocale = "en-GB-u-ca-gregory-nu-latn";
 
 function parseDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -35,10 +26,19 @@ function toDateKey(year: number, month: number, day: number) {
 function formatDate(value: string) {
   if (!value) return "";
   const [year, month, day] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("ar-IQ-u-ca-gregory", {
+  return new Intl.DateTimeFormat(englishDateLocale, {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+}
+
+function formatWeekday(value: string) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat(englishDateLocale, {
+    weekday: "long",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(year, month - 1, day, 12)));
 }
@@ -89,7 +89,7 @@ export function DatePickerField({
 
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
-  const firstWeekday = (new Date(year, month, 1).getDay() + 1) % 7;
+  const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days = Array.from({ length: 42 }, (_, index) => {
     const day = index - firstWeekday + 1;
@@ -99,7 +99,7 @@ export function DatePickerField({
   const previousMonthDisabled =
     year < minimum.getFullYear() ||
     (year === minimum.getFullYear() && month <= minimum.getMonth());
-  const monthLabel = new Intl.DateTimeFormat("ar-IQ-u-ca-gregory", {
+  const monthLabel = new Intl.DateTimeFormat(englishDateLocale, {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -122,10 +122,12 @@ export function DatePickerField({
           aria-controls={`${id}-calendar`}
           aria-required={required}
           onClick={() => setOpen((current) => !current)}
+          dir="ltr"
         >
-          <CalendarDays size={19} aria-hidden="true" />
+          <span className="admin-date-picker-icon"><CalendarDays size={18} aria-hidden="true" /></span>
           <span className={`admin-date-picker-value${value ? "" : " is-placeholder"}`}>
-            {value ? formatDate(value) : "اختر التاريخ"}
+            <strong>{value ? formatDate(value) : "اختر التاريخ"}</strong>
+            <small>{value ? formatWeekday(value) : "اضغط لاختيار موعد التقديم"}</small>
           </span>
           <ChevronDown className="admin-date-picker-chevron" size={17} aria-hidden="true" />
         </button>
@@ -135,30 +137,30 @@ export function DatePickerField({
             className="admin-date-picker-popover"
             role="dialog"
             aria-label={`اختيار ${label}`}
-            dir="rtl"
+            dir="ltr"
           >
             <div className="admin-date-picker-month">
               <button
                 type="button"
                 className="admin-date-picker-nav"
-                aria-label="الشهر السابق"
+                aria-label="Previous month"
                 disabled={previousMonthDisabled}
                 onClick={() => setVisibleMonth(new Date(year, month - 1, 1))}
               >
-                <ChevronRight size={18} />
+                <ChevronLeft size={18} />
               </button>
               <strong aria-live="polite">{monthLabel}</strong>
               <button
                 type="button"
                 className="admin-date-picker-nav"
-                aria-label="الشهر التالي"
+                aria-label="Next month"
                 onClick={() => setVisibleMonth(new Date(year, month + 1, 1))}
               >
-                <ChevronLeft size={18} />
+                <ChevronRight size={18} />
               </button>
             </div>
             <div className="admin-date-picker-grid admin-date-picker-weekdays" aria-hidden="true">
-              {weekdays.map((weekday) => <span key={weekday.full} title={weekday.full}>{weekday.short}</span>)}
+              {weekdays.map((weekday) => <span key={weekday}>{weekday}</span>)}
             </div>
             <div className="admin-date-picker-grid admin-date-picker-days">
               {days.map((day, index) => {
@@ -185,10 +187,14 @@ export function DatePickerField({
                       triggerRef.current?.focus();
                     }}
                   >
-                    {arabicNumber.format(day)}
+                    {day}
                   </button>
                 );
               })}
+            </div>
+            <div className="admin-date-picker-footer">
+              <span className="admin-date-picker-today-dot" aria-hidden="true" />
+              <span>لا يمكن اختيار موعد قبل اليوم</span>
             </div>
           </div>
         )}
