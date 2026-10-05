@@ -164,20 +164,97 @@ create or replace function public.candidate_profile_is_complete(
   p_profile public.candidate_profiles
 )
 returns boolean
-language sql
+language plpgsql
 immutable
 set search_path = public
 as $$
-  select
-    nullif(btrim((p_profile).full_name), '') is not null
+declare
+  experience_value text := coalesce((p_profile).experience_details, '');
+  education_value text := coalesce((p_profile).education, '');
+  experience_data jsonb;
+  education_data jsonb;
+  has_experience boolean;
+  has_education boolean;
+  has_skill boolean;
+begin
+  if p_profile is null then
+    return false;
+  end if;
+
+  if left(experience_value, length('IRAQ_JOBS_EXPERIENCES_V1:')) = 'IRAQ_JOBS_EXPERIENCES_V1:' then
+    begin
+      experience_data := substring(
+        experience_value from length('IRAQ_JOBS_EXPERIENCES_V1:') + 1
+      )::jsonb;
+      if jsonb_typeof(experience_data) = 'array' then
+        select exists (
+          select 1
+          from jsonb_array_elements(experience_data) as experience_item(value)
+          where jsonb_typeof(experience_item.value) = 'object'
+            and (
+              nullif(btrim(experience_item.value ->> 'title'), '') is not null
+              or nullif(btrim(experience_item.value ->> 'company'), '') is not null
+              or nullif(btrim(experience_item.value ->> 'location'), '') is not null
+              or nullif(btrim(experience_item.value ->> 'startMonth'), '') is not null
+              or nullif(btrim(experience_item.value ->> 'endMonth'), '') is not null
+              or nullif(btrim(experience_item.value ->> 'legacyPeriod'), '') is not null
+              or nullif(btrim(experience_item.value ->> 'description'), '') is not null
+              or experience_item.value ->> 'isCurrent' = 'true'
+            )
+        ) into has_experience;
+      else
+        has_experience := nullif(btrim(experience_value), '') is not null;
+      end if;
+    exception when invalid_text_representation then
+      has_experience := nullif(btrim(experience_value), '') is not null;
+    end;
+  else
+    has_experience := nullif(btrim(experience_value), '') is not null;
+  end if;
+
+  if left(education_value, length('IRAQ_JOBS_EDUCATION_V1:')) = 'IRAQ_JOBS_EDUCATION_V1:' then
+    begin
+      education_data := substring(
+        education_value from length('IRAQ_JOBS_EDUCATION_V1:') + 1
+      )::jsonb;
+      if jsonb_typeof(education_data) = 'array' then
+        select exists (
+          select 1
+          from jsonb_array_elements(education_data) as education_item(value)
+          where jsonb_typeof(education_item.value) = 'object'
+            and (
+              nullif(btrim(education_item.value ->> 'degree'), '') is not null
+              or nullif(btrim(education_item.value ->> 'specialization'), '') is not null
+              or nullif(btrim(education_item.value ->> 'institution'), '') is not null
+              or nullif(btrim(education_item.value ->> 'graduationYear'), '') is not null
+            )
+        ) into has_education;
+      else
+        has_education := nullif(btrim(education_value), '') is not null;
+      end if;
+    exception when invalid_text_representation then
+      has_education := nullif(btrim(education_value), '') is not null;
+    end;
+  else
+    has_education := nullif(btrim(education_value), '') is not null;
+  end if;
+
+  select exists (
+    select 1
+    from unnest(coalesce((p_profile).skills, '{}'::text[])) as skill(value)
+    where nullif(btrim(skill.value), '') is not null
+  ) into has_skill;
+
+  return nullif(btrim((p_profile).full_name), '') is not null
     and nullif(btrim((p_profile).headline), '') is not null
     and nullif(btrim((p_profile).specialization), '') is not null
     and nullif(btrim((p_profile).province), '') is not null
     and nullif(btrim((p_profile).city), '') is not null
-    and coalesce(cardinality((p_profile).skills), 0) > 0
-    and nullif(btrim((p_profile).experience_details), '') is not null
-    and nullif(btrim((p_profile).education), '') is not null
+    and has_skill
+    and has_experience
+    and has_education
     and nullif(btrim((p_profile).summary), '') is not null;
+end;
 $$;
 
 revoke all on function public.candidate_profile_is_complete(public.candidate_profiles) from public, anon;
@@ -325,18 +402,22 @@ begin
       public.candidate_profile_is_complete(candidate)
       and (keyword_value is null or candidate.search_text like keyword_pattern escape E'\\')
       and (nullif(btrim(coalesce(p_specialization, '')), '') is null
-        or lower(candidate.specialization) = lower(btrim(p_specialization)))
+        or lower(btrim(candidate.specialization)) = lower(btrim(p_specialization)))
       and (nullif(btrim(coalesce(p_province, '')), '') is null
-        or lower(candidate.province) = lower(btrim(p_province)))
+        or lower(btrim(candidate.province)) = lower(btrim(p_province)))
       and (nullif(btrim(coalesce(p_city, '')), '') is null
-        or lower(candidate.city) = lower(btrim(p_city)))
+        or lower(btrim(candidate.city)) = lower(btrim(p_city)))
       and (p_min_experience is null or candidate.experience_years >= p_min_experience)
       and (nullif(btrim(coalesce(p_work_type, '')), '') is null
-        or candidate.work_type = btrim(p_work_type))
+        or lower(btrim(candidate.work_type)) = lower(btrim(p_work_type)))
       and (nullif(btrim(coalesce(p_skill, '')), '') is null
-        or btrim(p_skill) = any(candidate.skills))
+        or exists (
+          select 1
+          from unnest(coalesce(candidate.skills, '{}'::text[])) as candidate_skill(value)
+          where lower(btrim(candidate_skill.value)) = lower(btrim(p_skill))
+        ))
       and (nullif(btrim(coalesce(p_availability, '')), '') is null
-        or candidate.availability = btrim(p_availability))
+        or lower(btrim(candidate.availability)) = lower(btrim(p_availability)))
       and (p_remote_available is null or candidate.remote_available = p_remote_available)
   )
   select

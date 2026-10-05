@@ -341,21 +341,29 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     [experience.title, experience.company, experience.location, experience.startMonth, experience.endMonth, experience.legacyPeriod, experience.description]
       .some((value) => value.trim()) || experience.isCurrent,
   );
+  const hasFullName = Boolean(form.full_name.trim());
+  const hasHeadline = Boolean(form.headline.trim());
+  const hasSpecialization = Boolean(form.specialization.trim());
+  const hasProvince = Boolean(form.province.trim());
+  const hasCity = Boolean(form.city.trim());
+  const hasSkills = form.skills.some((skill) => skill.trim());
+  const hasExperience = completedExperiences.length > 0;
   const hasEducation = education.some((entry) => [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()));
+  const hasSummary = Boolean(form.summary.trim());
   const completeness = useMemo(() => {
     const checks = [
-      form.full_name,
-      form.headline,
-      form.specialization,
-      form.province,
-      form.city,
-      form.skills.length,
-      completedExperiences.length,
+      hasFullName,
+      hasHeadline,
+      hasSpecialization,
+      hasProvince,
+      hasCity,
+      hasSkills,
+      hasExperience,
       hasEducation,
-      form.summary,
+      hasSummary,
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [completedExperiences.length, form, hasEducation]);
+  }, [hasCity, hasEducation, hasExperience, hasFullName, hasHeadline, hasProvince, hasSkills, hasSpecialization, hasSummary]);
   const canExportAts = Boolean(form.full_name.trim() && form.headline.trim() && form.email.trim() && form.phone.trim() && form.summary.trim());
   const currentMonth = localMonthValue();
   const autosaveMessage = !hasSupabaseConfig
@@ -538,7 +546,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>
         <div className="profile-aside-card privacy-card"><div className="aside-card-icon"><ShieldCheck size={19} /></div><div><b>ملفك يظهر لأصحاب العمل المصرّح لهم</b><p>يظهر ملفك فقط لأصحاب العمل الذين لديهم صلاحية الوصول إلى ملفات الباحثين عن العمل، والتي يفعّلها المشرف.</p></div><span className="privacy-status"><Check size={13} /> وصول مقيّد</span></div>
-        <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={form.full_name ? "done" : ""}><span>{form.full_name ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={form.headline ? "done" : ""}><span>{form.headline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={form.skills.length ? "done" : ""}><span>{form.skills.length ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={completedExperiences.length ? "done" : ""}><span>{completedExperiences.length ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={form.summary ? "done" : ""}><span>{form.summary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
+         <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={hasFullName ? "done" : ""}><span>{hasFullName ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={hasHeadline ? "done" : ""}><span>{hasHeadline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={hasSkills ? "done" : ""}><span>{hasSkills ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={hasExperience ? "done" : ""}><span>{hasExperience ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={hasSummary ? "done" : ""}><span>{hasSummary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
         <div className="profile-aside-card tip-card"><div className="aside-card-heading"><div><span className="eyebrow">نصيحة سريعة</span><h3>اكتب إنجازك بالأرقام</h3></div><Sparkles size={20} /></div><p>بدل «أدرت حسابات التواصل»، جرّب «رفعت التفاعل 35% خلال 6 أشهر». التفاصيل الصغيرة تفرق.</p></div>
         <div className="profile-aside-card mini-contact-card"><div className="mini-contact-icon"><FileText size={17} /></div><div><b>تحتاج تحديث سيرتك؟</b><small>أكمل الملف هنا، وبعدها استخدمه للتقديم على الفرص.</small></div></div>
       </aside>
