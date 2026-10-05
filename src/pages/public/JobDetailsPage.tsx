@@ -57,7 +57,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
         <div>
            <div className="job-v3-tags"><span>{isQuick ? "إعلان سريع" : job.category || "عام"}</span><small><CalendarDays size={12} /> {formatDate(job.created_at)}</small></div>
           <h1>{job.title}</h1>
-          <p>{job.company_name}</p>
+           {job.company_name !== "جهة غير معلنة" && <p>{job.company_name}</p>}
         </div>
       </div>
        <div className="job-v3-header-actions">
@@ -85,7 +85,7 @@ export function JobDetailsPage({ job, profile, onNavigate, onLogin, onNotify }: 
             {job.internal_applications && profile?.role === "candidate" && <div className="internal-application-box"><div className="job-v3-contact-title"><span><BriefcaseBusiness size={19} /></span><div><small>التقديم المباشر مفعّل</small><h2>قدّم من ملفك المهني</h2></div></div><p>أرسل طلبك مباشرة إلى الجهة من ملفك المهني، بدون رفع سيرة ذاتية جديدة.</p>{submitted ? <div className="application-success"><Check size={18} /> تم إرسال طلبك بنجاح</div> : <ApplicationForm jobId={job.id} onSubmitted={() => { setSubmitted(true); onNotify?.("تم إرسال طلبك إلى الجهة."); }} />}</div>}
         <div className="job-v3-contact-title"><span><MessageCircle size={19} /></span><div><small>خطوة التقديم</small><h2>تواصل مع الجهة</h2></div></div>
         <p>استخدم إحدى وسائل التواصل التالية واذكر اسم الوظيفة عند مراسلة الجهة.</p>
-        {hasContact ? <div className="contact-actions">{job.contact_whatsapp && <a className="contact-action whatsapp premium-contact" href={whatsappUrl(job.contact_whatsapp)} target="_blank" rel="noreferrer"><span className="contact-icon"><MessageCircle size={21} /></span><span className="contact-copy"><small>تواصل سريع</small><b>واتساب</b><em dir="ltr">{job.contact_whatsapp}</em></span><ArrowLeft className="contact-arrow" size={17} /></a>}{job.contact_email && <a className="contact-action email" href={`mailto:${job.contact_email}`}><Mail size={19} /><span><small>البريد الإلكتروني</small><b dir="ltr">{job.contact_email}</b></span></a>}</div> : <p className="contact-missing">لم تضف الجهة وسيلة تواصل لهذه الوظيفة بعد.</p>}
+         {hasContact ? <div className="contact-actions">{job.contact_whatsapp && <a className="contact-action whatsapp premium-contact" href={whatsappUrl(job.contact_whatsapp)} target="_blank" rel="noreferrer"><span className="contact-icon"><MessageCircle size={21} /></span><span className="contact-copy"><small>تواصل سريع</small><b>واتساب</b><em dir="ltr">{job.contact_whatsapp}</em></span><ArrowLeft className="contact-arrow" size={17} /></a>}{job.contact_email && <a className="contact-action email" href={`mailto:${job.contact_email}`}><Mail size={19} /><span><small>البريد الإلكتروني</small><b dir="ltr">{job.contact_email}</b></span></a>}</div> : <p className="contact-missing">{isQuick ? "لا توجد وسيلة تواصل مستقلة؛ راجع وصف الوظيفة فقد يتضمن تفاصيل التواصل." : "لم تضف الجهة وسيلة تواصل لهذه الوظيفة بعد."}</p>}
         <div className="job-v3-contact-note">تأكد من إرسال سيرتك الذاتية وذكر الوظيفة بوضوح.</div>
       </aside>
     </div>

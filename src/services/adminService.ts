@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { getBaghdadDateAfterDays } from "../lib/date";
 import type { EmployerAccount, Job, JobAdType, JobRequest, JobRequestStatus, JobType, PostStatus } from "../lib/types";
 
 export type JobPostInput = {
@@ -21,7 +22,10 @@ export type JobPostInput = {
 export async function createJob(input: JobPostInput) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return userError || new Error("سجّل الدخول قبل نشر الوظيفة.");
-  const { error } = await supabase.from("jobs").insert({ ...input, status: "published", created_by: user.id });
+  const normalizedInput = input.ad_type === "quick"
+    ? { ...input, company_name: input.company_name.trim() || "جهة غير معلنة", deadline: getBaghdadDateAfterDays(15), internal_applications: false }
+    : input;
+  const { error } = await supabase.from("jobs").insert({ ...normalizedInput, status: "published", created_by: user.id });
   return error;
 }
 
@@ -83,11 +87,16 @@ export async function updateJobRequestDeadline(id: string, deadline: string) {
 
 export async function submitJobRequest(input: Omit<JobRequest, "id" | "status" | "approved_job_id" | "reviewed_at" | "created_at">) {
   const { data: userResult } = await supabase.auth.getUser();
-  const contactEmail = input.contact_email || userResult.user?.email || null;
-  if (!contactEmail && !input.contact_whatsapp) return new Error("أضف البريد الإلكتروني أو رقم الواتساب لاستقبال التقديمات.");
+  const isQuick = input.ad_type === "quick";
+  const contactEmail = isQuick ? input.contact_email : input.contact_email || userResult.user?.email || null;
+  if (!isQuick && !contactEmail && !input.contact_whatsapp) return new Error("أضف البريد الإلكتروني أو رقم الواتساب لاستقبال التقديمات.");
   const { error } = await supabase.from("job_requests").insert({
     ...input,
+    company_name: isQuick ? input.company_name.trim() || "جهة غير معلنة" : input.company_name,
+    contact_name: isQuick ? input.contact_name.trim() || "صاحب الإعلان" : input.contact_name,
     contact_email: contactEmail,
+    deadline: isQuick ? getBaghdadDateAfterDays(15) : input.deadline,
+    internal_applications: isQuick ? false : input.internal_applications,
     created_by: input.created_by || userResult.user?.id || null,
     status: "pending",
   });

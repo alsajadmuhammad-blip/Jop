@@ -34,7 +34,7 @@ function JobRequestReviewCard({ request, onReview, onSaveDeadline }: { request: 
   const [deadlineDraft, setDeadlineDraft] = useState(request.deadline || "");
   const [savingDeadline, setSavingDeadline] = useState(false);
   const today = getBaghdadToday();
-  const needsDeadline = !request.deadline || request.deadline < today;
+  const needsDeadline = request.ad_type !== "quick" && (!request.deadline || request.deadline < today);
   const statusText = request.status === "pending" ? "قيد المراجعة" : request.status === "approved" ? "تمت الموافقة" : "مرفوض";
   const saveDeadline = async () => {
     if (!deadlineDraft || deadlineDraft < today) return;
@@ -53,14 +53,13 @@ function JobRequestReviewCard({ request, onReview, onSaveDeadline }: { request: 
       {expanded && <div className="review-details full-review-details">
         <div className="review-detail-grid">
           <span><small>نوع الإعلان</small><b className={request.ad_type === "quick" ? "quick-review-label" : ""}>{request.ad_type === "quick" ? "إعلان سريع" : "إعلان مفصل"}</b></span>
-          <span><small>التصنيف</small><b>{request.category || "عام"}</b></span>
+          {request.ad_type !== "quick" && <span><small>التصنيف</small><b>{request.category || "عام"}</b></span>}
           <span><small>المحافظة</small><b>{request.province || "غير محددة"}</b></span>
-          <span><small>المدينة</small><b>{request.city || "غير محددة"}</b></span>
-          <span><small>نوع الدوام</small><b>{request.job_type || "غير محدد"}</b></span>
+          {request.ad_type !== "quick" && <><span><small>المدينة</small><b>{request.city || "غير محددة"}</b></span><span><small>نوع الدوام</small><b>{request.job_type || "غير محدد"}</b></span></>}
           <span><small>مسؤول التواصل</small><b>{request.contact_name || request.company_name}</b></span>
           <span><small>وسيلة التواصل</small><b dir="ltr">{request.contact_email || request.contact_whatsapp || "غير مضافة"}</b></span>
-          <span><small>الراتب</small><b>{request.salary_range || "غير محدد"}</b></span>
-          <span><small>آخر موعد</small><b>{request.deadline || "غير محدد"}</b></span>
+          {request.ad_type !== "quick" && <span><small>الراتب</small><b>{request.salary_range || "غير محدد"}</b></span>}
+          <span><small>{request.ad_type === "quick" ? "مدة النشر" : "آخر موعد"}</small><b>{request.ad_type === "quick" ? "15 يوماً من تاريخ الموافقة" : request.deadline || "غير محدد"}</b></span>
         </div>
         <div className="review-detail-block"><small>تفاصيل الوظيفة</small><p>{request.description || "لم تتم إضافة تفاصيل."}</p></div>
         <div className="review-detail-block"><small>المتطلبات</small>{request.requirements.length ? <ul>{request.requirements.map((item) => <li key={item}>{item}</li>)}</ul> : <p>لا توجد متطلبات محددة.</p>}</div>

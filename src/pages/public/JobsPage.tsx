@@ -192,23 +192,22 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
       </div>
     </aside>}
 
-    <div className="jobs-browse-tools" role="search">
+    <div className="jobs-browse-tools" role="search" aria-label="البحث وتصفية الوظائف">
       <div className="jobs-classic-filters">
-        <label className="jobs-search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث بالمسمى أو اسم الشركة" aria-label="البحث عن وظيفة" /></label>
+        <label className="jobs-search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث بالمسمى أو الجهة أو الموقع" aria-label="البحث عن وظيفة" /></label>
         <label className="jobs-select-field"><span>التصنيف</span><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="تصفية حسب التصنيف"><option value="الكل">كل التصنيفات</option>{[...categories, "عام"].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
         <label className="jobs-select-field"><span>نوع الدوام</span><select value={jobType} onChange={(event) => setJobType(event.target.value as "الكل" | JobType)} aria-label="تصفية حسب نوع الدوام"><option value="الكل">كل أنواع الدوام</option>{jobTypes.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="jobs-select-field"><span>المحافظة</span><select value={province} onChange={(event) => setProvince(event.target.value)} aria-label="تصفية حسب المحافظة"><option value="الكل">كل المحافظات</option>{provinces.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       </div>
-      {hasActiveFilters && <button className="clear-filters" type="button" onClick={clearFilters}><X size={15} /> مسح الفلاتر</button>}
     </div>
 
-    <section className="jobs-province-section" aria-labelledby="jobs-province-heading">
-      <div className="jobs-province-heading"><div><span className="jobs-section-eyebrow">اعثر على فرصتك قريباً منك</span><h2 id="jobs-province-heading">تصفية حسب المحافظة</h2></div><span>المعروض فقط المحافظات التي فيها وظائف منشورة</span></div>
-      <div className="jobs-province-scroll" role="group" aria-label="تصفية حسب المحافظة">
-        <button type="button" className={province === "الكل" ? "selected" : ""} aria-pressed={province === "الكل"} onClick={() => setProvince("الكل")}>كل المحافظات</button>
-        {provinces.map((item) => <button type="button" key={item} className={province === item ? "selected" : ""} aria-pressed={province === item} onClick={() => setProvince(item)}>{item}</button>)}
-      </div>
-      {!provinces.length && !pageLoading && <p className="jobs-no-provinces">ستظهر المحافظات هنا عند نشر وظائف فيها.</p>}
-    </section>
+    {hasActiveFilters && <div className="jobs-active-filters" role="group" aria-label="الفلاتر النشطة">
+      {query.trim() && <button type="button" className="jobs-active-filter-chip" onClick={() => setQuery("")}><span>بحث: {query.trim()}</span><X size={13} aria-hidden="true" /></button>}
+      {category !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setCategory("الكل")}><span>التصنيف: {category}</span><X size={13} aria-hidden="true" /></button>}
+      {jobType !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setJobType("الكل")}><span>الدوام: {jobType}</span><X size={13} aria-hidden="true" /></button>}
+      {province !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setProvince("الكل")}><span>المحافظة: {province}</span><X size={13} aria-hidden="true" /></button>}
+      <button className="clear-filters jobs-clear-active-filters" type="button" onClick={clearFilters}><X size={14} /> مسح الكل</button>
+    </div>}
 
       <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{pageLoading ? "جاري التحميل..." : `${visibleJobs.length}${hasMore ? "+" : ""} وظيفة متاحة`}</strong></div><span>مرتبة حسب الأحدث</span></div>
       {pageLoading ? <LoadingCards /> : visibleJobs.length ? <div className="job-grid wide">{visibleJobs.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved={savedIds.includes(job.id)} onToggleSaved={() => void toggleSaved(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}

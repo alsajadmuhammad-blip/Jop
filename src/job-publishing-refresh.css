@@ -714,3 +714,224 @@
     font-size: 13px;
   }
 }
+
+/* Make publishing choices distinct and keep quick ads intentionally brief. */
+.post-type-selector {
+  gap: 14px;
+}
+
+.post-type-selector > button {
+  min-height: 76px;
+  border-width: 1.5px;
+}
+
+.post-type-selector > button:focus-visible,
+.quick-contact-toggle:focus-visible,
+.jobs-active-filter-chip:focus-visible,
+.jobs-clear-active-filters:focus-visible {
+  outline: 3px solid rgba(83, 102, 196, .22);
+  outline-offset: 2px;
+}
+
+.post-type-selector > button[data-ad-type="detailed"].selected {
+  border-color: #5366c4;
+  background: linear-gradient(135deg, #f3f5ff, #fff);
+  box-shadow: 0 9px 22px rgba(48, 61, 152, .12), inset 0 0 0 1px rgba(83, 102, 196, .12);
+}
+
+.post-type-selector > button[data-ad-type="quick"].selected {
+  border-color: #d97a23;
+  color: #704011;
+  background: linear-gradient(135deg, #fff5e9, #fff);
+  box-shadow: 0 9px 22px rgba(183, 104, 22, .12), inset 0 0 0 1px rgba(217, 122, 35, .12);
+}
+
+.post-type-selector > button[data-ad-type="quick"].selected .post-type-marker {
+  color: #fff;
+  background: #d97a23;
+}
+
+.post-type-selector > button[data-ad-type="detailed"].selected .post-type-marker {
+  color: #fff;
+  background: #5366c4;
+}
+
+.post-type-selector.compact {
+  max-width: none;
+  margin: 0 0 6px;
+}
+
+.admin-post-form .post-type-selector.compact > button {
+  min-height: 65px;
+}
+
+.quick-posting-panel > label {
+  width: 100%;
+}
+
+.quick-expiry-note {
+  margin: -3px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #f0dfc9;
+  border-radius: 10px;
+  color: #86551f;
+  background: #fff9f1;
+  font-size: 10px;
+  line-height: 1.8;
+}
+
+.quick-contact-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quick-contact-toggle {
+  width: fit-content;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px dashed #aeb8e5;
+  border-radius: 10px;
+  color: #394b9e;
+  background: #f8f9ff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  transition: border-color .18s ease, background .18s ease;
+}
+
+.quick-contact-toggle:hover {
+  border-color: #7e8dcf;
+  background: #f0f2ff;
+}
+
+.quick-contact-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #e1e4f0;
+  border-radius: 12px;
+  background: #fbfcff;
+}
+
+.quick-contact-fields > p {
+  margin: 0;
+  color: #7f88a2;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.quick-review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 14px;
+}
+
+.quick-review-card > b {
+  color: #20285e;
+  font-size: 13px;
+}
+
+.quick-review-card > small {
+  color: #838ba3;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+/* Keep all public job filters together on desktop and mobile. */
+.jobs-classic-filters {
+  grid-template-columns: minmax(190px, 1.5fr) repeat(3, minmax(0, 1fr));
+}
+
+.jobs-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: -4px 0 15px;
+}
+
+.jobs-active-filter-chip {
+  max-width: min(100%, 280px);
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid #dfe3f4;
+  border-radius: 99px;
+  color: #46558f;
+  background: #f7f8ff;
+  font: inherit;
+  font-size: 10px;
+}
+
+.jobs-active-filter-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jobs-active-filter-chip svg {
+  flex: 0 0 auto;
+  color: #7d87b1;
+}
+
+.jobs-active-filter-chip:hover {
+  border-color: #c5ccef;
+  background: #f0f2ff;
+}
+
+.jobs-clear-active-filters {
+  min-height: 31px;
+  padding-inline: 9px;
+  border-radius: 99px;
+  font-size: 10px;
+}
+
+.jobs-page-embedded .jobs-active-filters {
+  margin-top: -2px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .jobs-classic-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .jobs-search-field {
+    grid-column: 1 / -1;
+  }
+
+  .jobs-classic-filters > .jobs-select-field:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .post-type-selector {
+    gap: 9px;
+  }
+
+  .post-type-selector > button {
+    min-height: 68px;
+  }
+
+  .jobs-classic-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .jobs-active-filters {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .jobs-active-filter-chip {
+    max-width: 100%;
+  }
+}

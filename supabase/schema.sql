@@ -55,7 +55,7 @@ create table if not exists public.jobs (
   deadline date,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  constraint job_contact_method_check check (contact_email is not null or contact_whatsapp is not null)
+  constraint job_contact_method_check check (ad_type = 'quick' or contact_email is not null or contact_whatsapp is not null)
 );
 
 alter table public.jobs add column if not exists ad_type text not null default 'detailed';
@@ -66,7 +66,7 @@ alter table public.jobs add column if not exists contact_email text;
 alter table public.jobs add column if not exists contact_whatsapp text;
 alter table public.jobs drop constraint if exists job_contact_method_check;
 alter table public.jobs add constraint job_contact_method_check
-  check (contact_email is not null or contact_whatsapp is not null) not valid;
+  check (ad_type = 'quick' or contact_email is not null or contact_whatsapp is not null) not valid;
 
 create table if not exists public.job_requests (
   id uuid primary key default gen_random_uuid(),
@@ -88,7 +88,7 @@ create table if not exists public.job_requests (
   approved_job_id uuid references public.jobs(id) on delete set null,
   reviewed_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint job_request_contact_method_check check (contact_email is not null or contact_whatsapp is not null)
+  constraint job_request_contact_method_check check (ad_type = 'quick' or contact_email is not null or contact_whatsapp is not null)
 );
 
 alter table public.job_requests add column if not exists ad_type text not null default 'detailed';
@@ -180,6 +180,8 @@ as $$
 declare
   request_row public.job_requests%rowtype;
   new_job_id uuid;
+  baghdad_today date := (now() at time zone 'Asia/Baghdad')::date;
+  published_deadline date;
 begin
   if not public.is_admin() then
     raise exception 'غير مصرح بالموافقة على طلبات الوظائف';
@@ -198,6 +200,11 @@ begin
   if request_row.status <> 'pending' then
     raise exception 'تمت مراجعة هذا الطلب مسبقاً';
   end if;
+
+  published_deadline := case
+    when request_row.ad_type = 'quick' then baghdad_today + 15
+    else request_row.deadline
+  end;
 
   insert into public.jobs (
     title,
@@ -230,13 +237,14 @@ begin
     request_row.contact_email,
     request_row.contact_whatsapp,
     'published',
-    request_row.deadline,
+    published_deadline,
     auth.uid()
   )
   returning id into new_job_id;
 
   update public.job_requests
   set status = 'approved',
+      deadline = published_deadline,
       approved_job_id = new_job_id,
       reviewed_at = now()
   where id = p_request_id;
@@ -277,7 +285,11 @@ for insert
 to anon, authenticated
 with check (
   status = 'pending'
-  and (contact_email is not null or contact_whatsapp is not null)
+  and (
+    ad_type = 'quick'
+    or contact_email is not null
+    or contact_whatsapp is not null
+  )
 );
 
 drop policy if exists "admins manage job requests" on public.job_requests;

@@ -25,16 +25,16 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
   }}>
     <div className="job-card-v3-head">
       <span className="company-logo"><Building2 size={19} /></span>
-      <div className="job-card-publish-info"><span className={isQuick ? "job-card-badge quick" : "job-card-badge"}>{isQuick ? "إعلان سريع" : "إعلان مفصل"}</span><small className="job-card-date"><CalendarDays size={12} /> نُشرت {formatDate(job.created_at)}</small></div>
+      <div className="job-card-publish-info"><small className="job-card-date"><CalendarDays size={12} /> نُشرت {formatDate(job.created_at)}</small></div>
       {onToggleSaved && <button type="button" className={saved ? "job-save-button saved" : "job-save-button"} onClick={(event) => { event.stopPropagation(); onToggleSaved(); }} onKeyDown={(event) => event.stopPropagation()} aria-pressed={Boolean(saved)} aria-label={saved ? "إزالة من المحفوظات" : "حفظ الوظيفة"}>{saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}<span>{saved ? "محفوظة" : "حفظ"}</span></button>}
     </div>
     <div className="job-card-v3-main">
       {!isQuick && <span className="category-label">{job.category || "عام"}</span>}
       <h3>{job.title}</h3>
-      <p className="company-name">{job.company_name}</p>
+      {job.company_name !== "جهة غير معلنة" && <p className="company-name">{job.company_name}</p>}
       {isQuick && <p className="quick-job-description">{job.description}</p>}
     </div>
-    <div className="job-card-v3-meta"><span><MapPin size={14} />{location}</span><span><Clock3 size={14} />{job.job_type}</span></div>
+    <div className="job-card-v3-meta"><span><MapPin size={14} />{location}</span>{!isQuick && <span><Clock3 size={14} />{job.job_type}</span>}</div>
     <div className={`job-card-deadline ${deadlineTone}`} aria-label={`آخر موعد للتقديم: ${job.deadline ? formatDate(job.deadline) : "غير محدد"}، ${deadlineSummary}`}>
       <CalendarDays size={15} />
       <span><small>آخر موعد للتقديم</small><strong>{job.deadline ? formatDate(job.deadline) : "غير محدد"}</strong></span>
@@ -42,7 +42,7 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
     </div>
     <div className="job-card-v3-footer">
       {!isQuick && <span><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>}
-      {isQuick && <span className="quick-contact-summary"><small>طريقة التواصل</small><strong>{job.contact_whatsapp ? "واتساب" : job.contact_email ? "البريد الإلكتروني" : "التفاصيل"}</strong></span>}
+      {isQuick && <span className="quick-contact-summary"><small>طريقة التواصل</small><strong>{job.contact_whatsapp ? "واتساب" : job.contact_email ? "البريد الإلكتروني" : "ضمن الوصف"}</strong></span>}
       <b>تفاصيل الوظيفة <ArrowLeft size={14} /></b>
     </div>
   </article>;

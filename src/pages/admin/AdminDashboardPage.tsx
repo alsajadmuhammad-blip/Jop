@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, BriefcaseBusiness, Building2, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Building2, Check, CheckCircle2, Clock3, FileText, LayoutDashboard, Link2, Minus, Pencil, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
 import { ModalShell } from "../../components/common/ModalShell";
 import { DatePickerField } from "../../components/common/DatePickerField";
 import { categories, governorates, jobTypes } from "../../lib/constants";
 import { formatDate, formatJobLocation } from "../../lib/format";
-import { getBaghdadToday } from "../../lib/date";
+import { getBaghdadDateAfterDays, getBaghdadToday } from "../../lib/date";
 import type { Application, EmployerAccount, Job, JobAdType, JobRequest, JobType, PostStatus } from "../../lib/types";
 import { createJob, deleteJob, loadAdminAccountStats, loadEmployerAccounts, updateCandidateSearchPermission, updateJob, updatePostStatus, type AdminAccountStats } from "../../services/adminService";
 import type { Notify, View } from "../../app/types";
@@ -293,41 +293,48 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(() => ({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", deadline: initialJob?.deadline || "", internal_applications: initialJob?.internal_applications || false }));
+  const [contactExpanded, setContactExpanded] = useState(Boolean(initialJob?.contact_email || initialJob?.contact_whatsapp));
   const editing = Boolean(initialJob);
   const quick = form.ad_type === "quick";
   const today = getBaghdadToday();
 
   useEffect(() => {
     setForm({ ad_type: initialJob?.ad_type || "detailed" as JobAdType, title: initialJob?.title || "", company_name: initialJob?.company_name || "", category: initialJob?.category || "", province: initialJob?.province || "", city: initialJob?.city || "", job_type: initialJob?.job_type || "" as JobType, description: initialJob?.description || "", requirements: initialJob?.requirements.join("\n") || "", salary_range: initialJob?.salary_range || "", contact_email: initialJob?.contact_email || "", contact_whatsapp: initialJob?.contact_whatsapp || "", deadline: initialJob?.deadline || "", internal_applications: initialJob?.internal_applications || false });
+    setContactExpanded(Boolean(initialJob?.contact_email || initialJob?.contact_whatsapp));
     setError("");
   }, [initialJob?.id]);
 
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
-  const chooseAdType = (adType: JobAdType) => setForm((current) => ({
-    ...current,
-    ad_type: adType,
-    title: "",
-    company_name: "",
-    category: "",
-    province: "",
-    city: "",
-    job_type: "" as JobType,
-    description: "",
-    requirements: "",
-    salary_range: "",
-    contact_email: "",
-    contact_whatsapp: "",
-    internal_applications: false,
-  }));
+  const chooseAdType = (adType: JobAdType) => {
+    setForm((current) => current.ad_type === adType ? current : ({
+      ...current,
+      ad_type: adType,
+      company_name: "",
+      category: "",
+      city: "",
+      job_type: "" as JobType,
+      requirements: "",
+      salary_range: "",
+      contact_email: "",
+      contact_whatsapp: "",
+      deadline: "",
+      internal_applications: false,
+    }));
+    setContactExpanded(false);
+    setError("");
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.deadline || form.deadline < today) return setError("حدد آخر موعد للتقديم بتاريخ اليوم أو بعده.");
-    if (!form.contact_email.trim() && !form.contact_whatsapp.trim()) return setError("أضف البريد الإلكتروني أو رقم الواتساب على الأقل.");
-    if (!form.title.trim() || !form.company_name.trim() || !form.description.trim() || !form.province || (!quick && (!form.category.trim() || !form.city.trim() || !form.job_type.trim()))) return setError(quick ? "أكمل العنوان واسم الجهة واختر المحافظة وأضف تفاصيل الوظيفة." : "أكمل العنوان واسم الجهة والتصنيف والمحافظة والمدينة ونوع الدوام وتفاصيل الوظيفة.");
+    if (!quick && (!form.deadline || form.deadline < today)) return setError("حدد آخر موعد للتقديم بتاريخ اليوم أو بعده.");
+    if (!quick && !form.contact_email.trim() && !form.contact_whatsapp.trim()) return setError("أضف البريد الإلكتروني أو رقم الواتساب على الأقل.");
+    if (!form.title.trim() || !form.description.trim() || !form.province || (!quick && (!form.company_name.trim() || !form.category.trim() || !form.city.trim() || !form.job_type.trim()))) return setError(quick ? "أكمل العنوان الوظيفي والمحافظة وتفاصيل الوظيفة." : "أكمل العنوان واسم الجهة والتصنيف والمحافظة والمدينة ونوع الدوام وتفاصيل الوظيفة.");
     setSaving(true);
     setError("");
-    const jobInput = { title: form.title.trim(), company_name: form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, province: form.province, city: quick ? "" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, deadline: form.deadline, internal_applications: form.internal_applications };
+    const quickDeadline = initialJob?.ad_type === "quick" && form.deadline >= today
+      ? form.deadline
+      : getBaghdadDateAfterDays(15);
+    const jobInput = { title: form.title.trim(), company_name: quick ? form.company_name.trim() || "جهة غير معلنة" : form.company_name.trim(), ad_type: form.ad_type, category: quick ? "عام" : form.category, province: form.province, city: quick ? "" : form.city.trim(), job_type: quick ? "دوام كامل" as JobType : form.job_type, description: form.description.trim(), requirements: quick ? [] : form.requirements.split("\n").map((item) => item.trim()).filter(Boolean), salary_range: quick ? null : form.salary_range.trim() || null, contact_email: form.contact_email.trim() || null, contact_whatsapp: form.contact_whatsapp.trim() || null, deadline: quick ? quickDeadline : form.deadline, internal_applications: quick ? false : form.internal_applications };
     const error = await (initialJob ? updateJob(initialJob.id, jobInput) : createJob(jobInput));
     setSaving(false);
     if (error) return setError(error.message);
@@ -335,13 +342,13 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
   };
 
   return <form className="post-form admin-post-form" onSubmit={submit}>
-    <div className="post-type-selector compact" aria-label="نوع الإعلان">
-      <button type="button" className={quick ? "" : "selected"} onClick={() => chooseAdType("detailed")}><b>إعلان مفصل</b><small>كل الحقول</small></button>
-      <button type="button" className={quick ? "selected" : ""} onClick={() => chooseAdType("quick")}><b>إعلان سريع</b><small>مختصر</small></button>
+    <div className="post-type-selector compact" role="group" aria-label="اختر نوع الإعلان">
+      <button type="button" data-ad-type="detailed" aria-pressed={!quick} className={quick ? "" : "selected"} onClick={() => chooseAdType("detailed")}><b>إعلان مفصل</b><small>كل الحقول والتفاصيل</small></button>
+      <button type="button" data-ad-type="quick" aria-pressed={quick} className={quick ? "selected" : ""} onClick={() => chooseAdType("quick")}><b>إعلان سريع</b><small>عنوان ومحافظة ووصف، والتواصل اختياري</small></button>
     </div>
     <div className="form-grid">
       <label>العنوان الوظيفي *<input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder="مثال: مطور تطبيقات" /></label>
-      <label>اسم الشركة أو الجهة *<input required value={form.company_name} onChange={(event) => update("company_name", event.target.value)} /></label>
+      {!quick && <label>اسم الشركة أو الجهة *<input required value={form.company_name} onChange={(event) => update("company_name", event.target.value)} /></label>}
     </div>
     <div className="form-grid">
       <label>المحافظة *<AppSelect value={form.province} onChange={(value) => update("province", value)} options={governorates.map((value) => ({ value, label: value }))} placeholder="اختر المحافظة" ariaLabel="المحافظة" /></label>
@@ -354,14 +361,15 @@ export function PostForm({ onSaved, initialJob }: { onSaved: () => void; initial
       </div>
       <label>الراتب <span className="optional">اختياري</span><input value={form.salary_range} onChange={(event) => update("salary_range", event.target.value)} /></label>
     </>}
-    <div className="form-grid">
+    {!quick && <div className="form-grid">
       <label>البريد الإلكتروني *<input type="email" value={form.contact_email} onChange={(event) => update("contact_email", event.target.value)} dir="ltr" /></label>
       <label>واتساب *<input value={form.contact_whatsapp} onChange={(event) => update("contact_whatsapp", event.target.value)} dir="ltr" /></label>
-    </div>
-    <label>تفاصيل الوظيفة *<textarea required rows={quick ? 6 : 4} value={form.description} onChange={(event) => update("description", event.target.value)} placeholder={quick ? "العنوان، طبيعة العمل، وأهم المعلومات..." : "اكتب وصف الوظيفة والمسؤوليات..."} /></label>
+    </div>}
+    <label>تفاصيل الوظيفة *<textarea required rows={quick ? 8 : 4} value={form.description} onChange={(event) => update("description", event.target.value)} placeholder={quick ? "اكتب طبيعة العمل والمهام والخبرة والراتب والدوام وأي معلومات أخرى..." : "اكتب وصف الوظيفة والمسؤوليات..."} /></label>
     {!quick && <label>المتطلبات <span className="optional">كل متطلب بسطر</span><textarea rows={3} value={form.requirements} onChange={(event) => update("requirements", event.target.value)} /></label>}
-     <DatePickerField id="admin-job-deadline" label="آخر موعد للتقديم" required min={today} value={form.deadline} onChange={(value) => update("deadline", value)} />
-    <DirectApplicationToggle checked={form.internal_applications} onChange={(checked) => setForm((current) => ({ ...current, internal_applications: checked }))} />
+    {quick && <><p className="quick-expiry-note">يبقى الإعلان منشوراً 15 يوماً من تاريخ النشر، ثم يُغلق تلقائياً.</p><div className="quick-contact-disclosure"><button type="button" className="quick-contact-toggle" aria-expanded={contactExpanded} onClick={() => setContactExpanded((current) => !current)}>{contactExpanded ? <Minus size={16} /> : <Plus size={16} />}<span>{contactExpanded ? "إخفاء وسائل التواصل" : "إضافة وسيلة تواصل (اختياري)"}</span></button>{contactExpanded && <div className="quick-contact-fields"><p>أضف البريد أو الواتساب، أو اترك وسيلة التواصل ضمن وصف الوظيفة.</p><div className="contact-choice-grid"><label className="contact-input-card"><span>البريد الإلكتروني <small>اختياري</small></span><input type="email" value={form.contact_email} onChange={(event) => update("contact_email", event.target.value)} placeholder="jobs@company.com" dir="ltr" /></label><label className="contact-input-card whatsapp-input"><span>رقم الواتساب <small>اختياري</small></span><input value={form.contact_whatsapp} onChange={(event) => update("contact_whatsapp", event.target.value)} placeholder="07xxxxxxxxx" dir="ltr" /></label></div></div>}</div></>}
+    {!quick && <DatePickerField id="admin-job-deadline" label="آخر موعد للتقديم" required min={today} value={form.deadline} onChange={(value) => update("deadline", value)} />}
+    {!quick && <DirectApplicationToggle checked={form.internal_applications} onChange={(checked) => setForm((current) => ({ ...current, internal_applications: checked }))} />}
     {error && <p className="form-error">{error}</p>}
     <button className="primary-btn" disabled={saving}>{saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "نشر الوظيفة"} <Send size={16} /></button>
   </form>;
