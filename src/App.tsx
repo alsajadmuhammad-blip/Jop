@@ -20,7 +20,6 @@ import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
 import { SavedJobsPage } from "./pages/candidate/SavedJobsPage";
 import { AppliedJobsPage } from "./pages/candidate/AppliedJobsPage";
-import { ReceivedApplicationsPage } from "./features/applications/ReceivedApplicationsPage";
 import { CandidateDashboardShell } from "./pages/candidate/CandidateDashboardShell";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminPostPage } from "./pages/admin/AdminPostPage";
@@ -36,7 +35,7 @@ const CandidatePage = lazy(() =>
   import("./pages/candidate/CandidatePage").then((module) => ({ default: module.CandidatePage })),
 );
 
-const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "received", "admin", "admin-post", "hr", "job", "job-request"];
+const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
 
 function readRoute(): { view: View; jobId: string | null } {
   const value = window.location.hash.replace(/^#/, "");
@@ -224,7 +223,7 @@ function App() {
 
   useEffect(() => {
     if (!authReady) return;
-    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied" || view === "received") && !profile) {
+    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied") && !profile) {
       navigate("login");
       return;
     }
@@ -349,7 +348,7 @@ function App() {
         })),
     ];
   }, [applications, candidateApplications, jobRequests, profile, supervisorJobIds]);
-  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied" || view === "received";
+  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "saved" || view === "applied";
   const logout = async () => {
     const { error } = await signOut();
     if (error) {
@@ -380,7 +379,6 @@ function App() {
         {view === "home" && <HomePage jobs={publishedJobs} hasMoreJobs={hasMorePublicJobs} loading={loading} profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} initialHasMoreJobs={hasMorePublicJobs} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onNotify={notify} />}
-          {view === "received" && profile && <ReceivedApplicationsPage profile={profile} onNavigate={navigate} onOpenJob={navigateToJobId} onNotify={notify} />}
           {view === "login" && <AuthPage mode="sign-in" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
           {view === "signup" && <AuthPage mode="sign-up" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}

@@ -1,1 +1,2 @@
 - [Database changes](database-changes.md) — provide SQL in chat for the user to execute; never run database changes directly.
+- [Applications by role](applications-by-role.md) — distinguish candidate submissions from publisher review and reuse existing HR/admin screens.

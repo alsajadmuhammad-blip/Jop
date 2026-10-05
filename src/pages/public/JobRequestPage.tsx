@@ -65,7 +65,7 @@ export function JobRequestPage({ profile, onNavigate, onSubmitted }: JobRequestP
   const [deadlineExpanded, setDeadlineExpanded] = useState(false);
   const today = getBaghdadToday();
   const steps = useMemo(() => form.ad_type === "quick" ? quickSteps : detailedSteps, [form.ad_type]);
-  const canEnableInternalApplications = Boolean(profile);
+  const canEnableInternalApplications = profile?.role === "hr" || profile?.role === "admin";
 
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 

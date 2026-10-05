@@ -5,7 +5,6 @@ import {
   ClipboardCheck,
   FileText,
   Home,
-  Inbox,
   LayoutDashboard,
   LogOut,
   PlusCircle,
@@ -67,7 +66,6 @@ export function MainSidebar({
           { id: "candidate", label: "ملفي المهني", icon: <UserRound size={17} /> },
           { id: "saved", label: "الوظائف المحفوظة", icon: <FileText size={17} /> },
           { id: "applied", label: "الوظائف المتقدّم لها", icon: <ClipboardCheck size={17} /> },
-          { id: "received", label: "تقديمات إعلاناتي", icon: <Inbox size={17} /> },
         ] },
       ];
     }
@@ -78,7 +76,6 @@ export function MainSidebar({
           { id: "hr-search", label: "البحث عن الكفاءات", icon: <Search size={17} /> },
           { id: "hr-applications", label: "الطلبات الواردة", icon: <FileText size={17} /> },
           { id: "hr-publish", label: "نشر وظيفة", icon: <PlusCircle size={17} /> },
-          { id: "received", label: "تقديمات إعلاناتي", icon: <Inbox size={17} /> },
         ] },
       ];
     }
@@ -89,7 +86,6 @@ export function MainSidebar({
         { id: "admin-jobs", label: "إدارة الوظائف", icon: <BriefcaseBusiness size={17} /> },
         { id: "admin-requests", label: "طلبات النشر", icon: <CheckCircle2 size={17} /> },
         { id: "admin-applications", label: "تقديمات وظائفك", icon: <FileText size={17} /> },
-          { id: "received", label: "تقديمات إعلاناتك", icon: <Inbox size={17} /> },
         { id: "admin-candidate-search", label: "البحث عن الباحثين", icon: <Search size={17} /> },
         { id: "admin-access", label: "صلاحيات البحث", icon: <Settings2 size={17} /> },
       ] },
@@ -97,7 +93,7 @@ export function MainSidebar({
   }, [profile.role]);
 
   const active = profile.role === "candidate"
-    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "received" ? "received" : view === "candidate" ? "candidate" : view === "job" ? "jobs" : view
+    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "candidate" ? "candidate" : view === "job" ? "jobs" : view
     : profile.role === "hr"
       ? view === "job-request" ? "hr-publish" : view === "hr" ? `hr-${hrSection}` : view
       : view === "admin"
@@ -109,13 +105,12 @@ export function MainSidebar({
     { id: "jobs", label: "الوظائف", icon: <BriefcaseBusiness size={19} /> },
     { id: "saved", label: "المحفوظة", icon: <FileText size={19} /> },
     { id: "applied", label: "تقديماتي", icon: <ClipboardCheck size={19} /> },
-    { id: "received", label: "الواردة", icon: <Inbox size={19} /> },
     { id: "candidate", label: "ملفي", icon: <UserRound size={19} /> },
   ];
 
   const select = (id: string) => {
     onClose();
-    if (id === "home" || id === "jobs" || id === "candidate" || id === "saved" || id === "applied" || id === "received" || id === "hr-publish") {
+    if (id === "home" || id === "jobs" || id === "candidate" || id === "saved" || id === "applied" || id === "hr-publish") {
       onNavigate(id === "hr-publish" ? "job-request" : id as View);
       return;
     }
@@ -166,7 +161,7 @@ export function MainSidebar({
               key={item.id}
               className={active === item.id ? "active" : ""}
               onClick={() => select(item.id)}
-              aria-label={item.id === "saved" ? "الوظائف المحفوظة" : item.id === "applied" ? "الوظائف المتقدّم لها" : item.id === "received" ? "التقديمات الواردة على إعلاناتك" : item.label}
+              aria-label={item.id === "saved" ? "الوظائف المحفوظة" : item.id === "applied" ? "الوظائف المتقدّم لها" : item.label}
               aria-current={active === item.id ? "page" : undefined}
             >
               <span className="candidate-mobile-nav-icon" aria-hidden="true">{item.icon}</span>
