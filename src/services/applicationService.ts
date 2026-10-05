@@ -38,6 +38,16 @@ export async function loadApplications(jobsOnly = false) {
   return { applications: (result.data as Application[]) || [], error: result.error };
 }
 
+export async function loadReceivedApplications(ownerId: string) {
+  const result = await supabase
+    .from("applications")
+    .select("*, jobs!inner(id, title, company_name, province, city, job_type, deadline, created_by)")
+    .not("job_id", "is", null)
+    .eq("jobs.created_by", ownerId)
+    .order("created_at", { ascending: false });
+  return { applications: (result.data as Application[]) || [], error: result.error };
+}
+
 export async function loadCandidateApplications(candidateId: string, options: { forceRefresh?: boolean } = {}) {
   const cached = getCachedCandidateApplications(candidateId);
   if (!options.forceRefresh && cached !== undefined) {

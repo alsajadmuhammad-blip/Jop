@@ -15,7 +15,7 @@ export type JobPostInput = {
   salary_range: string | null;
   contact_email: string | null;
   contact_whatsapp: string | null;
-  deadline: string;
+  deadline: string | null;
   internal_applications: boolean;
 };
 
@@ -23,14 +23,17 @@ export async function createJob(input: JobPostInput) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return userError || new Error("سجّل الدخول قبل نشر الوظيفة.");
   const normalizedInput = input.ad_type === "quick"
-    ? { ...input, company_name: input.company_name.trim() || "جهة غير معلنة", deadline: getBaghdadDateAfterDays(15), internal_applications: false }
+    ? { ...input, company_name: input.company_name.trim() || "جهة غير معلنة", deadline: input.deadline || getBaghdadDateAfterDays(15) }
     : input;
   const { error } = await supabase.from("jobs").insert({ ...normalizedInput, status: "published", created_by: user.id });
   return error;
 }
 
 export async function updateJob(id: string, input: JobPostInput) {
-  const { error } = await supabase.from("jobs").update(input).eq("id", id);
+  const normalizedInput = input.ad_type === "quick"
+    ? { ...input, deadline: input.deadline || getBaghdadDateAfterDays(15) }
+    : input;
+  const { error } = await supabase.from("jobs").update(normalizedInput).eq("id", id);
   return error;
 }
 
@@ -95,8 +98,8 @@ export async function submitJobRequest(input: Omit<JobRequest, "id" | "status" |
     company_name: isQuick ? input.company_name.trim() || "جهة غير معلنة" : input.company_name,
     contact_name: isQuick ? input.contact_name.trim() || "صاحب الإعلان" : input.contact_name,
     contact_email: contactEmail,
-    deadline: isQuick ? getBaghdadDateAfterDays(15) : input.deadline,
-    internal_applications: isQuick ? false : input.internal_applications,
+    deadline: input.deadline,
+    internal_applications: input.internal_applications,
     created_by: input.created_by || userResult.user?.id || null,
     status: "pending",
   });

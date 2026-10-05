@@ -30,6 +30,7 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
     </div>
     <div className="job-card-v3-main">
       {!isQuick && <span className="category-label">{job.category || "عام"}</span>}
+      {job.internal_applications && <span className="job-card-internal-apply">تقديم مباشر عبر المنصة</span>}
       <h3>{job.title}</h3>
       {job.company_name !== "جهة غير معلنة" && <p className="company-name">{job.company_name}</p>}
       {isQuick && <p className="quick-job-description">{job.description}</p>}
@@ -42,7 +43,7 @@ export function JobCard({ job, onClick, saved, onToggleSaved }: { job: Job; onCl
     </div>
     <div className="job-card-v3-footer">
       {!isQuick && <span><small>الراتب</small><strong>{job.salary_range || "يحدد بالمقابلة"}</strong></span>}
-      {isQuick && <span className="quick-contact-summary"><small>طريقة التواصل</small><strong>{job.contact_whatsapp ? "واتساب" : job.contact_email ? "البريد الإلكتروني" : "ضمن الوصف"}</strong></span>}
+      {isQuick && <span className="quick-contact-summary"><small>طريقة التقديم</small><strong>{job.internal_applications ? "مباشر عبر المنصة" : job.contact_whatsapp ? "واتساب" : job.contact_email ? "البريد الإلكتروني" : "ضمن الوصف"}</strong></span>}
       <b>تفاصيل الوظيفة <ArrowLeft size={14} /></b>
     </div>
   </article>;

@@ -1,0 +1,1 @@
+- [Database changes](database-changes.md) — provide SQL in chat for the user to execute; never run database changes directly.
