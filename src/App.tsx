@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react
 import { Check, ShieldCheck } from "lucide-react";
 import { Header } from "./components/layout/Header";
 import { MainSidebar } from "./components/layout/MainSidebar";
+import { PublicMobileNav } from "./components/layout/PublicMobileNav";
 import { Footer } from "./components/layout/Footer";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { demoJobs } from "./lib/constants";
@@ -14,7 +15,7 @@ import { clearCandidateProfileCache } from "./services/candidateService";
 import { clearSavedJobsCache } from "./services/savedJobService";
 import { loadAdminPosts, loadJobRequests } from "./services/adminService";
 import { HomePage } from "./pages/public/HomePage";
-import { JobsPage } from "./pages/public/JobsPage";
+import { JobsPage, type PublicJobSearch } from "./pages/public/JobsPage";
 import { RequestsPage } from "./pages/public/RequestsPage";
 import { JobDetailsPage } from "./pages/public/JobDetailsPage";
 import { JobRequestPage } from "./pages/public/JobRequestPage";
@@ -36,6 +37,8 @@ const CandidatePage = lazy(() =>
 );
 
 const views: View[] = ["home", "jobs", "login", "signup", "candidate", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
+
+type HomeJobSearch = Pick<PublicJobSearch, "keyword" | "category" | "province">;
 
 function readRoute(): { view: View; jobId: string | null } {
   const value = window.location.hash.replace(/^#/, "");
@@ -59,6 +62,12 @@ function applicationStatusLabel(status: Application["status"]) {
 function App() {
   const initialRoute = readRoute();
   const [view, setView] = useState<View>(initialRoute.view);
+  const [publicJobSearch, setPublicJobSearch] = useState<PublicJobSearch>({
+    keyword: "",
+    category: "الكل",
+    jobType: "الكل",
+    province: "الكل",
+  });
   const [routeJobId, setRouteJobId] = useState<string | null>(initialRoute.jobId);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [requests, setRequests] = useState<CVRequest[]>([]);
@@ -86,6 +95,11 @@ function App() {
     setMobileMenu(false);
     window.location.hash = next;
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const navigateFromHomeSearch = (filters: HomeJobSearch) => {
+    setPublicJobSearch({ ...filters, jobType: "الكل" });
+    navigate("jobs");
   };
 
   const navigateToJob = (job: Job) => {
@@ -369,15 +383,15 @@ function App() {
     notify("تم تسجيل الدخول بنجاح");
   };
 
-  return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}`}>
+  return <div className={`app-shell ${profile ? "has-main-sidebar" : ""}${!profile && (view === "home" || view === "jobs") ? " public-search-shell" : ""}`}>
     <Header view={view} profile={profile} onLogout={() => void logout()} notifications={notifications} onNavigate={navigate} onOpenNotification={openNotification} onLogin={() => navigate("login")} onRegister={() => navigate("signup")} mobileMenu={mobileMenu} setMobileMenu={setMobileMenu} />
     {profile && <MainSidebar profile={profile} view={view} adminSection={adminSection} hrSection={hrSection} open={mobileMenu} onClose={() => setMobileMenu(false)} onNavigate={navigate} onAdminSection={setAdminSection} onHrSection={setHrSection} onLogout={() => void logout()} />}
     <main>
       {!hasSupabaseConfig && <div className="config-banner"><ShieldCheck size={16} /> وضع المعاينة فعال — أضف إعدادات Supabase لتشغيل البيانات الحقيقية.</div>}
       <Suspense fallback={<section className="container page-section centered-state"><span className="live-dot" /><p>جاري فتح الصفحة...</p></section>}>
       {!authReady && requiresAuth ? <section className="container page-section centered-state"><span className="live-dot" /><p>جاري استعادة جلستك، لحظات ونكمل من نفس الصفحة.</p></section> : <>
-        {view === "home" && <HomePage jobs={publishedJobs} hasMoreJobs={hasMorePublicJobs} loading={loading} profile={profile} onNavigate={navigate} onOpenJob={navigateToJob} onLogin={() => navigate("login")} onNotify={notify} />}
-          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} initialHasMoreJobs={hasMorePublicJobs} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} />}
+        {view === "home" && <HomePage jobs={publishedJobs} hasMoreJobs={hasMorePublicJobs} loading={loading} profile={profile} initialQuery={publicJobSearch.keyword} initialCategory={publicJobSearch.category} initialProvince={publicJobSearch.province} onNavigate={navigate} onSearchJobs={navigateFromHomeSearch} onOpenJob={navigateToJob} onLogin={() => navigate("login")} onNotify={notify} />}
+          {view === "jobs" && <JobsPage jobs={publishedJobs} loading={loading} initialHasMoreJobs={hasMorePublicJobs} onOpenJob={navigateToJob} profile={profile} onLogin={() => navigate("login")} onNotify={notify} initialQuery={publicJobSearch.keyword} initialCategory={publicJobSearch.category} initialJobType={publicJobSearch.jobType} initialProvince={publicJobSearch.province} onFiltersChange={setPublicJobSearch} />}
           {view === "job" && <JobDetailsPage job={selectedJob} profile={profile} onNavigate={navigate} onLogin={() => navigate("login")} onNotify={notify} />}
           {view === "login" && <AuthPage mode="sign-in" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
           {view === "signup" && <AuthPage mode="sign-up" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
@@ -395,6 +409,13 @@ function App() {
       </>}
       </Suspense>
     </main>
+    {!profile && (view === "home" || view === "jobs") && (
+      <PublicMobileNav
+        activeView={view}
+        onNavigate={navigate}
+        onLogin={() => navigate("login")}
+      />
+    )}
     <Footer />
     {modal === "request" && selectedRequest && <RequestModal request={selectedRequest} onClose={() => setModal(null)} onSubmitted={() => { setModal(null); notify("تم إرسال سيرتك الذاتية إلى الجهة المختصة."); }} />}
     {toast && <div className="toast"><Check size={17} />{toast}</div>}

@@ -25,7 +25,7 @@ export function Header({ view, profile, onLogout, onNavigate, onLogin, onRegiste
     { label: "الرئيسية", view: "home" },
     { label: "الوظائف", view: "jobs" },
   ];
-  return <header className={`site-header${profile ? " role-site-header" : ""}${profile?.role === "candidate" ? " candidate-site-header" : ""}`}><div className="nav-wrap">
+  return <header className={`site-header${profile ? " role-site-header" : ""}${profile?.role === "candidate" ? " candidate-site-header" : ""}${view === "home" || view === "jobs" ? " public-search-header" : ""}`}><div className="nav-wrap">
     <button className="brand" onClick={() => onNavigate("home")} aria-label="IRAQ JOBS - الصفحة الرئيسية"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><b>IRAQ JOBS</b><small>FOR JOB SEEKERS</small></span></button>
     <nav className={mobileMenu ? "main-nav open" : "main-nav"}>
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}

@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BriefcaseBusiness, MapPin, Search, ShieldCheck, X } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  ChevronDown,
+  MapPin,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { categories, jobTypes } from "../../lib/constants";
 import type { Job, JobType, Profile } from "../../lib/types";
@@ -14,12 +22,84 @@ import {
   type PublicJobCursor,
   type PublicJobFilters,
 } from "../../services/publicService";
+import "./iraq-jobs-redesign.css";
 
-export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile, onLogin, onNotify, embedded = false }: { jobs: Job[]; loading: boolean; initialHasMoreJobs: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void; embedded?: boolean }) {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("الكل");
-  const [jobType, setJobType] = useState<"الكل" | JobType>("الكل");
-  const [province, setProvince] = useState("الكل");
+export type PublicJobSearch = {
+  keyword: string;
+  category: string;
+  jobType: "الكل" | JobType;
+  province: string;
+};
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="jr-filter">
+      <span>{label}</span>
+      <span className="jr-select-wrap">
+        <select value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option === "الكل"
+                ? label === "التصنيف"
+                  ? "كل التصنيفات"
+                  : label === "نوع الدوام"
+                    ? "كل أنواع الدوام"
+                    : "كل المحافظات"
+                : option}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={14} aria-hidden="true" />
+      </span>
+    </label>
+  );
+}
+
+type JobsPageProps = {
+  jobs: Job[];
+  loading: boolean;
+  initialHasMoreJobs: boolean;
+  onOpenJob: (job: Job) => void;
+  profile?: Profile | null;
+  onLogin?: () => void;
+  onNotify?: (message: string) => void;
+  embedded?: boolean;
+  initialQuery?: string;
+  initialCategory?: string;
+  initialJobType?: "الكل" | JobType;
+  initialProvince?: string;
+  onFiltersChange?: (filters: PublicJobSearch) => void;
+};
+
+export function JobsPage({
+  jobs,
+  loading,
+  initialHasMoreJobs,
+  onOpenJob,
+  profile,
+  onLogin,
+  onNotify,
+  embedded = false,
+  initialQuery = "",
+  initialCategory = "الكل",
+  initialJobType = "الكل",
+  initialProvince = "الكل",
+  onFiltersChange,
+}: JobsPageProps) {
+  const [query, setQuery] = useState(initialQuery);
+  const [category, setCategory] = useState(initialCategory);
+  const [jobType, setJobType] = useState<"الكل" | JobType>(initialJobType);
+  const [province, setProvince] = useState(initialProvince);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [pageJobs, setPageJobs] = useState<Job[]>([]);
   const [serverProvinces, setServerProvinces] = useState<string[]>([]);
@@ -30,10 +110,26 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
   const today = getBaghdadToday();
   const requestSequence = useRef(0);
   const notifyRef = useRef(onNotify);
+  const filtersChangeRef = useRef(onFiltersChange);
 
   useEffect(() => {
     notifyRef.current = onNotify;
   }, [onNotify]);
+
+  useEffect(() => {
+    filtersChangeRef.current = onFiltersChange;
+  }, [onFiltersChange]);
+
+  useEffect(() => {
+    setQuery(initialQuery);
+    setCategory(initialCategory);
+    setJobType(initialJobType);
+    setProvince(initialProvince);
+  }, [initialQuery, initialCategory, initialJobType, initialProvince]);
+
+  useEffect(() => {
+    filtersChangeRef.current?.({ keyword: query, category, jobType, province });
+  }, [query, category, jobType, province]);
 
   const filters = useMemo<PublicJobFilters>(() => ({
     keyword: query,
@@ -173,44 +269,149 @@ export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile
     setNextCursor(result.nextCursor);
   };
 
-  return <section className={embedded ? "jobs-page jobs-page-embedded" : "container page-section jobs-page"}>
-    {!embedded && <header className="jobs-hero-banner">
-      <div className="jobs-hero-copy">
-        <span className="jobs-hero-eyebrow"><BriefcaseBusiness size={15} /> IRAQ JOBS <i /> فرص العمل</span>
-        <h1>خطوتك القادمة تبدأ من هنا</h1>
-        <p>اكتشف الوظائف المنشورة في محافظات العراق، واختر الفرصة الأقرب إلى خبرتك.</p>
+  return (
+    <section className={`jobs-page-redesign${embedded ? " is-embedded" : ""}`} dir="rtl">
+      {!embedded && (
+        <header className="jr-heritage-hero">
+          <img src="/images/iraq-heritage-home.webp?v=2" alt="" aria-hidden="true" />
+          <div className="jr-hero-shade" />
+          <div className="jr-hero-content">
+            <span className="jr-hero-kicker"><MapPin size={13} /> فرص مهنية في محافظات العراق</span>
+            <h1>ابحث عن عمل<br /><em>يناسب خطوتك</em></h1>
+            <p>اكتشف الفرص حسب اختصاصك ومكانك، واختر ما يناسب خبرتك.</p>
+          </div>
+        </header>
+      )}
+
+      <div className="jr-content">
+        {!embedded && (
+          <>
+            <div className="jr-intro-row">
+              <div>
+                <span className="jr-eyebrow">مساحة البحث</span>
+                <h2>فرص العمل</h2>
+              </div>
+              <span className="jr-free-mark"><ShieldCheck size={14} /> اكتشاف مجاني</span>
+            </div>
+
+            <div className="jr-search-block" role="search" aria-label="البحث عن الوظائف">
+              <Search size={18} aria-hidden="true" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="المسمى الوظيفي، الجهة أو الموقع"
+                aria-label="ابحث بالمسمى أو الجهة أو الموقع"
+              />
+              {query && (
+                <button type="button" aria-label="مسح البحث" onClick={() => setQuery("")}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="jr-filter-heading">
+              <span><SlidersHorizontal size={14} /> ضيّق نطاق البحث</span>
+              {hasActiveFilters && <button type="button" onClick={clearFilters}>مسح الفلاتر</button>}
+            </div>
+            <div className="jr-filters">
+              <FilterSelect
+                label="التصنيف"
+                value={category}
+                options={["الكل", ...categories, "عام"]}
+                onChange={setCategory}
+              />
+              <FilterSelect
+                label="نوع الدوام"
+                value={jobType}
+                options={["الكل", ...jobTypes]}
+                onChange={(value) => setJobType(value as "الكل" | JobType)}
+              />
+              <FilterSelect
+                label="المحافظة"
+                value={province}
+                options={["الكل", ...provinces.filter((item) => item !== "الكل")]}
+                onChange={setProvince}
+              />
+            </div>
+
+            {hasActiveFilters && (
+              <div className="jr-active-filters" role="group" aria-label="الفلاتر النشطة">
+                {query.trim() && (
+                  <button type="button" onClick={() => setQuery("")}>
+                    بحث: {query.trim()} <X size={12} aria-hidden="true" />
+                  </button>
+                )}
+                {category !== "الكل" && (
+                  <button type="button" onClick={() => setCategory("الكل")}>
+                    التصنيف: {category} <X size={12} aria-hidden="true" />
+                  </button>
+                )}
+                {jobType !== "الكل" && (
+                  <button type="button" onClick={() => setJobType("الكل")}>
+                    الدوام: {jobType} <X size={12} aria-hidden="true" />
+                  </button>
+                )}
+                {province !== "الكل" && (
+                  <button type="button" onClick={() => setProvince("الكل")}>
+                    المحافظة: {province} <X size={12} aria-hidden="true" />
+                  </button>
+                )}
+                <button className="jr-clear-all" type="button" onClick={clearFilters}>مسح الكل</button>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="jr-results-heading">
+          <div>
+            <span className="jr-eyebrow">{embedded ? "جديد المنصة" : "تصفّح حسب ما يهمك"}</span>
+            <h2>{embedded ? "فرص تستحق أن تراها" : "وظائف مختارة"}</h2>
+          </div>
+          <span className="jr-result-count">
+            {pageLoading ? "…" : `${visibleJobs.length}${hasMore ? "+" : ""} وظيفة`}
+          </span>
+        </div>
+
+        {pageLoading ? (
+          <LoadingCards />
+        ) : visibleJobs.length ? (
+          <div className="job-grid wide">
+            {visibleJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onClick={() => onOpenJob(job)}
+                saved={savedIds.includes(job.id)}
+                onToggleSaved={() => void toggleSaved(job)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="jr-empty-state">
+            <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />
+          </div>
+        )}
+
+        {!pageLoading && hasMore && (
+          <button
+            type="button"
+            className="primary-btn jobs-load-more"
+            disabled={loadingMore}
+            onClick={() => void loadMore()}
+          >
+            {loadingMore ? "جاري تحميل المزيد..." : `عرض ${PUBLIC_PAGE_SIZE} وظائف إضافية`}
+          </button>
+        )}
+
+        {!embedded && (
+          <aside className="jr-trust-footer">
+            <ShieldCheck size={20} aria-hidden="true" />
+            <p>
+              <strong>ابحث بثقة.</strong> IRAQ JOBS منصة مجانية لاكتشاف الوظائف. تحقّق من تفاصيل الإعلان والجهة قبل التقديم.
+            </p>
+          </aside>
+        )}
       </div>
-      <div className="jobs-hero-mark" aria-hidden="true"><MapPin size={30} /></div>
-      <div className="jobs-hero-count"><strong>{pageLoading ? "…" : `${visibleJobs.length}${hasMore ? "+" : ""}`}</strong><span>فرصة في النتائج</span></div>
-    </header>}
-
-    {!embedded && <aside className="home-refresh-notice jobs-page-notice">
-      <div className="home-refresh-notice-icon"><ShieldCheck size={24} /></div>
-      <div>
-        <strong>مهم تعرف</strong>
-        <p>IRAQ JOBS منصة مجانية وخيرية لنشر الوظائف فقط. لا نأخذ أجوراً مقابل نشر الوظائف أو التوظيف أو التقديم، ولا نتحمل مسؤولية صحة الإعلانات أو نتائج التواصل بين الأطراف.</p>
-      </div>
-    </aside>}
-
-    <div className="jobs-browse-tools" role="search" aria-label="البحث وتصفية الوظائف">
-      <div className="jobs-classic-filters">
-        <label className="jobs-search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث بالمسمى أو الجهة أو الموقع" aria-label="البحث عن وظيفة" /></label>
-        <label className="jobs-select-field"><span>التصنيف</span><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="تصفية حسب التصنيف"><option value="الكل">كل التصنيفات</option>{[...categories, "عام"].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label className="jobs-select-field"><span>نوع الدوام</span><select value={jobType} onChange={(event) => setJobType(event.target.value as "الكل" | JobType)} aria-label="تصفية حسب نوع الدوام"><option value="الكل">كل أنواع الدوام</option>{jobTypes.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label className="jobs-select-field"><span>المحافظة</span><select value={province} onChange={(event) => setProvince(event.target.value)} aria-label="تصفية حسب المحافظة"><option value="الكل">كل المحافظات</option>{provinces.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-      </div>
-    </div>
-
-    {hasActiveFilters && <div className="jobs-active-filters" role="group" aria-label="الفلاتر النشطة">
-      {query.trim() && <button type="button" className="jobs-active-filter-chip" onClick={() => setQuery("")}><span>بحث: {query.trim()}</span><X size={13} aria-hidden="true" /></button>}
-      {category !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setCategory("الكل")}><span>التصنيف: {category}</span><X size={13} aria-hidden="true" /></button>}
-      {jobType !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setJobType("الكل")}><span>الدوام: {jobType}</span><X size={13} aria-hidden="true" /></button>}
-      {province !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setProvince("الكل")}><span>المحافظة: {province}</span><X size={13} aria-hidden="true" /></button>}
-      <button className="clear-filters jobs-clear-active-filters" type="button" onClick={clearFilters}><X size={14} /> مسح الكل</button>
-    </div>}
-
-      <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{pageLoading ? "جاري التحميل..." : `${visibleJobs.length}${hasMore ? "+" : ""} وظيفة متاحة`}</strong></div><span>مرتبة حسب الأحدث</span></div>
-      {pageLoading ? <LoadingCards /> : visibleJobs.length ? <div className="job-grid wide">{visibleJobs.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved={savedIds.includes(job.id)} onToggleSaved={() => void toggleSaved(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
-      {!pageLoading && hasMore && <button type="button" className="primary-btn jobs-load-more" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "جاري تحميل المزيد..." : `عرض ${PUBLIC_PAGE_SIZE} وظائف إضافية`}</button>}
-  </section>;
+    </section>
+  );
 }
