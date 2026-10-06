@@ -1,0 +1,459 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Building2,
+  BriefcaseBusiness,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  MapPinned,
+  RotateCcw,
+  Search,
+  ShieldAlert,
+  SlidersHorizontal,
+  UserRound,
+  Plus,
+} from "lucide-react";
+import { EmptyState } from "../../components/common/Feedback";
+import { AppSelect } from "../../components/common/AppSelect";
+import { formatDate } from "../../lib/format";
+import type { Application, ApplicationStatus, CandidateProfile, CandidateSearchResult, Profile } from "../../lib/types";
+import type { Notify } from "../../app/types";
+import type { View } from "../../app/types";
+import { openApplicationCv, updateApplicationStatus } from "../../services/applicationService";
+import { CandidateProfilePage } from "./CandidateProfilePage";
+import {
+  emptyCandidateSearchFilters,
+  CANDIDATE_SEARCH_PAGE_SIZE,
+  loadCandidateProfile,
+  loadCandidateSearchOptions,
+  searchCandidateProfiles,
+  type CandidateSearchCursor,
+  type CandidateSearchFilters,
+  type CandidateSearchOptions,
+} from "../../services/candidateService";
+
+export type HrSection = "search" | "applications";
+
+export function HrDashboardPage({
+  profile,
+  applications,
+  onRefresh,
+  onNotify,
+  onNavigate,
+  section,
+  onSection,
+}: {
+  profile: Profile;
+  applications: Application[];
+  onRefresh: () => void;
+  onNotify: Notify;
+  onNavigate: (view: View) => void;
+  section: HrSection;
+  onSection: (section: HrSection) => void;
+}) {
+  const [filters, setFilters] = useState<CandidateSearchFilters>(emptyCandidateSearchFilters);
+  const [options, setOptions] = useState<CandidateSearchOptions | null>(null);
+  const [results, setResults] = useState<CandidateSearchResult[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [nextCursor, setNextCursor] = useState<CandidateSearchCursor | null>(null);
+  const [resultsFilterSignature, setResultsFilterSignature] = useState("");
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [selected, setSelected] = useState<CandidateProfile | null>(null);
+  const [selectedSource, setSelectedSource] = useState<"search" | "applications">("search");
+  const [opening, setOpening] = useState("");
+  const searchSequence = useRef(0);
+
+  const isSupervisor = profile.role === "admin";
+  const canSearch = profile.can_search_candidates || isSupervisor;
+
+  useEffect(() => {
+    let active = true;
+    if (!canSearch || section !== "search") {
+      setOptionsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setOptionsLoading(true);
+    void loadCandidateSearchOptions().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        onNotify("تعذر تجهيز خيارات الفلترة من ملفات الباحثين.");
+      } else {
+        setOptions(result.options);
+      }
+      setOptionsLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [canSearch, section]);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [section]);
+
+  const updateFilter = <K extends keyof CandidateSearchFilters>(
+    key: K,
+    value: CandidateSearchFilters[K],
+  ) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const activeFilterCount = useMemo(
+    () => [
+      filters.keyword,
+      filters.specialization,
+      filters.province,
+      filters.city,
+      filters.minExperience,
+      filters.workType,
+      filters.skill,
+      filters.availability,
+      filters.remoteOnly,
+    ].filter(Boolean).length,
+    [filters],
+  );
+  const resultsAreCurrent = resultsFilterSignature === JSON.stringify(filters);
+
+  const resetFilters = () => {
+    setFilters(emptyCandidateSearchFilters);
+    setResults([]);
+    setSearched(false);
+    setHasMoreResults(false);
+    setNextCursor(null);
+    setResultsFilterSignature("");
+    setSearching(false);
+    setLoadingMore(false);
+    searchSequence.current += 1;
+  };
+
+  const search = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const sequence = ++searchSequence.current;
+    setSearching(true);
+    setLoadingMore(false);
+    setResults([]);
+    setSearched(false);
+    setResultsFilterSignature("");
+    setHasMoreResults(false);
+    setNextCursor(null);
+    const result = await searchCandidateProfiles(filters);
+    if (sequence !== searchSequence.current) return;
+    setSearching(false);
+    setSearched(true);
+    if (result.error) {
+      setResults([]);
+      setResultsFilterSignature(JSON.stringify(filters));
+      onNotify(String((result.error as { message?: string }).message || "تعذر تنفيذ البحث."));
+      return;
+    }
+    setResults(result.profiles);
+    setHasMoreResults(result.hasMore);
+    setNextCursor(result.nextCursor);
+    setResultsFilterSignature(JSON.stringify(filters));
+  };
+
+  const loadMoreCandidates = async () => {
+    if (!nextCursor || loadingMore || resultsFilterSignature !== JSON.stringify(filters)) return;
+    const sequence = searchSequence.current;
+    setLoadingMore(true);
+    const result = await searchCandidateProfiles(filters, nextCursor);
+    if (sequence !== searchSequence.current) {
+      setLoadingMore(false);
+      return;
+    }
+    setLoadingMore(false);
+    if (result.error) {
+      onNotify(String((result.error as { message?: string }).message || "تعذر تحميل بقية الباحثين."));
+      return;
+    }
+    setResults((current) => [...current, ...result.profiles]);
+    setHasMoreResults(result.hasMore);
+    setNextCursor(result.nextCursor);
+  };
+
+  const setStatus = async (id: string, status: ApplicationStatus) => {
+    const error = await updateApplicationStatus(id, status);
+    if (error) return onNotify(error.message);
+    onNotify("تم تحديث حالة المتقدم");
+    onRefresh();
+  };
+
+  const openApplication = async (application: Application) => {
+    if (!application.candidate_id && !application.cv_path) {
+      return onNotify("لا يوجد ملف مرتبط بهذا التقديم.");
+    }
+
+    setOpening(application.id);
+    setSelected(null);
+    setSelectedSource("applications");
+
+    if (application.candidate_id) {
+      const result = await loadCandidateProfile(application.candidate_id);
+      setOpening("");
+      if (result.error) return onNotify("تعذر فتح الملف المهني. تأكد من صلاحيات الوصول.");
+      if (!result.profile) return onNotify("لم يتم العثور على الملف المهني لهذا المتقدم.");
+      setSelected(result.profile);
+      return;
+    }
+
+    try {
+      await openApplicationCv(application.cv_path as string);
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "تعذر فتح الملف.");
+    } finally {
+      setOpening("");
+    }
+  };
+
+  if (!canSearch && section === "search") {
+    return (
+      <section className="container page-section dashboard-page hr-locked-page">
+        <div className="access-lock-card">
+          <span><ShieldAlert size={28} /></span>
+          <h1>البحث غير مفعّل لهذا الحساب</h1>
+          <p>لا يمكنك مشاهدة الملفات الشخصية للباحثين إلا بعد أن يفعّل المشرف صلاحية الوصول لحسابك.</p>
+          <small>عند التفعيل ستظهر لك خيارات الفلترة وملفات الباحثين هنا مباشرة.</small>
+          <button type="button" className="primary-btn" onClick={() => onNavigate("job-request")}><Plus size={16} /> طلب نشر وظيفة</button>
+        </div>
+      </section>
+    );
+  }
+
+  if (selected) {
+    return <CandidateProfilePage candidate={selected} source={selectedSource} onBack={() => setSelected(null)} />;
+  }
+
+  return (
+    <section className="container page-section dashboard-page hr-workspace-page">
+      {section === "search" && <>
+        <header className="hr-page-header">
+          <div className="hr-page-header-copy">
+              <span className="eyebrow"><Building2 size={14} /> {isSupervisor ? "مساحة المشرف" : "مساحة صاحب العمل / HR"}</span>
+            <h1>اعثر على الكفاءة المناسبة لفريقك</h1>
+              <p>{isSupervisor ? "ابحث في ملفات الباحثين عن عمل وساعد في مطابقة الكفاءات مع الوظائف المنشورة." : "فلترة واضحة تساعدك على الوصول إلى المرشح الأقرب لمتطلبات الوظيفة."}</p>
+            <div className="hr-header-tags">
+              <span><CheckCircle2 size={14} /> بيانات متطابقة مع ملفات الباحثين</span>
+              <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
+            </div>
+          </div>
+          <div className="hr-page-header-mark"><Building2 size={27} /><b>IRAQ JOBS</b><small>دليل الكفاءات</small></div>
+        </header>
+
+        <div className="hr-summary-strip">
+          <div><span><UserRound size={16} /></span><p><b>{options?.total ?? "—"}</b><small>ملف باحث متاح</small></p></div>
+          <div><span><Search size={16} /></span><p><b>{searched ? results.length : "—"}</b><small>نتيجة مطابقة</small></p></div>
+          <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>{isSupervisor ? "تقديم على وظائفك" : "طلب وارد"}</small></p></div>
+          <div className="hr-summary-note"><SlidersHorizontal size={16} /><span>كل خيار يظهر فقط إذا كان موجودًا في ملفات الباحثين الحالية.</span></div>
+        </div>
+      </>}
+
+      {section === "search" && (
+        <div className="candidate-search-layout">
+          <form className="candidate-search-panel" onSubmit={search}>
+            <div className="search-panel-heading">
+              <div>
+                <span className="eyebrow">فلترة من البيانات الفعلية</span>
+                <h2>ابنِ بحثك</h2>
+                <p>اختر من القيم الموجودة حاليًا بدل كتابة قيمة قد لا تطابق ملفات الباحثين.</p>
+              </div>
+              <SlidersHorizontal size={20} />
+            </div>
+
+            <label className="hr-keyword-field">
+              <span>كلمة البحث <small>اختياري</small></span>
+              <input value={filters.keyword} onChange={(event) => updateFilter("keyword", event.target.value)} placeholder="مسمى، إنجاز، تعليم أو لغة" />
+            </label>
+
+            <div className="hr-filter-grid">
+              <label>
+                <span>التخصص</span>
+                <AppSelect
+                  value={filters.specialization}
+                  onChange={(value) => updateFilter("specialization", value)}
+                  placeholder="كل التخصصات"
+                  disabled={optionsLoading}
+                  options={(options?.specializations || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="التخصص"
+                />
+              </label>
+              <label>
+                 <span>المحافظة</span>
+                 <AppSelect
+                   value={filters.province}
+                   onChange={(value) => updateFilter("province", value)}
+                   placeholder="كل المحافظات"
+                   disabled={optionsLoading}
+                   options={(options?.provinces || []).map((value) => ({ value, label: value }))}
+                   ariaLabel="المحافظة"
+                 />
+               </label>
+               <label>
+                <span>المدينة</span>
+                <AppSelect
+                  value={filters.city}
+                  onChange={(value) => updateFilter("city", value)}
+                  placeholder="كل المدن"
+                  disabled={optionsLoading}
+                  options={(options?.cities || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="المدينة"
+                />
+              </label>
+              <label>
+                <span>المهارة</span>
+                <AppSelect
+                  value={filters.skill}
+                  onChange={(value) => updateFilter("skill", value)}
+                  placeholder="كل المهارات"
+                  disabled={optionsLoading}
+                  options={(options?.skills || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="المهارة"
+                />
+              </label>
+              <label>
+                <span>نوع العمل</span>
+                <AppSelect
+                  value={filters.workType}
+                  onChange={(value) => updateFilter("workType", value)}
+                  placeholder="كل الأنواع"
+                  disabled={optionsLoading}
+                  options={(options?.workTypes || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="نوع العمل"
+                />
+              </label>
+              <label>
+                <span>التوفر للعمل</span>
+                <AppSelect
+                  value={filters.availability}
+                  onChange={(value) => updateFilter("availability", value)}
+                  placeholder="كل حالات التوفر"
+                  disabled={optionsLoading}
+                  options={(options?.availabilities || []).map((value) => ({ value, label: value }))}
+                  ariaLabel="التوفر للعمل"
+                />
+              </label>
+              <label>
+                <span>الخبرة</span>
+                <AppSelect
+                  value={filters.minExperience}
+                  onChange={(value) => updateFilter("minExperience", value)}
+                  placeholder="أي مستوى خبرة"
+                  disabled={optionsLoading}
+                  options={(options?.experienceYears || []).map((value) => ({ value: String(value), label: `من ${value} سنة فأكثر` }))}
+                  ariaLabel="الخبرة"
+                />
+              </label>
+            </div>
+
+            <label className="checkbox-field hr-remote-filter">
+              <input type="checkbox" checked={filters.remoteOnly} onChange={(event) => updateFilter("remoteOnly", event.target.checked)} />
+              <span>أظهر من يقبل العمل عن بُعد فقط</span>
+            </label>
+
+            {optionsLoading && <p className="filter-options-loading"><span className="live-dot" /> جارٍ تجهيز الخيارات من ملفات الباحثين...</p>}
+
+            <div className="hr-filter-actions">
+              <button className="primary-btn" disabled={searching || optionsLoading}>
+                {searching ? "جاري البحث..." : "عرض الباحثين"} <Search size={17} />
+              </button>
+              {activeFilterCount > 0 && <button type="button" className="reset-filter-btn" onClick={resetFilters}><RotateCcw size={14} /> مسح الفلاتر ({activeFilterCount})</button>}
+            </div>
+          </form>
+
+          <div className="candidate-results">
+            <div className="results-heading">
+              <div>
+                <span className="eyebrow">النتائج المطابقة</span>
+                <h2>{searching ? "جاري البحث..." : searched && resultsAreCurrent ? `${results.length}${hasMoreResults ? "+" : ""} ملف مطابق` : searched ? "أعد البحث بالمعايير الجديدة" : "اختر معايير البحث"}</h2>
+              </div>
+              <small>{searched ? "تمت المطابقة من بيانات الملف مباشرة" : "الملفات الداخلية المصرّح بها"}</small>
+            </div>
+            {searching ? (
+              <div className="candidate-search-loading"><span className="live-dot" /><p>جاري البحث في الملفات المطابقة...</p></div>
+            ) : searched && !resultsAreCurrent ? (
+              <EmptyState title="تغيّرت معايير البحث" text="اضغط «عرض الباحثين» حتى نحدّث النتائج حسب خياراتك الجديدة." />
+            ) : results.length ? (
+              <div className="candidate-result-list">
+                 {results.map((candidate) => (
+                   <button type="button" className="candidate-result-card" key={candidate.user_id} onClick={() => { setSelectedSource("search"); setSelected(candidate); }}>
+                    <span className="candidate-result-avatar">{candidate.full_name.slice(0, 1)}</span>
+                    <span className="candidate-result-copy">
+                      <b>{candidate.full_name}</b>
+                      <strong>{candidate.headline}</strong>
+                       <small>{candidate.specialization} · {candidate.province} / {candidate.city} · {candidate.experience_years} سنوات خبرة</small>
+                      <span>{candidate.skills.slice(0, 4).join(" · ")}</span>
+                    </span>
+                    <span className="candidate-result-arrow">عرض الملف</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title={searched ? "لا توجد ملفات مطابقة" : "ابدأ بتحديد المواصفات"}
+                text={searched ? "جرّب إزالة فلتر واحد أو اختيار قيمة أخرى من القوائم." : "القوائم تعرض فقط التخصصات والمدن والمهارات الموجودة في ملفات الباحثين."}
+              />
+            )}
+            {hasMoreResults && resultsFilterSignature === JSON.stringify(filters) && <button
+              type="button"
+              className="primary-btn candidate-load-more"
+              disabled={loadingMore || searching}
+              onClick={() => void loadMoreCandidates()}
+            >
+              {loadingMore ? "جاري تحميل المزيد..." : `عرض ${CANDIDATE_SEARCH_PAGE_SIZE} باحثين إضافيين`}
+            </button>}
+          </div>
+        </div>
+      )}
+
+      {section === "applications" && (
+        <div className="applications-section">
+          <div className="applications-section-heading">
+            <div><span className="eyebrow">متابعة التقديمات</span><h2>{isSupervisor ? "التقديمات على وظائفك" : "الطلبات الواردة"}</h2><p>{isSupervisor ? "تابع المتقدمين على الوظائف التي نشرتها، وافتح ملفاتهم وحدّث حالة كل طلب." : "راجع الطلبات وحدّث حالتها حتى يبقى مسار المتابعة واضحًا."}</p></div>
+            <span className="applications-total"><FileText size={16} /> {applications.length} طلب</span>
+          </div>
+          {applications.length ? (
+            <div className="applications-list">
+              {applications.map((application) => (
+                <div className="application-row" key={application.id}>
+                  <span className="app-avatar">{application.full_name.slice(0, 1)}</span>
+                  <div className="application-row-main">
+                    <b>{application.full_name}</b>
+                    <small>{application.cv_requests?.title || application.jobs?.title || "طلب CV"} · {formatDate(application.created_at)}</small>
+                    {application.note && <p className="application-row-note"><b>ملاحظة الباحث:</b> {application.note}</p>}
+                  </div>
+                  <div className="application-row-status">
+                    <small>حالة الطلب</small>
+                    <AppSelect
+                      value={application.status}
+                      onChange={(value) => void setStatus(application.id, value as ApplicationStatus)}
+                      options={[
+                        { value: "new", label: "جديد" },
+                        { value: "reviewing", label: "قيد المراجعة" },
+                        { value: "shortlisted", label: "مرشح" },
+                        { value: "rejected", label: "مرفوض" },
+                        { value: "hired", label: "مقبول" },
+                      ]}
+                      ariaLabel="حالة الطلب"
+                    />
+                   </div>
+                   <button className="row-action" disabled={opening === application.id || (!application.candidate_id && !application.cv_path)} onClick={() => void openApplication(application)}>
+                     {opening === application.id ? "جاري الفتح..." : application.candidate_id ? "فتح الملف المهني" : application.cv_path ? "فتح CV" : "فتح الملف"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title={isSupervisor ? "لا توجد تقديمات على وظائفك بعد" : "لا توجد طلبات واردة بعد"} text={isSupervisor ? "انشر وظيفة وفعّل استقبال التقديمات المباشر لتصل الطلبات إلى هذه الصفحة." : "عند إرسال الباحثين لطلبات HR راح تظهر هنا."} />
+          )}
+        </div>
+      )}
+
+    </section>
+  );
+}

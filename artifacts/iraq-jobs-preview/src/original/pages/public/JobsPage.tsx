@@ -1,0 +1,216 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BriefcaseBusiness, MapPin, Search, ShieldCheck, X } from "lucide-react";
+import { EmptyState, LoadingCards } from "../../components/common/Feedback";
+import { categories, jobTypes } from "../../lib/constants";
+import type { Job, JobType, Profile } from "../../lib/types";
+import { JobCard } from "../../features/jobs/JobCard";
+import { hasSupabaseConfig } from "../../lib/supabase";
+import { getBaghdadToday } from "../../lib/date";
+import { loadSavedJobIds, toggleSavedJob } from "../../services/savedJobService";
+import {
+  loadPublicJobFilterOptions,
+  loadPublicJobsPage,
+  PUBLIC_PAGE_SIZE,
+  type PublicJobCursor,
+  type PublicJobFilters,
+} from "../../services/publicService";
+
+export function JobsPage({ jobs, loading, initialHasMoreJobs, onOpenJob, profile, onLogin, onNotify, embedded = false }: { jobs: Job[]; loading: boolean; initialHasMoreJobs: boolean; onOpenJob: (job: Job) => void; profile?: Profile | null; onLogin?: () => void; onNotify?: (message: string) => void; embedded?: boolean }) {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("الكل");
+  const [jobType, setJobType] = useState<"الكل" | JobType>("الكل");
+  const [province, setProvince] = useState("الكل");
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [pageJobs, setPageJobs] = useState<Job[]>([]);
+  const [serverProvinces, setServerProvinces] = useState<string[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(hasSupabaseConfig);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<PublicJobCursor | null>(null);
+  const today = getBaghdadToday();
+  const requestSequence = useRef(0);
+  const notifyRef = useRef(onNotify);
+
+  useEffect(() => {
+    notifyRef.current = onNotify;
+  }, [onNotify]);
+
+  const filters = useMemo<PublicJobFilters>(() => ({
+    keyword: query,
+    category,
+    jobType,
+    province,
+  }), [query, category, jobType, province]);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) return;
+    let active = true;
+    void loadPublicJobFilterOptions().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        notifyRef.current?.("تعذر تحميل قائمة المحافظات.");
+        return;
+      }
+      setServerProvinces(result.options?.provinces || []);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) {
+      setLoadingJobs(false);
+      return;
+    }
+
+    const sequence = ++requestSequence.current;
+    setPageJobs([]);
+    setHasMore(false);
+    setNextCursor(null);
+    setLoadingJobs(true);
+    if (loading) return;
+
+    const isDefaultSearch = !filters.keyword.trim()
+      && filters.category === "الكل"
+      && filters.jobType === "الكل"
+      && filters.province === "الكل";
+
+    if (isDefaultSearch) {
+      const availableJobs = jobs.filter((job) => Boolean(job.deadline) && job.deadline! >= today);
+      const firstPage = availableJobs.slice(0, PUBLIC_PAGE_SIZE);
+      const lastJob = firstPage[firstPage.length - 1];
+      setPageJobs(firstPage);
+      setHasMore(initialHasMoreJobs || availableJobs.length > PUBLIC_PAGE_SIZE);
+      setNextCursor(lastJob && (initialHasMoreJobs || availableJobs.length > PUBLIC_PAGE_SIZE)
+        ? { id: lastJob.id, created_at: lastJob.created_at }
+        : null);
+      setLoadingJobs(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void loadPublicJobsPage(filters).then((result) => {
+        if (requestSequence.current !== sequence) return;
+        setLoadingJobs(false);
+        if (result.error) {
+          notifyRef.current?.("تعذر تحميل الوظائف. تأكد من تطبيق تحديث قاعدة البيانات.");
+          return;
+        }
+        setPageJobs(result.jobs);
+        setHasMore(result.hasMore);
+        setNextCursor(result.nextCursor);
+      });
+    }, filters.keyword.trim() ? 350 : 0);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [filters, initialHasMoreJobs, jobs, loading]);
+
+  useEffect(() => {
+    if (profile?.role !== "candidate" || !hasSupabaseConfig) {
+      setSavedIds([]);
+      return;
+    }
+    void loadSavedJobIds().then((result) => setSavedIds(result.ids));
+  }, [profile]);
+
+  const toggleSaved = async (job: Job) => {
+    if (profile?.role !== "candidate") {
+      onLogin?.();
+      return;
+    }
+    const saved = savedIds.includes(job.id);
+    const error = await toggleSavedJob(job.id, saved);
+    if (error) return onNotify?.("تعذر تحديث المحفوظات.");
+    setSavedIds((current) => saved ? current.filter((id) => id !== job.id) : [...current, job.id]);
+    onNotify?.(saved ? "أزيلت الوظيفة من المحفوظات" : "تم حفظ الوظيفة");
+  };
+
+  const localFilteredJobs = useMemo(() => {
+    const search = query.trim().toLocaleLowerCase("ar");
+    return jobs
+      .filter((job) => {
+        const searchable = `${job.title} ${job.company_name} ${job.province} ${job.city} ${job.category} ${job.job_type}`.toLocaleLowerCase("ar");
+        return Boolean(job.deadline) && job.deadline! >= today
+          && (!search || searchable.includes(search))
+          && (category === "الكل" || job.category === category)
+          && (jobType === "الكل" || job.job_type === jobType)
+          && (province === "الكل" || job.province === province);
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [jobs, query, category, jobType, province, today]);
+  const visibleJobs = hasSupabaseConfig ? pageJobs : localFilteredJobs;
+  const pageLoading = hasSupabaseConfig ? loadingJobs : loading;
+  const provinces = hasSupabaseConfig && serverProvinces.length
+    ? serverProvinces
+    : Array.from(new Set(jobs.filter((job) => job.status === "published" && Boolean(job.deadline) && job.deadline! >= today).map((job) => job.province).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ar"));
+  const hasActiveFilters = Boolean(query.trim() || category !== "الكل" || jobType !== "الكل" || province !== "الكل");
+  const clearFilters = () => {
+    setQuery("");
+    setCategory("الكل");
+    setJobType("الكل");
+    setProvince("الكل");
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    const sequence = requestSequence.current;
+    setLoadingMore(true);
+    const result = await loadPublicJobsPage(filters, nextCursor);
+    if (requestSequence.current !== sequence) {
+      setLoadingMore(false);
+      return;
+    }
+    setLoadingMore(false);
+    if (result.error) {
+      onNotify?.("تعذر تحميل بقية الوظائف.");
+      return;
+    }
+    setPageJobs((current) => [...current, ...result.jobs]);
+    setHasMore(result.hasMore);
+    setNextCursor(result.nextCursor);
+  };
+
+  return <section className={embedded ? "jobs-page jobs-page-embedded" : "container page-section jobs-page"}>
+    {!embedded && <header className="jobs-hero-banner">
+      <div className="jobs-hero-copy">
+        <span className="jobs-hero-eyebrow"><BriefcaseBusiness size={15} /> IRAQ JOBS <i /> فرص العمل</span>
+        <h1>خطوتك القادمة تبدأ من هنا</h1>
+        <p>اكتشف الوظائف المنشورة في محافظات العراق، واختر الفرصة الأقرب إلى خبرتك.</p>
+      </div>
+      <div className="jobs-hero-mark" aria-hidden="true"><MapPin size={30} /></div>
+      <div className="jobs-hero-count"><strong>{pageLoading ? "…" : `${visibleJobs.length}${hasMore ? "+" : ""}`}</strong><span>فرصة في النتائج</span></div>
+    </header>}
+
+    {!embedded && <aside className="home-refresh-notice jobs-page-notice">
+      <div className="home-refresh-notice-icon"><ShieldCheck size={24} /></div>
+      <div>
+        <strong>مهم تعرف</strong>
+        <p>IRAQ JOBS منصة مجانية وخيرية لنشر الوظائف فقط. لا نأخذ أجوراً مقابل نشر الوظائف أو التوظيف أو التقديم، ولا نتحمل مسؤولية صحة الإعلانات أو نتائج التواصل بين الأطراف.</p>
+      </div>
+    </aside>}
+
+    <div className="jobs-browse-tools" role="search" aria-label="البحث وتصفية الوظائف">
+      <div className="jobs-classic-filters">
+        <label className="jobs-search-field"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث بالمسمى أو الجهة أو الموقع" aria-label="البحث عن وظيفة" /></label>
+        <label className="jobs-select-field"><span>التصنيف</span><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="تصفية حسب التصنيف"><option value="الكل">كل التصنيفات</option>{[...categories, "عام"].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="jobs-select-field"><span>نوع الدوام</span><select value={jobType} onChange={(event) => setJobType(event.target.value as "الكل" | JobType)} aria-label="تصفية حسب نوع الدوام"><option value="الكل">كل أنواع الدوام</option>{jobTypes.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="jobs-select-field"><span>المحافظة</span><select value={province} onChange={(event) => setProvince(event.target.value)} aria-label="تصفية حسب المحافظة"><option value="الكل">كل المحافظات</option>{provinces.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+      </div>
+    </div>
+
+    {hasActiveFilters && <div className="jobs-active-filters" role="group" aria-label="الفلاتر النشطة">
+      {query.trim() && <button type="button" className="jobs-active-filter-chip" onClick={() => setQuery("")}><span>بحث: {query.trim()}</span><X size={13} aria-hidden="true" /></button>}
+      {category !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setCategory("الكل")}><span>التصنيف: {category}</span><X size={13} aria-hidden="true" /></button>}
+      {jobType !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setJobType("الكل")}><span>الدوام: {jobType}</span><X size={13} aria-hidden="true" /></button>}
+      {province !== "الكل" && <button type="button" className="jobs-active-filter-chip" onClick={() => setProvince("الكل")}><span>المحافظة: {province}</span><X size={13} aria-hidden="true" /></button>}
+      <button className="clear-filters jobs-clear-active-filters" type="button" onClick={clearFilters}><X size={14} /> مسح الكل</button>
+    </div>}
+
+      <div className="jobs-results-bar"><div><span className="eyebrow">نتائج البحث</span><strong>{pageLoading ? "جاري التحميل..." : `${visibleJobs.length}${hasMore ? "+" : ""} وظيفة متاحة`}</strong></div><span>مرتبة حسب الأحدث</span></div>
+      {pageLoading ? <LoadingCards /> : visibleJobs.length ? <div className="job-grid wide">{visibleJobs.map((job) => <JobCard key={job.id} job={job} onClick={() => onOpenJob(job)} saved={savedIds.includes(job.id)} onToggleSaved={() => void toggleSaved(job)} />)}</div> : <EmptyState title="ماكو وظائف بهذا البحث" text="جرّب تغيير كلمات البحث أو إزالة أحد الفلاتر." />}
+      {!pageLoading && hasMore && <button type="button" className="primary-btn jobs-load-more" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "جاري تحميل المزيد..." : `عرض ${PUBLIC_PAGE_SIZE} وظائف إضافية`}</button>}
+  </section>;
+}

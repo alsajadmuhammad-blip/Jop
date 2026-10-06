@@ -1,0 +1,19 @@
+kind = "design"
+previewPath = "/__mockup-iraq-jobs/"
+title = "Iraq Jobs Page Design Preview"
+description = "An isolated preview space for the redesigned Iraq Jobs homepage and job listings, preserving the current brand and logo."
+version = "1.0.0"
+id = "artifacts/iraq-jobs-preview"
+router = "path"
+
+[[services]]
+name = "Component Preview Server"
+paths = [ "/__mockup-iraq-jobs/" ]
+localPort = 21323
+
+[services.development]
+run = "npm run dev"
+
+[services.env]
+PORT = "21323"
+BASE_PATH = "/__mockup-iraq-jobs/"
