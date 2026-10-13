@@ -122,37 +122,6 @@ const styles = `
     border-bottom: 3px solid var(--cv-deep);
   }
 
-  .professional-cv-preview .cv-topline {
-    width: 100%;
-    margin-bottom: 20px;
-    border-collapse: collapse;
-  }
-
-  .professional-cv-preview .cv-topline td {
-    padding: 0;
-    vertical-align: middle;
-  }
-
-  .professional-cv-preview .cv-kicker {
-    color: var(--cv-teal);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-  }
-
-  .professional-cv-preview .cv-sample-tag {
-    padding: 5px 8px;
-    border: 1px solid #d9e5e0;
-    color: #58736f;
-    background: #f4f8f6;
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 0.7px;
-    text-align: center;
-    text-transform: uppercase;
-  }
-
   .professional-cv-preview .cv-name {
     margin: 0;
     color: var(--cv-deep);
@@ -384,15 +353,6 @@ const styles = `
     line-height: 1.45;
   }
 
-  .professional-cv-preview .cv-footer {
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px solid #dce6e3;
-    color: #8a9997;
-    font-size: 8px;
-    letter-spacing: 0.2px;
-  }
-
   @media (max-width: 640px) {
     .professional-cv-preview {
       padding: 12px 8px;
@@ -495,16 +455,6 @@ export function ProfessionalCv() {
       <style>{styles}</style>
       <main className="cv-paper" aria-label="Professional CV preview">
         <header className="cv-header">
-          <table className="cv-topline" role="presentation">
-            <tbody>
-              <tr>
-                <td className="cv-kicker">Curriculum vitae · Iraq</td>
-                <td align="right">
-                  <span className="cv-sample-tag">Fictional sample profile</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
           <h1 className="cv-name">{candidate.fullName}</h1>
           <p className="cv-headline">{candidate.headline}</p>
           <table className="cv-contact" role="presentation">
@@ -617,7 +567,6 @@ export function ProfessionalCv() {
           </tbody>
         </table>
 
-        <footer className="cv-footer">Prepared with Iraq Jobs · Candidate profile document</footer>
       </main>
     </div>
   );
