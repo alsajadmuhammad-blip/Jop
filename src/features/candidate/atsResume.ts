@@ -98,6 +98,14 @@ function printDocument(content: string) {
   return true;
 }
 
+export function downloadResumeDocument(data: ResumeData, content: string, prefix: string) {
+  downloadDocument(data, content, prefix);
+}
+
+export function printResumeDocument(content: string) {
+  return printDocument(content);
+}
+
 export function buildAtsResumeDocument(data: AtsResumeData) {
   const contact = contactParts(data).map(clean).join(" | ");
   const meta = professionalMeta(data).map(clean).join(" | ");

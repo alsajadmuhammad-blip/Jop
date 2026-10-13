@@ -240,6 +240,24 @@
   padding-left: 2px;
 }
 
+.professional-resume-export-card {
+  border-color: #d7e7e2;
+  background: linear-gradient(145deg, #f4f8f6, #fff);
+}
+
+.professional-resume-export-card .aside-card-heading > svg {
+  color: #276961;
+}
+
+.professional-resume-export-card .ats-export-actions .primary-btn {
+  background: #276961;
+}
+
+.professional-resume-export-card .ats-export-actions .outline-btn {
+  color: #276961;
+  border-color: #c8ddd7;
+}
+
 @media (max-width: 620px) {
   .resume-promo-banner {
     align-items: flex-start;

@@ -7,6 +7,7 @@ import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib
 import { hasSupabaseConfig } from "../../lib/supabase";
 import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, getCandidateProfileDraft, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, saveCandidateProfileDraft, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
+import { downloadProfessionalResume, printProfessionalResume } from "../../features/candidate/professionalResume";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -409,6 +410,23 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     if (!printAtsResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ ATS كـ PDF.");
   };
 
+  const exportProfessionalResume = () => {
+    if (!canExportAts) {
+      onNotify?.("أكمل الاسم والمسمى والبريد والهاتف والنبذة أولاً حتى نخرج سيرة قوية.");
+      return;
+    }
+    downloadProfessionalResume(atsData());
+    onNotify?.("تم تنزيل السيرة الاحترافية بصيغة Word.");
+  };
+
+  const printProfessionalResumePdf = () => {
+    if (!canExportAts) {
+      onNotify?.("أكمل البيانات الأساسية أولاً حتى نجهز نسخة PDF مرتبة.");
+      return;
+    }
+    if (!printProfessionalResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ السيرة الاحترافية كـ PDF.");
+  };
+
   if (loading) {
     return <section className="container page-section centered-state"><span className="live-dot" /><p>جاري تحميل ملفك المهني...</p></section>;
   }
@@ -544,6 +562,15 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
             <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> حفظ ATS كـ PDF</button>
           </div>
           {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
+        </div>
+        <div className="profile-aside-card ats-export-card professional-resume-export-card">
+          <div className="aside-card-heading"><div><span className="eyebrow">Designed application version</span><h3>Professional CV</h3></div><FileText size={20} /></div>
+          <p>نسخة إنكليزية بتصميم احترافي وبطاقات واضحة، منفصلة عن نسخة ATS.</p>
+          <div className="ats-export-actions">
+            <button type="button" className="primary-btn" onClick={exportProfessionalResume}><Download size={16} /> تنزيل Word احترافي</button>
+            <button type="button" className="outline-btn" onClick={printProfessionalResumePdf}><Printer size={15} /> حفظ PDF احترافي</button>
+          </div>
+          {!canExportAts && <small className="ats-export-hint">أكمل الاسم والمسمى وبيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>
         <div className="profile-aside-card privacy-card"><div className="aside-card-icon"><ShieldCheck size={19} /></div><div><b>ملفك يظهر لأصحاب العمل المصرّح لهم</b><p>يظهر ملفك فقط لأصحاب العمل الذين لديهم صلاحية الوصول إلى ملفات الباحثين عن العمل، والتي يفعّلها المشرف.</p></div><span className="privacy-status"><Check size={13} /> وصول مقيّد</span></div>
          <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={hasFullName ? "done" : ""}><span>{hasFullName ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={hasHeadline ? "done" : ""}><span>{hasHeadline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={hasSkills ? "done" : ""}><span>{hasSkills ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={hasExperience ? "done" : ""}><span>{hasExperience ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={hasSummary ? "done" : ""}><span>{hasSummary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
