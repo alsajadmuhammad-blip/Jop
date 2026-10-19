@@ -31,10 +31,11 @@ cp .env.example .env
 5. نفّذ `supabase/platform-features.sql` ثم `supabase/application-prevent-duplicates.sql` لتفعيل استقبال التقديمات المباشرة على الوظائف، وربط الطلبات بالباحثين ومنع التقديم المكرر.
 6. نفّذ `supabase/search-pagination.sql` لإضافة البحث والصفحات وخيارات الفلاتر العامة.
 7. في المشاريع التي سبق إعداد البحث فيها، نفّذ `supabase/candidate-search-complete-profiles.sql` لتقييد خيارات البحث والنتائج بالملفات المكتملة.
-8. نفّذ `supabase/job-provinces-migration.sql` لإضافة المحافظة المستقلة للوظائف وتحديث شريط محافظات الوظائف المنشورة.
+8. نفّذ `supabase/candidate-search-faceted-options.sql` لتفعيل خيارات الفلاتر المترابطة في بحث HR والمشرف.
+9. نفّذ `supabase/job-provinces-migration.sql` لإضافة المحافظة المستقلة للوظائف وتحديث شريط محافظات الوظائف المنشورة.
    تربط التهيئة المواقع القديمة المعروفة بمحافظاتها؛ عدّل من لوحة الإدارة أي وظيفة بقيت محافظتها فارغة.
-9. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
-10. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
+10. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
+11. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
 
 في قاعدة بيانات أُعِدّت مسبقًا، نفّذ `supabase/admin-delete-job.sql` مرة واحدة لتفعيل دالة حذف الوظائف الجديدة.
 وإذا كان `supabase/job-deadline-policy.sql` منفّذًا مسبقًا، نفّذ `supabase/job-request-deadline-trigger-fix.sql` لتحديث التحقق وقيد الموعد المرتبطين بطلب النشر حتى لا يمنعا حذف الوظيفة المرتبطة به.

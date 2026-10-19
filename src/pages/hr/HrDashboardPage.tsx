@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDownLeft,
   Building2,
   BriefcaseBusiness,
   CheckCircle2,
   Clock3,
   FileText,
-  MapPinned,
+  MapPin,
   RotateCcw,
   Search,
   ShieldAlert,
+  ShieldCheck,
   SlidersHorizontal,
   UserRound,
   Plus,
+  X,
 } from "lucide-react";
 import { EmptyState } from "../../components/common/Feedback";
 import { AppSelect } from "../../components/common/AppSelect";
@@ -33,6 +36,37 @@ import {
 } from "../../services/candidateService";
 
 export type HrSection = "search" | "applications";
+
+function CandidateFacetField({
+  label,
+  placeholder,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  options: { value: string; label: string }[];
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={`rs-filter-field${value ? " is-selected" : ""}`}>
+      <span>{label}<small>{options.length}</small></span>
+      <AppSelect
+        className="rs-filter-select"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        options={options}
+        ariaLabel={label}
+      />
+    </label>
+  );
+}
 
 export function HrDashboardPage({
   profile,
@@ -61,10 +95,13 @@ export function HrDashboardPage({
   const [nextCursor, setNextCursor] = useState<CandidateSearchCursor | null>(null);
   const [resultsFilterSignature, setResultsFilterSignature] = useState("");
   const [optionsLoading, setOptionsLoading] = useState(true);
+  const [facetRetry, setFacetRetry] = useState(0);
   const [selected, setSelected] = useState<CandidateProfile | null>(null);
   const [selectedSource, setSelectedSource] = useState<"search" | "applications">("search");
   const [opening, setOpening] = useState("");
   const searchSequence = useRef(0);
+  const facetLoadSequence = useRef(0);
+  const recentlyChangedFilter = useRef<keyof CandidateSearchFilters | null>(null);
 
   const isSupervisor = profile.role === "admin";
   const canSearch = profile.can_search_candidates || isSupervisor;
@@ -79,20 +116,54 @@ export function HrDashboardPage({
     }
 
     setOptionsLoading(true);
-    void loadCandidateSearchOptions().then((result) => {
-      if (!active) return;
-      if (result.error) {
-        onNotify("تعذر تجهيز خيارات الفلترة من ملفات الباحثين.");
-      } else {
-        setOptions(result.options);
-      }
-      setOptionsLoading(false);
-    });
+    const sequence = ++facetLoadSequence.current;
+    const requestedFilters = filters;
+    const requestedSignature = JSON.stringify(requestedFilters);
+    const timeout = window.setTimeout(() => {
+      void loadCandidateSearchOptions(requestedFilters)
+        .then((result) => {
+          if (!active || sequence !== facetLoadSequence.current) return;
+          setOptionsLoading(false);
+          if (result.error || !result.options) {
+            onNotify("تعذر تحديث خيارات الفلترة. تأكد من تطبيق تحديث البحث في Supabase.");
+            return;
+          }
+
+          setOptions(result.options);
+          setFilters((current) => {
+            if (JSON.stringify(current) !== requestedSignature) return current;
+
+            const preserve = recentlyChangedFilter.current;
+            const next = { ...current };
+            if (preserve !== "specialization" && next.specialization && !result.options?.specializations.includes(next.specialization)) next.specialization = "";
+            if (preserve !== "province" && next.province && !result.options?.provinces.includes(next.province)) next.province = "";
+            if (preserve !== "city" && next.city && !result.options?.cities.includes(next.city)) next.city = "";
+            if (preserve !== "workType" && next.workType && !result.options?.workTypes.includes(next.workType)) next.workType = "";
+            if (preserve !== "skill" && next.skill && !result.options?.skills.includes(next.skill)) next.skill = "";
+            if (preserve !== "availability" && next.availability && !result.options?.availabilities.includes(next.availability)) next.availability = "";
+            if (
+              preserve !== "minExperience" &&
+              next.minExperience &&
+              !result.options?.experienceYears.some((years) => years >= Number(next.minExperience))
+            ) {
+              next.minExperience = "";
+            }
+            recentlyChangedFilter.current = null;
+            return JSON.stringify(current) === JSON.stringify(next) ? current : next;
+          });
+        })
+        .catch(() => {
+          if (!active || sequence !== facetLoadSequence.current) return;
+          setOptionsLoading(false);
+          onNotify("تعذر تحديث خيارات الفلترة. تأكد من تطبيق تحديث البحث في Supabase.");
+        });
+    }, 220);
 
     return () => {
       active = false;
+      window.clearTimeout(timeout);
     };
-  }, [canSearch, section]);
+  }, [canSearch, facetRetry, filters, onNotify, section]);
 
   useEffect(() => {
     setSelected(null);
@@ -102,12 +173,21 @@ export function HrDashboardPage({
     key: K,
     value: CandidateSearchFilters[K],
   ) => {
+    recentlyChangedFilter.current = key;
     setFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const clearFilter = (key: keyof CandidateSearchFilters) => {
+    if (key === "remoteOnly") {
+      updateFilter("remoteOnly", false);
+      return;
+    }
+    updateFilter(key, "");
   };
 
   const activeFilterCount = useMemo(
     () => [
-      filters.keyword,
+      filters.keyword.trim(),
       filters.specialization,
       filters.province,
       filters.city,
@@ -120,8 +200,33 @@ export function HrDashboardPage({
     [filters],
   );
   const resultsAreCurrent = resultsFilterSignature === JSON.stringify(filters);
+  const experienceOptions = useMemo(() => {
+    const years = options?.experienceYears || [];
+    const selectedThreshold = filters.minExperience ? Number(filters.minExperience) : null;
+    if (
+      selectedThreshold !== null &&
+      years.some((value) => value >= selectedThreshold) &&
+      !years.includes(selectedThreshold)
+    ) {
+      return [...years, selectedThreshold].sort((left, right) => left - right);
+    }
+    return years;
+  }, [filters.minExperience, options?.experienceYears]);
+  const filterChips: { key: keyof CandidateSearchFilters; label: string; value: string }[] = [
+    { key: "keyword", label: "بحث", value: filters.keyword.trim() },
+    { key: "specialization", label: "التخصص", value: filters.specialization },
+    { key: "province", label: "المحافظة", value: filters.province },
+    { key: "city", label: "المدينة", value: filters.city },
+    { key: "skill", label: "المهارة", value: filters.skill },
+    { key: "workType", label: "نوع العمل", value: filters.workType },
+    { key: "availability", label: "التوفر", value: filters.availability },
+    { key: "minExperience", label: "الخبرة", value: filters.minExperience ? `${filters.minExperience}+ سنوات` : "" },
+    { key: "remoteOnly", label: "العمل", value: filters.remoteOnly ? "عن بُعد" : "" },
+  ];
+  const activeFilterChips = filterChips.filter((chip) => Boolean(chip.value));
 
   const resetFilters = () => {
+    recentlyChangedFilter.current = null;
     setFilters(emptyCandidateSearchFilters);
     setResults([]);
     setSearched(false);
@@ -231,183 +336,139 @@ export function HrDashboardPage({
   }
 
   return (
-    <section className="container page-section dashboard-page hr-workspace-page">
+    <section className={`container page-section dashboard-page hr-workspace-page${section === "search" ? " hr-candidate-search-page" : ""}`}>
       {section === "search" && <>
-        <header className="hr-page-header">
-          <div className="hr-page-header-copy">
-              <span className="eyebrow"><Building2 size={14} /> {isSupervisor ? "مساحة المشرف" : "مساحة صاحب العمل / HR"}</span>
+        <header className="rs-hero">
+          <div className="rs-hero-copy">
+            <span className="rs-kicker"><i /> {isSupervisor ? "مساحة المشرف" : "مساحة صاحب العمل / HR"}</span>
             <h1>اعثر على الكفاءة المناسبة لفريقك</h1>
-              <p>{isSupervisor ? "ابحث في ملفات الباحثين عن عمل وساعد في مطابقة الكفاءات مع الوظائف المنشورة." : "فلترة واضحة تساعدك على الوصول إلى المرشح الأقرب لمتطلبات الوظيفة."}</p>
-            <div className="hr-header-tags">
-              <span><CheckCircle2 size={14} /> بيانات متطابقة مع ملفات الباحثين</span>
+            <p>{isSupervisor ? "ابحث في ملفات الباحثين وساعد في مطابقة الكفاءات مع الوظائف المنشورة." : "بحث أوضح في ملفات الباحثين المتاحة، بخيارات تتغير مع كل معيار تختاره."}</p>
+            <div className="rs-hero-tags">
+              <span><CheckCircle2 size={14} /> ملفات مكتملة ومطابقة</span>
               <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
             </div>
           </div>
-          <div className="hr-page-header-mark"><Building2 size={27} /><b>IRAQ JOBS</b><small>دليل الكفاءات</small></div>
+          <div className="rs-hero-stamp" aria-hidden="true">
+            <Building2 size={25} />
+            <strong>دليل الكفاءات</strong>
+            <small>العراق · ملفات مصرّح بها</small>
+          </div>
         </header>
 
-        <div className="hr-summary-strip">
-          <div><span><UserRound size={16} /></span><p><b>{options?.total ?? "—"}</b><small>ملف باحث متاح</small></p></div>
-          <div><span><Search size={16} /></span><p><b>{searched ? results.length : "—"}</b><small>نتيجة مطابقة</small></p></div>
-          <div><span><Clock3 size={16} /></span><p><b>{applications.length}</b><small>{isSupervisor ? "تقديم على وظائفك" : "طلب وارد"}</small></p></div>
-          <div className="hr-summary-note"><SlidersHorizontal size={16} /><span>كل خيار يظهر فقط إذا كان موجودًا في ملفات الباحثين الحالية.</span></div>
-        </div>
+        <section className="rs-stats" aria-label="ملخص البحث">
+          <div className="rs-stat"><span className="rs-stat-icon"><UserRound size={16} /></span><p><b>{options?.total ?? "—"}</b><small>باحث ضمن المعايير</small></p></div>
+          <div className="rs-stat"><span className="rs-stat-icon"><Search size={16} /></span><p><b>{searched && resultsAreCurrent ? results.length : "—"}</b><small>نتيجة بحث محمّلة</small></p></div>
+          <div className="rs-stat"><span className="rs-stat-icon"><Clock3 size={16} /></span><p><b>{applications.length}</b><small>{isSupervisor ? "تقديم على وظائفك" : "طلبات واردة"}</small></p></div>
+          <div className="rs-stat rs-stat-note"><SlidersHorizontal size={16} /><span>قوائم الفلاتر تتكيّف مع بقية اختياراتك وتعرض القيم المتاحة فقط.</span></div>
+        </section>
       </>}
 
       {section === "search" && (
-        <div className="candidate-search-layout">
-          <form className="candidate-search-panel" onSubmit={search}>
-            <div className="search-panel-heading">
+        <div className="rs-workspace" aria-busy={searching || optionsLoading}>
+          <form className="rs-filter-card" onSubmit={search}>
+            <div className="rs-panel-head">
               <div>
-                <span className="eyebrow">فلترة من البيانات الفعلية</span>
+                <span className="rs-eyebrow">بحث من البيانات الفعلية</span>
                 <h2>ابنِ بحثك</h2>
-                <p>اختر من القيم الموجودة حاليًا بدل كتابة قيمة قد لا تطابق ملفات الباحثين.</p>
+                <p>اختر تخصصاً أو موقعاً، وستتغيّر بقية الخيارات حسب الملفات المطابقة.</p>
               </div>
-              <SlidersHorizontal size={20} />
+              <span className="rs-filter-symbol"><SlidersHorizontal size={18} /></span>
             </div>
 
-            <label className="hr-keyword-field">
+            <label className="rs-keyword">
               <span>كلمة البحث <small>اختياري</small></span>
-              <input value={filters.keyword} onChange={(event) => updateFilter("keyword", event.target.value)} placeholder="مسمى، إنجاز، تعليم أو لغة" />
+              <div className="rs-keyword-wrap">
+                <Search size={16} />
+                <input value={filters.keyword} onChange={(event) => updateFilter("keyword", event.target.value)} placeholder="مسمى، إنجاز، تعليم أو لغة" aria-label="كلمة البحث" />
+              </div>
             </label>
 
-            <div className="hr-filter-grid">
-              <label>
-                <span>التخصص</span>
-                <AppSelect
-                  value={filters.specialization}
-                  onChange={(value) => updateFilter("specialization", value)}
-                  placeholder="كل التخصصات"
-                  disabled={optionsLoading}
-                  options={(options?.specializations || []).map((value) => ({ value, label: value }))}
-                  ariaLabel="التخصص"
-                />
-              </label>
-              <label>
-                 <span>المحافظة</span>
-                 <AppSelect
-                   value={filters.province}
-                   onChange={(value) => updateFilter("province", value)}
-                   placeholder="كل المحافظات"
-                   disabled={optionsLoading}
-                   options={(options?.provinces || []).map((value) => ({ value, label: value }))}
-                   ariaLabel="المحافظة"
-                 />
-               </label>
-               <label>
-                <span>المدينة</span>
-                <AppSelect
-                  value={filters.city}
-                  onChange={(value) => updateFilter("city", value)}
-                  placeholder="كل المدن"
-                  disabled={optionsLoading}
-                  options={(options?.cities || []).map((value) => ({ value, label: value }))}
-                  ariaLabel="المدينة"
-                />
-              </label>
-              <label>
-                <span>المهارة</span>
-                <AppSelect
-                  value={filters.skill}
-                  onChange={(value) => updateFilter("skill", value)}
-                  placeholder="كل المهارات"
-                  disabled={optionsLoading}
-                  options={(options?.skills || []).map((value) => ({ value, label: value }))}
-                  ariaLabel="المهارة"
-                />
-              </label>
-              <label>
-                <span>نوع العمل</span>
-                <AppSelect
-                  value={filters.workType}
-                  onChange={(value) => updateFilter("workType", value)}
-                  placeholder="كل الأنواع"
-                  disabled={optionsLoading}
-                  options={(options?.workTypes || []).map((value) => ({ value, label: value }))}
-                  ariaLabel="نوع العمل"
-                />
-              </label>
-              <label>
-                <span>التوفر للعمل</span>
-                <AppSelect
-                  value={filters.availability}
-                  onChange={(value) => updateFilter("availability", value)}
-                  placeholder="كل حالات التوفر"
-                  disabled={optionsLoading}
-                  options={(options?.availabilities || []).map((value) => ({ value, label: value }))}
-                  ariaLabel="التوفر للعمل"
-                />
-              </label>
-              <label>
-                <span>الخبرة</span>
-                <AppSelect
-                  value={filters.minExperience}
-                  onChange={(value) => updateFilter("minExperience", value)}
-                  placeholder="أي مستوى خبرة"
-                  disabled={optionsLoading}
-                  options={(options?.experienceYears || []).map((value) => ({ value: String(value), label: `من ${value} سنة فأكثر` }))}
-                  ariaLabel="الخبرة"
-                />
-              </label>
+            <div className="rs-filter-grid">
+              <CandidateFacetField label="التخصص" placeholder="كل التخصصات" value={filters.specialization} disabled={!options} onChange={(value) => updateFilter("specialization", value)} options={(options?.specializations || []).map((value) => ({ value, label: value }))} />
+              <CandidateFacetField label="المحافظة" placeholder="كل المحافظات" value={filters.province} disabled={!options} onChange={(value) => updateFilter("province", value)} options={(options?.provinces || []).map((value) => ({ value, label: value }))} />
+              <CandidateFacetField label="المدينة" placeholder="كل المدن" value={filters.city} disabled={!options} onChange={(value) => updateFilter("city", value)} options={(options?.cities || []).map((value) => ({ value, label: value }))} />
+              <CandidateFacetField label="المهارة" placeholder="كل المهارات" value={filters.skill} disabled={!options} onChange={(value) => updateFilter("skill", value)} options={(options?.skills || []).map((value) => ({ value, label: value }))} />
+              <CandidateFacetField label="نوع العمل" placeholder="كل الأنواع" value={filters.workType} disabled={!options} onChange={(value) => updateFilter("workType", value)} options={(options?.workTypes || []).map((value) => ({ value, label: value }))} />
+              <CandidateFacetField label="التوفر للعمل" placeholder="كل حالات التوفر" value={filters.availability} disabled={!options} onChange={(value) => updateFilter("availability", value)} options={(options?.availabilities || []).map((value) => ({ value, label: value }))} />
+              <CandidateFacetField label="الخبرة" placeholder="أي مستوى خبرة" value={filters.minExperience} disabled={!options} onChange={(value) => updateFilter("minExperience", value)} options={experienceOptions.map((value) => ({ value: String(value), label: `من ${value} سنة فأكثر` }))} />
             </div>
 
-            <label className="checkbox-field hr-remote-filter">
+            <label className="rs-remote">
               <input type="checkbox" checked={filters.remoteOnly} onChange={(event) => updateFilter("remoteOnly", event.target.checked)} />
               <span>أظهر من يقبل العمل عن بُعد فقط</span>
             </label>
 
-            {optionsLoading && <p className="filter-options-loading"><span className="live-dot" /> جارٍ تجهيز الخيارات من ملفات الباحثين...</p>}
+            {optionsLoading && <p className="rs-options-status" role="status"><span className="live-dot" /> {options ? "جارٍ تحديث الخيارات حسب معاييرك..." : "جارٍ تجهيز الخيارات من ملفات الباحثين..."}</p>}
+            {!options && !optionsLoading && <div className="rs-options-error" role="alert">
+              <span>تعذر تحميل خيارات البحث. قد يحتاج تحديث البحث في قاعدة البيانات إلى التطبيق.</span>
+              <button type="button" onClick={() => setFacetRetry((current) => current + 1)}>إعادة المحاولة</button>
+            </div>}
 
-            <div className="hr-filter-actions">
-              <button className="primary-btn" disabled={searching || optionsLoading}>
-                {searching ? "جاري البحث..." : "عرض الباحثين"} <Search size={17} />
+            <div className="rs-form-actions">
+              <button className="rs-submit" disabled={searching || optionsLoading}>
+                {searching ? "جاري البحث..." : "عرض الباحثين"} <Search size={16} />
               </button>
-              {activeFilterCount > 0 && <button type="button" className="reset-filter-btn" onClick={resetFilters}><RotateCcw size={14} /> مسح الفلاتر ({activeFilterCount})</button>}
+              {activeFilterCount > 0 && <button type="button" className="rs-reset" onClick={resetFilters}><RotateCcw size={14} /> مسح الفلاتر ({activeFilterCount})</button>}
             </div>
           </form>
 
-          <div className="candidate-results">
-            <div className="results-heading">
+          <section className="rs-results-card" aria-live="polite">
+            <div className="rs-results-head">
               <div>
-                <span className="eyebrow">النتائج المطابقة</span>
-                <h2>{searching ? "جاري البحث..." : searched && resultsAreCurrent ? `${results.length}${hasMoreResults ? "+" : ""} ملف مطابق` : searched ? "أعد البحث بالمعايير الجديدة" : "اختر معايير البحث"}</h2>
+                <span className="rs-eyebrow">النتائج المطابقة</span>
+                <h2>{searching ? "جاري البحث..." : searched && resultsAreCurrent ? `${results.length}${hasMoreResults ? "+" : ""} ملف مطابق` : searched ? "أعد البحث بالمعايير الجديدة" : "مساحة النتائج"}</h2>
               </div>
-              <small>{searched ? "تمت المطابقة من بيانات الملف مباشرة" : "الملفات الداخلية المصرّح بها"}</small>
+              <span className="rs-match-count"><ShieldCheck size={13} /> {searched ? "الملفات الداخلية المصرّح بها" : "ابحث ضمن الملفات المصرح بها"}</span>
             </div>
+            {activeFilterChips.length > 0 && <div className="rs-active-filters" aria-label="الفلاتر الحالية">
+              {activeFilterChips.map((chip) => <button type="button" className="rs-active-filter" key={chip.key} onClick={() => clearFilter(chip.key)}>
+                <span>{chip.label}: <b>{chip.value}</b></span><X size={13} aria-hidden="true" />
+              </button>)}
+            </div>}
             {searching ? (
-              <div className="candidate-search-loading"><span className="live-dot" /><p>جاري البحث في الملفات المطابقة...</p></div>
+              <div className="rs-loading" role="status"><span className="live-dot" /><p>جاري البحث في الملفات المطابقة...</p></div>
             ) : searched && !resultsAreCurrent ? (
-              <EmptyState title="تغيّرت معايير البحث" text="اضغط «عرض الباحثين» حتى نحدّث النتائج حسب خياراتك الجديدة." />
+              <div className="rs-empty"><span className="rs-empty-icon"><SlidersHorizontal size={23} /></span><h3>تغيّرت معايير البحث</h3><p>اضغط «عرض الباحثين» حتى نحدّث النتائج حسب خياراتك الجديدة.</p></div>
             ) : results.length ? (
-              <div className="candidate-result-list">
-                 {results.map((candidate) => (
-                   <button type="button" className="candidate-result-card" key={candidate.user_id} onClick={() => { setSelectedSource("search"); setSelected(candidate); }}>
-                    <span className="candidate-result-avatar">{candidate.full_name.slice(0, 1)}</span>
-                    <span className="candidate-result-copy">
-                      <b>{candidate.full_name}</b>
-                      <strong>{candidate.headline}</strong>
-                       <small>{candidate.specialization} · {candidate.province} / {candidate.city} · {candidate.experience_years} سنوات خبرة</small>
-                      <span>{candidate.skills.slice(0, 4).join(" · ")}</span>
-                    </span>
-                    <span className="candidate-result-arrow">عرض الملف</span>
-                  </button>
+              <div className="rs-result-list">
+                {results.map((candidate) => (
+                  <article className="rs-candidate" key={candidate.user_id}>
+                    <div className="rs-candidate-main">
+                      <span className="rs-avatar" aria-hidden="true">{candidate.full_name.slice(0, 1)}</span>
+                      <div className="rs-candidate-info">
+                        <div className="rs-name-row"><b>{candidate.full_name}</b><span className="rs-verified"><CheckCircle2 size={12} /> ملف مكتمل</span></div>
+                        <strong className="rs-headline">{candidate.headline || candidate.specialization}</strong>
+                        <div className="rs-meta">
+                          <span><MapPin size={12} />{candidate.province} / {candidate.city}</span>
+                          <span><BriefcaseBusiness size={12} />{candidate.experience_years} سنوات خبرة</span>
+                          <span><Clock3 size={12} />{candidate.availability}</span>
+                        </div>
+                        <div className="rs-skill-row">{candidate.skills.slice(0, 4).map((skill) => <span className="rs-skill" key={skill}>{skill}</span>)}</div>
+                      </div>
+                    </div>
+                    <button className="rs-open" type="button" onClick={() => { setSelectedSource("search"); setSelected(candidate); }} aria-label={`عرض الملف المهني لـ ${candidate.full_name}`} title="عرض الملف">
+                      <ArrowDownLeft size={18} />
+                    </button>
+                  </article>
                 ))}
               </div>
             ) : (
-              <EmptyState
-                title={searched ? "لا توجد ملفات مطابقة" : "ابدأ بتحديد المواصفات"}
-                text={searched ? "جرّب إزالة فلتر واحد أو اختيار قيمة أخرى من القوائم." : "القوائم تعرض فقط التخصصات والمدن والمهارات الموجودة في ملفات الباحثين."}
-              />
+              <div className="rs-empty">
+                <span className="rs-empty-icon">{searched ? <Search size={23} /> : <SlidersHorizontal size={23} />}</span>
+                <h3>{searched ? "لا توجد ملفات مطابقة" : "ابدأ بتحديد المواصفات"}</h3>
+                <p>{searched ? "جرّب إزالة فلتر أو اختيار قيمة ثانية من القوائم، ثم أعد البحث." : "حدّد التخصص أو الموقع المناسب. القوائم تتكيّف تلقائياً مع اختياراتك."}</p>
+                {searched && <button type="button" onClick={resetFilters}>مسح الفلاتر والبدء من جديد</button>}
+              </div>
             )}
             {hasMoreResults && resultsFilterSignature === JSON.stringify(filters) && <button
               type="button"
-              className="primary-btn candidate-load-more"
+              className="rs-load-more"
               disabled={loadingMore || searching}
               onClick={() => void loadMoreCandidates()}
             >
               {loadingMore ? "جاري تحميل المزيد..." : `عرض ${CANDIDATE_SEARCH_PAGE_SIZE} باحثين إضافيين`}
             </button>}
-          </div>
+          </section>
         </div>
       )}
 

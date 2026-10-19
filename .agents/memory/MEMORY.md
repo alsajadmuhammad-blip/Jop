@@ -1,0 +1,1 @@
+- [Node dependency setup](node-dependency-setup.md) — when npm’s managed install hits an Arborist error, use the existing pnpm lock with `pnpm install --frozen-lockfile`.

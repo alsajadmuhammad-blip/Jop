@@ -332,17 +332,30 @@ export type CandidateSearchOptions = {
   experienceYears: number[];
 };
 
-let candidateSearchOptionsCache: { options: CandidateSearchOptions; expiresAt: number } | null = null;
-let candidateSearchOptionsRequest: Promise<{ options: CandidateSearchOptions | null; error: unknown | null }> | null = null;
+const candidateSearchOptionsCache = new Map<string, { options: CandidateSearchOptions; expiresAt: number }>();
+const candidateSearchOptionsRequests = new Map<string, Promise<{ options: CandidateSearchOptions | null; error: unknown | null }>>();
 
-export async function loadCandidateSearchOptions() {
-  if (candidateSearchOptionsCache && candidateSearchOptionsCache.expiresAt > Date.now()) {
-    return { options: candidateSearchOptionsCache.options, error: null };
+export async function loadCandidateSearchOptions(filters: CandidateSearchFilters = emptyCandidateSearchFilters) {
+  const cacheKey = JSON.stringify(filters);
+  const cached = candidateSearchOptionsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return { options: cached.options, error: null };
   }
-  if (candidateSearchOptionsRequest) return candidateSearchOptionsRequest;
+  const pendingRequest = candidateSearchOptionsRequests.get(cacheKey);
+  if (pendingRequest) return pendingRequest;
 
   const request = (async () => {
-    const { data, error } = await supabase.rpc("get_candidate_search_options");
+    const { data, error } = await supabase.rpc("get_candidate_search_filter_options", {
+      p_keyword: filters.keyword.trim() || null,
+      p_specialization: filters.specialization || null,
+      p_province: filters.province || null,
+      p_city: filters.city || null,
+      p_min_experience: filters.minExperience ? Number(filters.minExperience) : null,
+      p_work_type: filters.workType || null,
+      p_skill: filters.skill || null,
+      p_availability: filters.availability || null,
+      p_remote_available: filters.remoteOnly ? true : null,
+    });
     if (error) return { options: null, error };
 
     const rawOptions = data as CandidateSearchOptions;
@@ -356,15 +369,15 @@ export async function loadCandidateSearchOptions() {
       availabilities: Array.isArray(rawOptions?.availabilities) ? rawOptions.availabilities : [],
       experienceYears: Array.isArray(rawOptions?.experienceYears) ? rawOptions.experienceYears.map(Number).filter(Number.isFinite) : [],
     };
-    candidateSearchOptionsCache = { options, expiresAt: Date.now() + 60_000 };
+    candidateSearchOptionsCache.set(cacheKey, { options, expiresAt: Date.now() + 30_000 });
     return { options, error: null };
   })();
 
-  candidateSearchOptionsRequest = request;
+  candidateSearchOptionsRequests.set(cacheKey, request);
   try {
     return await request;
   } finally {
-    if (candidateSearchOptionsRequest === request) candidateSearchOptionsRequest = null;
+    if (candidateSearchOptionsRequests.get(cacheKey) === request) candidateSearchOptionsRequests.delete(cacheKey);
   }
 }
 
