@@ -8,6 +8,8 @@ import { hasSupabaseConfig } from "../../lib/supabase";
 import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, getCandidateProfileDraft, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, saveCandidateProfileDraft, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
 import { downloadProfessionalResume, printProfessionalResume } from "../../features/candidate/professionalResume";
+import { CvImportPanel } from "../../features/candidate/CvImportPanel";
+import type { CandidateCvImport } from "../../features/candidate/cvImport";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -20,6 +22,36 @@ type ExperienceEntry = CandidateExperience;
 type EducationEntry = CandidateEducation;
 
 type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
+
+function normalizeImportedKey(value: string) {
+  return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function mergeImportedStrings(current: string[], incoming: string[]) {
+  const seen = new Set(current.map(normalizeImportedKey));
+  const additions = incoming.filter((value) => {
+    const key = normalizeImportedKey(value);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return [...current, ...additions];
+}
+
+function mergeImportedEntries<T>(current: T[], incoming: T[], getKey: (entry: T) => string) {
+  const seen = new Set(current.map(getKey).filter(Boolean));
+  const additions = incoming.filter((entry) => {
+    const key = getKey(entry);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return [...current, ...additions];
+}
+
+function keepExistingText(existing: string, imported?: string) {
+  return existing.trim() || !imported?.trim() ? existing : imported;
+}
 
 function buildProfilePayload(
   form: CandidateProfileInput,
@@ -265,6 +297,54 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const applyCvImport = (imported: CandidateCvImport) => {
+    setForm((current) => ({
+      ...current,
+      full_name: keepExistingText(current.full_name, imported.profile.full_name),
+      email: keepExistingText(current.email, imported.profile.email),
+      phone: keepExistingText(current.phone, imported.profile.phone),
+      headline: keepExistingText(current.headline, imported.profile.headline),
+      specialization: keepExistingText(current.specialization, imported.profile.specialization),
+      province: keepExistingText(current.province, imported.profile.province),
+      city: keepExistingText(current.city, imported.profile.city),
+      summary: keepExistingText(current.summary, imported.profile.summary),
+      experience_years: current.experience_years > 0
+        ? current.experience_years
+        : imported.profile.experience_years ?? current.experience_years,
+      skills: mergeImportedStrings(current.skills, imported.profile.skills || []),
+    }));
+    setExperiences((current) => mergeImportedEntries(
+      current,
+      imported.experiences,
+      (entry) => [
+        entry.title,
+        entry.company,
+        entry.legacyPeriod || `${entry.startMonth}-${entry.endMonth}`,
+        entry.location,
+        entry.description,
+      ].map(normalizeImportedKey).join("|"),
+    ));
+    setEducation((current) => mergeImportedEntries(
+      current,
+      imported.education,
+      (entry) => [entry.degree, entry.specialization, entry.institution, entry.graduationYear]
+        .map(normalizeImportedKey).join("|"),
+    ));
+    setLanguages((current) => mergeImportedEntries(
+      current,
+      imported.languages,
+      (entry) => normalizeImportedKey(entry.name),
+    ));
+    setOpenSections((current) => ({
+      ...current,
+      identity: true,
+      skills: true,
+      experience: true,
+      education: true,
+    }));
+    onNotify?.("تمت إضافة البيانات المستخرجة إلى الحقول الفارغة. راجعها، وسيُحفظ الملف تلقائيًا.");
+  };
+
   const addSkill = () => {
     const nextSkill = skillDraft.trim();
     if (!nextSkill || form.skills.some((skill) => skill.toLocaleLowerCase() === nextSkill.toLocaleLowerCase())) return;
@@ -472,6 +552,8 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           </span>
           {autosaveStatus === "error" && <button type="button" onClick={() => loadedRef.current ? setRetryCount((count) => count + 1) : setReloadCount((count) => count + 1)}><RotateCw size={14} /> {loadedRef.current ? "إعادة المحاولة" : "إعادة تحميل الملف"}</button>}
         </div>
+
+        <CvImportPanel onImport={applyCvImport} />
 
         <details className="profile-editor-section profile-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); }}>
           <summary className="profile-section-summary">

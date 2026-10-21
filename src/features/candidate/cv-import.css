@@ -1,0 +1,370 @@
+.cv-import-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.cv-import-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cv-import-icon,
+.cv-import-upload-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+  color: var(--green);
+  background: var(--mint);
+}
+
+.cv-import-heading h2 {
+  margin: 2px 0 4px;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.cv-import-heading p,
+.cv-import-privacy,
+.cv-import-review-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.cv-import-eyebrow {
+  color: var(--green-2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cv-import-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 13px;
+  background: var(--soft);
+  transition: border-color .18s, background .18s;
+}
+
+.cv-import-dropzone.is-dragging {
+  border-color: var(--green-2);
+  background: var(--mint);
+}
+
+.cv-import-dropzone.is-busy {
+  opacity: .8;
+}
+
+.cv-import-drop-copy {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.cv-import-drop-copy small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.cv-import-select,
+.cv-import-apply {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--green);
+  border-radius: 9px;
+  color: var(--white);
+  background: var(--green);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .18s;
+}
+
+.cv-import-select:hover,
+.cv-import-apply:hover {
+  border-color: var(--green-2);
+  background: var(--green-2);
+  transform: translateY(-1px);
+}
+
+.cv-import-select input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.cv-import-select:focus-within {
+  outline: 3px solid rgba(44, 63, 145, .2);
+  outline-offset: 2px;
+}
+
+.cv-import-select-secondary {
+  border-color: var(--line);
+  color: var(--ink);
+  background: var(--white);
+}
+
+.cv-import-select-secondary:hover {
+  border-color: var(--green-2);
+  color: var(--green-2);
+  background: var(--white);
+}
+
+.cv-import-progress,
+.cv-import-error,
+.cv-import-warning {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.cv-import-progress {
+  color: var(--green-2);
+  background: var(--mint);
+}
+
+.cv-import-error,
+.cv-import-warning {
+  color: var(--accent);
+  background: rgba(244, 123, 32, .08);
+}
+
+.cv-import-preview {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.cv-import-preview-head,
+.cv-import-preview-head > div,
+.cv-import-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cv-import-preview-head > div {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cv-import-preview-head b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green-2);
+  font-size: 12px;
+}
+
+.cv-import-preview-head small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.cv-import-reset {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.cv-import-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.cv-import-field {
+  min-width: 0;
+  padding: 9px;
+  border-radius: 9px;
+  background: var(--soft);
+}
+
+.cv-import-field dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.cv-import-field dd {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-import-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cv-import-counts span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--green-2);
+  background: var(--mint);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.cv-import-data-section {
+  display: grid;
+  gap: 7px;
+}
+
+.cv-import-data-section > b {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.cv-import-skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cv-import-skill-list span {
+  max-width: 100%;
+  padding: 5px 8px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--white);
+  font-size: 10px;
+}
+
+.cv-import-record-list {
+  display: grid;
+  gap: 7px;
+}
+
+.cv-import-record {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: var(--soft);
+}
+
+.cv-import-record strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.cv-import-record small,
+.cv-import-record p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.cv-import-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.cv-import-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding-top: 2px;
+  font-size: 10px;
+}
+
+.cv-import-privacy svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--green-2);
+}
+
+.cv-import-spinner {
+  animation: cv-import-spin .9s linear infinite;
+}
+
+@keyframes cv-import-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  .cv-import-panel {
+    padding: 13px;
+  }
+
+  .cv-import-dropzone {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .cv-import-drop-copy {
+    flex-basis: calc(100% - 52px);
+    padding-top: 3px;
+  }
+
+  .cv-import-select {
+    margin-inline-start: 51px;
+  }
+
+  .cv-import-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-import-actions > button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-import-spinner {
+    animation-duration: 3s;
+  }
+
+  .cv-import-select,
+  .cv-import-apply {
+    transition: none;
+  }
+}
