@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownLeft,
-  Building2,
   BriefcaseBusiness,
   CheckCircle2,
   Clock3,
@@ -347,11 +346,6 @@ export function HrDashboardPage({
               <span><CheckCircle2 size={14} /> ملفات مكتملة ومطابقة</span>
               <span><ShieldAlert size={14} /> وصول مقيّد ومصرّح</span>
             </div>
-          </div>
-          <div className="rs-hero-stamp" aria-hidden="true">
-            <Building2 size={25} />
-            <strong>دليل الكفاءات</strong>
-            <small>العراق · ملفات مصرّح بها</small>
           </div>
         </header>
 
