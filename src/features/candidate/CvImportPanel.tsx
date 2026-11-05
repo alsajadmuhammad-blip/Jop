@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
-import { Check, FileText, LoaderCircle, ShieldCheck, Upload, X } from "lucide-react";
+import { AlertTriangle, Check, FileText, LoaderCircle, Plus, ShieldCheck, Trash2, Upload, X } from "lucide-react";
+import { languageLevels, type CandidateEducation, type CandidateExperience, type CandidateLanguage } from "../../services/candidateService";
 import { readCandidateCv, type CandidateCvImport } from "./cvImport";
 import "./cv-import.css";
 
@@ -7,10 +8,58 @@ type CvImportPanelProps = {
   onImport: (result: CandidateCvImport) => void;
 };
 
+type TextProfileField =
+  | "full_name"
+  | "email"
+  | "phone"
+  | "headline"
+  | "specialization"
+  | "province"
+  | "city"
+  | "summary";
+
+const profileFields: Array<{ key: TextProfileField; label: string; type?: string }> = [
+  { key: "full_name", label: "الاسم الكامل" },
+  { key: "headline", label: "المسمى الوظيفي" },
+  { key: "specialization", label: "التخصص" },
+  { key: "email", label: "البريد الإلكتروني", type: "email" },
+  { key: "phone", label: "رقم الهاتف" },
+  { key: "province", label: "المحافظة" },
+  { key: "city", label: "المدينة" },
+];
+
 function sourceLabel(result: CandidateCvImport) {
   if (result.source === "docx") return "تمت قراءة ملف Word داخل المتصفح";
-  if (result.source === "ocr") return `تمت قراءة ${result.ocrPages} صفحة مصوّرة بـ OCR عربي/إنكليزي`;
+  if (result.source === "ocr") return `تمت قراءة ${result.ocrPages} صفحة مصوّرة بتقنية OCR`;
   return "تم استخراج النص من PDF داخل المتصفح";
+}
+
+function createId(prefix: string) {
+  return `${prefix}-${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+}
+
+function newExperience(): CandidateExperience {
+  return {
+    id: createId("review-experience"),
+    title: "",
+    company: "",
+    location: "",
+    startMonth: "",
+    endMonth: "",
+    isCurrent: false,
+    legacyPeriod: "",
+    description: "",
+  };
+}
+
+function newEducation(): CandidateEducation {
+  return {
+    id: createId("review-education"),
+    degree: "",
+    specialization: "",
+    institution: "",
+    graduationYear: "",
+  };
 }
 
 export function CvImportPanel({ onImport }: CvImportPanelProps) {
@@ -19,10 +68,17 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<CandidateCvImport | null>(null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+
+  const updatePreview = (update: (current: CandidateCvImport) => CandidateCvImport) => {
+    setPreview((current) => current ? update(current) : current);
+    setReviewConfirmed(false);
+  };
 
   const processFile = async (file: File) => {
     setError("");
     setPreview(null);
+    setReviewConfirmed(false);
     setBusy(true);
     setStatus("جاري تجهيز الملف وقراءته داخل المتصفح...");
 
@@ -51,34 +107,49 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
     if (file) void processFile(file);
   };
 
-  const previewRows = preview
-    ? [
-      ["الاسم", preview.profile.full_name],
-      ["المسمى", preview.profile.headline],
-      ["التخصص", preview.profile.specialization],
-      ["البريد", preview.profile.email],
-      ["الهاتف", preview.profile.phone],
-      ["الموقع", [preview.profile.city, preview.profile.province].filter(Boolean).join("، ")],
-      ["سنوات الخبرة", preview.profile.experience_years ? `${preview.profile.experience_years} سنة` : ""],
-      ["النبذة", preview.profile.summary],
-    ].filter(([, value]) => Boolean(value))
-    : [];
-
-  const importedCount = preview
-    ? previewRows.length + (preview.profile.skills?.length || 0) + preview.experiences.length + preview.education.length + preview.languages.length
+  const profileTextValue = (key: TextProfileField) => preview?.profile[key] || "";
+  const profileCount = preview
+    ? Object.values(preview.profile).filter((value) => Array.isArray(value) ? value.length > 0 : value !== "" && value !== null && value !== undefined).length
     : 0;
-  const periodLabel = (experience: CandidateCvImport["experiences"][number]) =>
-    experience.legacyPeriod ||
-    [experience.startMonth, experience.isCurrent ? "حتى الآن" : experience.endMonth].filter(Boolean).join(" — ");
+  const importedCount = preview
+    ? profileCount + preview.experiences.length + preview.education.length + preview.languages.length
+    : 0;
+
+  const updateExperience = (index: number, key: keyof CandidateExperience, value: string | boolean) => {
+    updatePreview((current) => ({
+      ...current,
+      experiences: current.experiences.map((experience, itemIndex) =>
+        itemIndex === index ? { ...experience, [key]: value } as CandidateExperience : experience,
+      ),
+    }));
+  };
+
+  const updateEducation = (index: number, key: keyof CandidateEducation, value: string) => {
+    updatePreview((current) => ({
+      ...current,
+      education: current.education.map((entry, itemIndex) =>
+        itemIndex === index ? { ...entry, [key]: value } : entry,
+      ),
+    }));
+  };
+
+  const updateLanguage = (index: number, key: keyof CandidateLanguage, value: string) => {
+    updatePreview((current) => ({
+      ...current,
+      languages: current.languages.map((entry, itemIndex) =>
+        itemIndex === index ? { ...entry, [key]: value } as CandidateLanguage : entry,
+      ),
+    }));
+  };
 
   return (
     <section className="cv-import-panel" aria-labelledby="cv-import-heading">
       <div className="cv-import-heading">
         <span className="cv-import-icon"><FileText size={19} /></span>
         <div>
-          <span className="cv-import-eyebrow">استيراد محلي وآمن</span>
-          <h2 id="cv-import-heading">املأ ملفك من سيرتك الذاتية</h2>
-          <p>نستخرج البيانات من PDF أو Word، ثم نعرضها لك للمراجعة قبل إضافتها إلى الملف.</p>
+          <span className="cv-import-eyebrow">قراءة داخل المتصفح</span>
+          <h2 id="cv-import-heading">استخرج بيانات سيرتك وراجعها</h2>
+          <p>ارفع ملف PDF أو Word. لن تُعتمد أي معلومة قبل مراجعتك وتأكيدك.</p>
         </div>
       </div>
 
@@ -117,98 +188,217 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
         <div className="cv-import-preview">
           <div className="cv-import-preview-head">
             <div>
-              <b><Check size={16} /> جاهزة للمراجعة</b>
+              <b><Check size={16} /> البيانات جاهزة للمراجعة والتعديل</b>
               <small>{sourceLabel(preview)}</small>
             </div>
-            <button type="button" className="cv-import-reset" onClick={() => setPreview(null)} aria-label="إلغاء معاينة السيرة">
+            <button
+              type="button"
+              className="cv-import-reset"
+              onClick={() => { setPreview(null); setReviewConfirmed(false); }}
+              aria-label="إلغاء معاينة السيرة"
+            >
               <X size={16} />
             </button>
           </div>
 
-          {previewRows.length > 0 && (
-            <dl className="cv-import-fields">
-              {previewRows.map(([label, value]) => (
-                <div className="cv-import-field" key={label}>
-                  <dt>{label}</dt>
-                  <dd dir="auto">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
+          <div className="cv-import-warning cv-import-warning-strong" role="alert">
+            <AlertTriangle size={18} />
+            <span><b>الاستخراج آلي وقد يخطئ.</b> تأكد من الاسم، والتواريخ، والخبرات، والمؤهلات، واللغات قبل اعتماد البيانات.</span>
+          </div>
 
-          <div className="cv-import-counts" aria-label="البيانات المستخرجة">
+          <div className="cv-import-counts" aria-label="عدد البيانات المستخرجة">
             {preview.profile.skills?.length ? <span>{preview.profile.skills.length} مهارة</span> : null}
             {preview.experiences.length ? <span>{preview.experiences.length} خبرة</span> : null}
             {preview.education.length ? <span>{preview.education.length} مؤهل</span> : null}
-            {preview.languages.length ? <span>{preview.languages.length} لغة</span> : null}
-            <span>{importedCount} حقلًا أو عنصرًا جاهزًا</span>
+            {preview.languages.length ? <span>{preview.languages.length} لغة معروفة</span> : null}
+            <span>{importedCount} حقلًا أو عنصرًا</span>
           </div>
 
-          {preview.profile.skills?.length ? (
-            <div className="cv-import-data-section">
-              <b>المهارات المكتشفة</b>
-              <div className="cv-import-skill-list">
-                {preview.profile.skills.map((skill) => <span key={skill} dir="auto">{skill}</span>)}
-              </div>
-            </div>
-          ) : null}
+          {preview.warnings.map((warning, index) => (
+            <p className="cv-import-warning" role="note" key={`${index}-${warning}`}>{warning}</p>
+          ))}
+          {preview.source === "ocr" && (
+            <p className="cv-import-warning" role="note">الملف مصوّر؛ قد يخطئ OCR في قراءة الكلمات أو الأرقام. راجع كل معلومة يدويًا.</p>
+          )}
 
-          {preview.experiences.length ? (
-            <div className="cv-import-data-section">
-              <b>الخبرات المكتشفة</b>
-              <div className="cv-import-record-list">
-                {preview.experiences.map((experience) => (
-                  <article className="cv-import-record" key={experience.id}>
-                    <strong dir="auto">{[experience.title, experience.company].filter(Boolean).join(" · ") || "خبرة مهنية"}</strong>
-                    {periodLabel(experience) && <small dir="auto">{periodLabel(experience)}</small>}
-                    {experience.description && <p dir="auto">{experience.description}</p>}
-                  </article>
-                ))}
-              </div>
+          <div className="cv-import-edit-section">
+            <div className="cv-import-edit-heading">
+              <b>المعلومات الأساسية</b>
+              <small>عدّل أي حقل لا يطابق سيرتك.</small>
             </div>
-          ) : null}
-
-          {preview.education.length ? (
-            <div className="cv-import-data-section">
-              <b>المؤهلات المكتشفة</b>
-              <div className="cv-import-record-list">
-                {preview.education.map((entry) => (
-                  <article className="cv-import-record" key={entry.id}>
-                    <strong dir="auto">{entry.degree || entry.specialization || "مؤهل تعليمي"}</strong>
-                    <small dir="auto">{[entry.specialization, entry.institution, entry.graduationYear].filter(Boolean).join(" · ")}</small>
-                  </article>
-                ))}
-              </div>
+            <div className="cv-import-edit-grid">
+              {profileFields.map((field) => (
+                <label key={field.key}>
+                  {field.label}
+                  <input
+                    type={field.type || "text"}
+                    value={profileTextValue(field.key)}
+                    dir={field.key === "email" || field.key === "phone" ? "ltr" : "auto"}
+                    onChange={(event) => updatePreview((current) => ({
+                      ...current,
+                      profile: { ...current.profile, [field.key]: event.target.value },
+                    }))}
+                  />
+                </label>
+              ))}
+              <label>
+                سنوات الخبرة
+                <input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={preview.profile.experience_years ?? ""}
+                  onChange={(event) => updatePreview((current) => ({
+                    ...current,
+                    profile: {
+                      ...current.profile,
+                      experience_years: event.target.value ? Number(event.target.value) : undefined,
+                    },
+                  }))}
+                />
+              </label>
+              <label className="cv-import-edit-wide">
+                النبذة المهنية
+                <textarea
+                  rows={4}
+                  value={preview.profile.summary || ""}
+                  onChange={(event) => updatePreview((current) => ({
+                    ...current,
+                    profile: { ...current.profile, summary: event.target.value },
+                  }))}
+                />
+              </label>
+              <label className="cv-import-edit-wide">
+                المهارات، كل مهارة بسطر
+                <textarea
+                  rows={3}
+                  value={(preview.profile.skills || []).join("\n")}
+                  onChange={(event) => updatePreview((current) => ({
+                    ...current,
+                    profile: {
+                      ...current.profile,
+                      skills: event.target.value.split(/\n|،|,/).map((skill) => skill.trim()).filter(Boolean).slice(0, 35),
+                    },
+                  }))}
+                />
+              </label>
             </div>
-          ) : null}
+          </div>
 
-          {preview.languages.length ? (
-            <div className="cv-import-data-section">
-              <b>اللغات المكتشفة</b>
-              <div className="cv-import-skill-list">
-                {preview.languages.map((language, index) => <span key={`${language.name}-${index}`} dir="auto">{[language.name, language.level].filter(Boolean).join(" · ")}</span>)}
-              </div>
+          <div className="cv-import-edit-section">
+            <div className="cv-import-edit-heading">
+              <b>الخبرات العملية ({preview.experiences.length})</b>
+              <button type="button" className="cv-import-add" onClick={() => updatePreview((current) => ({
+                ...current,
+                experiences: [...current.experiences, newExperience()],
+              }))}><Plus size={15} /> إضافة خبرة</button>
             </div>
-          ) : null}
+            {preview.experiences.length === 0 && <p className="cv-import-empty">لم تُستخرج خبرات موثوقة. أضفها يدويًا أو اترك القسم فارغًا.</p>}
+            <div className="cv-import-edit-records">
+              {preview.experiences.map((experience, index) => (
+                <article className="cv-import-edit-record" key={experience.id}>
+                  <div className="cv-import-edit-record-heading">
+                    <b>الخبرة {index + 1}</b>
+                    <button type="button" className="cv-import-remove" onClick={() => updatePreview((current) => ({
+                      ...current,
+                      experiences: current.experiences.filter((_, itemIndex) => itemIndex !== index),
+                    }))} aria-label={`حذف الخبرة ${index + 1}`}><Trash2 size={15} /></button>
+                  </div>
+                  <div className="cv-import-edit-grid">
+                    <label>المسمى الوظيفي<input value={experience.title} onChange={(event) => updateExperience(index, "title", event.target.value)} /></label>
+                    <label>جهة العمل<input value={experience.company} onChange={(event) => updateExperience(index, "company", event.target.value)} /></label>
+                    <label>الموقع<input value={experience.location} onChange={(event) => updateExperience(index, "location", event.target.value)} /></label>
+                    <label>الفترة كما وردت في السيرة<input value={experience.legacyPeriod || [experience.startMonth, experience.isCurrent ? "Present" : experience.endMonth].filter(Boolean).join(" — ")} onChange={(event) => updateExperience(index, "legacyPeriod", event.target.value)} /></label>
+                    <label className="cv-import-edit-wide">المسؤوليات والإنجازات<textarea rows={3} value={experience.description} onChange={(event) => updateExperience(index, "description", event.target.value)} /></label>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
 
-          {preview.warnings.map((warning) => <p className="cv-import-warning" key={warning}>{warning}</p>)}
-          {preview.source === "ocr" && <p className="cv-import-warning">قد يخطئ OCR في قراءة بعض الكلمات أو الأرقام؛ راجع الحقول بعد إضافتها.</p>}
+          <div className="cv-import-edit-section">
+            <div className="cv-import-edit-heading">
+              <b>التعليم والمؤهلات ({preview.education.length})</b>
+              <button type="button" className="cv-import-add" onClick={() => updatePreview((current) => ({
+                ...current,
+                education: [...current.education, newEducation()],
+              }))}><Plus size={15} /> إضافة مؤهل</button>
+            </div>
+            {preview.education.length === 0 && <p className="cv-import-empty">لم يُستخرج مؤهل موثوق. أضفه يدويًا أو اترك القسم فارغًا.</p>}
+            <div className="cv-import-edit-records">
+              {preview.education.map((entry, index) => (
+                <article className="cv-import-edit-record" key={entry.id}>
+                  <div className="cv-import-edit-record-heading">
+                    <b>المؤهل {index + 1}</b>
+                    <button type="button" className="cv-import-remove" onClick={() => updatePreview((current) => ({
+                      ...current,
+                      education: current.education.filter((_, itemIndex) => itemIndex !== index),
+                    }))} aria-label={`حذف المؤهل ${index + 1}`}><Trash2 size={15} /></button>
+                  </div>
+                  <div className="cv-import-edit-grid">
+                    <label>الشهادة<input value={entry.degree} onChange={(event) => updateEducation(index, "degree", event.target.value)} /></label>
+                    <label>التخصص<input value={entry.specialization} onChange={(event) => updateEducation(index, "specialization", event.target.value)} /></label>
+                    <label>الجامعة أو المعهد<input value={entry.institution} onChange={(event) => updateEducation(index, "institution", event.target.value)} /></label>
+                    <label>سنة التخرج<input value={entry.graduationYear} onChange={(event) => updateEducation(index, "graduationYear", event.target.value)} /></label>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="cv-import-edit-section">
+            <div className="cv-import-edit-heading">
+              <b>اللغات ({preview.languages.length})</b>
+              <button type="button" className="cv-import-add" onClick={() => updatePreview((current) => ({
+                ...current,
+                languages: [...current.languages, { name: "", level: "" }],
+              }))}><Plus size={15} /> إضافة لغة</button>
+            </div>
+            {preview.languages.length === 0 && <p className="cv-import-empty">لم تُستخرج لغات موثوقة. لن نضيف أسماء عشوائية؛ أضف الصحيح يدويًا.</p>}
+            <div className="cv-import-language-list">
+              {preview.languages.map((language, index) => (
+                <div className="cv-import-language-row" key={`language-${index}`}>
+                  <label>اسم اللغة<input value={language.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} /></label>
+                  <label>المستوى
+                    <select value={language.level} onChange={(event) => updateLanguage(index, "level", event.target.value)}>
+                      <option value="">غير محدد</option>
+                      {languageLevels.map((level) => <option key={level} value={level}>{level}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" className="cv-import-remove" onClick={() => updatePreview((current) => ({
+                    ...current,
+                    languages: current.languages.filter((_, itemIndex) => itemIndex !== index),
+                  }))} aria-label={`حذف اللغة ${index + 1}`}><Trash2 size={15} /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <label className="cv-import-confirm">
+            <input type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} />
+            <span>راجعت البيانات وعدّلت ما يلزم، وأؤكد صحة المعلومات التي سأعتمدها.</span>
+          </label>
 
           <div className="cv-import-actions">
-            <button type="button" className="cv-import-apply" onClick={() => { onImport(preview); setPreview(null); }}>
-              <Check size={16} /> تطبيق البيانات على ملفي
+            <button
+              type="button"
+              className="cv-import-apply"
+              disabled={!reviewConfirmed || !importedCount}
+              onClick={() => { onImport(preview); setPreview(null); setReviewConfirmed(false); }}
+            >
+              <Check size={16} /> اعتماد البيانات على ملفي
             </button>
-            <button type="button" className="cv-import-select cv-import-select-secondary" onClick={() => setPreview(null)}>
+            <button type="button" className="cv-import-select cv-import-select-secondary" onClick={() => { setPreview(null); setReviewConfirmed(false); }}>
               اختيار ملف آخر
             </button>
           </div>
-          <p className="cv-import-review-note">سنملأ الحقول الفارغة ونضيف العناصر غير المكررة، ولن نستبدل معلوماتك الموجودة.</p>
+          <p className="cv-import-review-note">تُضاف البيانات بعد تأكيدك؛ نملأ الحقول الفارغة ونضيف العناصر غير المكررة دون استبدال معلوماتك الحالية.</p>
         </div>
       )}
 
       <p className="cv-import-privacy">
         <ShieldCheck size={15} />
-        الملف نفسه لا يُرفع ولا يُخزّن. تتم القراءة داخل المتصفح؛ وعند OCR تُحمّل ملفات المحرك واللغة، ولا يُرسل محتوى السيرة.
+        الملف نفسه لا يُرفع ولا يُخزّن. تتم القراءة داخل المتصفح؛ وفي حالة OCR يُحمّل محرك القراءة وقواميس اللغة، ولا يُرسل محتوى السيرة.
       </p>
     </section>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
@@ -8,14 +8,15 @@ import { hasSupabaseConfig } from "../../lib/supabase";
 import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, getCandidateProfileDraft, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, saveCandidateProfileDraft, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
 import { downloadProfessionalResume, printProfessionalResume } from "../../features/candidate/professionalResume";
-import { CvImportPanel } from "../../features/candidate/CvImportPanel";
 import type { CandidateCvImport } from "../../features/candidate/cvImport";
+import { CandidateCvImportPage } from "./CandidateCvImportPage";
 
 type CandidatePageProps = {
   profile: Profile;
   onNavigate: (view: View) => void;
   onProfileUpdated?: () => void;
   onNotify?: (message: string) => void;
+  showCvImport?: boolean;
 };
 
 type ExperienceEntry = CandidateExperience;
@@ -94,7 +95,7 @@ function localMonthValue() {
   return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify }: CandidatePageProps) {
+export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify, showCvImport = false }: CandidatePageProps) {
   const cachedProfile = getCachedCandidateProfile(profile.id);
   const initialDraft = getCandidateProfileDraft(profile.id);
   const cachedProfileUpdatedAt = cachedProfile?.updated_at ? Date.parse(cachedProfile.updated_at) : Number.NaN;
@@ -511,6 +512,16 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
     return <section className="container page-section centered-state"><span className="live-dot" /><p>جاري تحميل ملفك المهني...</p></section>;
   }
 
+  if (showCvImport) {
+    return <CandidateCvImportPage
+      onBack={() => onNavigate("candidate")}
+      onImport={(imported) => {
+        applyCvImport(imported);
+        onNavigate("candidate");
+      }}
+    />;
+  }
+
   return <section className="container page-section dashboard-page candidate-profile-page">
     <aside className="candidate-english-tip" role="note">
       <span className="candidate-english-tip-icon" aria-hidden="true"><Languages size={18} /></span>
@@ -553,7 +564,16 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify 
           {autosaveStatus === "error" && <button type="button" onClick={() => loadedRef.current ? setRetryCount((count) => count + 1) : setReloadCount((count) => count + 1)}><RotateCw size={14} /> {loadedRef.current ? "إعادة المحاولة" : "إعادة تحميل الملف"}</button>}
         </div>
 
-        <CvImportPanel onImport={applyCvImport} />
+        <div className="candidate-cv-import-entry">
+          <span className="candidate-cv-import-entry-icon"><FileText size={20} /></span>
+          <div className="candidate-cv-import-entry-copy">
+            <b>عندك سيرة ذاتية جاهزة؟</b>
+            <small>استخرج بياناتها وراجع كل معلومة بصفحة مستقلة قبل إضافتها إلى ملفك.</small>
+          </div>
+          <button type="button" onClick={() => onNavigate("candidate-cv-import")}>
+            <span>ابدأ من سيرتك</span><ArrowRight size={16} />
+          </button>
+        </div>
 
         <details className="profile-editor-section profile-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); }}>
           <summary className="profile-section-summary">

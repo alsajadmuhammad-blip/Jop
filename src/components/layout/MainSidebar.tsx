@@ -93,7 +93,7 @@ export function MainSidebar({
   }, [profile.role]);
 
   const active = profile.role === "candidate"
-    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "candidate" ? "candidate" : view === "job" ? "jobs" : view
+    ? view === "saved" ? "saved" : view === "applied" ? "applied" : view === "candidate" || view === "candidate-cv-import" ? "candidate" : view === "job" ? "jobs" : view
     : profile.role === "hr"
       ? view === "job-request" ? "hr-publish" : view === "hr" ? `hr-${hrSection}` : view
       : view === "admin"

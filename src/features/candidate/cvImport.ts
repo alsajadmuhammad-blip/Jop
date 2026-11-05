@@ -35,7 +35,7 @@ export type CandidateCvImport = {
   warnings: string[];
 };
 
-type ParsedCvText = Omit<CandidateCvImport, "source" | "ocrPages" | "warnings">;
+type ParsedCvText = Omit<CandidateCvImport, "source" | "ocrPages">;
 type ProgressCallback = (message: string) => void;
 type SectionName = "summary" | "experience" | "education" | "skills" | "languages";
 
@@ -58,7 +58,9 @@ const SECTION_ALIASES: Record<SectionName, string[]> = {
     "work experience",
     "professional experience",
     "employment history",
+    "work history",
     "career history",
+    "career experience",
     "الخبرة",
     "الخبرة العملية",
     "الخبرات العملية",
@@ -92,10 +94,43 @@ const SECTION_ALIASES: Record<SectionName, string[]> = {
   languages: [
     "languages",
     "language skills",
+    "language proficiency",
+    "spoken languages",
     "اللغات",
     "المهارات اللغوية",
+    "مستوى اللغات",
   ],
 };
+
+const NON_PROFILE_SECTION_HEADINGS = [
+  "projects",
+  "personal projects",
+  "certifications",
+  "certificates",
+  "courses",
+  "training",
+  "awards",
+  "honors",
+  "publications",
+  "references",
+  "interests",
+  "hobbies",
+  "volunteer work",
+  "volunteer experience",
+  "personal details",
+  "additional information",
+  "المشاريع",
+  "الشهادات",
+  "الدورات",
+  "التدريب",
+  "الإنجازات",
+  "الجوائز",
+  "المراجع",
+  "الاهتمامات",
+  "الهوايات",
+  "العمل التطوعي",
+  "معلومات إضافية",
+];
 
 const IRAQI_PROVINCES: Array<{ name: string; aliases: string[] }> = [
   { name: "بغداد", aliases: ["بغداد", "baghdad", "bagdad"] },
@@ -166,7 +201,7 @@ function extractSections(text: string) {
     const match = matchSectionHeading(line);
     if (match) {
       current = match.section;
-      if (match.remainder) sections[current].push(match.remainder);
+      if (current && match.remainder) sections[current].push(match.remainder);
       continue;
     }
     if (current) sections[current].push(line);
@@ -176,7 +211,7 @@ function extractSections(text: string) {
   return { sections, header };
 }
 
-function matchSectionHeading(line: string): { section: SectionName; remainder: string } | null {
+function matchSectionHeading(line: string): { section: SectionName | null; remainder: string } | null {
   if (!line || line.length > 90) return null;
 
   const separatorIndex = line.search(/[:：]/);
@@ -190,6 +225,9 @@ function matchSectionHeading(line: string): { section: SectionName; remainder: s
         remainder: separatorIndex >= 0 ? line.slice(separatorIndex + 1).trim() : "",
       };
     }
+  }
+  if (NON_PROFILE_SECTION_HEADINGS.some((heading) => normalizeForMatch(heading) === normalizedHeading)) {
+    return { section: null, remainder: "" };
   }
   return null;
 }
@@ -252,25 +290,88 @@ function splitItems(lines: string[]) {
   }).slice(0, 35);
 }
 
-function parseLanguages(lines: string[]): CandidateLanguage[] {
-  const languages = splitItems(lines)
-    .map((item) => {
-      const normalized = normalizeForMatch(item);
-      let level: CandidateLanguage["level"] = "";
-      if (/(native|mother tongue|اللغة الام|لغة ام)/i.test(normalized)) level = "اللغة الأم";
-      else if (/(fluent|advanced|متقدم|بطلاقة)/i.test(normalized)) level = "متقدم";
-      else if (/(very good|upper intermediate|جيد جدا)/i.test(normalized)) level = "جيد جدًا";
-      else if (/(intermediate|متوسط)/i.test(normalized)) level = "متوسط";
-      else if (/(basic|beginner|مبتدئ|اساسي)/i.test(normalized)) level = "مبتدئ";
+const LANGUAGE_CATALOG: Array<[string, string[]]> = [
+  ["العربية", ["arabic", "العربية", "العربي", "عربي", "اللغة العربية"]],
+  ["English", ["english", "الإنجليزية", "الانجليزية", "الإنكليزية", "الانكليزية", "انكليزي", "إنكليزي", "اللغة الإنجليزية", "اللغة الانكليزية"]],
+  ["Kurdish", ["kurdish", "الكردية", "الكردي", "كردي", "كوردي", "سوراني", "باديني"]],
+  ["French", ["french", "الفرنسية", "الفرنسي"]],
+  ["German", ["german", "الألمانية", "الالمانية", "ألماني", "الماني"]],
+  ["Spanish", ["spanish", "الإسبانية", "الاسبانية", "إسباني", "اسباني"]],
+  ["Turkish", ["turkish", "التركية", "التركي"]],
+  ["Persian", ["persian", "farsi", "الفارسية", "فارسي", "داري", "داريّة"]],
+  ["Russian", ["russian", "الروسية", "الروسي"]],
+  ["Chinese", ["chinese", "mandarin", "الصينية", "الصيني", "الماندرين"]],
+  ["Italian", ["italian", "الإيطالية", "الايطالية", "إيطالي", "ايطالي"]],
+  ["Portuguese", ["portuguese", "البرتغالية", "البرتغالي"]],
+  ["Hindi", ["hindi", "الهندية", "الهندي"]],
+  ["Urdu", ["urdu", "الأردية", "الاردية", "أردو", "اردو"]],
+  ["Japanese", ["japanese", "اليابانية", "الياباني"]],
+  ["Korean", ["korean", "الكورية", "الكوري"]],
+  ["Dutch", ["dutch", "الهولندية", "الهولندي"]],
+  ["Greek", ["greek", "اليونانية", "اليوناني"]],
+  ["Swedish", ["swedish", "السويدية", "السويدي"]],
+  ["Norwegian", ["norwegian", "النرويجية", "النرويجي"]],
+  ["Danish", ["danish", "الدنماركية", "الدنماركي"]],
+  ["Polish", ["polish", "البولندية", "البولندي"]],
+  ["Romanian", ["romanian", "الرومانية", "الروماني"]],
+  ["Ukrainian", ["ukrainian", "الأوكرانية", "الاوكرانية", "الأوكراني", "الاوكراني"]],
+  ["Hebrew", ["hebrew", "العبرية", "العبري"]],
+  ["Armenian", ["armenian", "الأرمنية", "الارمنية", "الأرمني", "الارمني"]],
+  ["Azerbaijani", ["azerbaijani", "الأذربيجانية", "الاذربيجانية"]],
+  ["Indonesian", ["indonesian", "الإندونيسية", "الاندونيسية"]],
+  ["Malay", ["malay", "الملايوية", "الملايو"]],
+  ["Thai", ["thai", "التايلاندية", "التايلندي"]],
+  ["Vietnamese", ["vietnamese", "الفيتنامية", "الفيتنامي"]],
+  ["Swahili", ["swahili", "السواحلية", "السواحلي"]],
+  ["Somali", ["somali", "الصومالية", "الصومالي"]],
+  ["Pashto", ["pashto", "البشتوية", "البشتو"]],
+  ["Filipino", ["filipino", "tagalog", "الفلبينية", "الفلبيني"]],
+  ["Bengali", ["bengali", "البنغالية", "البنغالي"]],
+  ["Serbian", ["serbian", "الصربية", "الصربي"]],
+  ["Croatian", ["croatian", "الكرواتية", "الكرواتي"]],
+  ["Bosnian", ["bosnian", "البوسنية", "البوسني"]],
+];
 
-      const name = item
-        .replace(/\s*[\[(（].*?[\])）]\s*/g, " ")
-        .replace(/\s*(?:[-–—|:]|—)\s*(?:native|mother tongue|fluent|advanced|intermediate|beginner|basic|اللغة الأم|متقدم|جيد جدًا|متوسط|مبتدئ).*$/i, "")
-        .trim();
-      return { name, level };
-    })
-    .filter((language) => language.name);
-  return languages.slice(0, 12);
+const LANGUAGE_ALIAS_LOOKUP = new Map<string, string>();
+for (const [canonical, aliases] of LANGUAGE_CATALOG) {
+  for (const alias of aliases) LANGUAGE_ALIAS_LOOKUP.set(normalizeForMatch(alias), canonical);
+}
+
+const LANGUAGE_LEVEL_PATTERNS: Array<{ pattern: RegExp; level: CandidateLanguage["level"] }> = [
+  { pattern: /(native|mother tongue|bilingual|اللغة الام|لغة ام|بطلاقة تامة)/i, level: "اللغة الأم" },
+  { pattern: /(fluent|advanced|proficient|excellent|بطلاقة|متقدم|ممتاز)/i, level: "متقدم" },
+  { pattern: /(upper intermediate|very good|good|جيد جدا|جيد جدًا|جيد)/i, level: "جيد جدًا" },
+  { pattern: /(intermediate|conversational|متوسط)/i, level: "متوسط" },
+  { pattern: /(basic|beginner|elementary|مبتدئ|اساسي|أساسي)/i, level: "مبتدئ" },
+];
+
+function parseLanguages(lines: string[]): CandidateLanguage[] {
+  const candidates = lines
+    .flatMap((line) => line.split(/[,،;؛|/•●▪◦]+|\s+(?:and|و)\s+/i))
+    .map((item) => item.replace(/^[\s\-–—*]+|[\s\-–—*]+$/g, "").trim())
+    .filter(Boolean);
+  const results: CandidateLanguage[] = [];
+  const seen = new Set<string>();
+
+  for (const item of candidates) {
+    const normalized = normalizeForMatch(item);
+    const level = LANGUAGE_LEVEL_PATTERNS.find(({ pattern }) => pattern.test(normalized))?.level || "";
+    const cleanedName = normalized
+      .replace(/\([^)]*\)|\[[^\]]*\]|（[^）]*）/g, " ")
+      .replace(/^(?:spoken\s+)?languages?\s*[:：-]?\s*/i, "")
+      .replace(/^(?:اللغة|اللغات)\s*[:：-]?\s*/i, "")
+      .replace(/\s*(?:[-–—|:：]\s*)?(?:native|mother tongue|bilingual|fluent|advanced|proficient|excellent|upper intermediate|very good|good|intermediate|conversational|basic|beginner|elementary|اللغة الام|لغة ام|بطلاقة تامة|بطلاقة|متقدم|ممتاز|جيد جدا|جيد|متوسط|مبتدئ|اساسي|أساسي).*$/i, "")
+      .replace(/\s+(?:language|اللغة)$/i, "")
+      .replace(/[.!،,:؛|–—\-]+$/g, "")
+      .trim();
+    const canonical = LANGUAGE_ALIAS_LOOKUP.get(cleanedName);
+    if (!canonical || seen.has(canonical)) continue;
+    seen.add(canonical);
+    results.push({ name: canonical, level });
+    if (results.length === 12) break;
+  }
+
+  return results;
 }
 
 const MONTH_ALIASES: Record<string, string> = {
@@ -318,28 +419,39 @@ function isCurrentDate(value: string) {
 function splitExperienceBlocks(lines: string[]) {
   const blocks: string[][] = [];
   let current: string[] = [];
-  const hasDateRanges = lines.some((line) => DATE_RANGE_REGEX.test(line));
-  if (!hasDateRanges) {
-    const combined = lines.map((line) => line.trim()).filter(Boolean);
-    return combined.length ? [combined] : [];
-  }
   let currentHasDate = false;
 
-  for (const line of lines) {
-    if (!line.trim()) {
+  const flush = () => {
+    if (current.length) blocks.push(current);
+    current = [];
+    currentHasDate = false;
+  };
+  const isBullet = (line: string) => /^(?:[-•●▪◦*]|\d+[.)])\s*/u.test(line);
+  const looksLikeHeader = (index: number) => {
+    const line = lines[index]?.trim() || "";
+    if (!line || line.length > 100 || isBullet(line) || /[.!?؟]$/.test(line)) return false;
+    if (/^(?:job\s*title|position|title|company|employer|organization|المسمى|الوظيفة|الشركة|جهة العمل)\s*[:：-]/i.test(line)) return true;
+    if (/\s+(?:at|@|في|لدى)\s+|[|•●▪]\s*|\s+[—–]\s+/i.test(line)) return true;
+    const upcomingDate = lines.slice(index, index + 3).some((candidate) => DATE_RANGE_REGEX.test(candidate));
+    return upcomingDate && line.split(/\s+/).length <= 10;
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) {
+      flush();
       continue;
     }
 
     const hasDate = DATE_RANGE_REGEX.test(line);
-    if (hasDateRanges && hasDate && currentHasDate) {
-      blocks.push(current);
-      current = [];
-      currentHasDate = false;
+    const beginsFollowingEntry = current.length > 0 && currentHasDate && !hasDate && looksLikeHeader(index);
+    if ((hasDate && currentHasDate) || beginsFollowingEntry) {
+      flush();
     }
-    current.push(line.trim());
+    current.push(line);
     currentHasDate ||= hasDate;
   }
-  if (current.length) blocks.push(current);
+  flush();
   return blocks;
 }
 
@@ -358,14 +470,29 @@ function parseExperienceBlock(lines: string[], index: number): CandidateExperien
   const explicitTitle = labelValue("job\\s*title|position|title|المسمى الوظيفي|المسمى|الوظيفة");
   const explicitCompany = labelValue("company|employer|organization|جهة العمل|الشركة|المؤسسة");
   const explicitLocation = labelValue("location|work location|الموقع|مكان العمل");
-  const lineWithoutPeriod = dateLine && periodText ? dateLine.replace(periodText, "").replace(/[|,،:؛\-–—]+/g, " ").trim() : "";
-  const headerLines = content.filter((line) => line !== dateLine && !/^(?:[-•●▪])/u.test(line));
-  const header = headerLines[0] || lineWithoutPeriod;
-  const splitHeader = header.split(/\s+(?:at|@|في|لدى)\s+|[|•●▪]+|\s+[—–]\s+/i).map((item) => item.trim()).filter(Boolean);
-  const title = explicitTitle || splitHeader[0] || "";
-  const company = explicitCompany || splitHeader[1] || headerLines[1] || "";
+  const lineWithoutPeriod = dateLine && periodText
+    ? dateLine.replace(periodText, " ").replace(/\s+/g, " ").trim()
+    : "";
+  const labelPattern = /^(?:job\s*title|position|title|company|employer|organization|location|description|responsibilities|المسمى الوظيفي|المسمى|الوظيفة|الشركة|جهة العمل|الموقع|الوصف|المسؤوليات)\s*[:：-]/i;
+  const headerLines = content.filter((line) => line !== dateLine && !/^(?:[-•●▪◦*]|\d+[.)])\s*/u.test(line) && !labelPattern.test(line));
+  const header = lineWithoutPeriod || headerLines[0] || "";
+  const splitHeader = header
+    .split(/\s+(?:at|@|في|لدى)\s+|[|•●▪]+|\s+[—–]\s+|,\s+/i)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const title = explicitTitle || splitHeader[0] || headerLines[0] || "";
+  const company = explicitCompany || splitHeader[1] || (header !== headerLines[0] ? headerLines[0] : headerLines[1]) || "";
   const description = content
-    .filter((line) => line !== dateLine && line !== header && line !== company && line !== explicitTitle && line !== explicitCompany && line !== explicitLocation)
+    .filter((line) =>
+      line !== dateLine &&
+      line !== header &&
+      line !== headerLines[0] &&
+      line !== headerLines[1] &&
+      !labelPattern.test(line) &&
+      line !== explicitTitle &&
+      line !== explicitCompany &&
+      line !== explicitLocation
+    )
     .join("\n")
     .replace(/^[\s\-–—•●▪]+/gm, "")
     .trim();
@@ -538,6 +665,20 @@ export function parseCandidateCvText(text: string): ParsedCvText {
   const skills = splitItems(sections.skills);
   const languages = parseLanguages(sections.languages);
   const education = parseEducation(sections.education);
+  const warnings: string[] = [];
+  if (sections.languages.some((line) => line.trim()) && !languages.length) {
+    warnings.push("لم نتمكن من تحديد أسماء لغات موثوقة من هذا القسم. أضف اللغات يدويًا أو صحّحها قبل الاعتماد.");
+  }
+  const dateRangeCount = sections.experience.reduce(
+    (count, line) => count + (line.match(new RegExp(DATE_RANGE_REGEX.source, "gi")) || []).length,
+    0,
+  );
+  if (dateRangeCount > experienceEntries.length && dateRangeCount > 1) {
+    warnings.push("قد لا يكون تقسيم الخبرات أو تواريخها كاملًا. راجع كل وظيفة وفترتها قبل الاعتماد.");
+  }
+  if (sections.experience.some((line) => line.trim()) && experienceEntries.length === 1 && !dateRangeCount) {
+    warnings.push("لم تظهر تواريخ واضحة للخبرات؛ قد تكون عدة وظائف مدمجة في سجل واحد. راجعها وأضف أو افصل الخبرات يدويًا.");
+  }
 
   const profile: ImportedProfileFields = {};
   if (full_name) profile.full_name = full_name;
@@ -556,6 +697,7 @@ export function parseCandidateCvText(text: string): ParsedCvText {
     experiences: experienceEntries,
     education,
     languages,
+    warnings,
   };
 }
 
@@ -568,6 +710,37 @@ function countExtractedFields(parsed: ParsedCvText) {
     Number(parsed.education.length > 0) +
     Number(parsed.languages.length > 0)
   );
+}
+
+export function reconstructPdfPageText(items: readonly unknown[]) {
+  let text = "";
+  let previousY: number | null = null;
+
+  for (const candidate of items) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const item = candidate as { str?: unknown; hasEOL?: unknown; transform?: unknown };
+    if (typeof item.str !== "string") continue;
+    const fragment = item.str.replace(/\s+/g, " ").trim();
+    const transform = Array.isArray(item.transform) ? item.transform : null;
+    const y = transform && typeof transform[5] === "number" ? transform[5] : null;
+
+    if (!fragment) {
+      if (item.hasEOL && text && !text.endsWith("\n")) text += "\n";
+      previousY = y ?? previousY;
+      continue;
+    }
+
+    const movedToNewLine = previousY !== null && y !== null && Math.abs(previousY - y) > 2.5;
+    if (text && !text.endsWith("\n")) text += movedToNewLine ? "\n" : " ";
+    text += fragment;
+    if (item.hasEOL && !text.endsWith("\n")) text += "\n";
+    previousY = y ?? previousY;
+  }
+
+  return text
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 async function extractPdf(fileBytes: Uint8Array, onProgress: ProgressCallback) {
@@ -586,13 +759,7 @@ async function extractPdf(fileBytes: Uint8Array, onProgress: ProgressCallback) {
       onProgress(`جاري قراءة الصفحة ${pageNumber} من ${pagesToRead}...`);
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
-      let pageText = "";
-      for (const item of content.items) {
-        if (!("str" in item)) continue;
-        pageText += item.str;
-        pageText += item.hasEOL ? "\n" : " ";
-      }
-      pageTexts.push(pageText);
+      pageTexts.push(reconstructPdfPageText(content.items));
     }
 
     const pagesWithText = pageTexts.map((text, index) => ({
@@ -723,6 +890,6 @@ export async function readCandidateCv(file: File, onProgress: ProgressCallback):
     ...parsed,
     source,
     ocrPages,
-    warnings,
+    warnings: [...warnings, ...parsed.warnings],
   };
 }
