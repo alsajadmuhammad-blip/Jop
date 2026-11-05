@@ -161,7 +161,7 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
                   <article className="cv-import-record" key={experience.id}>
                     <strong dir="auto">{[experience.title, experience.company].filter(Boolean).join(" · ") || "خبرة مهنية"}</strong>
                     {periodLabel(experience) && <small dir="auto">{periodLabel(experience)}</small>}
-                    {experience.description && <p dir="auto">{experience.description.slice(0, 240)}{experience.description.length > 240 ? "…" : ""}</p>}
+                    {experience.description && <p dir="auto">{experience.description}</p>}
                   </article>
                 ))}
               </div>
@@ -208,7 +208,7 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
 
       <p className="cv-import-privacy">
         <ShieldCheck size={15} />
-        الملف نفسه لا يُرفع ولا يُخزّن؛ تتم القراءة داخل المتصفح، ولا تُحفظ إلا الحقول التي تعتمدها.
+        الملف نفسه لا يُرفع ولا يُخزّن. تتم القراءة داخل المتصفح؛ وعند OCR تُحمّل ملفات المحرك واللغة، ولا يُرسل محتوى السيرة.
       </p>
     </section>
   );

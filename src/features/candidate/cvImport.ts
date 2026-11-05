@@ -209,7 +209,12 @@ function cleanContactValue(value: string) {
 
 function extractEmail(text: string) {
   const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  return match?.[0]?.trim() || "";
+  const email = match?.[0]?.trim() || "";
+  return email.length <= 254 ? email : "";
+}
+
+function limitField(value: string, maxLength: number) {
+  return value.trim().slice(0, maxLength);
 }
 
 function extractPhone(text: string) {
@@ -367,14 +372,14 @@ function parseExperienceBlock(lines: string[], index: number): CandidateExperien
 
   const experience: CandidateExperience = {
     id: createEntryId("cv-experience", index),
-    title,
-    company,
-    location: explicitLocation,
+    title: limitField(title, 140),
+    company: limitField(company, 140),
+    location: limitField(explicitLocation, 100),
     startMonth,
     endMonth,
     isCurrent,
-    legacyPeriod: periodText && (!startMonth || (!endMonth && !isCurrent)) ? periodText : "",
-    description,
+    legacyPeriod: periodText && (!startMonth || (!endMonth && !isCurrent)) ? limitField(periodText, 80) : "",
+    description: limitField(description, 2500),
   };
 
   return Object.values(experience).some((value) => typeof value === "boolean" ? value : Boolean(value)) ? experience : null;
@@ -420,9 +425,9 @@ function parseEducation(lines: string[]): CandidateEducation[] {
       if (!fallbackDegree && !fallbackInstitution && !year) return null;
       return {
         id: createEntryId("cv-education", index),
-        degree: fallbackDegree,
-        specialization,
-        institution: fallbackInstitution,
+        degree: limitField(fallbackDegree, 140),
+        specialization: limitField(specialization, 140),
+        institution: limitField(fallbackInstitution, 140),
         graduationYear: year,
       } satisfies CandidateEducation;
     })
@@ -487,10 +492,11 @@ function inferSpecialization(headline: string) {
   return matches.find((item) => item.terms.some((term) => normalized.includes(normalizeForMatch(term))))?.value || "";
 }
 
-function parseCvText(text: string): ParsedCvText {
+export function parseCandidateCvText(text: string): ParsedCvText {
   const normalizedText = normalizeText(text);
   const { sections, header } = extractSections(normalizedText);
-  const email = firstLabeledValue(header, "email|e-mail|البريد الإلكتروني|البريد الالكتروني") || extractEmail(normalizedText);
+  const labeledEmail = firstLabeledValue(header, "email|e-mail|البريد الإلكتروني|البريد الالكتروني");
+  const email = extractEmail(labeledEmail || normalizedText);
   const labeledPhone = firstLabeledValue(header, "phone|mobile|telephone|tel\\.?|رقم الهاتف|الهاتف|الموبايل");
   const phone = cleanContactValue(labeledPhone) || extractPhone(normalizedText);
   const nameFromLabel = firstLabeledValue(
@@ -537,10 +543,10 @@ function parseCvText(text: string): ParsedCvText {
   if (full_name) profile.full_name = full_name;
   if (email) profile.email = email;
   if (phone) profile.phone = phone;
-  if (headline) profile.headline = cleanContactValue(headline);
-  if (specialization) profile.specialization = cleanContactValue(specialization);
-  if (province) profile.province = cleanContactValue(province);
-  if (city) profile.city = cleanContactValue(city);
+  if (headline) profile.headline = limitField(cleanContactValue(headline), 120);
+  if (specialization) profile.specialization = limitField(cleanContactValue(specialization), 100);
+  if (province) profile.province = limitField(cleanContactValue(province), 80);
+  if (city) profile.city = limitField(cleanContactValue(city), 80);
   if (experienceYears !== null) profile.experience_years = experienceYears;
   if (skills.length) profile.skills = skills;
   if (explicitSummary) profile.summary = explicitSummary;
@@ -708,7 +714,7 @@ export async function readCandidateCv(file: File, onProgress: ProgressCallback):
     text = result.value;
   }
 
-  const parsed = parseCvText(text);
+  const parsed = parseCandidateCvText(text);
   if (!countExtractedFields(parsed)) {
     throw new Error("ما قدرنا نحدد بيانات كافية من الملف. جرّب PDF نصيًا أو DOCX أو عدّل محتوى السيرة.");
   }
