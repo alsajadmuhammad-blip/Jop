@@ -2363,12 +2363,14 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
 }
 
 .candidate-profile-page .candidate-profile-grid {
-  grid-template-columns: minmax(0, 1fr) 282px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   margin-top: 16px;
 }
 
 .candidate-profile-page .candidate-profile-editor {
+  width: 100%;
+  min-width: 0;
   border-radius: 18px;
   box-shadow: 0 10px 30px rgba(24,32,79,.045);
 }
@@ -2623,8 +2625,8 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
 }
 
 .candidate-profile-page .candidate-profile-aside {
-  position: sticky;
-  top: 94px;
+  min-width: 0;
+  position: static;
 }
 
 @media (max-width: 920px) {
@@ -2767,6 +2769,17 @@ footer .brand-logo { width: 36px; height: 36px; border-radius: 10px; }.footer-in
   .candidate-profile-page .candidate-hero-score {
     min-width: 0;
     padding-inline-start: 12px;
+  }
+}
+
+@media (min-width: 1160px) {
+  .candidate-profile-page .candidate-profile-grid {
+    grid-template-columns: minmax(0, 1fr) 282px;
+  }
+
+  .candidate-profile-page .candidate-profile-aside {
+    position: sticky;
+    top: 94px;
   }
 }
 
