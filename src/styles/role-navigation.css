@@ -791,7 +791,18 @@
 /* One application-level sidebar. Protected pages share this exact navigation. */
 .has-main-sidebar > main,
 .has-main-sidebar > footer {
-  margin-right: 270px;
+  margin-right: 0;
+}
+
+.has-main-sidebar > main {
+  min-width: 0;
+}
+
+@media (min-width: 901px) {
+  .has-main-sidebar > main,
+  .has-main-sidebar > footer {
+    margin-right: 270px;
+  }
 }
 
 .main-sidebar {
