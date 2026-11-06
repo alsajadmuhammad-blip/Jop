@@ -5,7 +5,7 @@ import { readCandidateCv, type CandidateCvImport } from "./cvImport";
 import "./cv-import.css";
 
 type CvImportPanelProps = {
-  onImport: (result: CandidateCvImport) => void;
+  onImport: (result: CandidateCvImport, replaceExisting: boolean) => void;
 };
 
 type TextProfileField =
@@ -69,6 +69,7 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<CandidateCvImport | null>(null);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [replaceExisting, setReplaceExisting] = useState(false);
 
   const updatePreview = (update: (current: CandidateCvImport) => CandidateCvImport) => {
     setPreview((current) => current ? update(current) : current);
@@ -79,6 +80,7 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
     setError("");
     setPreview(null);
     setReviewConfirmed(false);
+    setReplaceExisting(false);
     setBusy(true);
     setStatus("جاري تجهيز الملف وقراءته داخل المتصفح...");
 
@@ -108,19 +110,40 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
   };
 
   const profileTextValue = (key: TextProfileField) => preview?.profile[key] || "";
+  const validExperiences = preview?.experiences.filter((experience) =>
+    [experience.title, experience.company, experience.location, experience.startMonth, experience.endMonth, experience.legacyPeriod, experience.description]
+      .some((value) => value.trim()) || experience.isCurrent,
+  ) || [];
+  const validEducation = preview?.education.filter((entry) =>
+    [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()),
+  ) || [];
+  const validLanguages = preview?.languages.filter((entry) => entry.name.trim()) || [];
   const profileCount = preview
     ? Object.values(preview.profile).filter((value) => Array.isArray(value) ? value.length > 0 : value !== "" && value !== null && value !== undefined).length
     : 0;
   const importedCount = preview
-    ? profileCount + preview.experiences.length + preview.education.length + preview.languages.length
+    ? profileCount + validExperiences.length + validEducation.length + validLanguages.length
     : 0;
 
   const updateExperience = (index: number, key: keyof CandidateExperience, value: string | boolean) => {
     updatePreview((current) => ({
       ...current,
-      experiences: current.experiences.map((experience, itemIndex) =>
-        itemIndex === index ? { ...experience, [key]: value } as CandidateExperience : experience,
-      ),
+      experiences: current.experiences.map((experience, itemIndex) => {
+        if (itemIndex !== index) return experience;
+        const next = { ...experience, [key]: value } as CandidateExperience;
+        if (key === "legacyPeriod") {
+          next.startMonth = "";
+          next.endMonth = "";
+          next.isCurrent = false;
+        } else if (key === "startMonth" || key === "endMonth") {
+          next.legacyPeriod = "";
+          if (key === "endMonth" && value) next.isCurrent = false;
+        } else if (key === "isCurrent" && value) {
+          next.endMonth = "";
+          next.legacyPeriod = "";
+        }
+        return next;
+      }),
     }));
   };
 
@@ -208,9 +231,9 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
 
           <div className="cv-import-counts" aria-label="عدد البيانات المستخرجة">
             {preview.profile.skills?.length ? <span>{preview.profile.skills.length} مهارة</span> : null}
-            {preview.experiences.length ? <span>{preview.experiences.length} خبرة</span> : null}
-            {preview.education.length ? <span>{preview.education.length} مؤهل</span> : null}
-            {preview.languages.length ? <span>{preview.languages.length} لغة معروفة</span> : null}
+            {validExperiences.length ? <span>{validExperiences.length} خبرة</span> : null}
+            {validEducation.length ? <span>{validEducation.length} مؤهل</span> : null}
+            {validLanguages.length ? <span>{validLanguages.length} لغة معروفة</span> : null}
             <span>{importedCount} حقلًا أو عنصرًا</span>
           </div>
 
@@ -308,7 +331,15 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
                     <label>المسمى الوظيفي<input value={experience.title} onChange={(event) => updateExperience(index, "title", event.target.value)} /></label>
                     <label>جهة العمل<input value={experience.company} onChange={(event) => updateExperience(index, "company", event.target.value)} /></label>
                     <label>الموقع<input value={experience.location} onChange={(event) => updateExperience(index, "location", event.target.value)} /></label>
-                    <label>الفترة كما وردت في السيرة<input value={experience.legacyPeriod || [experience.startMonth, experience.isCurrent ? "Present" : experience.endMonth].filter(Boolean).join(" — ")} onChange={(event) => updateExperience(index, "legacyPeriod", event.target.value)} /></label>
+                    {experience.legacyPeriod ? (
+                      <label>الفترة كما وردت في السيرة<input value={experience.legacyPeriod} onChange={(event) => updateExperience(index, "legacyPeriod", event.target.value)} /></label>
+                    ) : (
+                      <>
+                        <label>من شهر / سنة<input type="month" value={experience.startMonth} onChange={(event) => updateExperience(index, "startMonth", event.target.value)} /></label>
+                        <label>إلى شهر / سنة<input type="month" value={experience.endMonth} disabled={experience.isCurrent} onChange={(event) => updateExperience(index, "endMonth", event.target.value)} /></label>
+                        <label className="cv-import-current-checkbox"><input type="checkbox" checked={experience.isCurrent} onChange={(event) => updateExperience(index, "isCurrent", event.target.checked)} /> ما زلت أعمل هنا</label>
+                      </>
+                    )}
                     <label className="cv-import-edit-wide">المسؤوليات والإنجازات<textarea rows={3} value={experience.description} onChange={(event) => updateExperience(index, "description", event.target.value)} /></label>
                   </div>
                 </article>
@@ -379,20 +410,59 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
             <span>راجعت البيانات وعدّلت ما يلزم، وأؤكد صحة المعلومات التي سأعتمدها.</span>
           </label>
 
+          <label className={`cv-import-replace-option${replaceExisting ? " is-enabled" : ""}`}>
+            <input
+              type="checkbox"
+              checked={replaceExisting}
+              onChange={(event) => {
+                setReplaceExisting(event.target.checked);
+                setReviewConfirmed(false);
+              }}
+            />
+            <span>
+              <b>استبدال البيانات الحالية التي لها نتيجة مراجَعة</b>
+              <small>عند التفعيل، تُستبدل القيم المستخرجة والقوائم التي تحتوي بيانات في هذه المعاينة فقط. الأقسام التي لم تُستخرج تبقى كما هي.</small>
+            </span>
+          </label>
+
+          {replaceExisting && (
+            <p className="cv-import-warning" role="alert">
+              ستحلّ النتائج التي راجعتها محل البيانات الموجودة في الحقول والقوائم المطابقة. تأكد من صحة كل عنصر قبل المتابعة.
+            </p>
+          )}
+
           <div className="cv-import-actions">
             <button
               type="button"
               className="cv-import-apply"
               disabled={!reviewConfirmed || !importedCount}
-              onClick={() => { onImport(preview); setPreview(null); setReviewConfirmed(false); }}
+              onClick={() => {
+                onImport({
+                  ...preview,
+                  profile: {
+                    ...preview.profile,
+                    skills: preview.profile.skills?.map((skill) => skill.trim()).filter(Boolean),
+                  },
+                  experiences: validExperiences,
+                  education: validEducation,
+                  languages: validLanguages,
+                }, replaceExisting);
+                setPreview(null);
+                setReviewConfirmed(false);
+                setReplaceExisting(false);
+              }}
             >
-              <Check size={16} /> اعتماد البيانات على ملفي
+              <Check size={16} /> {replaceExisting ? "استبدال البيانات بعد مراجعتها" : "إضافة البيانات إلى ملفي"}
             </button>
             <button type="button" className="cv-import-select cv-import-select-secondary" onClick={() => { setPreview(null); setReviewConfirmed(false); }}>
               اختيار ملف آخر
             </button>
           </div>
-          <p className="cv-import-review-note">تُضاف البيانات بعد تأكيدك؛ نملأ الحقول الفارغة ونضيف العناصر غير المكررة دون استبدال معلوماتك الحالية.</p>
+          <p className="cv-import-review-note">
+            {replaceExisting
+              ? "لن تتغير بيانات الأقسام التي لم تظهر لها نتائج في المعاينة."
+              : "نملأ الحقول الفارغة ونضيف العناصر غير المكررة دون استبدال معلوماتك الحالية."}
+          </p>
         </div>
       )}
 

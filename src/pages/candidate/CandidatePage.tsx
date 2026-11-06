@@ -298,44 +298,54 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const applyCvImport = (imported: CandidateCvImport) => {
+  const applyCvImport = (imported: CandidateCvImport, replaceExisting = false) => {
     setForm((current) => ({
       ...current,
-      full_name: keepExistingText(current.full_name, imported.profile.full_name),
-      email: keepExistingText(current.email, imported.profile.email),
-      phone: keepExistingText(current.phone, imported.profile.phone),
-      headline: keepExistingText(current.headline, imported.profile.headline),
-      specialization: keepExistingText(current.specialization, imported.profile.specialization),
-      province: keepExistingText(current.province, imported.profile.province),
-      city: keepExistingText(current.city, imported.profile.city),
-      summary: keepExistingText(current.summary, imported.profile.summary),
-      experience_years: current.experience_years > 0
-        ? current.experience_years
-        : imported.profile.experience_years ?? current.experience_years,
-      skills: mergeImportedStrings(current.skills, imported.profile.skills || []),
+      full_name: replaceExisting && imported.profile.full_name?.trim() ? imported.profile.full_name : keepExistingText(current.full_name, imported.profile.full_name),
+      email: replaceExisting && imported.profile.email?.trim() ? imported.profile.email : keepExistingText(current.email, imported.profile.email),
+      phone: replaceExisting && imported.profile.phone?.trim() ? imported.profile.phone : keepExistingText(current.phone, imported.profile.phone),
+      headline: replaceExisting && imported.profile.headline?.trim() ? imported.profile.headline : keepExistingText(current.headline, imported.profile.headline),
+      specialization: replaceExisting && imported.profile.specialization?.trim() ? imported.profile.specialization : keepExistingText(current.specialization, imported.profile.specialization),
+      province: replaceExisting && imported.profile.province?.trim() ? imported.profile.province : keepExistingText(current.province, imported.profile.province),
+      city: replaceExisting && imported.profile.city?.trim() ? imported.profile.city : keepExistingText(current.city, imported.profile.city),
+      summary: replaceExisting && imported.profile.summary?.trim() ? imported.profile.summary : keepExistingText(current.summary, imported.profile.summary),
+      experience_years: replaceExisting && imported.profile.experience_years !== undefined
+        ? imported.profile.experience_years
+        : current.experience_years > 0
+          ? current.experience_years
+          : imported.profile.experience_years ?? current.experience_years,
+      skills: replaceExisting && imported.profile.skills?.length
+        ? imported.profile.skills
+        : mergeImportedStrings(current.skills, imported.profile.skills || []),
     }));
-    setExperiences((current) => mergeImportedEntries(
-      current,
-      imported.experiences,
-      (entry) => [
-        entry.title,
-        entry.company,
-        entry.legacyPeriod || `${entry.startMonth}-${entry.endMonth}`,
-        entry.location,
-        entry.description,
-      ].map(normalizeImportedKey).join("|"),
-    ));
-    setEducation((current) => mergeImportedEntries(
-      current,
-      imported.education,
-      (entry) => [entry.degree, entry.specialization, entry.institution, entry.graduationYear]
-        .map(normalizeImportedKey).join("|"),
-    ));
-    setLanguages((current) => mergeImportedEntries(
-      current,
-      imported.languages,
-      (entry) => normalizeImportedKey(entry.name),
-    ));
+    setExperiences((current) => replaceExisting && imported.experiences.length
+      ? imported.experiences
+      : mergeImportedEntries(
+        current,
+        imported.experiences,
+        (entry) => [
+          entry.title,
+          entry.company,
+          entry.legacyPeriod || `${entry.startMonth}-${entry.endMonth}`,
+          entry.location,
+          entry.description,
+        ].map(normalizeImportedKey).join("|"),
+      ));
+    setEducation((current) => replaceExisting && imported.education.length
+      ? imported.education
+      : mergeImportedEntries(
+        current,
+        imported.education,
+        (entry) => [entry.degree, entry.specialization, entry.institution, entry.graduationYear]
+          .map(normalizeImportedKey).join("|"),
+      ));
+    setLanguages((current) => replaceExisting && imported.languages.length
+      ? imported.languages
+      : mergeImportedEntries(
+        current,
+        imported.languages,
+        (entry) => normalizeImportedKey(entry.name),
+      ));
     setOpenSections((current) => ({
       ...current,
       identity: true,
@@ -343,7 +353,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
       experience: true,
       education: true,
     }));
-    onNotify?.("تمت إضافة البيانات المستخرجة إلى الحقول الفارغة. راجعها، وسيُحفظ الملف تلقائيًا.");
+    onNotify?.(replaceExisting
+      ? "تم استبدال البيانات الموجودة بالنتائج التي راجعتها. سيُحفظ الملف تلقائيًا."
+      : "تمت إضافة البيانات إلى الحقول الفارغة. راجع ملفك، وسيُحفظ تلقائيًا.");
   };
 
   const addSkill = () => {
@@ -515,8 +527,8 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   if (showCvImport) {
     return <CandidateCvImportPage
       onBack={() => onNavigate("candidate")}
-      onImport={(imported) => {
-        applyCvImport(imported);
+      onImport={(imported, replaceExisting) => {
+        applyCvImport(imported, replaceExisting);
         onNavigate("candidate");
       }}
     />;

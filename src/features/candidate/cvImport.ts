@@ -347,7 +347,7 @@ const LANGUAGE_LEVEL_PATTERNS: Array<{ pattern: RegExp; level: CandidateLanguage
 
 function parseLanguages(lines: string[]): CandidateLanguage[] {
   const candidates = lines
-    .flatMap((line) => line.split(/[,،;؛|/•●▪◦]+|\s+(?:and|و)\s+/i))
+    .flatMap((line) => line.split(/[,،;؛|\/•●▪◦]+|\s+(?:and|و)\s+/i))
     .map((item) => item.replace(/^[\s\-–—*]+|[\s\-–—*]+$/g, "").trim())
     .filter(Boolean);
   const results: CandidateLanguage[] = [];
@@ -391,7 +391,7 @@ const MONTH_ALIASES: Record<string, string> = {
 
 const MONTH_PATTERN = Object.keys(MONTH_ALIASES).join("|");
 const DATE_TOKEN_PATTERN = `(?:(?:${MONTH_PATTERN})\\s+)?(?:19|20)\\d{2}|(?:0?[1-9]|1[0-2])[/.-](?:19|20)\\d{2}`;
-const CURRENT_DATE_PATTERN = "(?:present|current|now|حتى الآن|حاليًا|مستمر)";
+const CURRENT_DATE_PATTERN = "(?:present|current|now|حتى\\s+الآن|حتى\\s+الان|حاليًا|حاليا|مستمر)";
 const DATE_RANGE_REGEX = new RegExp(
   `(${DATE_TOKEN_PATTERN})\\s*(?:-|–|—|to|until|إلى|الى|حتى|لغاية)\\s*(${DATE_TOKEN_PATTERN}|${CURRENT_DATE_PATTERN})`,
   "i",
@@ -413,7 +413,7 @@ function parseDateToken(value: string) {
 }
 
 function isCurrentDate(value: string) {
-  return /(present|current|now|حتى الآن|حاليًا|مستمر)/i.test(normalizeForMatch(value));
+  return /(present|current|now|حتي الان|حاليا|مستمر)/i.test(normalizeForMatch(value));
 }
 
 function splitExperienceBlocks(lines: string[]) {
@@ -432,20 +432,25 @@ function splitExperienceBlocks(lines: string[]) {
     if (!line || line.length > 100 || isBullet(line) || /[.!?؟]$/.test(line)) return false;
     if (/^(?:job\s*title|position|title|company|employer|organization|المسمى|الوظيفة|الشركة|جهة العمل)\s*[:：-]/i.test(line)) return true;
     if (/\s+(?:at|@|في|لدى)\s+|[|•●▪]\s*|\s+[—–]\s+/i.test(line)) return true;
-    const upcomingDate = lines.slice(index, index + 3).some((candidate) => DATE_RANGE_REGEX.test(candidate));
+    const upcomingDate = lines.slice(index, index + 4).some((candidate) => DATE_RANGE_REGEX.test(candidate));
     return upcomingDate && line.split(/\s+/).length <= 10;
   };
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trim();
     if (!line) {
-      flush();
+      let nextIndex = index + 1;
+      while (nextIndex < lines.length && !lines[nextIndex].trim()) nextIndex += 1;
+      const nextLine = lines[nextIndex]?.trim() || "";
+      if (current.length && nextLine && !DATE_RANGE_REGEX.test(nextLine) && looksLikeHeader(nextIndex)) flush();
       continue;
     }
 
     const hasDate = DATE_RANGE_REGEX.test(line);
     const beginsFollowingEntry = current.length > 0 && currentHasDate && !hasDate && looksLikeHeader(index);
-    if ((hasDate && currentHasDate) || beginsFollowingEntry) {
+    const startsAnotherUndatedEntry = current.length > 0 && !currentHasDate && !hasDate &&
+      /^(?:job\s*title|position|title|company|employer|organization|المسمى|الوظيفة|الشركة|جهة العمل)\s*[:：-]/i.test(line);
+    if ((hasDate && currentHasDate) || beginsFollowingEntry || startsAnotherUndatedEntry) {
       flush();
     }
     current.push(line);
@@ -622,10 +627,11 @@ function inferSpecialization(headline: string) {
 export function parseCandidateCvText(text: string): ParsedCvText {
   const normalizedText = normalizeText(text);
   const { sections, header } = extractSections(normalizedText);
+  const contactText = [...header, ...sections.summary].join("\n");
   const labeledEmail = firstLabeledValue(header, "email|e-mail|البريد الإلكتروني|البريد الالكتروني");
-  const email = extractEmail(labeledEmail || normalizedText);
+  const email = extractEmail(labeledEmail || contactText);
   const labeledPhone = firstLabeledValue(header, "phone|mobile|telephone|tel\\.?|رقم الهاتف|الهاتف|الموبايل");
-  const phone = cleanContactValue(labeledPhone) || extractPhone(normalizedText);
+  const phone = cleanContactValue(labeledPhone) || extractPhone(contactText);
   const nameFromLabel = firstLabeledValue(
     [...header, ...sections.summary],
     "full\\s*name|candidate\\s*name|name|الاسم(?: الكامل)?",
@@ -657,7 +663,7 @@ export function parseCandidateCvText(text: string): ParsedCvText {
     "speciali[sz]ation|field|area of expertise|التخصص|الاختصاص",
   ) || inferSpecialization(headline);
   const province = firstLabeledValue(header, "province|governorate|المحافظة|محافظة")
-    || findProvince(normalizedText);
+    || findProvince(contactText);
   const city = firstLabeledValue(header, "city|location|المدينة|المدينة الحالية");
   const explicitSummary = sections.summary.filter(Boolean).join("\n").trim().slice(0, 1200);
   const experienceEntries = parseExperiences(sections.experience);

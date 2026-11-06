@@ -334,6 +334,248 @@
   animation: cv-import-spin .9s linear infinite;
 }
 
+.cv-import-warning-strong {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border: 1px solid rgba(244, 123, 32, .3);
+  color: var(--ink);
+  background: rgba(244, 123, 32, .08);
+  font-size: 12px;
+}
+
+.cv-import-warning-strong svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.cv-import-warning-strong b {
+  color: var(--accent);
+}
+
+.cv-import-edit-section {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.cv-import-edit-heading,
+.cv-import-edit-record-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cv-import-edit-heading > b,
+.cv-import-edit-record-heading > b {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.cv-import-edit-heading small,
+.cv-import-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.cv-import-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cv-import-edit-grid label,
+.cv-import-language-row label {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cv-import-edit-grid input,
+.cv-import-edit-grid textarea,
+.cv-import-language-row input,
+.cv-import-language-row select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--white);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.cv-import-edit-grid textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.7;
+}
+
+.cv-import-edit-grid input:focus,
+.cv-import-edit-grid textarea:focus,
+.cv-import-language-row input:focus,
+.cv-import-language-row select:focus {
+  outline: 2px solid rgba(44, 63, 145, .18);
+  border-color: var(--green-2);
+}
+
+.cv-import-edit-wide {
+  grid-column: 1 / -1;
+}
+
+.cv-import-edit-records,
+.cv-import-language-list {
+  display: grid;
+  gap: 9px;
+}
+
+.cv-import-edit-record {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+}
+
+.cv-import-add,
+.cv-import-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--green-2);
+  background: var(--white);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cv-import-add:hover,
+.cv-import-remove:hover {
+  border-color: var(--green-2);
+}
+
+.cv-import-remove {
+  width: 34px;
+  padding: 0;
+  color: var(--accent);
+}
+
+.cv-import-language-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) 34px;
+  align-items: end;
+  gap: 8px;
+}
+
+.cv-import-current-checkbox {
+  display: flex !important;
+  align-items: center;
+  align-self: end;
+  gap: 8px !important;
+  min-height: 40px;
+  padding-inline: 5px;
+}
+
+.cv-import-current-checkbox input {
+  width: 17px;
+  min-height: 17px;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.cv-import-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.7;
+  cursor: pointer;
+}
+
+.cv-import-confirm input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+
+.cv-import-replace-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.cv-import-replace-option.is-enabled {
+  border-color: rgba(244, 123, 32, .45);
+  background: rgba(244, 123, 32, .05);
+}
+
+.cv-import-replace-option input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  accent-color: var(--green);
+}
+
+.cv-import-replace-option span {
+  display: grid;
+  gap: 4px;
+}
+
+.cv-import-replace-option b {
+  font-size: 11px;
+}
+
+.cv-import-replace-option small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.cv-import-apply:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  background: var(--line);
+  cursor: not-allowed;
+  transform: none;
+}
+
 @keyframes cv-import-spin {
   to { transform: rotate(360deg); }
 }
@@ -359,6 +601,34 @@
 
   .cv-import-fields {
     grid-template-columns: 1fr;
+  }
+
+  .cv-import-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-import-edit-wide {
+    grid-column: auto;
+  }
+
+  .cv-import-language-row {
+    grid-template-columns: minmax(0, 1fr) 34px;
+    gap: 6px;
+  }
+
+  .cv-import-language-row label:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .cv-import-language-row .cv-import-remove {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
+  .cv-import-edit-section {
+    padding: 11px;
   }
 
   .cv-import-actions > button {
