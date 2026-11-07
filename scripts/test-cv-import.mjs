@@ -92,4 +92,20 @@ Microsoft Office
 assert.equal(ambiguousLanguages.languages.length, 0, "unknown text must not be fabricated into language entries");
 assert.ok(ambiguousLanguages.warnings.some((warning) => warning.includes("أسماء لغات موثوقة")));
 
-console.log("CV import parser checks passed: English, Arabic, false-positive languages, PDF line reconstruction.");
+const aiText = cvImport.prepareCandidateCvAiText(`
+FULL NAME: Mariam Adnan
+EMAIL: mariam@example.com
+PROFESSIONAL SUMMARY
+Mariam Adnan is a product designer. Contact mariam@example.com or +964 770 123 4567.
+WORK EXPERIENCE
+Product Designer | Noor Tech
+January 2022 - Present
+`, "Mariam Adnan");
+assert.match(aiText.text, /Product Designer \| Noor Tech/);
+assert.doesNotMatch(aiText.text, /Mariam Adnan|mariam@example\.com|\+964 770 123 4567/);
+
+const longAiText = cvImport.prepareCandidateCvAiText(`SUMMARY\n${"Professional writing ".repeat(1_000)}`);
+assert.equal(longAiText.text.length, 12_000, "AI context must be capped to control daily usage");
+assert.equal(longAiText.truncated, true);
+
+console.log("CV import parser checks passed: English, Arabic, false-positive languages, PDF reconstruction, AI payload privacy and size cap.");

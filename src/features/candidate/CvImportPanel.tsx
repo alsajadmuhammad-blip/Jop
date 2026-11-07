@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
 import { AlertTriangle, Check, FileText, LoaderCircle, Plus, ShieldCheck, Trash2, Upload, X } from "lucide-react";
 import { languageLevels, type CandidateEducation, type CandidateExperience, type CandidateLanguage } from "../../services/candidateService";
+import { analyzeCandidateCv, isCvAiConfigured, type CandidateCvAiResult } from "../../services/cvAiService";
 import { readCandidateCv, type CandidateCvImport } from "./cvImport";
 import "./cv-import.css";
 
@@ -62,6 +63,68 @@ function newEducation(): CandidateEducation {
   };
 }
 
+function normalizeMergeKey(value: string) {
+  return value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+function mergeEntries<T extends object>(existing: T[], incoming: T[], keyFor: (entry: T) => string) {
+  const merged = [...existing];
+  for (const entry of incoming) {
+    const key = keyFor(entry);
+    const index = key ? merged.findIndex((current) => keyFor(current) === key) : -1;
+    if (index < 0) {
+      merged.push(entry);
+      continue;
+    }
+
+    const current = merged[index] as Record<string, unknown>;
+    const addition = entry as Record<string, unknown>;
+    const next = { ...current };
+    for (const [field, value] of Object.entries(addition)) {
+      if (field === "id") continue;
+      if (typeof value === "string" && value.trim()) next[field] = value;
+      else if (value === true) next[field] = true;
+    }
+    merged[index] = next as T;
+  }
+  return merged;
+}
+
+function mergeAiResult(current: CandidateCvImport, ai: CandidateCvAiResult): CandidateCvImport {
+  const localProfile = current.profile;
+  return {
+    ...current,
+    profile: {
+      ...localProfile,
+      headline: localProfile.headline || ai.profile.headline || "",
+      specialization: localProfile.specialization || ai.profile.specialization || "",
+      experience_years: localProfile.experience_years || ai.profile.experience_years || 0,
+      skills: [...new Set([...(localProfile.skills || []), ...(ai.profile.skills || [])]
+        .map((skill) => skill.trim()).filter(Boolean))].slice(0, 35),
+      summary: localProfile.summary || ai.profile.summary || "",
+    },
+    experiences: mergeEntries(
+      current.experiences,
+      ai.experiences,
+      (entry) => normalizeMergeKey([
+        entry.title,
+        entry.company,
+        entry.legacyPeriod || `${entry.startMonth}-${entry.endMonth}`,
+      ].join("|")),
+    ),
+    education: mergeEntries(
+      current.education,
+      ai.education,
+      (entry) => normalizeMergeKey([entry.degree, entry.institution, entry.graduationYear].join("|")),
+    ),
+    languages: mergeEntries(
+      current.languages,
+      ai.languages,
+      (entry) => normalizeMergeKey(entry.name),
+    ),
+  };
+}
+
 export function CvImportPanel({ onImport }: CvImportPanelProps) {
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -70,6 +133,12 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
   const [preview, setPreview] = useState<CandidateCvImport | null>(null);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [replaceExisting, setReplaceExisting] = useState(false);
+  const [aiConsent, setAiConsent] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiNotice, setAiNotice] = useState("");
+  const [aiApplied, setAiApplied] = useState(false);
+  const [aiQuotaExhausted, setAiQuotaExhausted] = useState(false);
 
   const updatePreview = (update: (current: CandidateCvImport) => CandidateCvImport) => {
     setPreview((current) => current ? update(current) : current);
@@ -81,6 +150,11 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
     setPreview(null);
     setReviewConfirmed(false);
     setReplaceExisting(false);
+    setAiConsent(false);
+    setAiError("");
+    setAiNotice("");
+    setAiApplied(false);
+    setAiQuotaExhausted(false);
     setBusy(true);
     setStatus("جاري تجهيز الملف وقراءته داخل المتصفح...");
 
@@ -93,6 +167,30 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
       setStatus("");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const enhanceWithAi = async () => {
+    if (!preview?.aiText || !aiConsent || aiBusy || aiQuotaExhausted) return;
+    setAiBusy(true);
+    setAiError("");
+    setAiNotice("");
+    try {
+      const result = await analyzeCandidateCv(preview.aiText);
+      setPreview((current) => current ? {
+        ...mergeAiResult(current, result),
+        aiText: undefined,
+        aiTextTruncated: false,
+      } : current);
+      setReviewConfirmed(false);
+      setAiApplied(true);
+      setAiNotice("وصلت النتائج الإضافية. راجعها وعدّلها قبل اعتمادها.");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "تعذر التحليل السحابي. يمكنك متابعة الاستخراج المحلي.";
+      setAiError(message);
+      if (message.includes("انتهت حصة")) setAiQuotaExhausted(true);
+    } finally {
+      setAiBusy(false);
     }
   };
 
@@ -228,6 +326,42 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
             <AlertTriangle size={18} />
             <span><b>الاستخراج آلي وقد يخطئ.</b> تأكد من الاسم، والتواريخ، والخبرات، والمؤهلات، واللغات قبل اعتماد البيانات.</span>
           </div>
+
+          {isCvAiConfigured() && preview.aiText && (
+            <div className="cv-import-ai-panel">
+              <div>
+                <b>تحسين اختياري باستخدام Cloudflare AI</b>
+                <p>يُرسل النص المهني المستخرج من الأقسام ذات الصلة فقط بعد حذف الاسم المعروف والبريد والهاتف والروابط. ملف PDF أو Word لا يغادر جهازك، ولا نحفظ النص المرسل.</p>
+                {preview.aiTextTruncated && <small>اختصرنا النص إلى أول 12,000 حرف لتقليل استهلاك الحصة اليومية.</small>}
+              </div>
+              <label className="cv-import-ai-consent">
+                <input
+                  type="checkbox"
+                  checked={aiConsent}
+                  disabled={aiBusy || aiQuotaExhausted}
+                  onChange={(event) => setAiConsent(event.target.checked)}
+                />
+                <span>أوافق على إرسال هذا النص فقط إلى Cloudflare لمعالجته في هذا الطلب.</span>
+              </label>
+              <button
+                type="button"
+                className="cv-import-ai-button"
+                disabled={!aiConsent || aiBusy || aiQuotaExhausted}
+                onClick={() => void enhanceWithAi()}
+              >
+                {aiBusy ? <><LoaderCircle className="cv-import-spinner" size={16} /> جارٍ التحليل...</> : <><ShieldCheck size={16} /> تحسين الاستخراج بالذكاء الاصطناعي</>}
+              </button>
+              {aiError && <p className="cv-import-ai-error" role="alert">{aiError}</p>}
+              {aiNotice && <p className="cv-import-ai-success" role="status">{aiNotice}</p>}
+            </div>
+          )}
+          {isCvAiConfigured() && !preview.aiText && !aiApplied && (
+            <p className="cv-import-ai-note" role="note">لم نعثر على أقسام مهنية مناسبة للإرسال السحابي؛ يمكنك متابعة النتائج المحلية وتعديلها يدويًا.</p>
+          )}
+          {aiApplied && <p className="cv-import-ai-success" role="status">{aiNotice}</p>}
+          {!isCvAiConfigured() && (
+            <p className="cv-import-ai-note" role="note">التحليل السحابي غير مربوط بعد؛ الاستخراج المحلي يعمل، ولا يُرسل أي نص إلى الخارج.</p>
+          )}
 
           <div className="cv-import-counts" aria-label="عدد البيانات المستخرجة">
             {preview.profile.skills?.length ? <span>{preview.profile.skills.length} مهارة</span> : null}
@@ -437,11 +571,14 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
               className="cv-import-apply"
               disabled={!reviewConfirmed || !importedCount}
               onClick={() => {
+                const reviewedData = { ...preview };
+                delete reviewedData.aiText;
+                delete reviewedData.aiTextTruncated;
                 onImport({
-                  ...preview,
+                  ...reviewedData,
                   profile: {
-                    ...preview.profile,
-                    skills: preview.profile.skills?.map((skill) => skill.trim()).filter(Boolean),
+                    ...reviewedData.profile,
+                    skills: reviewedData.profile.skills?.map((skill) => skill.trim()).filter(Boolean),
                   },
                   experiences: validExperiences,
                   education: validEducation,

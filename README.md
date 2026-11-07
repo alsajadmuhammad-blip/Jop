@@ -13,6 +13,7 @@ npm run dev
 
 - `VITE_SUPABASE_URL` أو `NEXT_PUBLIC_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY` أو `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `VITE_CV_AI_WORKER_URL` اختياري لربط تحليل السيرة عبر Cloudflare Workers AI
 
 للتشغيل المحلي، انسخ `.env.example` إلى `.env` ثم ضع مفتاح Supabase المحلي داخله:
 
@@ -36,6 +37,10 @@ cp .env.example .env
    تربط التهيئة المواقع القديمة المعروفة بمحافظاتها؛ عدّل من لوحة الإدارة أي وظيفة بقيت محافظتها فارغة.
 10. انشر دالة `supabase/functions/create-account/index.ts` باسم `create-account`.
 11. لإنشاء الأدمن، أنشئ المستخدم أولاً من Authentication > Users، ثم عدّل البريد والاسم داخل `supabase/admin-account.sql` ونفّذه في SQL Editor.
+
+## تحليل السيرة عبر Cloudflare AI
+
+قراءة PDF وDOCX تبقى محلية. عند تفعيل الرابط، يختار الباحث صراحةً إرسال النص المهني المنقّى فقط إلى Cloudflare Workers AI؛ لا تُرسل ملفات السيرة نفسها، ولا تُحفظ نتائج AI في الملف قبل مراجعة الباحث وتأكيده. خطوات ربط Cloudflare Workers AI المجانية موجودة في `cloudflare/cv-ai/README.md`.
 
 في قاعدة بيانات أُعِدّت مسبقًا، نفّذ `supabase/admin-delete-job.sql` مرة واحدة لتفعيل دالة حذف الوظائف الجديدة.
 وإذا كان `supabase/job-deadline-policy.sql` منفّذًا مسبقًا، نفّذ `supabase/job-request-deadline-trigger-fix.sql` لتحديث التحقق وقيد الموعد المرتبطين بطلب النشر حتى لا يمنعا حذف الوظيفة المرتبطة به.

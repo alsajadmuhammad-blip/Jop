@@ -9,6 +9,7 @@ import type {
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_PDF_PAGES = 20;
 const MAX_OCR_PAGES = 6;
+const MAX_AI_CONTEXT_CHARACTERS = 12_000;
 const OCR_LANGUAGE_DATA_URL = "https://tessdata.projectnaptha.com/4.0.0";
 
 type ImportedProfileFields = Partial<Pick<
@@ -33,9 +34,11 @@ export type CandidateCvImport = {
   source: "pdf-text" | "docx" | "ocr";
   ocrPages: number;
   warnings: string[];
+  aiText?: string;
+  aiTextTruncated?: boolean;
 };
 
-type ParsedCvText = Omit<CandidateCvImport, "source" | "ocrPages">;
+type ParsedCvText = Omit<CandidateCvImport, "source" | "ocrPages" | "aiText" | "aiTextTruncated">;
 type ProgressCallback = (message: string) => void;
 type SectionName = "summary" | "experience" | "education" | "skills" | "languages";
 
@@ -209,6 +212,40 @@ function extractSections(text: string) {
   }
 
   return { sections, header };
+}
+
+export function prepareCandidateCvAiText(text: string, knownName = "") {
+  const { sections } = extractSections(text);
+  const sectionLabels: Record<SectionName, string> = {
+    summary: "Professional summary / النبذة المهنية",
+    experience: "Work experience / الخبرات العملية",
+    education: "Education / التعليم",
+    skills: "Skills / المهارات",
+    languages: "Languages / اللغات",
+  };
+  const relevantText = (Object.keys(sectionLabels) as SectionName[])
+    .map((section) => {
+      const content = sections[section].join("\n").trim();
+      return content ? `${sectionLabels[section]}\n${content}` : "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  const escapedName = knownName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const withoutContactDetails = relevantText
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email removed]")
+    .replace(/(?:https?:\/\/|www\.)\S+/gi, "[link removed]")
+    .replace(/(?:\+|00)?[0-9][0-9\s().-]{7,}[0-9]/g, (value) => {
+      const digitCount = value.replace(/\D/g, "").length;
+      return digitCount >= 9 && digitCount <= 15 ? "[phone removed]" : value;
+    })
+    .replace(escapedName ? new RegExp(escapedName, "gi") : /$^/, "[name removed]")
+    .trim();
+
+  return {
+    text: withoutContactDetails.slice(0, MAX_AI_CONTEXT_CHARACTERS),
+    truncated: withoutContactDetails.length > MAX_AI_CONTEXT_CHARACTERS,
+  };
 }
 
 function matchSectionHeading(line: string): { section: SectionName | null; remainder: string } | null {
@@ -891,11 +928,14 @@ export async function readCandidateCv(file: File, onProgress: ProgressCallback):
   if (!countExtractedFields(parsed)) {
     throw new Error("ما قدرنا نحدد بيانات كافية من الملف. جرّب PDF نصيًا أو DOCX أو عدّل محتوى السيرة.");
   }
+  const aiContext = prepareCandidateCvAiText(text, parsed.profile.full_name || "");
 
   return {
     ...parsed,
     source,
     ocrPages,
     warnings: [...warnings, ...parsed.warnings],
+    aiText: aiContext.text || undefined,
+    aiTextTruncated: aiContext.truncated,
   };
 }
