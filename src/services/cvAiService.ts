@@ -104,7 +104,7 @@ function normalizeResponse(value: unknown): CandidateCvAiResult {
 }
 
 export function isCvAiConfigured() {
-  return hasSupabaseConfig && import.meta.env.VITE_CV_AI_ENABLED === "true";
+  return hasSupabaseConfig;
 }
 
 export async function analyzeCandidateCv(text: string): Promise<CandidateCvAiResult> {

@@ -22,7 +22,7 @@ supabase functions deploy analyze-cv --project-ref <PROJECT_REF>
 
 Keep JWT verification enabled. The function also checks the user's Supabase session and verifies that their profile role is `candidate`.
 
-After deployment and adding both Supabase secrets, set `VITE_CV_AI_ENABLED=true` in the frontend build environment. For the Replit preview, set it in the Replit environment and restart the app. For Firebase Hosting, set it in the environment used for the frontend build, then rebuild and redeploy the frontend. It is a public feature flag, not a secret.
+No frontend API key or feature flag is needed. Once the Supabase project is configured, the AI option appears in the candidate CV import flow. If the function or its Cloudflare secrets are missing, the app displays an error and keeps local extraction available.
 
 ## Free-use limit
 

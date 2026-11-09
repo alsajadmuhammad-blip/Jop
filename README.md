@@ -13,7 +13,6 @@ npm run dev
 
 - `VITE_SUPABASE_URL` أو `NEXT_PUBLIC_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY` أو `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `VITE_CV_AI_ENABLED` يفعّل واجهة تحليل السيرة بعد نشر دالة Supabase وضبط أسرارها
 
 للتشغيل المحلي، انسخ `.env.example` إلى `.env` ثم ضع مفتاح Supabase المحلي داخله:
 
