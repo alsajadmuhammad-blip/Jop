@@ -330,8 +330,8 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
           {isCvAiConfigured() && preview.aiText && (
             <div className="cv-import-ai-panel">
               <div>
-                <b>تحسين اختياري باستخدام Cloudflare AI</b>
-                <p>يُرسل النص المهني المستخرج من الأقسام ذات الصلة فقط بعد حذف الاسم المعروف والبريد والهاتف والروابط. ملف PDF أو Word لا يغادر جهازك، ولا نحفظ النص المرسل.</p>
+                <b>تحسين اختياري عبر Supabase وCloudflare AI</b>
+                <p>يُرسل النص المهني بعد حذف الاسم المعروف والبريد والهاتف والروابط إلى دالة Supabase، ومنها إلى نموذج Cloudflare، بعد موافقتك. ملف PDF أو Word لا يغادر جهازك، ولا نحفظ النص المرسل أو نسجله.</p>
                 {preview.aiTextTruncated && <small>اختصرنا النص إلى أول 12,000 حرف لتقليل استهلاك الحصة اليومية.</small>}
               </div>
               <label className="cv-import-ai-consent">

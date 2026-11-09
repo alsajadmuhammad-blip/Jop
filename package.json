@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test:cv-import": "node scripts/test-cv-import.mjs",
-    "test:cv-ai-worker": "node scripts/test-cv-ai-worker.mjs"
+    "test:cv-ai-function": "node scripts/test-cv-ai-function.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

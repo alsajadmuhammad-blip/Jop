@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+import { hasSupabaseConfig, supabase } from "../lib/supabase";
 import type { CandidateProfileInput } from "../lib/types";
 import {
   languageLevels,
@@ -6,8 +6,6 @@ import {
   type CandidateExperience,
   type CandidateLanguage,
 } from "./candidateService";
-
-const workerUrl = import.meta.env.VITE_CV_AI_WORKER_URL?.trim() || "";
 
 export type CandidateCvAiResult = {
   profile: Partial<Pick<
@@ -106,11 +104,13 @@ function normalizeResponse(value: unknown): CandidateCvAiResult {
 }
 
 export function isCvAiConfigured() {
-  return Boolean(workerUrl);
+  return hasSupabaseConfig && import.meta.env.VITE_CV_AI_ENABLED === "true";
 }
 
 export async function analyzeCandidateCv(text: string): Promise<CandidateCvAiResult> {
-  if (!workerUrl) throw new Error("تحليل AI غير مفعّل بعد. استخدم الاستخراج المحلي أو اربط Worker أولًا.");
+  if (!isCvAiConfigured()) {
+    throw new Error("تحليل AI غير مفعّل بعد. استخدم الاستخراج المحلي أو أكمل إعداد الدالة السحابية.");
+  }
   if (!text.trim() || text.length > 12_000) {
     throw new Error("نص السيرة غير صالح للتحليل.");
   }
@@ -120,38 +120,44 @@ export async function analyzeCandidateCv(text: string): Promise<CandidateCvAiRes
     throw new Error("انتهت جلسة الدخول. سجّل الدخول ثم أعد المحاولة.");
   }
 
-  let response: Response;
-  try {
-    response = await fetch(workerUrl, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ text }),
-    });
-  } catch {
-    throw new Error("تعذر الاتصال بخدمة التحليل السحابي. بقيت بياناتك على الجهاز.");
-  }
+  const { data, error } = await supabase.functions.invoke("analyze-cv", {
+    body: { text },
+  });
 
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    throw new Error("وصل رد غير صالح من خدمة التحليل. لم تُضف أي بيانات.");
-  }
+  if (error) {
+    let status = 0;
+    let code: unknown;
+    if (error.context instanceof Response) {
+      status = error.context.status;
+      try {
+        const payload: unknown = await error.context.clone().json();
+        code = isRecord(payload) ? payload.code : undefined;
+      } catch {
+        // Use the HTTP status when the function response is not JSON.
+      }
+    }
 
-  const code = isRecord(payload) ? payload.code : undefined;
-  if (!response.ok) {
-    if (code === "AI_DAILY_QUOTA_EXHAUSTED" || response.status === 429) {
+    if (code === "AI_DAILY_QUOTA_EXHAUSTED" || status === 429) {
       throw new Error("انتهت حصة Cloudflare AI المجانية لليوم. أوقفنا التحليل السحابي حتى التجديد، ويمكنك متابعة الاستخراج المحلي.");
     }
-    if (response.status === 401 || code === "CANDIDATE_ACCESS_REQUIRED") {
+    if (status === 401) {
       throw new Error("يلزم تسجيل الدخول بحساب باحث عن عمل لاستخدام التحليل.");
+    }
+    if (status === 403 || code === "CANDIDATE_ACCESS_REQUIRED") {
+      throw new Error("هذه الميزة متاحة لحساب الباحث عن عمل فقط.");
+    }
+    if (status === 404) {
+      throw new Error("دالة تحليل السيرة غير منشورة على Supabase بعد.");
+    }
+    if (code === "SERVICE_NOT_CONFIGURED") {
+      throw new Error("أضيفت الدالة، لكن أسرار Cloudflare لم تُضبط في Supabase بعد.");
+    }
+    if (status === 0) {
+      throw new Error("تعذر الاتصال بدالة Supabase. تحقق من نشرها واتصال الإنترنت.");
     }
     throw new Error("تعذر التحليل السحابي حاليًا. لم تُضف أي بيانات إلى ملفك.");
   }
 
-  const data = isRecord(payload) ? payload.data : undefined;
-  return normalizeResponse(data);
+  const result = isRecord(data) ? data.data : undefined;
+  return normalizeResponse(result);
 }
