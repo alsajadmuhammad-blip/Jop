@@ -1,4 +1,0 @@
-- [Node dependency setup](node-dependency-setup.md) — when npm’s managed install hits an Arborist error, use the existing pnpm lock with `pnpm install --frozen-lockfile`.
-- [خصوصية استيراد السيرة الذاتية](cv-import-privacy.md) — لا تحفظ ملف السيرة الأصلي؛ أرسل فقط الحقول التي يعتمدها الباحث.
-- [Mobile file pickers](mobile-file-pickers.md) — use a transparent input over the whole upload button; clipped 1px inputs can fail to activate on phones.
-- [TypeScript 7 test harness](typescript-7-test-harness.md) — the package root no longer exposes `transpileModule`; compile isolated parser tests through the CLI.
