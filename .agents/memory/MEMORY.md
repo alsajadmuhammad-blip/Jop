@@ -1,0 +1,1 @@
+- [CV extraction source priority](cv-extraction-source-priority.md) — successful AI extraction replaces fallback results; never merge experience lists.
