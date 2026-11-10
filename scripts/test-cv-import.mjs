@@ -111,32 +111,91 @@ const longAiText = cvImport.prepareCandidateCvAiText(`SUMMARY\n${"Professional w
 assert.equal(longAiText.text.length, 12_000, "AI context must be capped to control daily usage");
 assert.equal(longAiText.truncated, true);
 
-const localImport = {
-  profile: {
-    headline: "مهندس مدني",
-    experience_years: 4,
-    skills: ["AutoCAD", "JavaScript"],
-    summary: "نبذة محلية.",
-  },
-  experiences: [{
-    id: "local-experience",
-    title: "مهندس مدني",
+const localExperiences = Array.from({ length: 4 }, (_, index) => ({
+  id: `local-experience-${index + 1}`,
+  title: `خبرة محلية ${index + 1}`,
+  company: "شركة النور",
+  location: "بغداد",
+  startMonth: `201${index + 5}-01`,
+  endMonth: "",
+  isCurrent: true,
+  legacyPeriod: "",
+  description: `وصف محلي ${index + 1}.`,
+}));
+const aiExperiences = [
+  {
+    id: "ai-experience-1",
+    title: "مهندس موقع",
     company: "شركة النور",
     location: "بغداد",
     startMonth: "2021-01",
     endMonth: "",
     isCurrent: true,
     legacyPeriod: "",
-    description: "وصف محلي.",
-  }],
+    description: "إشراف على المواقع.",
+  },
+  {
+    id: "ai-experience-2",
+    title: "مهندس مدني",
+    company: "شركة النور",
+    location: "بغداد",
+    startMonth: "2019-01",
+    endMonth: "2020-12",
+    isCurrent: false,
+    legacyPeriod: "",
+    description: "تنسيق الأعمال الهندسية.",
+  },
+  {
+    id: "ai-experience-3",
+    title: "مشرف إنشاءات",
+    company: "شركة النور",
+    location: "البصرة",
+    startMonth: "2017-01",
+    endMonth: "2018-12",
+    isCurrent: false,
+    legacyPeriod: "",
+    description: "متابعة فرق التنفيذ.",
+  },
+  {
+    id: "ai-experience-4",
+    title: "متدرب هندسي",
+    company: "شركة النور",
+    location: "بغداد",
+    startMonth: "2015-01",
+    endMonth: "2016-12",
+    isCurrent: false,
+    legacyPeriod: "",
+    description: "دعم مهام الفريق الهندسي.",
+  },
+];
+const localImport = {
+  profile: {
+    full_name: "مريم عدنان",
+    email: "mariam@example.com",
+    phone: "+964 770 000 0000",
+    headline: "مهندس مدني",
+    experience_years: 4,
+    skills: ["AutoCAD", "JavaScript"],
+    summary: "نبذة محلية.",
+  },
+  experiences: localExperiences,
   education: [{
     id: "local-education",
     degree: "بكالوريوس",
     specialization: "هندسة مدنية",
     institution: "جامعة بغداد",
     graduationYear: "",
+  }, {
+    id: "local-education-2",
+    degree: "دبلوم",
+    specialization: "",
+    institution: "معهد النور",
+    graduationYear: "2017",
   }],
-  languages: [{ name: "الإنكليزية", level: "" }],
+  languages: [
+    { name: "الإنكليزية", level: "" },
+    { name: "Kurdish", level: "متوسط" },
+  ],
   source: "pdf-text",
   ocrPages: 0,
   warnings: [],
@@ -151,30 +210,7 @@ const aiImport = {
     skills: ["autocad", "Revit"],
     summary: "نبذة من AI.",
   },
-  experiences: [
-    {
-      id: "ai-experience-duplicate",
-      title: "مهندس مدني",
-      company: "شركة النور",
-      location: "بغداد",
-      startMonth: "2021-02",
-      endMonth: "",
-      isCurrent: true,
-      legacyPeriod: "",
-      description: "وصف من AI.",
-    },
-    {
-      id: "ai-experience-new",
-      title: "مدير موقع",
-      company: "شركة البناء",
-      location: "البصرة",
-      startMonth: "2023-01",
-      endMonth: "",
-      isCurrent: true,
-      legacyPeriod: "",
-      description: "خبرة مختلفة.",
-    },
-  ],
+  experiences: aiExperiences,
   education: [{
     id: "ai-education-duplicate",
     degree: "بكالوريوس",
@@ -187,16 +223,18 @@ const aiImport = {
     { name: "العربية", level: "اللغة الأم" },
   ],
 };
-const mergedImport = cvAiMerge.mergeCandidateCvAiResult(localImport, aiImport);
-assert.equal(mergedImport.experiences.length, 2, "AI should update a matching local experience instead of duplicating it");
-assert.equal(mergedImport.experiences[0].id, "local-experience", "matched experiences should keep their stable local ID");
-assert.equal(mergedImport.experiences[0].description, "وصف محلي.", "local edits should be preserved when AI has a value");
-assert.equal(mergedImport.education.length, 1, "AI should fill an incomplete local education record instead of duplicating it");
-assert.equal(mergedImport.education[0].graduationYear, "2019", "AI should fill missing education details");
-assert.equal(mergedImport.languages.length, 2, "Arabic and English language aliases should not create duplicate entries");
-assert.equal(mergedImport.languages[0].level, "متقدم", "AI should fill a missing language level");
-assert.deepEqual(mergedImport.profile.skills, ["AutoCAD", "JavaScript", "Revit"], "skills should be deduplicated without changing local spelling");
-assert.equal(mergedImport.profile.headline, "مهندس مدني", "existing local profile values should not be overwritten");
-assert.equal(mergedImport.aiText, undefined, "AI text should be removed after processing");
+const selectedImport = cvAiMerge.applyCandidateCvAiResult(localImport, aiImport);
+assert.equal(selectedImport.experiences.length, 4, "successful AI extraction should replace all local experiences");
+assert.deepEqual(selectedImport.experiences.map((experience) => experience.id), aiExperiences.map((experience) => experience.id), "no local experiences should remain after successful AI extraction");
+assert.equal(selectedImport.experiences[0].description, "إشراف على المواقع.", "AI experience details should be used instead of parser details");
+assert.equal(selectedImport.education.length, 1, "AI education should replace locally parsed education");
+assert.equal(selectedImport.education[0].id, "ai-education-duplicate", "local education records should not remain after successful AI extraction");
+assert.deepEqual(selectedImport.languages, aiImport.languages, "AI languages should replace locally parsed languages");
+assert.deepEqual(selectedImport.profile.skills, ["autocad", "Revit"], "AI skills should replace locally parsed skills");
+assert.equal(selectedImport.profile.headline, "مهندس موقع", "AI profile fields should replace locally parsed values");
+assert.equal(selectedImport.profile.full_name, "مريم عدنان", "locally parsed contact details not returned by AI should be retained");
+assert.equal(selectedImport.profile.email, "mariam@example.com", "locally parsed email should be retained because AI does not extract it");
+assert.equal(selectedImport.source, "ai", "the active result source should identify successful AI extraction");
+assert.equal(selectedImport.aiText, undefined, "AI text should be removed after processing");
 
-console.log("CV import checks passed: Arabic/English parsing, privacy, AI merge de-duplication, stable IDs, and field preservation.");
+console.log("CV import checks passed: Arabic/English parsing, privacy, AI source replacement, and non-overlapping contact preservation.");

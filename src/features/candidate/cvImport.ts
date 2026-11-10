@@ -31,7 +31,7 @@ export type CandidateCvImport = {
   experiences: CandidateExperience[];
   education: CandidateEducation[];
   languages: CandidateLanguage[];
-  source: "pdf-text" | "docx" | "ocr";
+  source: "pdf-text" | "docx" | "ocr" | "ai";
   ocrPages: number;
   warnings: string[];
   aiText?: string;

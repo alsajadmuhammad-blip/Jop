@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, FileText, LoaderCircle, Plus, ShieldCheck
 import { languageLevels, type CandidateEducation, type CandidateExperience, type CandidateLanguage } from "../../services/candidateService";
 import { analyzeCandidateCv, isCvAiConfigured } from "../../services/cvAiService";
 import { readCandidateCv, type CandidateCvImport } from "./cvImport";
-import { mergeCandidateCvAiResult } from "./cvAiMerge";
+import { applyCandidateCvAiResult } from "./cvAiMerge";
 import "./cv-import.css";
 
 type CvImportPanelProps = {
@@ -32,6 +32,7 @@ const steps = [
 ];
 
 function sourceLabel(result: CandidateCvImport) {
+  if (result.source === "ai") return "نتائج الذكاء الاصطناعي";
   if (result.source === "docx") return "قراءة ملف Word داخل المتصفح";
   if (result.source === "ocr") return `قراءة ${result.ocrPages} صفحة مصوّرة`;
   return "استخراج نص PDF داخل المتصفح";
@@ -127,8 +128,8 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
     setAiNotice("");
     try {
       const result = await analyzeCandidateCv(preview.aiText);
-      setPreview((current) => current ? mergeCandidateCvAiResult(current, result) : current);
-      setAiNotice("اكتمل التحليل. ستراجع كل النتائج في الخطوات التالية.");
+      setPreview((current) => current ? applyCandidateCvAiResult(current, result) : current);
+      setAiNotice("اكتمل التحليل واستُبدلت النتائج المحلية بنتائج الذكاء الاصطناعي. راجعها قبل اعتمادها.");
       setAiCompleted(true);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "تعذر التحليل. يمكنك المتابعة بالاستخراج المحلي.";
@@ -303,7 +304,7 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
             <div className="cv-import-step-content">
               <div className="cv-import-file-card">
                 <span className="cv-import-upload-icon"><Check size={18} /></span>
-                <div><b>تم استخراج النص محليًا</b><small>{sourceLabel(preview)}</small></div>
+                <div><b>{preview.source === "ai" ? "تم اعتماد نتائج الذكاء الاصطناعي" : "تم استخراج النص محليًا"}</b><small>{sourceLabel(preview)}</small></div>
               </div>
               {preview.warnings.length > 0 && (
                 <p className="cv-import-step-hint" role="note">{preview.warnings[0]}</p>
