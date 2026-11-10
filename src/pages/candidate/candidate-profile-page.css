@@ -1,0 +1,390 @@
+/* Candidate profile: compact identity, direct RTL navigation, familiar blue accents. */
+.candidate-profile-page .candidate-identity-header {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  padding: 22px 26px;
+  border: 1px solid #dbe6f3;
+  border-radius: 20px;
+  color: #183252;
+  background: linear-gradient(110deg, #f8fbff 0%, #eef5ff 100%);
+  box-shadow: 0 10px 28px rgba(34, 78, 132, .07);
+}
+
+.candidate-avatar-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.candidate-avatar-placeholder {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  color: #2563a7;
+  background: #dcecff;
+  box-shadow: 0 3px 12px rgba(37, 99, 167, .13);
+  font-family: "Readex Pro", sans-serif;
+  font-size: 29px;
+  font-weight: 700;
+}
+
+.candidate-avatar-wrap small {
+  max-width: 120px;
+  color: #6a7e94;
+  font-size: 9px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.candidate-identity-copy,
+.candidate-identity-title,
+.candidate-identity-details,
+.candidate-identity-utility {
+  min-width: 0;
+}
+
+.candidate-identity-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.candidate-identity-title .eyebrow {
+  color: #3973b2;
+  font-size: 10px;
+}
+
+.candidate-identity-title h1 {
+  margin: 3px 0 2px;
+  color: #17324f;
+  font-family: "Readex Pro", sans-serif;
+  font-size: clamp(20px, 2.5vw, 28px);
+  line-height: 1.5;
+}
+
+.candidate-identity-title p {
+  margin: 0;
+  color: #4d6580;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.candidate-identity-title p span {
+  padding-inline: 3px;
+  color: #7c9bbd;
+}
+
+.candidate-identity-edit {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #c9dcf1;
+  border-radius: 9px;
+  color: #2f6fae;
+  background: #fff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.candidate-identity-edit:hover {
+  border-color: #7eadd9;
+  background: #f5faff;
+}
+
+.candidate-identity-edit:focus-visible {
+  outline: 3px solid rgba(52, 127, 193, .25);
+  outline-offset: 2px;
+}
+
+.candidate-identity-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 19px;
+  margin-top: 13px;
+}
+
+.candidate-identity-details > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #526c87;
+  font-size: 10px;
+}
+
+.candidate-identity-details svg {
+  flex: 0 0 auto;
+  color: #4b86c2;
+}
+
+.candidate-identity-details bdi {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.candidate-profile-page .candidate-identity-utility {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-score {
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-score strong {
+  color: #2269ad;
+  font-size: 24px;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-score span {
+  color: #637b94;
+  font-size: 10px;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-actions {
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-primary,
+.candidate-profile-page .candidate-identity-utility .candidate-hero-secondary {
+  min-height: 34px;
+  padding-inline: 10px;
+  border-radius: 9px;
+  font-size: 9px;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-primary {
+  border-color: #347fc1;
+  color: #fff;
+  background: #347fc1;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-primary:hover {
+  background: #286ba8;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-secondary {
+  border-color: #c9dcf1;
+  color: #356fa8;
+  background: #fff;
+}
+
+.candidate-profile-page .candidate-identity-utility .candidate-hero-secondary:hover {
+  background: #f4f9ff;
+}
+
+.candidate-profile-page .candidate-profile-editor {
+  overflow: visible;
+}
+
+.candidate-profile-editor .candidate-profile-tabs {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid #dfe8f2;
+  background: #f8fbff;
+  scrollbar-width: thin;
+}
+
+.candidate-profile-tabs button {
+  position: relative;
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 9px 9px 0 0;
+  color: #687d94;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease;
+}
+
+.candidate-profile-tabs button:hover {
+  color: #2f6fae;
+  background: #eff6ff;
+}
+
+.candidate-profile-tabs button.active {
+  border-bottom-color: #347fc1;
+  color: #256aa9;
+  background: #fff;
+}
+
+.candidate-profile-tabs button:focus-visible {
+  outline: 3px solid rgba(52, 127, 193, .25);
+  outline-offset: -3px;
+}
+
+.candidate-profile-editor .profile-tab-panel {
+  padding: 19px 24px 24px;
+  border: 0;
+  animation: candidate-section-reveal .18s ease both;
+}
+
+.candidate-profile-editor .profile-tab-panel .profile-section-body {
+  padding: 0;
+}
+
+.candidate-profile-editor .profile-tab-panel[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 800px) {
+  .candidate-profile-page .candidate-identity-header {
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 12px 17px;
+    padding: 18px;
+  }
+
+  .candidate-profile-page .candidate-identity-utility {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid #dce7f2;
+  }
+
+  .candidate-profile-page .candidate-identity-utility .candidate-hero-actions {
+    justify-content: flex-start;
+  }
+
+  .candidate-avatar-placeholder {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+@media (max-width: 560px) {
+  .candidate-profile-page .candidate-identity-header {
+    grid-template-columns: 67px minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 15px 13px;
+    border-radius: 16px;
+  }
+
+  .candidate-avatar-placeholder {
+    width: 58px;
+    height: 58px;
+    border-width: 3px;
+    font-size: 22px;
+  }
+
+  .candidate-avatar-wrap {
+    gap: 5px;
+  }
+
+  .candidate-avatar-wrap small {
+    width: 82px;
+    font-size: 8px;
+  }
+
+  .candidate-identity-title {
+    gap: 7px;
+  }
+
+  .candidate-identity-title h1 {
+    font-size: 19px;
+  }
+
+  .candidate-identity-title p {
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  .candidate-identity-edit {
+    min-height: 31px;
+    gap: 4px;
+    padding-inline: 7px;
+    font-size: 9px;
+  }
+
+  .candidate-identity-details {
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 9px;
+  }
+
+  .candidate-identity-details > span {
+    font-size: 9px;
+  }
+
+  .candidate-profile-page .candidate-identity-utility {
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .candidate-profile-page .candidate-identity-utility .candidate-hero-score {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .candidate-profile-page .candidate-identity-utility .candidate-hero-score strong {
+    font-size: 20px;
+  }
+
+  .candidate-profile-page .candidate-identity-utility .candidate-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .candidate-profile-page .candidate-identity-utility .candidate-hero-primary,
+  .candidate-profile-page .candidate-identity-utility .candidate-hero-secondary {
+    justify-content: center;
+    min-height: 32px;
+  }
+
+  .candidate-profile-editor .candidate-profile-tabs {
+    gap: 0;
+    padding-inline: 7px;
+  }
+
+  .candidate-profile-tabs button {
+    min-height: 45px;
+    gap: 5px;
+    padding-inline: 10px;
+    font-size: 10px;
+  }
+
+  .candidate-profile-tabs button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .candidate-profile-editor .profile-tab-panel {
+    padding: 16px 13px 19px;
+  }
+}

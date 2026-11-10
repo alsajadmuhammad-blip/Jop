@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, Download, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
@@ -10,6 +10,7 @@ import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsR
 import { downloadProfessionalResume, printProfessionalResume } from "../../features/candidate/professionalResume";
 import type { CandidateCvImport } from "../../features/candidate/cvImport";
 import { CandidateCvImportPage } from "./CandidateCvImportPage";
+import "./candidate-profile-page.css";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -21,6 +22,8 @@ type CandidatePageProps = {
 
 type ExperienceEntry = CandidateExperience;
 type EducationEntry = CandidateEducation;
+type CandidateProfileSection = "identity" | "skills" | "experience" | "education" | "preferences";
+const candidateProfileSections: CandidateProfileSection[] = ["identity", "skills", "experience", "education", "preferences"];
 
 type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
 
@@ -110,7 +113,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   const [experiences, setExperiences] = useState<ExperienceEntry[]>(() => parseCandidateExperiences(initialForm.experience_details));
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
-  const [openSections, setOpenSections] = useState({ identity: true, skills: false, experience: false, education: false, preferences: false });
+  const [activeSection, setActiveSection] = useState<CandidateProfileSection>("identity");
   const [skillDraft, setSkillDraft] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig && cachedProfile === undefined);
   const [error, setError] = useState("");
@@ -129,6 +132,21 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   const lastSavedSignatureRef = useRef("");
   const processingSaveRef = useRef(false);
   const flushAutosaveRef = useRef<() => void>(() => undefined);
+
+  const handleProfileTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentSection: CandidateProfileSection) => {
+    const currentIndex = candidateProfileSections.indexOf(currentSection);
+    let nextIndex = currentIndex;
+    if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = candidateProfileSections.length - 1;
+    else if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % candidateProfileSections.length;
+    else if (event.key === "ArrowRight") nextIndex = (currentIndex - 1 + candidateProfileSections.length) % candidateProfileSections.length;
+    else return;
+
+    event.preventDefault();
+    const nextSection = candidateProfileSections[nextIndex];
+    setActiveSection(nextSection);
+    document.getElementById(`candidate-tab-${nextSection}`)?.focus();
+  };
 
   const processAutosaveQueue = useCallback(async () => {
     if (processingSaveRef.current) return;
@@ -346,13 +364,15 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         imported.languages,
         (entry) => normalizeImportedKey(entry.name),
       ));
-    setOpenSections((current) => ({
-      ...current,
-      identity: true,
-      skills: true,
-      experience: true,
-      education: true,
-    }));
+    setActiveSection(
+      imported.experiences.length
+        ? "experience"
+        : imported.education.length || imported.languages.length
+          ? "education"
+          : imported.profile.skills?.length
+            ? "skills"
+            : "identity",
+    );
     onNotify?.(replaceExisting
       ? "تم استبدال البيانات الموجودة بالنتائج التي راجعتها. سيُحفظ الملف تلقائيًا."
       : "تمت إضافة البيانات إلى الحقول الفارغة. راجع ملفك، وسيُحفظ تلقائيًا.");
@@ -542,19 +562,38 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         <small>املأ حقول ملفك المهني باللغة الإنكليزية لتحصل على سيرة واضحة ومرتبة بصيغة ATS.</small>
       </span>
     </aside>
-    <div className="candidate-profile-hero">
-      <div className="candidate-hero-copy">
-        <span className="eyebrow"><Sparkles size={14} /> مساحة الباحث عن عمل</span>
-        <h1>خلّي ملفك يحكي عنك</h1>
-        <p>ملف مهني واضح يسهّل على أصحاب العمل رؤية خبرتك ومهاراتك بسرعة.</p>
-        <div className="candidate-hero-meta"><span><UserRound size={14} /> {form.full_name || "اسمك الكامل"}</span><span><MapPin size={14} /> {form.city || "أضف مدينتك"}</span></div>
-        <div className="candidate-hero-actions"><button type="button" className="candidate-hero-primary" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button><button type="button" className="candidate-hero-secondary" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button></div>
+    <header className="candidate-identity-header" dir="rtl">
+      <div className="candidate-avatar-wrap">
+        <div className="candidate-avatar-placeholder" role="img" aria-label="صورة شخصية افتراضية">{form.full_name.trim().charAt(0) || "م"}</div>
+        <small>رفع الصورة الشخصية قيد التطوير — قريبًا</small>
       </div>
-      <div className="candidate-hero-score" aria-label={`اكتمال الملف ${completeness}%`}>
-        <strong>{completeness}%</strong>
-        <span>اكتمال الملف</span>
+      <div className="candidate-identity-copy">
+        <div className="candidate-identity-title">
+          <div>
+            <span className="eyebrow">ملف الباحث عن عمل</span>
+            <h1>{form.full_name || "الاسم الكامل"}</h1>
+            <p>{form.specialization || "التخصص"} <span aria-hidden="true">·</span> {form.headline || "المسمى الوظيفي"}</p>
+          </div>
+          <button type="button" className="candidate-identity-edit" onClick={() => setActiveSection("identity")} aria-label="تعديل المعلومات المهنية" title="تعديل المعلومات المهنية">
+            <Pencil size={16} /><span>تعديل</span>
+          </button>
+        </div>
+        <div className="candidate-identity-details">
+          <span><MapPin size={15} /> {[form.city, form.province].filter(Boolean).join("، ") || "أضف المدينة والمحافظة"}</span>
+          <span><Mail size={15} /> <bdi dir="ltr">{form.email || "البريد الإلكتروني"}</bdi></span>
+          <span><Phone size={15} /> <bdi dir="ltr">{form.phone || "رقم الهاتف"}</bdi></span>
+        </div>
       </div>
-    </div>
+      <div className="candidate-identity-utility">
+        <div className="candidate-hero-score" aria-label={`اكتمال الملف ${completeness}%`}>
+          <strong>{completeness}%</strong><span>اكتمال الملف</span>
+        </div>
+        <div className="candidate-hero-actions">
+          <button type="button" className="candidate-hero-primary" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button>
+          <button type="button" className="candidate-hero-secondary" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button>
+        </div>
+      </div>
+    </header>
     <div className="candidate-profile-grid">
       <form
         className="candidate-profile-form candidate-profile-editor"
@@ -587,41 +626,34 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           </button>
         </div>
 
-        <details className="profile-editor-section profile-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); }}>
-          <summary className="profile-section-summary">
-            <span className="profile-section-icon"><FileText size={18} /></span>
-            <span className="profile-summary-copy"><span className="eyebrow">الظهور الأول</span><b>معلوماتك المهنية</b><small>البيانات التي يراها صاحب العمل أولاً</small></span>
-            <span className="profile-section-count">{form.headline || "الاسم والمسمى"}</span><ChevronDown className="profile-disclosure-chevron" size={18} />
-          </summary>
-          {openSections.identity && <div className="profile-section-body">
+        <div className="candidate-profile-tabs" role="tablist" aria-label="أقسام الملف المهني" dir="rtl">
+          <button type="button" role="tab" id="candidate-tab-identity" tabIndex={activeSection === "identity" ? 0 : -1} aria-selected={activeSection === "identity"} aria-controls="candidate-panel-identity" className={activeSection === "identity" ? "active" : ""} onClick={() => setActiveSection("identity")} onKeyDown={(event) => handleProfileTabKeyDown(event, "identity")}><FileText size={16} /><span>المعلومات المهنية</span></button>
+          <button type="button" role="tab" id="candidate-tab-skills" tabIndex={activeSection === "skills" ? 0 : -1} aria-selected={activeSection === "skills"} aria-controls="candidate-panel-skills" className={activeSection === "skills" ? "active" : ""} onClick={() => setActiveSection("skills")} onKeyDown={(event) => handleProfileTabKeyDown(event, "skills")}><Sparkles size={16} /><span>المهارات والخبرة</span></button>
+          <button type="button" role="tab" id="candidate-tab-experience" tabIndex={activeSection === "experience" ? 0 : -1} aria-selected={activeSection === "experience"} aria-controls="candidate-panel-experience" className={activeSection === "experience" ? "active" : ""} onClick={() => setActiveSection("experience")} onKeyDown={(event) => handleProfileTabKeyDown(event, "experience")}><BriefcaseBusiness size={16} /><span>الخبرات العملية</span></button>
+          <button type="button" role="tab" id="candidate-tab-education" tabIndex={activeSection === "education" ? 0 : -1} aria-selected={activeSection === "education"} aria-controls="candidate-panel-education" className={activeSection === "education" ? "active" : ""} onClick={() => setActiveSection("education")} onKeyDown={(event) => handleProfileTabKeyDown(event, "education")}><GraduationCap size={16} /><span>التعليم واللغات</span></button>
+          <button type="button" role="tab" id="candidate-tab-preferences" tabIndex={activeSection === "preferences" ? 0 : -1} aria-selected={activeSection === "preferences"} aria-controls="candidate-panel-preferences" className={activeSection === "preferences" ? "active" : ""} onClick={() => setActiveSection("preferences")} onKeyDown={(event) => handleProfileTabKeyDown(event, "preferences")}><MapPin size={16} /><span>تفضيلات العمل</span></button>
+        </div>
+
+        <section hidden={activeSection !== "identity"} className="profile-editor-section profile-tab-panel" role="tabpanel" tabIndex={0} id="candidate-panel-identity" aria-labelledby="candidate-tab-identity">
+          <div className="profile-section-body">
             <div className="form-grid"><label>الاسم الكامل<input required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} placeholder="مثال: أحمد محمد" /></label><label>المسمى الوظيفي<input required value={form.headline} onChange={(event) => update("headline", event.target.value)} placeholder="مثال: مطور واجهات أمامية" /></label></div>
             <div className="form-grid"><label>التخصص<input required value={form.specialization} onChange={(event) => update("specialization", event.target.value)} placeholder="مثال: برمجيات، محاسبة، تسويق" /></label><label>المحافظة<input required value={form.province} onChange={(event) => update("province", event.target.value)} placeholder="بغداد" /></label></div>
             <div className="form-grid"><label>المدينة<input required value={form.city} onChange={(event) => update("city", event.target.value)} placeholder="بغداد" /></label><label>البريد الإلكتروني<input required type="email" value={form.email} onChange={(event) => update("email", event.target.value)} dir="ltr" /></label></div>
             <div className="form-grid"><label>رقم الهاتف<input required value={form.phone} onChange={(event) => update("phone", event.target.value)} dir="ltr" /></label></div>
             <label>نبذة مهنية<textarea required rows={3} value={form.summary} onChange={(event) => update("summary", event.target.value)} placeholder="اكتب بإيجاز عن خبرتك، أسلوبك، والقيمة التي تقدمها..." /></label>
-          </div>}
-        </details>
+          </div>
+        </section>
 
-        <details className="profile-editor-section profile-disclosure" open={openSections.skills} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, skills: open })); }}>
-          <summary className="profile-section-summary">
-            <span className="profile-section-icon orange"><Sparkles size={18} /></span>
-            <span className="profile-summary-copy"><span className="eyebrow">نقاط قوتك</span><b>المهارات والخبرة</b><small>المهارات التي تظهر في بحث أصحاب العمل</small></span>
-            <span className="profile-section-count">{form.skills.length} مهارة</span><ChevronDown className="profile-disclosure-chevron" size={18} />
-          </summary>
-          {openSections.skills && <div className="profile-section-body">
+        <section hidden={activeSection !== "skills"} className="profile-editor-section profile-tab-panel" role="tabpanel" tabIndex={0} id="candidate-panel-skills" aria-labelledby="candidate-tab-skills">
+          <div className="profile-section-body">
             <div className="skill-entry-row"><input value={skillDraft} onChange={(event) => setSkillDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSkill(); } }} placeholder="اكتب مهارة مثل React أو إدارة المشاريع" aria-label="مهارة جديدة" /><button type="button" className="add-skill-btn" onClick={addSkill}><Plus size={17} /> إضافة مهارة</button></div>
             <div className="editable-skill-list">{form.skills.map((skill) => <span className="editable-skill" key={skill}>{skill}<button type="button" onClick={() => removeSkill(skill)} aria-label={`حذف ${skill}`}><X size={13} /></button></span>)}{form.skills.length === 0 && <span className="profile-empty-hint">ابدأ بأهم مهاراتك المهنية.</span>}</div>
             <div className="form-grid single-label-row"><label>سنوات الخبرة<input type="number" min="0" max="60" value={form.experience_years} onChange={(event) => update("experience_years", Number(event.target.value) || 0)} /></label><label className="checkbox-field"><input type="checkbox" checked={form.remote_available} onChange={(event) => update("remote_available", event.target.checked)} /><span>أقبل العمل عن بُعد</span></label></div>
-          </div>}
-        </details>
+          </div>
+        </section>
 
-        <details className="profile-editor-section profile-disclosure" open={openSections.experience} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, experience: open })); }}>
-          <summary className="profile-section-summary">
-            <span className="profile-section-icon blue"><BriefcaseBusiness size={18} /></span>
-            <span className="profile-summary-copy"><span className="eyebrow">مسارك المهني</span><b>الخبرات العملية</b><small>أضف مسؤولياتك وإنجازاتك لكل دور</small></span>
-            <span className="profile-section-count">{completedExperiences.length} خبرة</span><ChevronDown className="profile-disclosure-chevron" size={18} />
-          </summary>
-          {openSections.experience && <div className="profile-section-body">
+        <section hidden={activeSection !== "experience"} className="profile-editor-section profile-tab-panel" role="tabpanel" tabIndex={0} id="candidate-panel-experience" aria-labelledby="candidate-tab-experience">
+          <div className="profile-section-body">
             <div className="profile-section-toolbar"><span>ترتيب زمني واضح يساعد أصحاب العمل على المتابعة.</span><button type="button" className="outline-btn add-experience-btn" onClick={addExperience}><Plus size={16} /> إضافة خبرة</button></div>
             <div className="experience-editor-list">{experiences.map((experience, index) => <article className="experience-editor-card" key={experience.id}>
               <div className="experience-card-top"><span className="experience-number">{String(index + 1).padStart(2, "0")}</span><div><b>{experience.title || "خبرة جديدة"}</b><small>{experience.company || "أضف جهة العمل والمدة"}</small></div><button type="button" className="remove-experience-btn" onClick={() => removeExperience(experience.id)} aria-label={`حذف الخبرة ${index + 1}`}><Trash2 size={16} /></button></div>
@@ -636,33 +668,23 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
               {experience.startMonth && experience.endMonth && experience.endMonth < experience.startMonth && <p className="experience-date-error" role="alert">تاريخ نهاية الخبرة أسبق من تاريخ بدايتها؛ غيّر أحد الشهرين لتصحيح الفترة.</p>}
               <label>أبرز المسؤوليات والإنجازات<textarea rows={2} value={experience.description} onChange={(event) => updateExperience(experience.id, "description", event.target.value)} placeholder="اذكر ما أنجزته، وليس فقط ما كانت مهمتك..." /></label>
             </article>)}{experiences.length === 0 && <button type="button" className="empty-experience-card" onClick={addExperience}><span><Plus size={21} /></span><b>أضف أول خبرة مهنية</b><small>رتّب مسارك الوظيفي حتى يقرأه صاحب العمل بسهولة.</small></button>}</div>
-          </div>}
-        </details>
+          </div>
+        </section>
 
-        <details className="profile-editor-section profile-disclosure" open={openSections.education} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, education: open })); }}>
-          <summary className="profile-section-summary">
-            <span className="profile-section-icon violet"><GraduationCap size={18} /></span>
-            <span className="profile-summary-copy"><span className="eyebrow">المعرفة واللغات</span><b>التعليم واللغات</b><small>المؤهل والجهة التعليمية واللغات</small></span>
-            <span className="profile-section-count">{education.length} مؤهل · {languages.length} لغة</span><ChevronDown className="profile-disclosure-chevron" size={18} />
-          </summary>
-          {openSections.education && <div className="profile-section-body">
+        <section hidden={activeSection !== "education"} className="profile-editor-section profile-tab-panel" role="tabpanel" tabIndex={0} id="candidate-panel-education" aria-labelledby="candidate-tab-education">
+          <div className="profile-section-body">
             <div className="profile-section-toolbar"><span>المؤهلات العلمية</span><button type="button" className="outline-btn add-experience-btn" onClick={addEducation}><Plus size={16} /> إضافة شهادة</button></div>
             <div className="education-editor-list">{education.map((entry, index) => <article className="experience-editor-card education-editor-card" key={entry.id}><div className="experience-card-top"><span className="experience-number">{String(index + 1).padStart(2, "0")}</span><div><b>{entry.degree || "مؤهل تعليمي جديد"}</b><small>{entry.institution || entry.specialization || "أضف تفاصيل الشهادة"}</small></div><button type="button" className="remove-experience-btn" onClick={() => removeEducation(entry.id)} aria-label={`حذف المؤهل ${index + 1}`}><Trash2 size={16} /></button></div><div className="form-grid"><label>الشهادة أو المؤهل<input value={entry.degree} onChange={(event) => updateEducation(entry.id, "degree", event.target.value)} placeholder="مثال: بكالوريوس" /></label><label>التخصص<input value={entry.specialization} onChange={(event) => updateEducation(entry.id, "specialization", event.target.value)} placeholder="مثال: هندسة الحاسبات" /></label></div><div className="form-grid"><label>الجامعة أو المعهد<input value={entry.institution} onChange={(event) => updateEducation(entry.id, "institution", event.target.value)} placeholder="اسم الجامعة أو المعهد" /></label><label>سنة التخرج<input type="number" min="1950" max={new Date().getFullYear() + 10} value={entry.graduationYear} onChange={(event) => updateEducation(entry.id, "graduationYear", event.target.value)} placeholder="2024" /></label></div></article>)}{education.length === 0 && <button type="button" className="empty-experience-card" onClick={addEducation}><span><Plus size={21} /></span><b>أضف مؤهلك التعليمي</b><small>سجّل الشهادة والتخصص وسنة التخرج.</small></button>}</div>
             <div className="language-editor-field profile-languages-section"><div className="language-editor-heading"><span><b>اللغات</b><small>أضف كل لغة ومستواها بشكل مستقل.</small></span><button type="button" className="outline-btn language-add-btn" onClick={addLanguage}><Plus size={14} /> إضافة لغة</button></div><div className="language-entry-list">{languages.map((language, index) => <div className="language-entry" key={`language-${index}`}><input value={language.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} placeholder="مثال: العربية أو English" aria-label={`اسم اللغة ${index + 1}`} /><AppSelect value={language.level} onChange={(value) => updateLanguage(index, "level", value as LanguageLevel)} placeholder="اختر المستوى" options={languageLevels.map((level) => ({ value: level, label: level }))} ariaLabel={`مستوى اللغة ${index + 1}`} /><button type="button" className="language-remove-btn" onClick={() => removeLanguage(index)} aria-label={`حذف اللغة ${index + 1}`}><X size={15} /></button></div>)}{languages.length === 0 && <p className="language-empty-hint"><Languages size={14} /> أضف اللغة الأم أو أي لغة تستخدمها في العمل.</p>}</div></div>
-          </div>}
-        </details>
+          </div>
+        </section>
 
-        <details className="profile-editor-section profile-disclosure" open={openSections.preferences} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, preferences: open })); }}>
-          <summary className="profile-section-summary">
-            <span className="profile-section-icon orange"><MapPin size={18} /></span>
-            <span className="profile-summary-copy"><span className="eyebrow">الخطوة التالية</span><b>تفضيلات العمل</b><small>أخبر أصحاب العمل بموعدك ونوع الفرصة المناسبة</small></span>
-            <span className="profile-section-count">{form.availability || "اختياري"}</span><ChevronDown className="profile-disclosure-chevron" size={18} />
-          </summary>
-          {openSections.preferences && <div className="profile-section-body">
+        <section hidden={activeSection !== "preferences"} className="profile-editor-section profile-tab-panel" role="tabpanel" tabIndex={0} id="candidate-panel-preferences" aria-labelledby="candidate-tab-preferences">
+          <div className="profile-section-body">
             <div className="form-grid"><label>نوع العمل المطلوب<AppSelect value={form.work_type} onChange={(value) => update("work_type", value)} placeholder="اختر نوع العمل" options={["دوام كامل", "دوام جزئي", "عن بُعد", "تدريب", "عمل حر"].map((value) => ({ value, label: value }))} ariaLabel="نوع العمل المطلوب" /></label><label>التوفر للعمل<AppSelect value={form.availability} onChange={(value) => update("availability", value)} placeholder="اختر حالة التوفر" options={["متاح فورًا", "خلال أسبوعين", "خلال شهر", "غير محدد"].map((value) => ({ value, label: value }))} ariaLabel="التوفر للعمل" /></label></div>
             <div className="form-grid"><label>أقل راتب متوقع <span className="optional">اختياري</span><input type="number" min="0" value={form.expected_salary_min ?? ""} onChange={(event) => update("expected_salary_min", event.target.value ? Number(event.target.value) : null)} /></label><div className="profile-language-hint"><Languages size={17} /><span>تفاصيل أوضح تساعد في ظهور ملفك بعمليات بحث أدق.</span></div></div>
-          </div>}
-        </details>
+          </div>
+        </section>
 
         <div className="profile-form-actions"><span className="profile-autosave-note">تُحفظ تعديلاتك تلقائيًا أثناء التحرير.</span><button type="button" className="text-btn" onClick={() => { flushAutosaveRef.current(); onNavigate("jobs"); }}><ArrowLeft size={16} /> تصفح الوظائف</button></div>
       </form>
