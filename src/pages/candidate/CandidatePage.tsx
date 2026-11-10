@@ -579,11 +579,11 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         <div className="candidate-cv-import-entry">
           <span className="candidate-cv-import-entry-icon"><FileText size={20} /></span>
           <div className="candidate-cv-import-entry-copy">
-            <b>عندك سيرة ذاتية جاهزة؟</b>
-            <small>استخرج بياناتها وراجع كل معلومة بصفحة مستقلة قبل إضافتها إلى ملفك.</small>
+            <b>ارفع سيرتك الذاتية واستخرج بياناتك بسهولة</b>
+            <small>استخرج معلوماتك وخبراتك آليًا أو بالذكاء الاصطناعي، ثم راجعها قبل إضافتها إلى ملفك.</small>
           </div>
           <button type="button" onClick={() => onNavigate("candidate-cv-import")}>
-            <span>ابدأ من سيرتك</span><ArrowRight size={16} />
+            <span>ابدأ رفع السيرة</span><ArrowRight size={16} />
           </button>
         </div>
 

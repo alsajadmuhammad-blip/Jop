@@ -162,6 +162,19 @@
   background: var(--green-2);
   transform: translateY(-1px);
 }
+.cv-import-select,
+.cv-import-ai-button {
+  border-color: #2563eb;
+  color: #fff;
+  background: linear-gradient(135deg, #3478ed, #205bd7);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, .17);
+}
+.cv-import-select:hover,
+.cv-import-ai-button:hover:not(:disabled) {
+  border-color: #1d4ed8;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  box-shadow: 0 9px 18px rgba(37, 99, 235, .24);
+}
 .cv-import-select input {
   position: absolute;
   inset: 0;
@@ -226,9 +239,9 @@
   display: grid;
   gap: 15px;
   padding: clamp(15px, 2.5vw, 22px);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(37, 99, 235, .17);
   border-radius: 15px;
-  background: linear-gradient(145deg, #f3f7f7, #f8f8fc);
+  background: linear-gradient(145deg, #eff6ff, #f7faff);
 }
 .cv-import-ai-heading { display: flex; align-items: flex-start; gap: 12px; }
 .cv-import-ai-mark {
@@ -238,8 +251,8 @@
   width: 36px;
   height: 36px;
   border-radius: 11px;
-  color: var(--green-2);
-  background: var(--mint);
+  color: #2563eb;
+  background: #dbeafe;
 }
 .cv-import-ai-heading b { display: block; margin-bottom: 5px; color: var(--ink); font-size: 14px; }
 .cv-import-ai-limit { color: #8a5a18; font-size: 11px; }
@@ -261,7 +274,7 @@
   width: 17px;
   height: 17px;
   margin: 2px 0 0;
-  accent-color: var(--green);
+  accent-color: #2563eb;
 }
 .cv-import-ai-button { justify-self: start; }
 .cv-import-ai-button:disabled { opacity: .52; cursor: not-allowed; }

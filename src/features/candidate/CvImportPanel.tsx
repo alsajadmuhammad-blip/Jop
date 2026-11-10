@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, FileText, LoaderCircle, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileText, LoaderCircle, Plus, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
 import { languageLevels, type CandidateEducation, type CandidateExperience, type CandidateLanguage } from "../../services/candidateService";
 import { analyzeCandidateCv, isCvAiConfigured } from "../../services/cvAiService";
 import { readCandidateCv, type CandidateCvImport } from "./cvImport";
@@ -24,7 +24,7 @@ const profileFields: Array<{ key: TextProfileField; label: string; type?: string
 
 const steps = [
   "رفع السيرة",
-  "تحليل اختياري",
+  "استخراج AI",
   "المعلومات الأساسية",
   "الخبرات",
   "التعليم والمهارات",
@@ -121,7 +121,7 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
     }
   };
 
-  const enhanceWithAi = async () => {
+  const extractWithAi = async () => {
     if (!preview?.aiText || !aiConsent || aiBusy || aiQuotaExhausted) return;
     setAiBusy(true);
     setAiError("");
@@ -129,11 +129,14 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
     try {
       const result = await analyzeCandidateCv(preview.aiText);
       setPreview((current) => current ? applyCandidateCvAiResult(current, result) : current);
-      setAiNotice("اكتمل التحليل واستُبدلت النتائج المحلية بنتائج الذكاء الاصطناعي. راجعها قبل اعتمادها.");
+      setAiNotice("نجح الاستخراج بالذكاء الاصطناعي، واعتمدنا نتائجه بدل الاستخراج الآلي. راجع البيانات قبل اعتمادها.");
       setAiCompleted(true);
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "تعذر التحليل. يمكنك المتابعة بالاستخراج المحلي.";
-      setAiError(message);
+      const reason = cause instanceof Error && cause.message.trim()
+        ? cause.message
+        : "تعذر الاتصال بخدمة الذكاء الاصطناعي.";
+      setAiError(`تعذر الاستخراج بالذكاء الاصطناعي حاليًا؛ تم الاستخراج آليًا فقط. السبب: ${reason}`);
+      const message = cause instanceof Error ? cause.message : "";
       if (message.includes("انتهت حصة")) setAiQuotaExhausted(true);
     } finally {
       setAiBusy(false);
@@ -281,7 +284,8 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
               <small>PDF أو DOCX · الحد الأعلى 10 ميغابايت</small>
             </div>
             <label className="cv-import-select">
-              اختر ملفًا
+              <Upload size={16} aria-hidden="true" />
+              <span>اختر ملف السيرة</span>
               <input
                 type="file"
                 accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -319,11 +323,11 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
                 <div className="cv-import-ai-heading">
                   <span className="cv-import-ai-mark"><ShieldCheck size={18} /></span>
                   <div>
-                    <b>تحليل إضافي اختياري</b>
+                    <b>استخراج بالذكاء الاصطناعي</b>
                     <p>
                       {isCvAiConfigured()
-                        ? "بعد موافقتك، نرسل نصًا مهنيًا منقحًا فقط لمساعدتك في تنظيم النتائج. لا يغادر الملف الأصلي جهازك."
-                        : "التحليل غير متاح حاليًا. يمكنك المتابعة بالنتائج المستخرجة محليًا."}
+                        ? "بعد موافقتك، يستخرج الذكاء الاصطناعي بيانات السيرة من النص المهني المنقح. عند نجاحه نعتمد نتائجه بدل الاستخراج الآلي؛ وإذا تعذر، تبقى النتائج الآلية فقط."
+                        : "استخراج الذكاء الاصطناعي غير مهيأ حاليًا؛ لذلك تم الاستخراج آليًا فقط."}
                     </p>
                   </div>
                 </div>
@@ -337,26 +341,28 @@ export function CvImportPanel({ onImport }: CvImportPanelProps) {
                         disabled={aiBusy || aiQuotaExhausted}
                         onChange={(event) => setAiConsent(event.target.checked)}
                       />
-                      <span>أوافق صراحةً على إرسال النص المهني المنقح للتحليل مرة واحدة.</span>
+                      <span>أوافق على إرسال النص المهني المنقح لاستخراج بيانات السيرة بالذكاء الاصطناعي مرة واحدة.</span>
                     </label>
                     <button
                       type="button"
                       className="cv-import-ai-button"
                       disabled={!aiConsent || aiBusy || aiQuotaExhausted}
-                      onClick={() => void enhanceWithAi()}
+                      onClick={() => void extractWithAi()}
                     >
-                      {aiBusy ? <><LoaderCircle className="cv-import-spinner" size={16} /> جارٍ التحليل</> : "موافقة وتحليل"}
+                      {aiBusy
+                        ? <><LoaderCircle className="cv-import-spinner" size={16} /> جارٍ الاستخراج بالذكاء الاصطناعي</>
+                        : <><Sparkles size={16} /> استخراج بالذكاء الاصطناعي</>}
                     </button>
                     {aiError && <p className="cv-import-ai-error" role="alert">{aiError}</p>}
                     {aiNotice && <p className="cv-import-ai-success" role="status">{aiNotice}</p>}
                   </>
                 )}
                 {preview.aiText && !isCvAiConfigured() && (
-                  <p className="cv-import-step-hint">يمكنك المتابعة مباشرة، دون إرسال أي نص.</p>
+                  <p className="cv-import-step-hint">النتائج الحالية من الاستخراج الآلي فقط؛ لم يُرسل أي نص للتحليل.</p>
                 )}
                 {aiCompleted && <p className="cv-import-ai-success" role="status">{aiNotice}</p>}
                 {!preview.aiText && !aiCompleted && (
-                  <p className="cv-import-step-hint">لم يُعثر على نص مهني مناسب للتحليل الإضافي. تابع لمراجعة الاستخراج المحلي.</p>
+                  <p className="cv-import-step-hint">لم يُعثر على نص كافٍ للاستخراج بالذكاء الاصطناعي؛ النتائج الحالية من الاستخراج الآلي فقط.</p>
                 )}
               </div>
             </div>
