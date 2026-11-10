@@ -8,10 +8,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const tempDirectory = await mkdtemp(join(tmpdir(), "cv-import-test-"));
 let cvImport;
+let cvAiMerge;
 try {
   await writeFile(join(tempDirectory, "package.json"), '{"type":"module"}');
   execFileSync(join(root, "node_modules/.bin/tsc"), [
     join(root, "src/features/candidate/cvImport.ts"),
+    join(root, "src/features/candidate/cvAiMerge.ts"),
     "--rootDir", root,
     "--outDir", tempDirectory,
     "--module", "ESNext",
@@ -23,6 +25,7 @@ try {
     "--types", "node",
   ], { cwd: root, stdio: "inherit" });
   cvImport = await import(pathToFileURL(join(tempDirectory, "src/features/candidate/cvImport.js")).href);
+  cvAiMerge = await import(pathToFileURL(join(tempDirectory, "src/features/candidate/cvAiMerge.js")).href);
 } finally {
   await rm(tempDirectory, { recursive: true, force: true });
 }
@@ -108,4 +111,92 @@ const longAiText = cvImport.prepareCandidateCvAiText(`SUMMARY\n${"Professional w
 assert.equal(longAiText.text.length, 12_000, "AI context must be capped to control daily usage");
 assert.equal(longAiText.truncated, true);
 
-console.log("CV import parser checks passed: English, Arabic, false-positive languages, PDF reconstruction, AI payload privacy and size cap.");
+const localImport = {
+  profile: {
+    headline: "مهندس مدني",
+    experience_years: 4,
+    skills: ["AutoCAD", "JavaScript"],
+    summary: "نبذة محلية.",
+  },
+  experiences: [{
+    id: "local-experience",
+    title: "مهندس مدني",
+    company: "شركة النور",
+    location: "بغداد",
+    startMonth: "2021-01",
+    endMonth: "",
+    isCurrent: true,
+    legacyPeriod: "",
+    description: "وصف محلي.",
+  }],
+  education: [{
+    id: "local-education",
+    degree: "بكالوريوس",
+    specialization: "هندسة مدنية",
+    institution: "جامعة بغداد",
+    graduationYear: "",
+  }],
+  languages: [{ name: "الإنكليزية", level: "" }],
+  source: "pdf-text",
+  ocrPages: 0,
+  warnings: [],
+  aiText: "نص محلي منقّى",
+  aiTextTruncated: false,
+};
+const aiImport = {
+  profile: {
+    headline: "مهندس موقع",
+    specialization: "هندسة مدنية",
+    experience_years: 5,
+    skills: ["autocad", "Revit"],
+    summary: "نبذة من AI.",
+  },
+  experiences: [
+    {
+      id: "ai-experience-duplicate",
+      title: "مهندس مدني",
+      company: "شركة النور",
+      location: "بغداد",
+      startMonth: "2021-02",
+      endMonth: "",
+      isCurrent: true,
+      legacyPeriod: "",
+      description: "وصف من AI.",
+    },
+    {
+      id: "ai-experience-new",
+      title: "مدير موقع",
+      company: "شركة البناء",
+      location: "البصرة",
+      startMonth: "2023-01",
+      endMonth: "",
+      isCurrent: true,
+      legacyPeriod: "",
+      description: "خبرة مختلفة.",
+    },
+  ],
+  education: [{
+    id: "ai-education-duplicate",
+    degree: "بكالوريوس",
+    specialization: "هندسة مدنية",
+    institution: "جامعة بغداد",
+    graduationYear: "2019",
+  }],
+  languages: [
+    { name: "English", level: "متقدم" },
+    { name: "العربية", level: "اللغة الأم" },
+  ],
+};
+const mergedImport = cvAiMerge.mergeCandidateCvAiResult(localImport, aiImport);
+assert.equal(mergedImport.experiences.length, 2, "AI should update a matching local experience instead of duplicating it");
+assert.equal(mergedImport.experiences[0].id, "local-experience", "matched experiences should keep their stable local ID");
+assert.equal(mergedImport.experiences[0].description, "وصف محلي.", "local edits should be preserved when AI has a value");
+assert.equal(mergedImport.education.length, 1, "AI should fill an incomplete local education record instead of duplicating it");
+assert.equal(mergedImport.education[0].graduationYear, "2019", "AI should fill missing education details");
+assert.equal(mergedImport.languages.length, 2, "Arabic and English language aliases should not create duplicate entries");
+assert.equal(mergedImport.languages[0].level, "متقدم", "AI should fill a missing language level");
+assert.deepEqual(mergedImport.profile.skills, ["AutoCAD", "JavaScript", "Revit"], "skills should be deduplicated without changing local spelling");
+assert.equal(mergedImport.profile.headline, "مهندس مدني", "existing local profile values should not be overwritten");
+assert.equal(mergedImport.aiText, undefined, "AI text should be removed after processing");
+
+console.log("CV import checks passed: Arabic/English parsing, privacy, AI merge de-duplication, stable IDs, and field preservation.");

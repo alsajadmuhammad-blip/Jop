@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, FileText } from "lucide-react";
+import { ArrowRight, FileText } from "lucide-react";
 import type { CandidateCvImport } from "../../features/candidate/cvImport";
 import { CvImportPanel } from "../../features/candidate/CvImportPanel";
 import "./candidate-cv-import-page.css";
@@ -23,14 +23,6 @@ export function CandidateCvImportPage({ onBack, onImport }: CandidateCvImportPag
           <p>ارفع سيرتك ليقرأها النظام محليًا، ثم صحّح البيانات وأكّدها قبل إضافتها إلى ملفك.</p>
         </div>
       </header>
-
-      <aside className="candidate-cv-import-alert" role="alert">
-        <AlertTriangle size={19} />
-        <div>
-          <b>تنبيه مهم: الاستخراج آلي وليس مضمونًا بالكامل.</b>
-          <p>قد يخطئ في اللغات، سنوات الخبرة، أسماء الشركات أو التواريخ. راجع كل معلومة بنفسك، وعدّل أو احذف أي نتيجة غير صحيحة قبل الاعتماد.</p>
-        </div>
-      </aside>
 
       <CvImportPanel onImport={onImport} />
     </section>
