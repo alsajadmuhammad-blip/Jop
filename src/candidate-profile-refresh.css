@@ -1683,6 +1683,93 @@
   }
 }
 
+.candidate-profile-page .candidate-cv-import-entry {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  gap: 15px;
+  padding: 17px 18px;
+  border-color: transparent;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(125deg, #153b5c 0%, #1e5e87 58%, #2d88bb 100%);
+  box-shadow: 0 14px 28px rgba(21, 59, 92, .18);
+}
+
+.candidate-profile-page .candidate-cv-import-entry::after {
+  position: absolute;
+  top: -56px;
+  left: -43px;
+  z-index: -1;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 50%;
+  box-shadow: 0 0 0 20px rgba(255, 255, 255, .04), 0 0 0 42px rgba(255, 255, 255, .025);
+  content: "";
+  pointer-events: none;
+}
+
+.candidate-profile-page .candidate-cv-import-entry-icon {
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 12px;
+  color: #d7f0fd;
+  background: rgba(255, 255, 255, .12);
+}
+
+.candidate-profile-page .candidate-cv-import-entry-copy b {
+  color: #fff;
+  font-size: 14px;
+}
+
+.candidate-profile-page .candidate-cv-import-entry-copy small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(239, 248, 253, .9);
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+.candidate-profile-page .candidate-cv-import-entry > button {
+  min-height: 42px;
+  padding: 9px 14px;
+  border-color: #fff;
+  border-radius: 9px;
+  color: #153b5c;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(10, 38, 59, .13);
+  font-weight: 700;
+}
+
+.candidate-profile-page .candidate-cv-import-entry > button:hover {
+  border-color: #dceff8;
+  color: #123251;
+  background: #eaf6fc;
+}
+
+.candidate-profile-page .candidate-cv-import-entry > button:focus-visible {
+  outline: 3px solid #a9e4ff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 620px) {
+  .candidate-profile-page .candidate-cv-import-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    margin-inline: 10px;
+    padding: 14px;
+  }
+
+  .candidate-profile-page .candidate-cv-import-entry > button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    justify-self: stretch;
+  }
+}
+
 @media (max-width: 760px) {
   .candidate-profile-page .candidate-profile-tabs {
     grid-template-columns: repeat(4, max-content);
