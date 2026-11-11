@@ -311,6 +311,12 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const updateExperienceYears = (value: string) => {
+    const years = value === "" ? 0 : Number(value);
+    if (!Number.isFinite(years)) return;
+    update("experience_years", Math.min(60, Math.max(0, Math.trunc(years))));
+  };
+
   const applyCvImport = (imported: CandidateCvImport, replaceExisting = false) => {
     setForm((current) => ({
       ...current,
@@ -455,8 +461,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     experience: completedExperiences.length,
     education: completedEducation + completedLanguages,
     preferences: Number(Boolean(form.work_type.trim())) +
-      Number(Boolean(form.availability.trim())) +
-      Number(form.expected_salary_min !== null),
+      Number(Boolean(form.availability.trim())),
   };
   const hasFullName = Boolean(form.full_name.trim());
   const hasHeadline = Boolean(form.headline.trim());
@@ -593,13 +598,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   }
 
   return <section className="container page-section dashboard-page candidate-profile-page">
-    <aside className="candidate-english-tip" role="note">
-      <span className="candidate-english-tip-icon" aria-hidden="true"><Languages size={18} /></span>
-      <span>
-        <b>نصيحة لتصدير سيرة احترافية</b>
-        <small>املأ حقول ملفك المهني باللغة الإنكليزية لتحصل على سيرة واضحة ومرتبة بصيغة ATS.</small>
-      </span>
-    </aside>
     <section className="candidate-profile-cover-card" aria-labelledby="candidate-profile-name">
       <div className="candidate-profile-cover">
         <span className="candidate-profile-cover-label"><Sparkles size={14} /> مساحة الباحث عن عمل</span>
@@ -609,11 +607,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         </div>
       </div>
       <div className="candidate-profile-identity-card">
-        <div className="candidate-profile-avatar-shell">
-          <div className="candidate-profile-avatar" aria-hidden="true">
-            <UserRound size={45} strokeWidth={1.5} />
-          </div>
-        </div>
         <div className="candidate-profile-identity-content">
           <div className="candidate-profile-identity-heading">
             <div className="candidate-profile-summary-link">
@@ -645,17 +638,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         onBlurCapture={handleProfileFormBlur}
       >
         {autosaveNotice}
-
-        <div className="candidate-cv-import-entry">
-          <span className="candidate-cv-import-entry-icon"><FileText size={20} /></span>
-          <div className="candidate-cv-import-entry-copy">
-            <b>ارفع سيرتك الذاتية واستخرج بياناتك بسهولة</b>
-            <small>استخرج معلوماتك وخبراتك آليًا أو بالذكاء الاصطناعي، ثم راجعها قبل إضافتها إلى ملفك.</small>
-          </div>
-          <button type="button" onClick={() => onNavigate("candidate-cv-import")}>
-            <span>ابدأ رفع السيرة</span><ArrowRight size={16} />
-          </button>
-        </div>
 
         <div className="candidate-profile-tabs" role="tablist" aria-label="أقسام ملفك المهني" dir="rtl">
           {candidateProfileTabs.map((tab, index) => {
@@ -706,7 +688,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           {openSections.skills && <div className="profile-section-body">
             <div className="skill-entry-row"><input value={skillDraft} onChange={(event) => setSkillDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSkill(); } }} placeholder="اكتب مهارة مثل React أو إدارة المشاريع" aria-label="مهارة جديدة" /><button type="button" className="add-skill-btn" onClick={addSkill}><Plus size={17} /> إضافة مهارة</button></div>
             <div className="editable-skill-list">{form.skills.map((skill) => <span className="editable-skill" key={skill}>{skill}<button type="button" onClick={() => removeSkill(skill)} aria-label={`حذف ${skill}`}><X size={13} /></button></span>)}{form.skills.length === 0 && <span className="profile-empty-hint">ابدأ بأهم مهاراتك المهنية.</span>}</div>
-            <div className="form-grid single-label-row"><label>سنوات الخبرة<input type="number" min="0" max="60" value={form.experience_years} onChange={(event) => update("experience_years", Number(event.target.value) || 0)} /></label><label className="checkbox-field"><input type="checkbox" checked={form.remote_available} onChange={(event) => update("remote_available", event.target.checked)} /><span>أقبل العمل عن بُعد</span></label></div>
+            <div className="form-grid single-label-row"><label>سنوات الخبرة<input type="number" min={0} max={60} step={1} value={form.experience_years} onChange={(event) => updateExperienceYears(event.target.value)} aria-label="سنوات الخبرة" /></label><label className="checkbox-field"><input type="checkbox" checked={form.remote_available} onChange={(event) => update("remote_available", event.target.checked)} /><span>أقبل العمل عن بُعد</span></label></div>
           </div>}
         </details>}
 
@@ -755,7 +737,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           </summary>
           {openSections.preferences && <div className="profile-section-body">
             <div className="form-grid"><label>نوع العمل المطلوب<AppSelect value={form.work_type} onChange={(value) => update("work_type", value)} placeholder="اختر نوع العمل" options={["دوام كامل", "دوام جزئي", "عن بُعد", "تدريب", "عمل حر"].map((value) => ({ value, label: value }))} ariaLabel="نوع العمل المطلوب" /></label><label>التوفر للعمل<AppSelect value={form.availability} onChange={(value) => update("availability", value)} placeholder="اختر حالة التوفر" options={["متاح فورًا", "خلال أسبوعين", "خلال شهر", "غير محدد"].map((value) => ({ value, label: value }))} ariaLabel="التوفر للعمل" /></label></div>
-            <div className="form-grid"><label>أقل راتب متوقع <span className="optional">اختياري</span><input type="number" min="0" value={form.expected_salary_min ?? ""} onChange={(event) => update("expected_salary_min", event.target.value ? Number(event.target.value) : null)} /></label><div className="profile-language-hint"><Languages size={17} /><span>تفاصيل أوضح تساعد في ظهور ملفك بعمليات بحث أدق.</span></div></div>
+            <div className="profile-language-hint profile-preferences-hint"><Languages size={17} /><span>تفاصيل أوضح تساعد في ظهور ملفك بعمليات بحث أدق.</span></div>
           </div>}
         </details>}
 
@@ -768,6 +750,16 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           <div><span className="eyebrow">سيرتك جاهزة للتقديم</span><h2>جهّز نسخة تناسبك</h2></div>
           <p>اختر قالبًا وراجع المعاينة قبل تنزيل Word أو حفظ PDF.</p>
         </header>
+        <div className="candidate-cv-import-entry">
+          <span className="candidate-cv-import-entry-icon"><FileText size={20} /></span>
+          <div className="candidate-cv-import-entry-copy">
+            <b>ارفع سيرتك الذاتية واستخرج بياناتك بسهولة</b>
+            <small>استخرج معلوماتك وخبراتك آليًا أو بالذكاء الاصطناعي، ثم راجعها قبل إضافتها إلى ملفك.</small>
+          </div>
+          <button type="button" onClick={() => onNavigate("candidate-cv-import")}>
+            <span>ابدأ رفع السيرة</span><ArrowRight size={16} />
+          </button>
+        </div>
         <div className="profile-aside-card ats-export-card candidate-resume-entry-card">
           <div className="aside-card-heading"><div><span className="eyebrow">ثلاثة قوالب · Word وPDF</span><h3>معاينة وتصدير السيرة</h3></div><FileText size={20} /></div>
           <p>تصفّح القوالب، شاهد شكل سيرتك الفعلي، ثم نزّل النسخة المناسبة.</p>

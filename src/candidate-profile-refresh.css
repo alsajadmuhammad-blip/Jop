@@ -1793,3 +1793,116 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* Keep candidate controls visible and make the profile sections easy to scan. */
+.candidate-profile-page .candidate-profile-editor {
+  overflow: visible;
+}
+
+.candidate-profile-page .candidate-profile-tabs {
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #1c568c;
+  border-radius: 11px;
+  background: linear-gradient(120deg, #173e6e, #236ba8);
+  box-shadow: 0 8px 18px rgba(25, 70, 111, .17);
+}
+
+.candidate-profile-page .candidate-profile-tab {
+  border-color: transparent;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .88);
+  background: rgba(255, 255, 255, .08);
+}
+
+.candidate-profile-page .candidate-profile-tab svg {
+  color: #d2e8fa;
+}
+
+.candidate-profile-page .candidate-profile-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .17);
+}
+
+.candidate-profile-page .candidate-profile-tab.active {
+  border-color: #fff;
+  color: #173e6e;
+  background: #fff;
+  box-shadow: 0 3px 9px rgba(8, 35, 65, .18);
+}
+
+.candidate-profile-page .candidate-profile-tab.active svg {
+  color: #236ba8;
+}
+
+.candidate-profile-page .candidate-profile-tab-count {
+  border-color: rgba(255, 255, 255, .28);
+  color: #fff;
+  background: rgba(255, 255, 255, .15);
+}
+
+.candidate-profile-page .candidate-profile-tab.active .candidate-profile-tab-count {
+  border-color: #d7e8f7;
+  color: #173e6e;
+  background: #edf5fc;
+}
+
+.candidate-profile-page .candidate-profile-identity-card {
+  align-items: flex-start;
+  gap: 19px;
+  padding: 23px 25px 22px;
+  margin-top: 0;
+}
+
+.candidate-profile-page .candidate-profile-identity-content {
+  padding-top: 0;
+}
+
+.candidate-profile-page .candidate-profile-edit-button {
+  position: static;
+  top: auto;
+  left: auto;
+  align-self: flex-start;
+  flex: 0 0 auto;
+}
+
+.candidate-profile-page .candidate-profile-aside .candidate-cv-import-entry {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+}
+
+.candidate-profile-page .candidate-profile-aside .candidate-cv-import-entry > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.candidate-profile-page .profile-preferences-hint {
+  margin-top: 14px;
+}
+
+@media (max-width: 620px) {
+  .candidate-profile-page .candidate-profile-identity-card {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 16px 17px;
+    margin-top: 0;
+    text-align: right;
+  }
+
+  .candidate-profile-page .candidate-profile-identity-content {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .candidate-profile-page .candidate-profile-edit-button {
+    align-self: flex-start;
+    min-width: 138px;
+    justify-content: center;
+  }
+
+  .candidate-profile-page .candidate-profile-aside .candidate-cv-import-entry > button {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
