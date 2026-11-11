@@ -1,0 +1,392 @@
+.candidate-resume-export-page {
+  --resume-ink: #1b3448;
+  --resume-muted: #70808a;
+  --resume-line: #dce4e5;
+  --resume-paper: #fffefa;
+  --resume-wash: #f2f6f5;
+  --resume-clay: #ae7654;
+  display: grid;
+  gap: 17px;
+  width: min(100% - 40px, 1180px);
+  padding-top: 24px;
+  padding-bottom: 56px;
+  color: var(--resume-ink);
+  font-family: "IBM Plex Sans Arabic", "Readex Pro", sans-serif;
+}
+
+.candidate-resume-export-back,
+.candidate-resume-export-edit,
+.candidate-resume-export-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--resume-line);
+  border-radius: 8px;
+  color: var(--resume-ink);
+  background: var(--resume-paper);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+  cursor: pointer;
+}
+
+.candidate-resume-export-back {
+  justify-self: start;
+}
+
+.candidate-resume-export-back:hover,
+.candidate-resume-export-edit:hover {
+  border-color: #aabcc0;
+  background: #f7faf9;
+}
+
+.candidate-resume-export-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 21px 23px;
+  border: 1px solid var(--resume-line);
+  border-radius: 12px;
+  background: var(--resume-paper);
+}
+
+.candidate-resume-export-heading-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.candidate-resume-export-heading-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border-radius: 9px;
+  color: #77513b;
+  background: #f3e9df;
+}
+
+.candidate-resume-export-heading h1 {
+  margin: 3px 0 5px;
+  color: var(--resume-ink);
+  font-size: clamp(21px, 3vw, 28px);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.candidate-resume-export-heading p {
+  max-width: 610px;
+  margin: 0;
+  color: var(--resume-muted);
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.candidate-resume-export-edit {
+  flex: 0 0 auto;
+}
+
+.candidate-resume-export-layout {
+  display: grid;
+  grid-template-columns: minmax(245px, 305px) minmax(0, 1fr);
+  align-items: start;
+  gap: 17px;
+}
+
+.candidate-resume-export-controls {
+  display: grid;
+  gap: 13px;
+}
+
+.candidate-resume-export-panel {
+  padding: 17px;
+  border: 1px solid var(--resume-line);
+  border-radius: 11px;
+  background: var(--resume-paper);
+}
+
+.candidate-resume-export-panel h2 {
+  margin: 0;
+  color: var(--resume-ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.candidate-resume-export-panel > p {
+  margin: 5px 0 14px;
+  color: var(--resume-muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.candidate-resume-template-list {
+  display: grid;
+  gap: 7px;
+}
+
+.candidate-resume-template {
+  display: grid;
+  grid-template-columns: 39px minmax(0, 1fr) 17px;
+  align-items: center;
+  gap: 10px;
+  min-height: 67px;
+  padding: 9px 10px;
+  border: 1px solid #e5e9e8;
+  border-radius: 8px;
+  color: var(--resume-ink);
+  background: #fff;
+  text-align: right;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.candidate-resume-template:hover {
+  border-color: #b8c8c8;
+  background: #fafcfb;
+  transform: translateY(-1px);
+}
+
+.candidate-resume-template[aria-pressed="true"] {
+  border-color: #7e9c9b;
+  background: #f2f7f5;
+  box-shadow: inset -3px 0 0 var(--resume-clay);
+}
+
+.candidate-resume-template-mark {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 44px;
+  border: 1px solid #dce3e2;
+  border-radius: 4px;
+  color: #617c82;
+  background: linear-gradient(180deg, #fff 0 24%, #eef3f2 24% 28%, #fff 28% 48%, #eef3f2 48% 52%, #fff 52% 71%, #eef3f2 71% 75%, #fff 75%);
+}
+
+.candidate-resume-template:nth-child(2) .candidate-resume-template-mark {
+  border-top: 4px solid #193650;
+}
+
+.candidate-resume-template:nth-child(3) .candidate-resume-template-mark {
+  border-top: 4px solid #ae7654;
+}
+
+.candidate-resume-template-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.candidate-resume-template-copy b {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.candidate-resume-template-copy small {
+  color: var(--resume-muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.candidate-resume-template-check {
+  color: #587c6d;
+}
+
+.candidate-resume-export-format-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-resume-export-action {
+  width: 100%;
+  min-height: 38px;
+  border-color: #173a51;
+  color: #fff;
+  background: #193650;
+}
+
+.candidate-resume-export-action:hover:not(:disabled) {
+  border-color: #102b40;
+  background: #122d43;
+  transform: translateY(-1px);
+}
+
+.candidate-resume-export-action.secondary {
+  border-color: #d7e0e2;
+  color: var(--resume-ink);
+  background: #fff;
+}
+
+.candidate-resume-export-action.secondary:hover:not(:disabled) {
+  border-color: #aabcc0;
+  background: #f7faf9;
+}
+
+.candidate-resume-export-action:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
+.candidate-resume-export-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: #75818a;
+  font-size: 10px;
+  line-height: 1.8;
+}
+
+.candidate-resume-export-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #718b7d;
+}
+
+.candidate-resume-export-validation {
+  padding: 13px 14px;
+  border: 1px solid #e6d4c8;
+  border-radius: 9px;
+  color: #644b3c;
+  background: #fbf6f1;
+}
+
+.candidate-resume-export-validation h3 {
+  margin: 0 0 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.candidate-resume-export-validation p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.75;
+}
+
+.candidate-resume-export-validation ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0 17px 0 0;
+  color: #755d4e;
+  font-size: 10px;
+}
+
+.candidate-resume-preview-wrap {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--resume-line);
+  border-radius: 11px;
+  background: #e9efed;
+}
+
+.candidate-resume-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 3px 12px;
+}
+
+.candidate-resume-preview-heading h2 {
+  margin: 0;
+  color: var(--resume-ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.candidate-resume-preview-heading span {
+  color: #75858b;
+  font-size: 10px;
+}
+
+.candidate-resume-preview-frame {
+  display: block;
+  width: 100%;
+  height: min(78vh, 980px);
+  min-height: 620px;
+  border: 1px solid #d8dfdf;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(28, 49, 59, .08);
+}
+
+.candidate-resume-export-page :is(button, iframe):focus-visible {
+  outline: 3px solid rgba(174, 118, 84, .35);
+  outline-offset: 3px;
+}
+
+@media (max-width: 850px) {
+  .candidate-resume-export-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .candidate-resume-export-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .candidate-resume-export-validation {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .candidate-resume-export-page {
+    width: calc(100% - 24px);
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 44px;
+  }
+
+  .candidate-resume-export-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .candidate-resume-export-heading-copy {
+    gap: 10px;
+  }
+
+  .candidate-resume-export-heading-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .candidate-resume-export-heading p {
+    font-size: 11px;
+  }
+
+  .candidate-resume-export-edit {
+    width: auto;
+    align-self: flex-start;
+  }
+
+  .candidate-resume-export-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .candidate-resume-preview-wrap {
+    padding: 8px;
+  }
+
+  .candidate-resume-preview-frame {
+    height: 70vh;
+    min-height: 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candidate-resume-export-page *,
+  .candidate-resume-export-page *::before,
+  .candidate-resume-export-page *::after {
+    transition-duration: .01ms !important;
+  }
+}

@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
 import type { CandidateProfile, CandidateProfileInput, Profile } from "../../lib/types";
 import { hasSupabaseConfig } from "../../lib/supabase";
 import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, getCandidateProfileDraft, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, saveCandidateProfileDraft, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
-import { downloadAtsResume, printAtsResume } from "../../features/candidate/atsResume";
-import { downloadProfessionalResume, printProfessionalResume } from "../../features/candidate/professionalResume";
 import type { CandidateCvImport } from "../../features/candidate/cvImport";
 import { CandidateCvImportPage } from "./CandidateCvImportPage";
+import { CandidateResumeExportPage } from "./CandidateResumeExportPage";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -18,16 +17,16 @@ type CandidatePageProps = {
   onNotify?: (message: string) => void;
   showCvImport?: boolean;
   showProfessionalEdit?: boolean;
+  showResumeExport?: boolean;
 };
 
 type ExperienceEntry = CandidateExperience;
 type EducationEntry = CandidateEducation;
 
 type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
-type CandidateProfileTab = "overview" | "skills" | "experience" | "education" | "preferences";
+type CandidateProfileTab = "skills" | "experience" | "education" | "preferences";
 
 const candidateProfileTabs: { id: CandidateProfileTab; label: string; icon: typeof UserRound }[] = [
-  { id: "overview", label: "الملخص المهني", icon: UserRound },
   { id: "skills", label: "المهارات", icon: Sparkles },
   { id: "experience", label: "الخبرات", icon: BriefcaseBusiness },
   { id: "education", label: "التعليم واللغات", icon: GraduationCap },
@@ -105,7 +104,7 @@ function localMonthValue() {
   return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify, showCvImport = false, showProfessionalEdit = false }: CandidatePageProps) {
+export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify, showCvImport = false, showProfessionalEdit = false, showResumeExport = false }: CandidatePageProps) {
   const cachedProfile = getCachedCandidateProfile(profile.id);
   const initialDraft = getCandidateProfileDraft(profile.id);
   const cachedProfileUpdatedAt = cachedProfile?.updated_at ? Date.parse(cachedProfile.updated_at) : Number.NaN;
@@ -120,9 +119,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   const [experiences, setExperiences] = useState<ExperienceEntry[]>(() => parseCandidateExperiences(initialForm.experience_details));
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
-  const [activeProfileTab, setActiveProfileTab] = useState<CandidateProfileTab>("overview");
+  const [activeProfileTab, setActiveProfileTab] = useState<CandidateProfileTab>("skills");
   const profileTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [openSections, setOpenSections] = useState({ identity: false, skills: false, experience: false, education: false, preferences: false });
+  const [openSections, setOpenSections] = useState({ identity: false, skills: true, experience: false, education: false, preferences: false });
   const [skillDraft, setSkillDraft] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig && cachedProfile === undefined);
   const [error, setError] = useState("");
@@ -453,7 +452,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   ).length;
   const completedLanguages = languages.filter((language) => language.name.trim()).length;
   const profileTabCounts: Record<CandidateProfileTab, number | null> = {
-    overview: null,
     skills: completedSkills,
     experience: completedExperiences.length,
     education: completedEducation + completedLanguages,
@@ -484,7 +482,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [hasCity, hasEducation, hasExperience, hasFullName, hasHeadline, hasProvince, hasSkills, hasSpecialization, hasSummary]);
-  const canExportAts = Boolean(form.full_name.trim() && form.headline.trim() && form.email.trim() && form.phone.trim() && form.summary.trim());
   const currentMonth = localMonthValue();
   const autosaveMessage = !hasSupabaseConfig
     ? "الحفظ التلقائي غير متاح في وضع المعاينة."
@@ -538,40 +535,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     experiences,
   });
 
-  const exportAts = () => {
-    if (!canExportAts) {
-      onNotify?.("أكمل الاسم والمسمى والبريد والهاتف والنبذة أولاً حتى نخرج سيرة قوية.");
-      return;
-    }
-    downloadAtsResume(atsData());
-    onNotify?.("تم تنزيل ملف Word لـ ATS ويمكنك تعديله.");
-  };
-
-  const printAts = () => {
-    if (!canExportAts) {
-      onNotify?.("أكمل البيانات الأساسية أولاً حتى نجهز نسخة PDF مرتبة.");
-      return;
-    }
-    if (!printAtsResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ ATS كـ PDF.");
-  };
-
-  const exportProfessionalResume = () => {
-    if (!canExportAts) {
-      onNotify?.("أكمل الاسم والمسمى والبريد والهاتف والنبذة أولاً حتى نخرج سيرة قوية.");
-      return;
-    }
-    downloadProfessionalResume(atsData());
-    onNotify?.("تم تنزيل السيرة الاحترافية بصيغة Word.");
-  };
-
-  const printProfessionalResumePdf = () => {
-    if (!canExportAts) {
-      onNotify?.("أكمل البيانات الأساسية أولاً حتى نجهز نسخة PDF مرتبة.");
-      return;
-    }
-    if (!printProfessionalResume(atsData())) onNotify?.("اسمح بفتح نافذة جديدة حتى تتمكن من حفظ السيرة الاحترافية كـ PDF.");
-  };
-
   if (loading) {
     return <section className="container page-section centered-state"><span className="live-dot" /><p>جاري تحميل ملفك المهني...</p></section>;
   }
@@ -622,6 +585,14 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     </section>;
   }
 
+  if (showResumeExport) {
+    return <CandidateResumeExportPage
+      data={atsData()}
+      onNavigate={onNavigate}
+      onNotify={onNotify}
+    />;
+  }
+
   return <section className="container page-section dashboard-page candidate-profile-page">
     <aside className="candidate-english-tip" role="note">
       <span className="candidate-english-tip-icon" aria-hidden="true"><Languages size={18} /></span>
@@ -661,9 +632,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
             {form.phone.trim() ? <a href={`tel:${form.phone.replace(/[^\d+]/g, "")}`} dir="ltr"><Phone size={15} /> {form.phone}</a> : <span><Phone size={15} /> أضف رقم هاتفك</span>}
             <span><MapPin size={15} /> {form.city || form.province || "أضف موقعك"}</span>
           </div>
-          <div className="candidate-profile-shortcuts">
-            <button type="button" className="text-btn" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button>
-            <button type="button" className="text-btn" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button>
+          <div className="candidate-profile-summary-inline">
+            <span>نبذة مهنية</span>
+            <p>{form.summary.trim() || "أضف نبذة مهنية قصيرة حتى يتعرف أصحاب العمل على خبرتك وأهدافك."}</p>
           </div>
         </div>
       </div>
@@ -727,21 +698,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           })}
         </div>
         <div className="candidate-profile-tab-content" id="candidate-profile-tabpanel" role="tabpanel" aria-labelledby={`candidate-profile-tab-${activeProfileTab}`}>
-          {activeProfileTab === "overview" && <section className="candidate-profile-overview">
-              <article className="candidate-profile-overview-card">
-              <div className="profile-section-heading">
-                <span className="profile-section-icon blue"><FileText size={18} /></span>
-                <div><span className="eyebrow">نبذة عنك</span><h2>الملخص المهني</h2><p>تعريف مختصر يوضح خبرتك والقيمة التي تقدمها.</p></div>
-              </div>
-              <p className="candidate-profile-summary-preview">{form.summary.trim() || "أضف نبذة مهنية قصيرة حتى يتعرف أصحاب العمل على خبرتك وأهدافك."}</p>
-            </article>
-            <div className="candidate-profile-overview-stats" aria-label="ملخص بيانات الملف">
-              <span><b>{completedSkills}</b><small>مهارة</small></span>
-              <span><b>{completedExperiences.length}</b><small>خبرة عملية</small></span>
-              <span><b>{completedEducation}</b><small>مؤهل تعليمي</small></span>
-            </div>
-          </section>}
-
         {activeProfileTab === "skills" && <details className="profile-editor-section profile-disclosure" open={openSections.skills} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, skills: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon orange"><Sparkles size={18} /></span>
@@ -805,31 +761,20 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         </details>}
 
         </div>
-        <div className="profile-form-actions"><span className="profile-autosave-note">تُحفظ تعديلاتك تلقائيًا أثناء التحرير.</span><button type="button" className="text-btn" onClick={() => { flushAutosaveRef.current(); onNavigate("jobs"); }}><ArrowLeft size={16} /> تصفح الوظائف</button></div>
+        <div className="profile-form-actions"><span className="profile-autosave-note">تُحفظ تعديلاتك تلقائيًا أثناء التحرير.</span></div>
       </form>
 
-      <aside className="candidate-profile-aside" aria-label="قوالب السيرة الذاتية وإرشادات الملف">
+      <aside className="candidate-profile-aside" aria-label="إعداد السيرة الذاتية وإرشادات الملف">
         <header className="candidate-resume-panel-heading">
-          <div><span className="eyebrow">سير جاهزة للتقديم</span><h2>اختر النسخة المناسبة</h2></div>
-          <p>كل قالب يستخدم البيانات المحفوظة في ملفك المهني.</p>
+          <div><span className="eyebrow">سيرتك جاهزة للتقديم</span><h2>جهّز نسخة تناسبك</h2></div>
+          <p>اختر قالبًا وراجع المعاينة قبل تنزيل Word أو حفظ PDF.</p>
         </header>
-        <div className="profile-aside-card ats-export-card">
-          <div className="aside-card-heading"><div><span className="eyebrow">نسخة إنكليزية · متوافقة مع أنظمة الفرز</span><h3>سيرة ATS</h3></div><FileText size={20} /></div>
-          <p>تنسيق واضح وسهل القراءة لأنظمة التوظيف الآلية. اختر Word للتعديل أو PDF للإرسال.</p>
+        <div className="profile-aside-card ats-export-card candidate-resume-entry-card">
+          <div className="aside-card-heading"><div><span className="eyebrow">ثلاثة قوالب · Word وPDF</span><h3>معاينة وتصدير السيرة</h3></div><FileText size={20} /></div>
+          <p>تصفّح القوالب، شاهد شكل سيرتك الفعلي، ثم نزّل النسخة المناسبة.</p>
           <div className="ats-export-actions">
-            <button type="button" className="primary-btn" onClick={exportAts}><Download size={16} /> تنزيل Word</button>
-            <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> طباعة أو حفظ PDF</button>
+            <button type="button" className="primary-btn" onClick={() => onNavigate("candidate-resume-export")}><FileText size={16} /> فتح صفحة التصدير</button>
           </div>
-          {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
-        </div>
-        <div className="profile-aside-card ats-export-card professional-resume-export-card">
-          <div className="aside-card-heading"><div><span className="eyebrow">نسخة إنكليزية · بتصميم مرئي</span><h3>السيرة الاحترافية</h3></div><FileText size={20} /></div>
-          <p>قالب منسّق لعرض خبراتك ومهاراتك بوضوح. اختر Word للتعديل أو PDF للإرسال.</p>
-          <div className="ats-export-actions">
-            <button type="button" className="primary-btn" onClick={exportProfessionalResume}><Download size={16} /> تنزيل Word</button>
-            <button type="button" className="outline-btn" onClick={printProfessionalResumePdf}><Printer size={15} /> طباعة أو حفظ PDF</button>
-          </div>
-          {!canExportAts && <small className="ats-export-hint">أكمل الاسم والمسمى وبيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>
         <div className="profile-aside-card privacy-card"><div className="aside-card-icon"><ShieldCheck size={19} /></div><div><b>ملفك يظهر لأصحاب العمل المصرّح لهم</b><p>يظهر ملفك فقط لأصحاب العمل الذين لديهم صلاحية الوصول إلى ملفات الباحثين عن العمل، والتي يفعّلها المشرف.</p></div><span className="privacy-status"><Check size={13} /> وصول مقيّد</span></div>
          <div className="profile-aside-card checklist-card"><div className="aside-card-heading"><div><span className="eyebrow">قائمة الإنجاز</span><h3>قرّب ملفك من 100%</h3></div><CheckCircle2 size={20} /></div><ul><li className={hasFullName ? "done" : ""}><span>{hasFullName ? <Check size={13} /> : "1"}</span>الاسم الكامل</li><li className={hasHeadline ? "done" : ""}><span>{hasHeadline ? <Check size={13} /> : "2"}</span>المسمى الوظيفي</li><li className={hasSkills ? "done" : ""}><span>{hasSkills ? <Check size={13} /> : "3"}</span>أضف مهاراتك</li><li className={hasExperience ? "done" : ""}><span>{hasExperience ? <Check size={13} /> : "4"}</span>أضف خبرة واحدة على الأقل</li><li className={hasSummary ? "done" : ""}><span>{hasSummary ? <Check size={13} /> : "5"}</span>نبذة مهنية قصيرة</li></ul></div>
