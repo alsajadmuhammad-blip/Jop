@@ -219,6 +219,113 @@
   display: none;
 }
 
+.auth-account-type-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 6px;
+}
+
+.auth-account-type-card {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid #dce7ef;
+  border-radius: 12px;
+  color: #123251;
+  background: linear-gradient(110deg, #fff, #f3f8fb);
+  text-align: right;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.auth-account-type-card:hover {
+  transform: translateY(-2px);
+  border-color: #8cb9d1;
+  background: #eff8fc;
+  box-shadow: 0 8px 20px rgba(20, 67, 100, .09);
+}
+
+.auth-account-type-card:focus-visible {
+  outline: 3px solid rgba(45, 136, 187, .3);
+  outline-offset: 2px;
+}
+
+.auth-account-type-icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  color: #2d88bb;
+  background: #e4f2fa;
+}
+
+.auth-account-type-copy {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+
+.auth-account-type-copy strong {
+  color: #123251;
+  font-size: 13px;
+}
+
+.auth-account-type-copy small {
+  color: #6d8191;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.auth-account-type-card > svg {
+  flex: 0 0 auto;
+  color: #6d9fbb;
+}
+
+.auth-selected-account-type {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #d8eaf3;
+  border-radius: 10px;
+  background: #f1f8fc;
+}
+
+.auth-selected-account-type > span {
+  display: grid;
+  gap: 3px;
+}
+
+.auth-selected-account-type small {
+  color: #6e8292;
+  font-size: 9px;
+}
+
+.auth-selected-account-type b {
+  color: #173f62;
+  font-size: 11px;
+}
+
+.auth-selected-account-type button {
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  color: #246b93;
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.auth-selected-account-type button:hover {
+  background: #e4f2fa;
+}
+
 .auth-submit {
   min-height: 47px;
   margin-top: 4px;

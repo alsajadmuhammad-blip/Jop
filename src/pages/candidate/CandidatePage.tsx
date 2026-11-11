@@ -9,6 +9,7 @@ import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCand
 import type { CandidateCvImport } from "../../features/candidate/cvImport";
 import { CandidateCvImportPage } from "./CandidateCvImportPage";
 import { CandidateResumeExportPage } from "./CandidateResumeExportPage";
+import { ExperienceFormModal } from "./ExperienceFormModal";
 
 type CandidatePageProps = {
   profile: Profile;
@@ -117,6 +118,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     : toInput(cachedProfile ?? null, profile);
   const [form, setForm] = useState<CandidateProfileInput>(initialForm);
   const [experiences, setExperiences] = useState<ExperienceEntry[]>(() => parseCandidateExperiences(initialForm.experience_details));
+  const [experienceFormOpen, setExperienceFormOpen] = useState(false);
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
   const [activeProfileTab, setActiveProfileTab] = useState<CandidateProfileTab>("skills");
@@ -381,17 +383,14 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   };
 
   const addExperience = () => {
-    setExperiences((current) => [...current, {
-      id: `experience-${Date.now()}`,
-      title: "",
-      company: "",
-      location: "",
-      startMonth: "",
-      endMonth: "",
-      isCurrent: false,
-      legacyPeriod: "",
-      description: "",
-    }]);
+    setExperienceFormOpen(true);
+  };
+
+  const saveNewExperience = (experience: ExperienceEntry) => {
+    setExperiences((current) => [...current, experience]);
+    setOpenSections((current) => ({ ...current, experience: true }));
+    setExperienceFormOpen(false);
+    onNotify?.("تمت إضافة الخبرة، وسيُحفظ ملفك تلقائيًا.");
   };
 
   const updateExperience = <K extends keyof ExperienceEntry>(id: string, key: K, value: ExperienceEntry[K]) => {
@@ -623,9 +622,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
               <p className="candidate-profile-headline">{form.headline || "أضف مسماك الوظيفي"}</p>
               <span className="candidate-profile-specialization">{form.specialization || "أضف تخصصك المهني"}</span>
             </div>
-            <button type="button" className="candidate-profile-edit-button" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }}>
-              <Pencil size={16} /><span>تعديل المعلومات</span>
-            </button>
           </div>
           <div className="candidate-profile-contact">
             {form.email.trim() ? <a href={`mailto:${form.email}`} dir="ltr"><Mail size={15} /> {form.email}</a> : <span><Mail size={15} /> أضف بريدك الإلكتروني</span>}
@@ -637,6 +633,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
             <p>{form.summary.trim() || "أضف نبذة مهنية قصيرة حتى يتعرف أصحاب العمل على خبرتك وأهدافك."}</p>
           </div>
         </div>
+        <button type="button" className="candidate-profile-edit-button" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }}>
+          <Pencil size={16} /><span>تعديل المعلومات</span>
+        </button>
       </div>
     </section>
     <div className="candidate-profile-grid">
@@ -781,6 +780,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         <div className="profile-aside-card tip-card"><div className="aside-card-heading"><div><span className="eyebrow">نصيحة سريعة</span><h3>اكتب إنجازك بالأرقام</h3></div><Sparkles size={20} /></div><p>بدل «أدرت حسابات التواصل»، جرّب «رفعت التفاعل 35% خلال 6 أشهر». التفاصيل الصغيرة تفرق.</p></div>
         <div className="profile-aside-card mini-contact-card"><div className="mini-contact-icon"><FileText size={17} /></div><div><b>تحتاج تحديث سيرتك؟</b><small>أكمل الملف هنا، وبعدها استخدمه للتقديم على الفرص.</small></div></div>
       </aside>
+      {experienceFormOpen && <ExperienceFormModal onClose={() => setExperienceFormOpen(false)} onSave={saveNewExperience} />}
     </div>
   </section>;
 }

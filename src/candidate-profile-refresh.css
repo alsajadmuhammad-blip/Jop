@@ -1314,6 +1314,164 @@
   }
 }
 
+.candidate-profile-page .candidate-profile-identity-card {
+  position: relative;
+}
+
+.candidate-profile-page .candidate-profile-edit-button {
+  position: absolute;
+  top: 45px;
+  left: 18px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 37px;
+  padding: 7px 12px;
+  border: 1px solid #2d88bb;
+  border-radius: 9px;
+  color: #fff;
+  background: linear-gradient(115deg, #153b5c, #2d88bb);
+  box-shadow: 0 7px 16px rgba(21, 59, 92, .18);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.candidate-profile-page .candidate-profile-edit-button:hover {
+  border-color: #123251;
+  color: #fff;
+  background: linear-gradient(115deg, #123251, #236f9b);
+  box-shadow: 0 9px 20px rgba(21, 59, 92, .23);
+}
+
+.candidate-profile-page .candidate-resume-entry-card {
+  position: relative;
+  overflow: hidden;
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(125deg, #153b5c 0%, #1e5e87 58%, #2d88bb 100%);
+  box-shadow: 0 14px 28px rgba(21, 59, 92, .18);
+}
+
+.candidate-profile-page .candidate-resume-entry-card::after {
+  position: absolute;
+  top: -56px;
+  left: -43px;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 50%;
+  box-shadow: 0 0 0 20px rgba(255, 255, 255, .04), 0 0 0 42px rgba(255, 255, 255, .025);
+  content: "";
+  pointer-events: none;
+}
+
+.candidate-profile-page .candidate-resume-entry-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.candidate-profile-page .candidate-resume-entry-card .aside-card-heading h3 {
+  color: #fff;
+}
+
+.candidate-profile-page .candidate-resume-entry-card .aside-card-heading .eyebrow,
+.candidate-profile-page .candidate-resume-entry-card .aside-card-heading > svg {
+  color: #c8eafd;
+}
+
+.candidate-profile-page .candidate-resume-entry-card > p {
+  color: rgba(239, 248, 253, .88);
+}
+
+.candidate-profile-page .candidate-resume-entry-card .ats-export-actions > button {
+  border-color: #fff;
+  color: #153b5c;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(10, 38, 59, .13);
+}
+
+.candidate-profile-page .candidate-resume-entry-card .ats-export-actions > button:hover {
+  border-color: #dceff8;
+  color: #123251;
+  background: #eaf6fc;
+}
+
+.experience-modal-intro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 11px 12px;
+  border: 1px solid #d9e9f2;
+  border-radius: 10px;
+  color: #557184;
+  background: #f3f8fb;
+}
+
+.experience-modal-intro > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  color: #2d88bb;
+  background: #e0f0f8;
+}
+
+.experience-modal-intro p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.experience-modal-form {
+  gap: 13px;
+}
+
+.experience-modal-location {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.experience-modal-location > svg {
+  position: absolute;
+  right: 12px;
+  color: #7994a6;
+  pointer-events: none;
+}
+
+.experience-modal-form .experience-modal-location input {
+  padding-right: 36px;
+}
+
+.experience-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.experience-modal-actions .primary-btn,
+.experience-modal-actions .outline-btn {
+  min-height: 39px;
+  padding-inline: 15px;
+}
+
+@media (max-width: 620px) {
+  .candidate-profile-page .candidate-profile-edit-button {
+    top: 42px;
+    left: 12px;
+    min-width: 0;
+    min-height: 34px;
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+}
+
 @media (max-width: 760px) {
   .candidate-profile-page .candidate-profile-tabs {
     grid-template-columns: repeat(4, max-content);
