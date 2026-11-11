@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Camera, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
@@ -27,7 +27,7 @@ type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "err
 type CandidateProfileTab = "overview" | "skills" | "experience" | "education" | "preferences";
 
 const candidateProfileTabs: { id: CandidateProfileTab; label: string; icon: typeof UserRound }[] = [
-  { id: "overview", label: "نبذة", icon: UserRound },
+  { id: "overview", label: "الملخص المهني", icon: UserRound },
   { id: "skills", label: "المهارات", icon: Sparkles },
   { id: "experience", label: "الخبرات", icon: BriefcaseBusiness },
   { id: "education", label: "التعليم واللغات", icon: GraduationCap },
@@ -447,14 +447,28 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     [experience.title, experience.company, experience.location, experience.startMonth, experience.endMonth, experience.legacyPeriod, experience.description]
       .some((value) => value.trim()) || experience.isCurrent,
   );
+  const completedSkills = form.skills.filter((skill) => skill.trim()).length;
+  const completedEducation = education.filter((entry) =>
+    [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()),
+  ).length;
+  const completedLanguages = languages.filter((language) => language.name.trim()).length;
+  const profileTabCounts: Record<CandidateProfileTab, number | null> = {
+    overview: null,
+    skills: completedSkills,
+    experience: completedExperiences.length,
+    education: completedEducation + completedLanguages,
+    preferences: Number(Boolean(form.work_type.trim())) +
+      Number(Boolean(form.availability.trim())) +
+      Number(form.expected_salary_min !== null),
+  };
   const hasFullName = Boolean(form.full_name.trim());
   const hasHeadline = Boolean(form.headline.trim());
   const hasSpecialization = Boolean(form.specialization.trim());
   const hasProvince = Boolean(form.province.trim());
   const hasCity = Boolean(form.city.trim());
-  const hasSkills = form.skills.some((skill) => skill.trim());
+  const hasSkills = completedSkills > 0;
   const hasExperience = completedExperiences.length > 0;
-  const hasEducation = education.some((entry) => [entry.degree, entry.specialization, entry.institution, entry.graduationYear].some((value) => value.trim()));
+  const hasEducation = completedEducation > 0;
   const hasSummary = Boolean(form.summary.trim());
   const completeness = useMemo(() => {
     const checks = [
@@ -626,29 +640,18 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
       </div>
       <div className="candidate-profile-identity-card">
         <div className="candidate-profile-avatar-shell">
-          <div
-            className="candidate-profile-avatar"
-            role="img"
-            aria-label="الصورة الشخصية قيد التطوير"
-          >
+          <div className="candidate-profile-avatar" aria-hidden="true">
             <UserRound size={45} strokeWidth={1.5} />
-            <span className="candidate-profile-avatar-camera"><Camera size={15} /></span>
           </div>
-          <span className="candidate-profile-avatar-status">قيد التطوير</span>
         </div>
         <div className="candidate-profile-identity-content">
           <div className="candidate-profile-identity-heading">
-            <button
-              type="button"
-              className="candidate-profile-summary-link"
-              onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }}
-              aria-label="تعديل المعلومات المهنية"
-            >
+            <div className="candidate-profile-summary-link">
               <span className="eyebrow">ملفك المهني</span>
               <h1 id="candidate-profile-name">{form.full_name || "أضف اسمك الكامل"}</h1>
               <p className="candidate-profile-headline">{form.headline || "أضف مسماك الوظيفي"}</p>
               <span className="candidate-profile-specialization">{form.specialization || "أضف تخصصك المهني"}</span>
-            </button>
+            </div>
             <button type="button" className="candidate-profile-edit-button" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }}>
               <Pencil size={16} /><span>تعديل المعلومات</span>
             </button>
@@ -657,10 +660,6 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
             {form.email.trim() ? <a href={`mailto:${form.email}`} dir="ltr"><Mail size={15} /> {form.email}</a> : <span><Mail size={15} /> أضف بريدك الإلكتروني</span>}
             {form.phone.trim() ? <a href={`tel:${form.phone.replace(/[^\d+]/g, "")}`} dir="ltr"><Phone size={15} /> {form.phone}</a> : <span><Phone size={15} /> أضف رقم هاتفك</span>}
             <span><MapPin size={15} /> {form.city || form.province || "أضف موقعك"}</span>
-          </div>
-          <div className="candidate-profile-photo-notice">
-            <span><Camera size={15} /><b>ميزة الصورة الشخصية قيد التطوير</b></span>
-            <button type="button" disabled aria-label="إضافة صورة شخصية قريبًا">قريبًا</button>
           </div>
           <div className="candidate-profile-shortcuts">
             <button type="button" className="text-btn" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button>
@@ -692,6 +691,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           {candidateProfileTabs.map((tab, index) => {
             const Icon = tab.icon;
             const selected = activeProfileTab === tab.id;
+            const count = profileTabCounts[tab.id];
             return <button
               key={tab.id}
               ref={(element) => { profileTabRefs.current[index] = element; }}
@@ -722,23 +722,23 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
               }}
             >
               <Icon size={16} /><span>{tab.label}</span>
+              {count !== null && <span className="candidate-profile-tab-count" aria-label={`${count} عناصر`}>{count}</span>}
             </button>;
           })}
         </div>
         <div className="candidate-profile-tab-content" id="candidate-profile-tabpanel" role="tabpanel" aria-labelledby={`candidate-profile-tab-${activeProfileTab}`}>
           {activeProfileTab === "overview" && <section className="candidate-profile-overview">
-            <article className="candidate-profile-overview-card">
+              <article className="candidate-profile-overview-card">
               <div className="profile-section-heading">
                 <span className="profile-section-icon blue"><FileText size={18} /></span>
                 <div><span className="eyebrow">نبذة عنك</span><h2>الملخص المهني</h2><p>تعريف مختصر يوضح خبرتك والقيمة التي تقدمها.</p></div>
-                <button type="button" className="candidate-profile-overview-edit" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }} aria-label="تعديل المعلومات المهنية"><Pencil size={15} /></button>
               </div>
               <p className="candidate-profile-summary-preview">{form.summary.trim() || "أضف نبذة مهنية قصيرة حتى يتعرف أصحاب العمل على خبرتك وأهدافك."}</p>
             </article>
             <div className="candidate-profile-overview-stats" aria-label="ملخص بيانات الملف">
-              <span><b>{form.skills.length}</b><small>مهارة</small></span>
+              <span><b>{completedSkills}</b><small>مهارة</small></span>
               <span><b>{completedExperiences.length}</b><small>خبرة عملية</small></span>
-              <span><b>{education.length}</b><small>مؤهل تعليمي</small></span>
+              <span><b>{completedEducation}</b><small>مؤهل تعليمي</small></span>
             </div>
           </section>}
 
@@ -783,7 +783,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           <summary className="profile-section-summary">
             <span className="profile-section-icon violet"><GraduationCap size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">المعرفة واللغات</span><b>التعليم واللغات</b><small>المؤهل والجهة التعليمية واللغات</small></span>
-            <span className="profile-section-count">{education.length} مؤهل · {languages.length} لغة</span><ChevronDown className="profile-disclosure-chevron" size={18} />
+            <span className="profile-section-count">{completedEducation} مؤهل · {completedLanguages} لغة</span><ChevronDown className="profile-disclosure-chevron" size={18} />
           </summary>
           {openSections.education && <div className="profile-section-body">
             <div className="profile-section-toolbar"><span>المؤهلات العلمية</span><button type="button" className="outline-btn add-experience-btn" onClick={addEducation}><Plus size={16} /> إضافة شهادة</button></div>
@@ -808,22 +808,26 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         <div className="profile-form-actions"><span className="profile-autosave-note">تُحفظ تعديلاتك تلقائيًا أثناء التحرير.</span><button type="button" className="text-btn" onClick={() => { flushAutosaveRef.current(); onNavigate("jobs"); }}><ArrowLeft size={16} /> تصفح الوظائف</button></div>
       </form>
 
-      <aside className="candidate-profile-aside">
+      <aside className="candidate-profile-aside" aria-label="قوالب السيرة الذاتية وإرشادات الملف">
+        <header className="candidate-resume-panel-heading">
+          <div><span className="eyebrow">سير جاهزة للتقديم</span><h2>اختر النسخة المناسبة</h2></div>
+          <p>كل قالب يستخدم البيانات المحفوظة في ملفك المهني.</p>
+        </header>
         <div className="profile-aside-card ats-export-card">
-          <div className="aside-card-heading"><div><span className="eyebrow">English application version</span><h3>ATS Resume</h3></div><FileText size={20} /></div>
-          <p>نسخة إنكليزية رسمية بخط خطي واضح وترتيب مناسب لأنظمة التوظيف الآلية.</p>
+          <div className="aside-card-heading"><div><span className="eyebrow">نسخة إنكليزية · متوافقة مع أنظمة الفرز</span><h3>سيرة ATS</h3></div><FileText size={20} /></div>
+          <p>تنسيق واضح وسهل القراءة لأنظمة التوظيف الآلية. اختر Word للتعديل أو PDF للإرسال.</p>
           <div className="ats-export-actions">
-            <button type="button" className="primary-btn" onClick={exportAts}><Download size={16} /> تنزيل Word ATS</button>
-            <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> حفظ ATS كـ PDF</button>
+            <button type="button" className="primary-btn" onClick={exportAts}><Download size={16} /> تنزيل Word</button>
+            <button type="button" className="outline-btn" onClick={printAts}><Printer size={15} /> طباعة أو حفظ PDF</button>
           </div>
           {!canExportAts && <small className="ats-export-hint">أكمل بيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>
         <div className="profile-aside-card ats-export-card professional-resume-export-card">
-          <div className="aside-card-heading"><div><span className="eyebrow">Designed application version</span><h3>Professional CV</h3></div><FileText size={20} /></div>
-          <p>نسخة إنكليزية بتصميم احترافي وبطاقات واضحة، منفصلة عن نسخة ATS.</p>
+          <div className="aside-card-heading"><div><span className="eyebrow">نسخة إنكليزية · بتصميم مرئي</span><h3>السيرة الاحترافية</h3></div><FileText size={20} /></div>
+          <p>قالب منسّق لعرض خبراتك ومهاراتك بوضوح. اختر Word للتعديل أو PDF للإرسال.</p>
           <div className="ats-export-actions">
-            <button type="button" className="primary-btn" onClick={exportProfessionalResume}><Download size={16} /> تنزيل Word احترافي</button>
-            <button type="button" className="outline-btn" onClick={printProfessionalResumePdf}><Printer size={15} /> حفظ PDF احترافي</button>
+            <button type="button" className="primary-btn" onClick={exportProfessionalResume}><Download size={16} /> تنزيل Word</button>
+            <button type="button" className="outline-btn" onClick={printProfessionalResumePdf}><Printer size={15} /> طباعة أو حفظ PDF</button>
           </div>
           {!canExportAts && <small className="ats-export-hint">أكمل الاسم والمسمى وبيانات الاتصال والنبذة المهنية لتفعيل التصدير.</small>}
         </div>

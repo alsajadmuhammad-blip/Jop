@@ -26,7 +26,7 @@ function lines(value: string) {
 }
 
 function list(items: string[]) {
-  return items.filter((item) => item.trim()).map((item) => `<li>${clean(item)}</li>`).join("");
+  return items.filter((item) => item.trim()).map(clean).join("  ·  ");
 }
 
 function contactParts(data: ResumeData) {
@@ -117,25 +117,28 @@ export function buildAtsResumeDocument(data: AtsResumeData) {
     <meta charset="utf-8" />
     <title>${clean(data.full_name || "Resume")}</title>
     <style>
-      @page { size: A4; margin: 17mm 18mm; }
+      @page { size: A4; margin: 16mm 18mm; }
       * { box-sizing: border-box; }
-      body { margin: 0; color: #202020; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.62; }
+      body { margin: 0; color: #293845; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.58; }
       main { max-width: 760px; margin: 0 auto; }
-      header { padding-bottom: 13px; border-bottom: 2px solid #222; }
-      h1 { margin: 0; color: #111; font-size: 25pt; line-height: 1.15; letter-spacing: .1px; }
-      .headline { margin: 5px 0 8px; color: #333; font-size: 13pt; font-weight: 700; }
-      .contact, .meta { margin: 0; color: #444; font-size: 9.5pt; }
-      .submeta { margin: 4px 0 0; color: #555; font-size: 9.5pt; }
-      section { margin-top: 17px; }
-      h2 { margin: 0 0 7px; padding-bottom: 4px; border-bottom: 1px solid #777; color: #111; font-size: 12.5pt; line-height: 1.25; text-transform: uppercase; letter-spacing: .3px; }
-      h3 { margin: 0; color: #222; font-size: 11.5pt; line-height: 1.4; }
+      header { padding: 9px 0 13px; border-top: 4px solid #193650; border-bottom: 1px solid #d5dfe4; }
+      h1 { margin: 0; color: #193650; font-size: 25pt; line-height: 1.15; letter-spacing: .1px; }
+      .headline { margin: 5px 0 8px; color: #425d70; font-size: 12.5pt; font-weight: 700; }
+      .contact, .meta { margin: 0; color: #485966; font-size: 9.5pt; }
+      .submeta { margin: 4px 0 0; color: #7a604c; font-size: 9pt; }
+      section { margin-top: 16px; }
+      h2 { margin: 0 0 7px; padding: 0 0 5px; border-bottom: 1px solid #d5dfe4; color: #193650; font-size: 11.5pt; line-height: 1.3; text-transform: uppercase; letter-spacing: .45px; page-break-after: avoid; break-after: avoid; }
+      h3 { margin: 0; color: #284a60; font-size: 10.5pt; line-height: 1.4; page-break-after: avoid; break-after: avoid; }
       p { margin: 0; }
-      ul { margin: 5px 0 0; padding: 0 0 0 19px; }
-      li { margin: 2px 0; }
-      .experience { margin: 0 0 13px; }
+      ul { margin: 6px 0 0; padding: 0 0 0 19px; }
+      li { margin: 2px 0; padding-left: 2px; }
+      .experience { margin: 0 0 12px; page-break-inside: avoid; break-inside: avoid; }
       .experience:last-child { margin-bottom: 0; }
-      .skills li { display: inline; }
-      .skills li:not(:last-child)::after { content: ", "; }
+      .skills { color: #354f63; line-height: 1.8; }
+      @media print {
+        body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        section, .experience { orphans: 3; widows: 3; }
+      }
     </style>
   </head>
   <body>
@@ -147,7 +150,7 @@ export function buildAtsResumeDocument(data: AtsResumeData) {
         ${meta ? `<p class="submeta">${meta}</p>` : ""}
       </header>
       ${data.summary.trim() ? `<section><h2>Professional Summary</h2><p>${lines(data.summary)}</p></section>` : ""}
-      ${data.skills.length ? `<section><h2>Core Skills</h2><ul class="skills">${list(data.skills)}</ul></section>` : ""}
+      ${data.skills.some((skill) => skill.trim()) ? `<section><h2>Core Skills</h2><p class="skills">${list(data.skills)}</p></section>` : ""}
       ${experiences ? `<section><h2>Professional Experience</h2>${experiences}</section>` : ""}
       ${data.education.trim() ? `<section><h2>Education</h2><p>${lines(data.education)}</p></section>` : ""}
       ${languagesMarkup(data, true) ? `<section><h2>Languages</h2><ul>${languagesMarkup(data, true)}</ul></section>` : ""}

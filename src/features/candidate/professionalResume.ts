@@ -22,9 +22,9 @@ function lines(value: string) {
   return clean(value).replace(/\r?\n/g, "<br />");
 }
 
-function sectionCard(title: string, content: string) {
+function sectionCard(title: string, content: string, variant = "") {
   if (!content) return "";
-  return `<table class="cv-section" role="presentation" cellspacing="0" cellpadding="0">
+  return `<table class="cv-section${variant ? ` ${clean(variant)}` : ""}" role="presentation" cellspacing="0" cellpadding="0">
     <tbody>
       <tr><td class="cv-section-heading">${clean(title)}</td></tr>
       <tr><td class="cv-section-body">${content}</td></tr>
@@ -127,8 +127,8 @@ export function buildProfessionalResumeDocument(data: ResumeData) {
     : "";
 
   const experiences = experienceMarkup(data);
-  const summary = data.summary.trim() ? sectionCard("Professional summary", `<p class="cv-summary">${lines(data.summary)}</p>`) : "";
-  const experienceSection = sectionCard("Professional experience", experiences);
+  const summary = data.summary.trim() ? sectionCard("Professional summary", `<p class="cv-summary">${lines(data.summary)}</p>`, "summary-section") : "";
+  const experienceSection = sectionCard("Professional experience", experiences, "experience-section");
   const snapshotRows = [
     data.specialization.trim()
       ? `<tr><td><span class="cv-data-label">Specialization</span><strong>${clean(data.specialization)}</strong></td></tr>`
@@ -138,11 +138,11 @@ export function buildProfessionalResumeDocument(data: ResumeData) {
       : "",
   ].filter(Boolean).join("");
   const snapshot = snapshotRows
-    ? sectionCard("Career snapshot", `<table class="cv-snapshot" cellspacing="0" cellpadding="0"><tbody>${snapshotRows}</tbody></table>`)
+    ? sectionCard("Career snapshot", `<table class="cv-snapshot" cellspacing="0" cellpadding="0"><tbody>${snapshotRows}</tbody></table>`, "snapshot-section")
     : "";
-  const skills = sectionCard("Core skills", skillsMarkup(data.skills));
-  const education = sectionCard("Education", educationMarkup(data.education));
-  const languages = sectionCard("Languages", languagesMarkup(data));
+  const skills = sectionCard("Core skills", skillsMarkup(data.skills), "skills-section");
+  const education = sectionCard("Education", educationMarkup(data.education), "education-section");
+  const languages = sectionCard("Languages", languagesMarkup(data), "languages-section");
   const sideColumn = [snapshot, skills, education, languages].join("");
   const columns = experienceSection || sideColumn
     ? `<table class="cv-columns" role="presentation" cellspacing="0" cellpadding="0"><tbody>
@@ -159,51 +159,57 @@ export function buildProfessionalResumeDocument(data: ResumeData) {
     <meta charset="utf-8" />
     <title>${clean(data.full_name || "Professional Resume")}</title>
     <style>
-      @page { size: A4 portrait; margin: 13mm; }
+      @page { size: A4 portrait; margin: 14mm; }
       * { box-sizing: border-box; }
-      body { margin: 0; color: #203b40; background: #fff; font-family: Arial, "Trebuchet MS", sans-serif; font-size: 10pt; line-height: 1.5; }
-      main { width: 100%; max-width: 794px; margin: 0 auto; }
-      .cv-header { padding: 0 0 17px; border-bottom: 3px solid #173f46; }
-      .cv-name { margin: 0; color: #173f46; font-family: Georgia, "Times New Roman", serif; font-size: 28pt; line-height: 1.08; }
-      .cv-headline { margin: 5px 0 11px; color: #426166; font-size: 12pt; font-weight: 700; }
+      body { margin: 0; color: #263b4c; background: #eef2f3; font-family: Arial, "Trebuchet MS", sans-serif; font-size: 10pt; line-height: 1.55; }
+      main { width: 100%; max-width: 794px; margin: 0 auto; background: #fff; }
+      .cv-header { padding: 22px 25px 18px; border-bottom: 4px solid #c58a63; color: #fff; background: #193650; }
+      .cv-kicker { margin: 0 0 7px; color: #e2b997; font-size: 7.5pt; font-weight: 700; letter-spacing: 1.2px; }
+      .cv-name { margin: 0; color: #fff; font-family: Georgia, "Times New Roman", serif; font-size: 28pt; line-height: 1.12; }
+      .cv-headline { margin: 5px 0 11px; color: #e5edf0; font-size: 12pt; font-weight: 600; }
       .cv-contact { width: 100%; border-collapse: collapse; }
-      .cv-contact td { padding: 3px 15px 2px 0; color: #4c666a; font-size: 9pt; vertical-align: top; }
-      .cv-contact-label { padding-right: 5px; color: #839495; font-size: 7pt; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
-      .cv-section { width: 100%; margin: 0 0 11px; border: 1px solid #d9e4e1; border-collapse: collapse; }
-      .cv-section-heading { padding: 7px 10px; border-bottom: 1px solid #d9e4e1; color: #173f46; background: #f1f6f4; font-size: 8.5pt; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+      .cv-contact td { padding: 4px 14px 2px 0; color: #f2f5f6; font-size: 9pt; vertical-align: top; }
+      .cv-contact-label { padding-right: 5px; color: #e2b997; font-size: 7pt; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+      .cv-content { padding: 19px 25px 23px; }
+      .cv-section { width: 100%; margin: 0 0 11px; border: 1px solid #dce4e7; border-collapse: collapse; }
+      .cv-section-heading { padding: 7px 10px; border-bottom: 1px solid #dce4e7; color: #193650; background: #f1f5f5; font-size: 8.5pt; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
       .cv-section-body { padding: 9px 10px; vertical-align: top; }
-      .cv-summary { margin: 0; color: #415a5e; font-size: 9pt; line-height: 1.6; }
+      .summary-section { border-left: 3px solid #c58a63; }
+      .summary-section .cv-section-heading { background: #faf5f0; }
+      .cv-summary { margin: 0; color: #405667; font-size: 9pt; line-height: 1.68; }
       .cv-columns { width: 100%; margin-top: 13px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
       .cv-main-column { width: 62%; padding: 0 6px 0 0; vertical-align: top; }
       .cv-side-column { width: 38%; padding: 0 0 0 6px; vertical-align: top; }
-      .cv-experience { padding: 9px 0; border-bottom: 1px solid #e3ebe8; page-break-inside: avoid; break-inside: avoid; }
+      .cv-experience { padding: 9px 0; border-bottom: 1px solid #e3e9eb; page-break-inside: avoid; break-inside: avoid; }
       .cv-experience:last-child { border-bottom: 0; }
       .cv-entry-heading { width: 100%; border-collapse: collapse; }
       .cv-entry-heading td { padding: 0; vertical-align: top; }
-      .cv-entry-heading h3 { margin: 0; color: #24494e; font-size: 9.5pt; line-height: 1.35; }
-      .cv-period { width: 95px; padding-left: 5px !important; color: #276961; font-size: 7.5pt; font-weight: 700; text-align: right; white-space: nowrap; }
-      .cv-company { margin: 3px 0 5px; color: #728586; font-size: 8pt; font-weight: 600; }
-      .cv-description { margin: 0; color: #51676a; font-size: 8.5pt; line-height: 1.5; }
+      .cv-entry-heading h3 { margin: 0; color: #244a62; font-size: 9.5pt; line-height: 1.4; }
+      .cv-period { width: 95px; padding-left: 5px !important; color: #8b6245; font-size: 7.5pt; font-weight: 700; text-align: right; white-space: nowrap; }
+      .cv-company { margin: 3px 0 5px; color: #6d7e88; font-size: 8pt; font-weight: 600; }
+      .cv-description { margin: 0; color: #4b606e; font-size: 8.5pt; line-height: 1.58; }
       .cv-snapshot, .cv-languages { width: 100%; border-collapse: collapse; }
-      .cv-snapshot td, .cv-languages td { padding: 5px 0; border-bottom: 1px solid #e7edeb; vertical-align: top; }
+      .cv-snapshot td, .cv-languages td { padding: 6px 0; border-bottom: 1px solid #e7edef; vertical-align: top; }
       .cv-snapshot tr:last-child td, .cv-languages tr:last-child td { border-bottom: 0; }
-      .cv-data-label { display: block; margin-bottom: 2px; color: #829391; font-size: 7pt; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
-      .cv-snapshot strong, .cv-language-name { color: #37585b; font-size: 8.5pt; font-weight: 700; }
-      .cv-language-level { color: #758887; font-size: 8pt; text-align: right; }
+      .cv-data-label { display: block; margin-bottom: 2px; color: #7b8b92; font-size: 7pt; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+      .cv-snapshot strong, .cv-language-name { color: #35546a; font-size: 8.5pt; font-weight: 700; }
+      .cv-language-level { color: #71828b; font-size: 8pt; text-align: right; }
       .cv-skills { width: 100%; border-collapse: separate; border-spacing: 4px; }
-      .cv-skills td { width: 50%; padding: 5px 6px; border: 1px solid #e0e9e6; color: #3e6260; background: #f6f9f7; font-size: 7.5pt; line-height: 1.3; vertical-align: middle; }
-      .cv-education-entry { padding: 3px 0 5px; page-break-inside: avoid; break-inside: avoid; }
-      .cv-education-entry strong { color: #37585b; font-size: 8.5pt; }
-      .cv-education-entry p { margin: 3px 0 0; color: #738584; font-size: 7.5pt; line-height: 1.4; }
+      .cv-skills td { width: 50%; padding: 5px 6px; border: 1px solid #dfe7e8; color: #35556a; background: #f6f9f8; font-size: 7.5pt; line-height: 1.4; vertical-align: middle; }
+      .cv-education-entry { padding: 3px 0 6px; page-break-inside: avoid; break-inside: avoid; }
+      .cv-education-entry strong { color: #35546a; font-size: 8.5pt; }
+      .cv-education-entry p { margin: 3px 0 0; color: #71818a; font-size: 7.5pt; line-height: 1.5; }
       @media screen and (max-width: 680px) {
-        body { padding: 18px 12px; }
+        body { padding: 14px 10px; }
+        .cv-header { padding: 20px 17px 16px; }
+        .cv-content { padding: 16px 17px 20px; }
         .cv-columns, .cv-columns tbody, .cv-columns tr, .cv-columns td { display: block; width: 100%; }
-        .cv-main-column { padding: 0; }
-        .cv-side-column { padding: 0; }
+        .cv-main-column, .cv-side-column { padding: 0; }
       }
       @media print {
-        body { padding: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        body { padding: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         main { max-width: none; }
+        .cv-header, .cv-section-heading, .cv-skills td { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         .cv-section-heading, .cv-experience, .cv-education-entry { page-break-inside: avoid; break-inside: avoid; }
       }
     </style>
@@ -211,12 +217,15 @@ export function buildProfessionalResumeDocument(data: ResumeData) {
   <body>
     <main>
       <header class="cv-header">
+        <p class="cv-kicker">PROFESSIONAL PROFILE</p>
         <h1 class="cv-name">${clean(data.full_name || "Full Name")}</h1>
         <p class="cv-headline">${clean(data.headline || "Professional Title")}</p>
         ${contact}
       </header>
-      ${summary}
-      ${columns}
+      <div class="cv-content">
+        ${summary}
+        ${columns}
+      </div>
     </main>
   </body>
 </html>`;
