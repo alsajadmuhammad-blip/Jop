@@ -278,6 +278,38 @@
   font-size: 10px;
 }
 
+.candidate-resume-a4-fit-status {
+  display: grid;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 10px 11px;
+  border: 1px solid #dfe7e4;
+  border-radius: 8px;
+  color: #5f746b;
+  background: #f5f9f6;
+  font-size: 10px;
+  line-height: 1.75;
+}
+
+.candidate-resume-a4-fit-status.overflow {
+  border-color: #ead3c4;
+  color: #795540;
+  background: #fcf6f1;
+}
+
+.candidate-resume-a4-fit-status.checking {
+  color: var(--resume-muted);
+  background: #f7f8f7;
+}
+
+.candidate-resume-a4-fit-status .candidate-resume-export-edit {
+  justify-self: start;
+  min-height: 34px;
+  padding: 5px 9px;
+  border-color: #d8e1e2;
+  font-size: 10px;
+}
+
 .candidate-resume-preview-wrap {
   min-width: 0;
   padding: 15px;
@@ -306,14 +338,28 @@
   font-size: 10px;
 }
 
-.candidate-resume-preview-frame {
-  display: block;
-  width: 100%;
-  height: min(78vh, 980px);
-  min-height: 620px;
-  border: 1px solid #d8dfdf;
+.candidate-resume-preview-sheet {
+  position: relative;
+  width: min(100%, 794px);
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  margin: 0 auto;
+  border: 1px solid #d3dcda;
   background: #fff;
-  box-shadow: 0 10px 24px rgba(28, 49, 59, .08);
+  box-shadow: 0 12px 30px rgba(28, 49, 59, .12);
+}
+
+.candidate-resume-preview-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 794px;
+  height: 1123px;
+  max-width: none;
+  border: 0;
+  background: #fff;
+  transform-origin: top left;
 }
 
 .candidate-resume-export-page :is(button, iframe):focus-visible {
@@ -375,11 +421,6 @@
 
   .candidate-resume-preview-wrap {
     padding: 8px;
-  }
-
-  .candidate-resume-preview-frame {
-    height: 70vh;
-    min-height: 520px;
   }
 }
 
