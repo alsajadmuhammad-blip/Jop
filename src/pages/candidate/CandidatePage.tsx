@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent } from "react";
 import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { MonthYearField } from "../../components/common/MonthYearField";
@@ -8,6 +8,7 @@ import { hasSupabaseConfig } from "../../lib/supabase";
 import { clearCandidateProfileDraft, formatCandidateExperiencePeriod, formatCandidateLanguages, getCachedCandidateProfile, getCandidateProfileDraft, languageLevels, loadCandidateProfile, parseCandidateEducation, parseCandidateExperiences, parseCandidateLanguages, saveCandidateProfile, saveCandidateProfileDraft, serializeCandidateEducation, serializeCandidateExperiences, type CandidateEducation, type CandidateExperience, type CandidateLanguage, type LanguageLevel } from "../../services/candidateService";
 import type { CandidateCvImport } from "../../features/candidate/cvImport";
 import { CandidateCvImportPage } from "./CandidateCvImportPage";
+import { CandidateProfileSetupWizard } from "./CandidateProfileSetupWizard";
 import { CandidateResumeExportPage } from "./CandidateResumeExportPage";
 import { ExperienceFormModal } from "./ExperienceFormModal";
 
@@ -26,6 +27,13 @@ type EducationEntry = CandidateEducation;
 
 type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
 type CandidateProfileTab = "skills" | "experience" | "education" | "preferences";
+type CandidateSetupStep = 0 | 1 | 2 | 3;
+type CandidateSetupProgress = {
+  step: CandidateSetupStep;
+  status: "in-progress" | "deferred" | "done";
+};
+
+const candidateSetupStoragePrefix = "IRAQ_JOBS_CANDIDATE_SETUP_V1:";
 
 const candidateProfileTabs: { id: CandidateProfileTab; label: string; icon: typeof UserRound }[] = [
   { id: "skills", label: "المهارات", icon: Sparkles },
@@ -105,6 +113,35 @@ function localMonthValue() {
   return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function readCandidateSetupProgress(userId: string): CandidateSetupProgress | null {
+  try {
+    const saved = window.localStorage.getItem(`${candidateSetupStoragePrefix}${userId}`);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved) as Partial<CandidateSetupProgress>;
+    if (
+      typeof parsed.step !== "number" ||
+      !Number.isInteger(parsed.step) ||
+      parsed.step < 0 ||
+      parsed.step > 3 ||
+      !["in-progress", "deferred", "done"].includes(parsed.status || "")
+    ) {
+      window.localStorage.removeItem(`${candidateSetupStoragePrefix}${userId}`);
+      return null;
+    }
+    return parsed as CandidateSetupProgress;
+  } catch {
+    return null;
+  }
+}
+
+function writeCandidateSetupProgress(userId: string, progress: CandidateSetupProgress) {
+  try {
+    window.localStorage.setItem(`${candidateSetupStoragePrefix}${userId}`, JSON.stringify(progress));
+  } catch {
+    // Profile autosave remains available even if setup progress cannot be stored.
+  }
+}
+
 export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify, showCvImport = false, showProfessionalEdit = false, showResumeExport = false }: CandidatePageProps) {
   const cachedProfile = getCachedCandidateProfile(profile.id);
   const initialDraft = getCandidateProfileDraft(profile.id);
@@ -121,6 +158,17 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   const [experienceFormOpen, setExperienceFormOpen] = useState(false);
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
+  const [candidateProfileExists, setCandidateProfileExists] = useState<boolean | null>(
+    () => cachedProfile === undefined ? null : Boolean(cachedProfile),
+  );
+  const [setupProgress, setSetupProgress] = useState<CandidateSetupProgress | null>(
+    () => readCandidateSetupProgress(profile.id),
+  );
+  const [setupWizardOpen, setSetupWizardOpen] = useState(false);
+  const [setupWizardReady, setSetupWizardReady] = useState(false);
+  const [setupWizardStep, setSetupWizardStep] = useState<CandidateSetupStep>(
+    () => readCandidateSetupProgress(profile.id)?.step ?? 0,
+  );
   const [activeProfileTab, setActiveProfileTab] = useState<CandidateProfileTab>("skills");
   const profileTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [openSections, setOpenSections] = useState({ identity: false, skills: true, experience: false, education: false, preferences: false });
@@ -221,6 +269,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     latestSaveRef.current = null;
     setError("");
     if (!hasSupabaseConfig) {
+      setCandidateProfileExists(false);
       setLoading(false);
       setAutosaveStatus("unavailable");
       return;
@@ -232,11 +281,13 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     void loadCandidateProfile(profile.id).then((result) => {
       if (!active) return;
       if (result.error) {
+        setCandidateProfileExists(null);
         setError("تعذر تحميل ملفك المهني، لم تُحفظ أي تعديلات حتى لا يُستبدل محتوى غير محمّل.");
         setAutosaveStatus("error");
         setLoading(false);
         return;
       }
+      setCandidateProfileExists(Boolean(result.profile));
       const cloudForm = toInput(result.profile, profile);
       const cloudLanguages = parseCandidateLanguages(cloudForm.languages);
       const cloudExperiences = parseCandidateExperiences(cloudForm.experience_details);
@@ -277,6 +328,21 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
       active = false;
     };
   }, [profile.id, profile.full_name, reloadCount]);
+
+  useEffect(() => {
+    if (setupWizardReady || loading || candidateProfileExists === null) return;
+    if (setupProgress) {
+      setSetupWizardOpen(setupProgress.status === "in-progress");
+      setSetupWizardStep(setupProgress.step);
+    } else if (!candidateProfileExists) {
+      const initialProgress: CandidateSetupProgress = { step: 0, status: "in-progress" };
+      writeCandidateSetupProgress(profile.id, initialProgress);
+      setSetupProgress(initialProgress);
+      setSetupWizardStep(0);
+      setSetupWizardOpen(true);
+    }
+    setSetupWizardReady(true);
+  }, [candidateProfileExists, loading, profile.id, setupProgress, setupWizardReady]);
 
   useEffect(() => {
     if (!hasSupabaseConfig || !loadedRef.current) return;
