@@ -1,4 +1,4 @@
-# مسار — منصة الوظائف العراقية
+# تحالف الاستقرار الهندسي — منصة الفرص المهنية العراقية
 
 تطبيق React/Vite مستقل عن أي backend داخل Replit. كل البيانات والمصادقة وملفات السير الذاتية تعمل عبر Supabase، وFirebase Hosting مهيأ لاستضافة مجلد `dist`.
 
@@ -48,7 +48,7 @@ cp .env.example .env
 
 ```sql
 insert into public.profiles (id, full_name, role, organization)
-values ('USER_UUID', 'اسم المستخدم', 'admin', 'مسار');
+values ('USER_UUID', 'اسم المستخدم', 'admin', 'تحالف الاستقرار الهندسي');
 ```
 
 الأدوار المتاحة: `admin` للإدارة، `hr` لجهة الموارد البشرية، و`candidate` للمستخدم العادي.

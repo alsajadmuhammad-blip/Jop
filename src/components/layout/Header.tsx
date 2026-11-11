@@ -1,6 +1,7 @@
 import { LogIn, LogOut, Menu, UserPlus } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
+import { BRAND_LOGO_PATH, BRAND_NAME, BRAND_TAGLINE } from "../../lib/brand";
 import { NotificationBell, type AppNotification, type NotificationDestination } from "./NotificationBell";
 
 type HeaderProps = {
@@ -26,7 +27,7 @@ export function Header({ view, profile, onLogout, onNavigate, onLogin, onRegiste
     { label: "الوظائف", view: "jobs" },
   ];
   return <header className={`site-header${profile ? " role-site-header" : ""}${profile?.role === "candidate" ? " candidate-site-header" : ""}${view === "home" || view === "jobs" ? " public-search-header" : ""}`}><div className="nav-wrap">
-    <button className="brand" onClick={() => onNavigate("home")} aria-label="IRAQ JOBS - الصفحة الرئيسية"><img className="brand-logo" src="/iraq-jobs-logo.jpg" alt="IRAQ JOBS" /><span><b>IRAQ JOBS</b><small>FOR JOB SEEKERS</small></span></button>
+    <button className="brand" onClick={() => onNavigate("home")} aria-label={`${BRAND_NAME} - الصفحة الرئيسية`}><img className="brand-logo" src={BRAND_LOGO_PATH} alt="" /><span><b>{BRAND_NAME}</b><small>{BRAND_TAGLINE}</small></span></button>
     <nav className={mobileMenu ? "main-nav open" : "main-nav"}>
       {links.map((link) => <button key={link.view} className={view === link.view ? "nav-link active" : "nav-link"} onClick={() => onNavigate(link.view)}>{link.label}</button>)}
     </nav>

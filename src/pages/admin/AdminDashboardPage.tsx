@@ -5,6 +5,7 @@ import { AppSelect } from "../../components/common/AppSelect";
 import { ModalShell } from "../../components/common/ModalShell";
 import { DatePickerField } from "../../components/common/DatePickerField";
 import { categories, governorates, jobTypes } from "../../lib/constants";
+import { BRAND_NAME } from "../../lib/brand";
 import { formatDate, formatJobLocation } from "../../lib/format";
 import { getBaghdadToday } from "../../lib/date";
 import type { Application, EmployerAccount, Job, JobAdType, JobRequest, JobType, PostStatus } from "../../lib/types";
@@ -160,7 +161,7 @@ export function AdminDashboardPage({ jobs, applications, jobRequests, onNavigate
 
   return <section className="container page-section dashboard-page">
     <div className="admin-main">
-        <div className="admin-topbar"><div><span className="eyebrow"><BarChart3 size={14} /> IRAQ JOBS / الإدارة</span><h1>{section === "overview" ? "صباح الخير، خلّينا نرتّب الفرص" : sectionItems.find((item) => item.id === section)?.label}</h1><p>{section === "overview" ? "تابع حركة المنصة واتخذ الإجراء المناسب من مكان واحد." : "إدارة واضحة للمنشورات وطلبات الشركات وملفات المتقدمين."}</p></div><button className="admin-refresh-btn" onClick={() => void refresh()}><RefreshCw className={refreshing ? "spin" : ""} size={16} /> تحديث البيانات</button></div>
+        <div className="admin-topbar"><div><span className="eyebrow"><BarChart3 size={14} /> {BRAND_NAME} / الإدارة</span><h1>{section === "overview" ? "صباح الخير، خلّينا نرتّب الفرص" : sectionItems.find((item) => item.id === section)?.label}</h1><p>{section === "overview" ? "تابع حركة المنصة واتخذ الإجراء المناسب من مكان واحد." : "إدارة واضحة للمنشورات وطلبات الشركات وملفات المتقدمين."}</p></div><button className="admin-refresh-btn" onClick={() => void refresh()}><RefreshCw className={refreshing ? "spin" : ""} size={16} /> تحديث البيانات</button></div>
           <div className="admin-control-strip">
             <span className="admin-control-mark"><ShieldCheck size={19} /></span>
             <div className="admin-control-copy"><small>مركز التحكم</small><b>كل ما يحتاج متابعة، في مكان واحد</b></div>

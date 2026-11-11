@@ -3,6 +3,7 @@ import { LoaderCircle, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { ModalShell } from "../../components/common/ModalShell";
 import type { Profile } from "../../lib/types";
+import { BRAND_NAME } from "../../lib/brand";
 import { signIn, signUp } from "../../services/authService";
 
 export function LoginModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (profile: Profile) => void }) {
@@ -31,7 +32,7 @@ export function LoginModal({ onClose, onSuccess }: { onClose: () => void; onSucc
       <button type="button" className={mode === "sign-in" ? "active" : ""} onClick={() => { setMode("sign-in"); setError(""); }}>دخول</button>
       <button type="button" className={mode === "sign-up" ? "active" : ""} onClick={() => { setMode("sign-up"); setError(""); }}>حساب جديد</button>
     </div>
-      <div className="login-intro"><span className="brand-mark"><ShieldCheck size={19} /></span><p>{mode === "sign-in" ? "ادخل إلى حسابك في IRAQ JOBS لمتابعة ملفك وفرصك." : "أنشئ حسابًا في IRAQ JOBS كباحث عن عمل أو كصاحب عمل/HR."}</p></div>
+      <div className="login-intro"><span className="brand-mark"><ShieldCheck size={19} /></span><p>{mode === "sign-in" ? `ادخل إلى حسابك في ${BRAND_NAME} لمتابعة ملفك وفرصك.` : `أنشئ حسابًا في ${BRAND_NAME} كباحث عن عمل أو كصاحب عمل/HR.`}</p></div>
     <form className="application-form" onSubmit={submit}>
       {mode === "sign-up" && <><label>الاسم الكامل<input required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label><label>نوع الحساب<AppSelect value={role} onChange={(value) => setRole(value as "candidate" | "hr")} options={[{ value: "candidate", label: "باحث عن عمل" }, { value: "hr", label: "صاحب عمل / HR" }]} ariaLabel="نوع الحساب" /></label></>}
       <label>البريد الإلكتروني<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} dir="ltr" /></label>

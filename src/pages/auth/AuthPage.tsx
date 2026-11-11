@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, LoaderCircle, LogIn, ShieldCheck, UserPlus, Users } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
+import { BRAND_NAME } from "../../lib/brand";
 import { signIn, signUp } from "../../services/authService";
 
 type AuthPageProps = {
@@ -39,9 +40,9 @@ export function AuthPage({ mode, onNavigate, onSuccess }: AuthPageProps) {
       <section className="auth-story">
         <button className="auth-back-link" onClick={() => onNavigate("home")}><ArrowRight size={16} /> العودة للرئيسية</button>
         <span className="auth-story-mark"><ShieldCheck size={23} /></span>
-        <span className="auth-story-eyebrow">IRAQ JOBS · منصة مجانية</span>
+        <span className="auth-story-eyebrow">{BRAND_NAME} · منصة مجانية</span>
         <h1>{isSignUp ? "ابدأ خطوتك الآن." : "أهلاً بعودتك."}</h1>
-        <p>{isSignUp ? "أنشئ حسابك وابدأ باستخدام IRAQ JOBS." : "سجّل الدخول لمتابعة فرصك وإعلاناتك."}</p>
+        <p>{isSignUp ? `أنشئ حسابك وابدأ باستخدام ${BRAND_NAME}.` : "سجّل الدخول لمتابعة فرصك وإعلاناتك."}</p>
       </section>
       <section className="auth-card">
         <div className="auth-card-heading"><div><span>{isSignUp ? "ابدأ الآن" : "تسجيل الدخول"}</span><h2>{isSignUp ? "أنشئ حسابك" : "ادخل إلى حسابك"}</h2></div><span className="auth-card-icon">{isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />}</span></div>

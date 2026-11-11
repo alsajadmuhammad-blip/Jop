@@ -13,6 +13,7 @@ import "./platform-polish.css";
 import "./candidate-resume.css";
 import "./hr-candidate-search.css";
 import "./candidate-profile-refresh.css";
+import "./brand-identity.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

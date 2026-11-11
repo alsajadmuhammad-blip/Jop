@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { View } from "../../app/types";
 import type { Profile } from "../../lib/types";
+import { BRAND_LOGO_PATH, BRAND_NAME } from "../../lib/brand";
 import type { AdminSection } from "../../pages/admin/AdminDashboardPage";
 import type { HrSection } from "../../pages/hr/HrDashboardPage";
 
@@ -131,9 +132,9 @@ export function MainSidebar({
       {open && profile.role !== "candidate" && <button type="button" className="main-sidebar-backdrop" onClick={onClose} aria-label="إغلاق القائمة الرئيسية" />}
       <aside className={`main-sidebar ${profile.role === "candidate" ? "candidate-sidebar" : ""} ${open ? "open" : ""}`}>
         <div className="main-sidebar-brand">
-          <span className="main-sidebar-logo">م</span>
+          <span className="main-sidebar-logo"><img src={BRAND_LOGO_PATH} alt="" /></span>
           <div>
-            <b>IRAQ JOBS</b>
+            <b>{BRAND_NAME}</b>
             <small>{profile.role === "candidate" ? "الباحث عن عمل" : profile.role === "hr" ? "صاحب العمل / HR" : "لوحة المشرف"}</small>
           </div>
         </div>

@@ -1,0 +1,181 @@
+:root {
+  --platform-canvas: #f4f8fb;
+  --platform-surface: #ffffff;
+  --platform-border: #dce7ef;
+  --platform-shadow: 0 14px 36px rgba(23, 63, 98, 0.08);
+}
+
+body {
+  color: #17334f;
+  background: #f4f8fb;
+}
+
+.site-header {
+  border-bottom-color: rgba(211, 227, 238, 0.9);
+}
+
+.brand {
+  min-width: 0;
+}
+
+.brand-logo {
+  border: 1px solid rgba(47, 143, 197, 0.32);
+  background: #fff;
+  object-fit: contain;
+  box-shadow: 0 6px 16px rgba(20, 59, 91, 0.12);
+}
+
+.brand b {
+  max-width: 220px;
+  color: #123251;
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.brand small {
+  color: #668096;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.main-sidebar-logo {
+  overflow: hidden;
+  border: 1px solid rgba(47, 143, 197, 0.28);
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(20, 59, 91, 0.12);
+}
+
+.main-sidebar-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.main-sidebar-brand b {
+  color: #123251;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.iraq-home-redesign,
+.jobs-page-redesign {
+  --ij-ink: #123251;
+  --ij-muted: #64798d;
+  --ij-blue: #2d88bb;
+  --ij-orange: #2f8fc5;
+  --ij-line: #dce7ef;
+}
+
+.ij-home-hero {
+  background: #173f62;
+  box-shadow: 0 14px 32px rgba(20, 59, 91, 0.16);
+}
+
+.ij-home-hero-shade {
+  background:
+    linear-gradient(270deg, rgba(13, 39, 65, 0.94), rgba(21, 59, 91, 0.78) 43%, rgba(27, 79, 116, 0.12)),
+    linear-gradient(0deg, rgba(10, 35, 58, 0.4), transparent 64%);
+}
+
+.ij-home-eyebrow {
+  color: #b8e4f7;
+}
+
+.ij-home-trust-row svg {
+  color: #2d88bb;
+}
+
+.ij-home-hero h1 em {
+  color: #9bd8f3;
+}
+
+.ij-home-category > span,
+.ij-home-category:nth-child(4n + 2) > span,
+.ij-home-category:nth-child(4n + 3) > span,
+.ij-home-category:nth-child(4n + 4) > span {
+  color: #2d88bb;
+  background: #e7f3fa;
+}
+
+.ij-home-category.is-active {
+  border-color: #93c5df;
+  color: #173f62;
+  background: #eef8fc;
+  box-shadow: inset 0 0 0 1px rgba(45, 136, 187, 0.09);
+}
+
+.ij-home-resume > div > span,
+.jr-filter-heading button {
+  color: #2d88bb;
+}
+
+.jr-free-mark {
+  border-color: #d1e6f1;
+  color: #28698e;
+  background: #eff8fc;
+}
+
+.jobs-page-redesign .job-card-v3-footer strong,
+.jr-trust-footer svg,
+.jr-trust-footer strong {
+  color: #2d88bb;
+}
+
+.jr-trust-footer {
+  border-color: #d6e7f0;
+  color: #64798d;
+  background: #f3f8fb;
+}
+
+.public-mobile-nav button.active {
+  color: #2d88bb;
+}
+
+.home-v3-hero {
+  background: linear-gradient(118deg, #123251 0%, #1d5c85 58%, #2f8fc5 100%);
+}
+
+.home-v3-hero:before {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 34px rgba(255, 255, 255, 0.035), 0 0 0 68px rgba(92, 188, 232, 0.08);
+}
+
+.home-v3-brand-lockup strong {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.home-v3-brand-lockup small,
+.home-v3-overline {
+  color: #c7e8f7;
+}
+
+.home-v3-overline i {
+  background: #71c5eb;
+}
+
+.cta-section {
+  background: linear-gradient(115deg, #123251, #205c82);
+}
+
+.main-sidebar-brand,
+.main-sidebar {
+  border-color: #dce7ef;
+}
+
+.main-sidebar-logo {
+  color: #123251;
+}
+
+@media (max-width: 560px) {
+  .public-search-header .brand b {
+    max-width: 195px;
+    font-size: 13px;
+  }
+
+  .public-search-header .brand small {
+    font-size: 8px;
+  }
+}

@@ -4,6 +4,7 @@ import { AppSelect } from "../../components/common/AppSelect";
 import { DatePickerField } from "../../components/common/DatePickerField";
 import { PageIntro } from "../../components/common/PageIntro";
 import { categories, governorates, jobTypes } from "../../lib/constants";
+import { BRAND_NAME } from "../../lib/brand";
 import type { View } from "../../app/types";
 import type { JobAdType, JobType, Profile } from "../../lib/types";
 import { getBaghdadToday } from "../../lib/date";
@@ -146,7 +147,7 @@ export function JobRequestPage({ profile, onNavigate, onSubmitted }: JobRequestP
   };
 
   if (sent) {
-    return <section className="container page-section centered-state"><CheckCircle2 size={52} /><h1>تم استلام طلبك</h1><p>سيراجع فريق IRAQ JOBS البيانات، وعند الموافقة ستظهر الوظيفة للباحثين عن عمل.</p><button className="primary-btn" onClick={() => onNavigate("home")}><ArrowRight size={17} /> العودة للرئيسية</button></section>;
+    return <section className="container page-section centered-state"><CheckCircle2 size={52} /><h1>تم استلام طلبك</h1><p>سيراجع فريق {BRAND_NAME} البيانات، وعند الموافقة ستظهر الوظيفة للباحثين عن عمل.</p><button className="primary-btn" onClick={() => onNavigate("home")}><ArrowRight size={17} /> العودة للرئيسية</button></section>;
   }
 
   const isQuick = form.ad_type === "quick";

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { EmptyState, LoadingCards } from "../../components/common/Feedback";
 import { categories, jobTypes } from "../../lib/constants";
+import { BRAND_NAME } from "../../lib/brand";
 import type { Job, JobType, Profile } from "../../lib/types";
 import { JobCard } from "../../features/jobs/JobCard";
 import { hasSupabaseConfig } from "../../lib/supabase";
@@ -407,7 +408,7 @@ export function JobsPage({
           <aside className="jr-trust-footer">
             <ShieldCheck size={20} aria-hidden="true" />
             <p>
-              <strong>ابحث بثقة.</strong> IRAQ JOBS منصة مجانية لاكتشاف الوظائف. تحقّق من تفاصيل الإعلان والجهة قبل التقديم.
+              <strong>ابحث بثقة.</strong> {BRAND_NAME} منصة مجانية لاكتشاف الوظائف. تحقّق من تفاصيل الإعلان والجهة قبل التقديم.
             </p>
           </aside>
         )}
