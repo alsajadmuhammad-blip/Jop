@@ -36,7 +36,7 @@ const CandidatePage = lazy(() =>
   import("./pages/candidate/CandidatePage").then((module) => ({ default: module.CandidatePage })),
 );
 
-const views: View[] = ["home", "jobs", "login", "signup", "candidate", "candidate-cv-import", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
+const views: View[] = ["home", "jobs", "login", "signup", "candidate", "candidate-profile-edit", "candidate-cv-import", "saved", "applied", "admin", "admin-post", "hr", "job", "job-request"];
 
 type HomeJobSearch = Pick<PublicJobSearch, "keyword" | "category" | "province">;
 
@@ -230,14 +230,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (profile?.role === "candidate" && ["candidate", "candidate-cv-import", "saved", "applied"].includes(view)) {
+    if (profile?.role === "candidate" && ["candidate", "candidate-profile-edit", "candidate-cv-import", "saved", "applied"].includes(view)) {
       setCandidateWorkspaceVisited(true);
     }
   }, [profile?.role, view]);
 
   useEffect(() => {
     if (!authReady) return;
-    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "candidate-cv-import" || view === "saved" || view === "applied") && !profile) {
+    if ((view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "candidate-profile-edit" || view === "candidate-cv-import" || view === "saved" || view === "applied") && !profile) {
       navigate("login");
       return;
     }
@@ -251,7 +251,7 @@ function App() {
       navigate("home");
       return;
     }
-    if ((view === "candidate" || view === "candidate-cv-import") && profile?.role !== "candidate") {
+    if ((view === "candidate" || view === "candidate-profile-edit" || view === "candidate-cv-import") && profile?.role !== "candidate") {
       notify("هذه الصفحة مخصصة للباحثين عن عمل");
       navigate("home");
     }
@@ -362,7 +362,7 @@ function App() {
         })),
     ];
   }, [applications, candidateApplications, jobRequests, profile, supervisorJobIds]);
-  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "candidate-cv-import" || view === "saved" || view === "applied";
+  const requiresAuth = view === "admin" || view === "admin-post" || view === "hr" || view === "candidate" || view === "candidate-profile-edit" || view === "candidate-cv-import" || view === "saved" || view === "applied";
   const logout = async () => {
     const { error } = await signOut();
     if (error) {
@@ -397,7 +397,7 @@ function App() {
           {view === "signup" && <AuthPage mode="sign-up" onNavigate={navigate} onSuccess={handleAuthSuccess} />}
          {view === "job-request" && <JobRequestPage profile={profile} onNavigate={navigate} onSubmitted={() => notify("تم إرسال طلب نشر الوظيفة للمراجعة")} />}
          {profile?.role === "candidate" && candidateWorkspaceVisited && <>
-            <div hidden={view !== "candidate" && view !== "candidate-cv-import"}><CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} showCvImport={view === "candidate-cv-import"} /></CandidateDashboardShell></div>
+             <div hidden={view !== "candidate" && view !== "candidate-profile-edit" && view !== "candidate-cv-import"}><CandidateDashboardShell><CandidatePage profile={profile} onNavigate={navigate} onNotify={notify} showCvImport={view === "candidate-cv-import"} showProfessionalEdit={view === "candidate-profile-edit"} /></CandidateDashboardShell></div>
            <div hidden={view !== "saved"}><CandidateDashboardShell><SavedJobsPage profile={profile} active={view === "saved"} onNavigate={navigate} onOpenJob={navigateToJob} onNotify={notify} /></CandidateDashboardShell></div>
            <div hidden={view !== "applied"}><CandidateDashboardShell><AppliedJobsPage profile={profile} active={view === "applied"} onNavigate={navigate} onOpenJob={navigateToJobId} onNotify={notify} /></CandidateDashboardShell></div>
          </>}

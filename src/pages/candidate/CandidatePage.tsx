@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Download, FileText, GraduationCap, Languages, MapPin, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Camera, Check, CheckCircle2, Download, FileText, GraduationCap, Languages, Mail, MapPin, Pencil, Phone, Plus, Printer, RotateCw, Save, ShieldCheck, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { AppSelect } from "../../components/common/AppSelect";
 import { MonthYearField } from "../../components/common/MonthYearField";
 import type { View } from "../../app/types";
@@ -17,12 +17,22 @@ type CandidatePageProps = {
   onProfileUpdated?: () => void;
   onNotify?: (message: string) => void;
   showCvImport?: boolean;
+  showProfessionalEdit?: boolean;
 };
 
 type ExperienceEntry = CandidateExperience;
 type EducationEntry = CandidateEducation;
 
 type AutosaveStatus = "loading" | "idle" | "pending" | "saving" | "saved" | "error" | "unavailable";
+type CandidateProfileTab = "overview" | "skills" | "experience" | "education" | "preferences";
+
+const candidateProfileTabs: { id: CandidateProfileTab; label: string; icon: typeof UserRound }[] = [
+  { id: "overview", label: "نبذة", icon: UserRound },
+  { id: "skills", label: "المهارات", icon: Sparkles },
+  { id: "experience", label: "الخبرات", icon: BriefcaseBusiness },
+  { id: "education", label: "التعليم واللغات", icon: GraduationCap },
+  { id: "preferences", label: "تفضيلات العمل", icon: MapPin },
+];
 
 function normalizeImportedKey(value: string) {
   return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
@@ -95,7 +105,7 @@ function localMonthValue() {
   return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify, showCvImport = false }: CandidatePageProps) {
+export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify, showCvImport = false, showProfessionalEdit = false }: CandidatePageProps) {
   const cachedProfile = getCachedCandidateProfile(profile.id);
   const initialDraft = getCandidateProfileDraft(profile.id);
   const cachedProfileUpdatedAt = cachedProfile?.updated_at ? Date.parse(cachedProfile.updated_at) : Number.NaN;
@@ -110,7 +120,9 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
   const [experiences, setExperiences] = useState<ExperienceEntry[]>(() => parseCandidateExperiences(initialForm.experience_details));
   const [education, setEducation] = useState<EducationEntry[]>(() => parseCandidateEducation(initialForm.education));
   const [languages, setLanguages] = useState<CandidateLanguage[]>(() => parseCandidateLanguages(initialForm.languages));
-  const [openSections, setOpenSections] = useState({ identity: true, skills: false, experience: false, education: false, preferences: false });
+  const [activeProfileTab, setActiveProfileTab] = useState<CandidateProfileTab>("overview");
+  const profileTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [openSections, setOpenSections] = useState({ identity: false, skills: false, experience: false, education: false, preferences: false });
   const [skillDraft, setSkillDraft] = useState("");
   const [loading, setLoading] = useState(hasSupabaseConfig && cachedProfile === undefined);
   const [error, setError] = useState("");
@@ -474,6 +486,32 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
               ? error || autosaveError || "تعذر حفظ التعديلات."
               : "تُحفظ التعديلات تلقائيًا أثناء التحرير.";
 
+  const autosaveNotice = <div className={`candidate-autosave-status ${autosaveStatus}`} role="status" aria-live="polite">
+    <span className="candidate-autosave-icon">
+      {autosaveStatus === "saved" ? <CheckCircle2 size={16} /> : autosaveStatus === "error" ? <X size={16} /> : <Save size={16} />}
+    </span>
+    <span className="candidate-autosave-copy">
+      <b>{autosaveStatus === "error" ? "تعذر الحفظ" : "الحفظ التلقائي"}</b>
+      <small>{autosaveMessage}</small>
+    </span>
+    {autosaveStatus === "error" && <button type="button" onClick={() => loadedRef.current ? setRetryCount((count) => count + 1) : setReloadCount((count) => count + 1)}><RotateCw size={14} /> {loadedRef.current ? "إعادة المحاولة" : "إعادة تحميل الملف"}</button>}
+  </div>;
+  const handleProfileFormBlur = (event: FocusEvent<HTMLFormElement>) => {
+    if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget as Node)) {
+      flushAutosaveRef.current();
+    }
+  };
+  const selectProfileTab = (tab: CandidateProfileTab) => {
+    setActiveProfileTab(tab);
+    setOpenSections({
+      identity: false,
+      skills: tab === "skills",
+      experience: tab === "experience",
+      education: tab === "education",
+      preferences: tab === "preferences",
+    });
+  };
+
   const atsData = () => ({
     ...form,
     education: education.map((entry) => [
@@ -534,6 +572,42 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
     />;
   }
 
+  if (showProfessionalEdit) {
+    return <section className="container page-section dashboard-page candidate-profile-edit-page">
+      <button type="button" className="candidate-professional-edit-back" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate"); }}>
+        <ArrowRight size={16} /> العودة إلى ملفي
+      </button>
+      <header className="candidate-professional-edit-heading">
+        <span className="profile-section-icon blue"><Pencil size={18} /></span>
+        <div>
+          <span className="eyebrow">بياناتك الأساسية</span>
+          <h1>تعديل المعلومات المهنية</h1>
+          <p>حدّث معلوماتك التي تظهر في أعلى ملفك للباحثين عن فرص مناسبة.</p>
+        </div>
+      </header>
+      <form className="candidate-profile-form candidate-profile-editor candidate-professional-edit-form" onSubmit={(event) => event.preventDefault()} onBlurCapture={handleProfileFormBlur}>
+        {autosaveNotice}
+        <section className="profile-editor-section profile-tab-section">
+          <div className="profile-section-heading">
+            <span className="profile-section-icon"><FileText size={18} /></span>
+            <div><span className="eyebrow">الظهور الأول</span><h2>معلوماتك المهنية</h2><p>البيانات التي يراها صاحب العمل أولاً.</p></div>
+          </div>
+          <div className="profile-section-body">
+            <div className="form-grid"><label>الاسم الكامل<input required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} placeholder="مثال: أحمد محمد" /></label><label>المسمى الوظيفي<input required value={form.headline} onChange={(event) => update("headline", event.target.value)} placeholder="مثال: مطور واجهات أمامية" /></label></div>
+            <div className="form-grid"><label>التخصص<input required value={form.specialization} onChange={(event) => update("specialization", event.target.value)} placeholder="مثال: برمجيات، محاسبة، تسويق" /></label><label>المحافظة<input required value={form.province} onChange={(event) => update("province", event.target.value)} placeholder="بغداد" /></label></div>
+            <div className="form-grid"><label>المدينة<input required value={form.city} onChange={(event) => update("city", event.target.value)} placeholder="بغداد" /></label><label>البريد الإلكتروني<input required type="email" value={form.email} onChange={(event) => update("email", event.target.value)} dir="ltr" /></label></div>
+            <div className="form-grid"><label>رقم الهاتف<input required value={form.phone} onChange={(event) => update("phone", event.target.value)} dir="ltr" /></label></div>
+            <label>نبذة مهنية<textarea required rows={4} value={form.summary} onChange={(event) => update("summary", event.target.value)} placeholder="اكتب بإيجاز عن خبرتك، أسلوبك، والقيمة التي تقدمها..." /></label>
+          </div>
+        </section>
+        <div className="profile-form-actions">
+          <span className="profile-autosave-note">تُحفظ تعديلاتك تلقائيًا أثناء التحرير.</span>
+          <button type="button" className="primary-btn" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate"); }}><CheckCircle2 size={16} /> حفظ والعودة إلى الملف</button>
+        </div>
+      </form>
+    </section>;
+  }
+
   return <section className="container page-section dashboard-page candidate-profile-page">
     <aside className="candidate-english-tip" role="note">
       <span className="candidate-english-tip-icon" aria-hidden="true"><Languages size={18} /></span>
@@ -542,39 +616,56 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
         <small>املأ حقول ملفك المهني باللغة الإنكليزية لتحصل على سيرة واضحة ومرتبة بصيغة ATS.</small>
       </span>
     </aside>
-    <div className="candidate-profile-hero">
-      <div className="candidate-hero-copy">
-        <span className="eyebrow"><Sparkles size={14} /> مساحة الباحث عن عمل</span>
-        <h1>خلّي ملفك يحكي عنك</h1>
-        <p>ملف مهني واضح يسهّل على أصحاب العمل رؤية خبرتك ومهاراتك بسرعة.</p>
-        <div className="candidate-hero-meta"><span><UserRound size={14} /> {form.full_name || "اسمك الكامل"}</span><span><MapPin size={14} /> {form.city || "أضف مدينتك"}</span></div>
-        <div className="candidate-hero-actions"><button type="button" className="candidate-hero-primary" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button><button type="button" className="candidate-hero-secondary" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button></div>
+    <section className="candidate-profile-cover-card" aria-labelledby="candidate-profile-name">
+      <div className="candidate-profile-cover">
+        <span className="candidate-profile-cover-label"><Sparkles size={14} /> مساحة الباحث عن عمل</span>
+        <div className="candidate-cover-progress" aria-label={`اكتمال الملف ${completeness}%`}>
+          <span>اكتمال ملفك</span><b>{completeness}%</b>
+          <i><span style={{ width: `${completeness}%` }} /></i>
+        </div>
       </div>
-      <div className="candidate-hero-score" aria-label={`اكتمال الملف ${completeness}%`}>
-        <strong>{completeness}%</strong>
-        <span>اكتمال الملف</span>
+      <div className="candidate-profile-identity-card">
+        <div className="candidate-profile-avatar-shell">
+          <div className="candidate-profile-avatar" role="img" aria-label="الصورة الشخصية قيد التطوير">
+            <UserRound size={45} strokeWidth={1.5} />
+          </div>
+          <span className="candidate-profile-avatar-status">قريبًا</span>
+        </div>
+        <div className="candidate-profile-identity-content">
+          <div className="candidate-profile-identity-heading">
+            <div>
+              <span className="eyebrow">ملفك المهني</span>
+              <h1 id="candidate-profile-name">{form.full_name || "أضف اسمك الكامل"}</h1>
+              <p className="candidate-profile-headline">{form.headline || "أضف مسماك الوظيفي"}</p>
+              <span className="candidate-profile-specialization">{form.specialization || "أضف تخصصك المهني"}</span>
+            </div>
+            <button type="button" className="candidate-profile-edit-button" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }}>
+              <Pencil size={16} /><span>تعديل المعلومات</span>
+            </button>
+          </div>
+          <div className="candidate-profile-contact">
+            {form.email.trim() ? <a href={`mailto:${form.email}`} dir="ltr"><Mail size={15} /> {form.email}</a> : <span><Mail size={15} /> أضف بريدك الإلكتروني</span>}
+            {form.phone.trim() ? <a href={`tel:${form.phone.replace(/[^\d+]/g, "")}`} dir="ltr"><Phone size={15} /> {form.phone}</a> : <span><Phone size={15} /> أضف رقم هاتفك</span>}
+            <span><MapPin size={15} /> {form.city || form.province || "أضف موقعك"}</span>
+          </div>
+          <div className="candidate-profile-photo-notice">
+            <span><Camera size={15} /><b>ميزة الصورة الشخصية قيد التطوير</b></span>
+            <button type="button" disabled aria-label="إضافة صورة شخصية قريبًا">إضافة صورة قريبًا</button>
+          </div>
+          <div className="candidate-profile-shortcuts">
+            <button type="button" className="text-btn" onClick={() => onNavigate("jobs")}><BriefcaseBusiness size={15} /> استكشف الوظائف</button>
+            <button type="button" className="text-btn" onClick={() => onNavigate("applied")}><CheckCircle2 size={15} /> تقديماتي</button>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
     <div className="candidate-profile-grid">
       <form
         className="candidate-profile-form candidate-profile-editor"
         onSubmit={(event) => event.preventDefault()}
-        onBlurCapture={(event) => {
-          if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget as Node)) {
-            flushAutosaveRef.current();
-          }
-        }}
+        onBlurCapture={handleProfileFormBlur}
       >
-        <div className={`candidate-autosave-status ${autosaveStatus}`} role="status" aria-live="polite">
-          <span className="candidate-autosave-icon">
-            {autosaveStatus === "saved" ? <CheckCircle2 size={16} /> : autosaveStatus === "error" ? <X size={16} /> : <Save size={16} />}
-          </span>
-          <span className="candidate-autosave-copy">
-            <b>{autosaveStatus === "error" ? "تعذر الحفظ" : "الحفظ التلقائي"}</b>
-            <small>{autosaveMessage}</small>
-          </span>
-          {autosaveStatus === "error" && <button type="button" onClick={() => loadedRef.current ? setRetryCount((count) => count + 1) : setReloadCount((count) => count + 1)}><RotateCw size={14} /> {loadedRef.current ? "إعادة المحاولة" : "إعادة تحميل الملف"}</button>}
-        </div>
+        {autosaveNotice}
 
         <div className="candidate-cv-import-entry">
           <span className="candidate-cv-import-entry-icon"><FileText size={20} /></span>
@@ -587,7 +678,61 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           </button>
         </div>
 
-        <details className="profile-editor-section profile-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); }}>
+        <div className="candidate-profile-tabs" role="tablist" aria-label="أقسام ملفك المهني" dir="rtl">
+          {candidateProfileTabs.map((tab, index) => {
+            const Icon = tab.icon;
+            const selected = activeProfileTab === tab.id;
+            return <button
+              key={tab.id}
+              ref={(element) => { profileTabRefs.current[index] = element; }}
+              id={`candidate-profile-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-controls="candidate-profile-tabpanel"
+              tabIndex={selected ? 0 : -1}
+              className={selected ? "candidate-profile-tab active" : "candidate-profile-tab"}
+              onClick={() => selectProfileTab(tab.id)}
+              onKeyDown={(event) => {
+                const nextIndex = event.key === "ArrowLeft"
+                  ? (index + 1) % candidateProfileTabs.length
+                  : event.key === "ArrowRight"
+                    ? (index - 1 + candidateProfileTabs.length) % candidateProfileTabs.length
+                    : event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? candidateProfileTabs.length - 1
+                        : -1;
+                if (nextIndex >= 0) {
+                  event.preventDefault();
+                  const nextTab = candidateProfileTabs[nextIndex];
+                  if (nextTab) selectProfileTab(nextTab.id);
+                  profileTabRefs.current[nextIndex]?.focus();
+                }
+              }}
+            >
+              <Icon size={16} /><span>{tab.label}</span>
+            </button>;
+          })}
+        </div>
+        <div className="candidate-profile-tab-content" id="candidate-profile-tabpanel" role="tabpanel" aria-labelledby={`candidate-profile-tab-${activeProfileTab}`}>
+          {activeProfileTab === "overview" && <section className="candidate-profile-overview">
+            <article className="candidate-profile-overview-card">
+              <div className="profile-section-heading">
+                <span className="profile-section-icon blue"><FileText size={18} /></span>
+                <div><span className="eyebrow">نبذة عنك</span><h2>الملخص المهني</h2><p>تعريف مختصر يوضح خبرتك والقيمة التي تقدمها.</p></div>
+                <button type="button" className="candidate-profile-overview-edit" onClick={() => { flushAutosaveRef.current(); onNavigate("candidate-profile-edit"); }} aria-label="تعديل المعلومات المهنية"><Pencil size={15} /></button>
+              </div>
+              <p className="candidate-profile-summary-preview">{form.summary.trim() || "أضف نبذة مهنية قصيرة حتى يتعرف أصحاب العمل على خبرتك وأهدافك."}</p>
+            </article>
+            <div className="candidate-profile-overview-stats" aria-label="ملخص بيانات الملف">
+              <span><b>{form.skills.length}</b><small>مهارة</small></span>
+              <span><b>{completedExperiences.length}</b><small>خبرة عملية</small></span>
+              <span><b>{education.length}</b><small>مؤهل تعليمي</small></span>
+            </div>
+          </section>}
+
+        <details className="profile-editor-section profile-disclosure profile-identity-disclosure" open={openSections.identity} onToggle={(event) => { const open = event.currentTarget.open; setOpenSections((current) => ({ ...current, identity: open })); }}>
           <summary className="profile-section-summary">
             <span className="profile-section-icon"><FileText size={18} /></span>
             <span className="profile-summary-copy"><span className="eyebrow">الظهور الأول</span><b>معلوماتك المهنية</b><small>البيانات التي يراها صاحب العمل أولاً</small></span>
@@ -664,6 +809,7 @@ export function CandidatePage({ profile, onNavigate, onProfileUpdated, onNotify,
           </div>}
         </details>
 
+        </div>
         <div className="profile-form-actions"><span className="profile-autosave-note">تُحفظ تعديلاتك تلقائيًا أثناء التحرير.</span><button type="button" className="text-btn" onClick={() => { flushAutosaveRef.current(); onNavigate("jobs"); }}><ArrowLeft size={16} /> تصفح الوظائف</button></div>
       </form>
 

@@ -1,0 +1,228 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600;700&display=swap");
+
+.candidate-profile-preview {
+  min-height: 100vh;
+  padding: 30px;
+  color: #242b50;
+  background: #f6f7fb;
+  font-family: "IBM Plex Sans Arabic", sans-serif;
+}
+
+.candidate-profile-preview * {
+  box-sizing: border-box;
+}
+
+.candidate-profile-preview button,
+.candidate-profile-preview input,
+.candidate-profile-preview textarea {
+  font: inherit;
+}
+
+.candidate-preview-tip,
+.candidate-preview-hero,
+.candidate-preview-editor,
+.candidate-preview-aside-card {
+  border: 1px solid #e2e5f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(24, 32, 79, .055);
+}
+
+.candidate-preview-tip {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border-right: 3px solid #d39a3b;
+  color: #655337;
+  background: #fffaf0;
+  font-size: 11px;
+}
+
+.candidate-preview-tip small,
+.candidate-preview-hero p,
+.candidate-preview-aside-card p {
+  display: block;
+  color: #737c96;
+  line-height: 1.8;
+}
+
+.candidate-preview-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 220px;
+  padding: 30px 36px;
+  border-color: rgba(255, 255, 255, .15);
+  color: #fff;
+  background:
+    radial-gradient(circle at 10% 25%, rgba(244, 123, 32, .2), transparent 24%),
+    linear-gradient(120deg, #171d55 0%, #25296e 62%, #36377e 100%);
+}
+
+.candidate-preview-hero h1 {
+  margin: 12px 0 8px;
+  color: #fff;
+  font: 700 34px/1.35 "Readex Pro", sans-serif;
+}
+
+.candidate-preview-hero p {
+  margin: 0;
+  color: #dce2ff;
+  font-size: 13px;
+}
+
+.candidate-preview-meta,
+.candidate-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  color: #dce2ff;
+  font-size: 11px;
+}
+
+.candidate-preview-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .25);
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, .1);
+}
+
+.candidate-preview-score {
+  min-width: 120px;
+  border-right: 1px solid rgba(255, 255, 255, .2);
+  padding-right: 24px;
+  text-align: center;
+}
+
+.candidate-preview-score b {
+  display: block;
+  color: #fff;
+  font: 700 29px "Readex Pro", sans-serif;
+}
+
+.candidate-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 282px;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.candidate-preview-editor {
+  overflow: hidden;
+}
+
+.candidate-preview-save,
+.candidate-preview-import,
+.candidate-preview-section {
+  margin: 14px;
+  padding: 13px 15px;
+  border: 1px solid #e6e9f2;
+  border-radius: 12px;
+}
+
+.candidate-preview-save {
+  color: #426c5e;
+  background: #f0f8f4;
+  font-size: 11px;
+}
+
+.candidate-preview-import {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-color: #cbd8ff;
+  color: #303f84;
+  background: #f0f4ff;
+}
+
+.candidate-preview-import small {
+  display: block;
+  margin-top: 4px;
+  color: #67739b;
+  font-size: 10px;
+}
+
+.candidate-preview-import button {
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 13px;
+  color: #fff;
+  background: #4056ac;
+  white-space: nowrap;
+}
+
+.candidate-preview-section {
+  margin: 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  padding: 16px 20px;
+  box-shadow: none;
+}
+
+.candidate-preview-section summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #242b50;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.candidate-preview-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.candidate-preview-section summary span {
+  color: #7c85a2;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.candidate-preview-section p {
+  margin: 14px 0 0;
+  color: #737c96;
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.candidate-preview-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.candidate-preview-aside-card {
+  padding: 18px;
+}
+
+.candidate-preview-aside-card h3 {
+  margin: 0;
+  color: #252e68;
+  font: 600 16px "Readex Pro", sans-serif;
+}
+
+.candidate-preview-aside-card p {
+  margin: 9px 0;
+  font-size: 10px;
+}
+
+@media (max-width: 900px) {
+  .candidate-profile-preview { padding: 18px; }
+  .candidate-preview-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .candidate-preview-hero { align-items: flex-start; flex-direction: column; padding: 22px; }
+  .candidate-preview-hero h1 { font-size: 25px; }
+  .candidate-preview-score { border-right: 0; padding-right: 0; text-align: right; }
+  .candidate-preview-import { align-items: flex-start; flex-direction: column; }
+}
