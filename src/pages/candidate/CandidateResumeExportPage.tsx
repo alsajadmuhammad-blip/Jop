@@ -3,11 +3,10 @@ import { ArrowRight, Check, Download, FileText, Pencil, Printer, ShieldCheck } f
 import type { View } from "../../app/types";
 import { buildAtsResumeDocument, downloadResumeDocument, englishLanguageLevel, printResumeDocument, type ResumeData } from "../../features/candidate/atsResume";
 import { buildProfessionalResumeDocument } from "../../features/candidate/professionalResume";
-import { buildModernResumeDocument } from "../../features/candidate/modernResume";
 import { formatCandidateExperiencePeriodForAts } from "../../services/candidateService";
 import "./candidate-resume-export-page.css";
 
-type ResumeTemplate = "ats" | "professional" | "editorial" | "modern";
+type ResumeTemplate = "ats" | "professional" | "editorial";
 
 type CandidateResumeExportPageProps = {
   data: ResumeData;
@@ -19,14 +18,13 @@ const templates: { id: ResumeTemplate; name: string; description: string }[] = [
   { id: "ats", name: "متوافق مع ATS", description: "واضح وبسيط لأنظمة الفرز" },
   { id: "professional", name: "احترافي", description: "تقسيم بصري منظم للخبرات" },
   { id: "editorial", name: "مهني معاصر", description: "تصميم A4 مرتب من صفحة واحدة" },
-  { id: "modern", name: "مهني أزرق", description: "قالب عربي أنيق بتقسيم واضح للخبرات" },
 ];
 
 const A4_PREVIEW_WIDTH = 794;
 const A4_PREVIEW_HEIGHT = 1123;
 
 function buildA4PreviewDocument(html: string, template: ResumeTemplate) {
-  if (template === "editorial" || template === "modern") return html;
+  if (template === "editorial") return html;
 
   const verticalMargin = template === "ats" ? 60 : 53;
   const horizontalMargin = template === "ats" ? 68 : 53;
@@ -194,7 +192,6 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
   const documentHtml = useMemo(() => {
     if (selectedTemplate === "ats") return buildAtsResumeDocument(data);
     if (selectedTemplate === "editorial") return buildEditorialResumeDocument(data);
-    if (selectedTemplate === "modern") return buildModernResumeDocument(data);
     return buildProfessionalResumeDocument(data);
   }, [data, selectedTemplate]);
   const previewHtml = useMemo(
@@ -257,7 +254,6 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
       ats: "ATS-Resume",
       professional: "Professional-Resume",
       editorial: "Editorial-Resume",
-      modern: "Modern-Resume",
     };
     downloadResumeDocument(data, documentHtml, prefixes[selectedTemplate]);
     onNotify?.("تم تنزيل السيرة بصيغة Word.");
@@ -303,7 +299,6 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
                     type="button"
                     className="candidate-resume-template"
                     key={template.id}
-                    data-template={template.id}
                     aria-pressed={selected}
                     onClick={() => setSelectedTemplate(template.id)}
                   >

@@ -179,16 +179,6 @@
   border-top: 4px solid #ae7654;
 }
 
-.candidate-resume-template:nth-child(4) .candidate-resume-template-mark {
-  border-top: 4px solid #4b8fc2;
-}
-
-.candidate-resume-template[data-template="modern"][aria-pressed="true"] {
-  border-color: #82add0;
-  background: #f1f7fb;
-  box-shadow: inset -3px 0 0 #4b8fc2;
-}
-
 .candidate-resume-template-copy {
   display: grid;
   gap: 3px;
