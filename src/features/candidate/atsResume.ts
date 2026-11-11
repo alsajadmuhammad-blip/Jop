@@ -44,7 +44,7 @@ function professionalMeta(data: ResumeData) {
   ].filter(Boolean);
 }
 
-function englishLanguageLevel(level: CandidateLanguage["level"]) {
+export function englishLanguageLevel(level: CandidateLanguage["level"]) {
   return ({
     "اللغة الأم": "Native",
     "متقدم": "Advanced",

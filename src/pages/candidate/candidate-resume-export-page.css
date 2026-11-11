@@ -94,13 +94,15 @@
 
 .candidate-resume-export-layout {
   display: grid;
-  grid-template-columns: minmax(245px, 305px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 17px;
 }
 
 .candidate-resume-export-controls {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 13px;
 }
 
@@ -312,10 +314,6 @@
 
 .candidate-resume-preview-wrap {
   min-width: 0;
-  padding: 15px;
-  border: 1px solid var(--resume-line);
-  border-radius: 11px;
-  background: #e9efed;
 }
 
 .candidate-resume-preview-heading {
@@ -341,12 +339,11 @@
 .candidate-resume-preview-sheet {
   position: relative;
   width: min(100%, 794px);
-  aspect-ratio: 210 / 297;
-  overflow: hidden;
+  overflow: visible;
   margin: 0 auto;
-  border: 1px solid #d3dcda;
+  border: 1px solid #9aabb4;
   background: #fff;
-  box-shadow: 0 12px 30px rgba(28, 49, 59, .12);
+  box-shadow: 0 8px 24px rgba(28, 49, 59, .1);
 }
 
 .candidate-resume-preview-frame {
@@ -355,7 +352,6 @@
   left: 0;
   display: block;
   width: 794px;
-  height: 1123px;
   max-width: none;
   border: 0;
   background: #fff;
@@ -420,7 +416,7 @@
   }
 
   .candidate-resume-preview-wrap {
-    padding: 8px;
+    min-width: 0;
   }
 }
 

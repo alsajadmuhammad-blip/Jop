@@ -217,7 +217,6 @@ export function buildProfessionalResumeDocument(data: ResumeData) {
   <body>
     <main>
       <header class="cv-header">
-        <p class="cv-kicker">PROFESSIONAL PROFILE</p>
         <h1 class="cv-name">${clean(data.full_name || "Full Name")}</h1>
         <p class="cv-headline">${clean(data.headline || "Professional Title")}</p>
         ${contact}

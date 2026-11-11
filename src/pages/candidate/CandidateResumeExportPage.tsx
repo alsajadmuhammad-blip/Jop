@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, Download, FileText, Pencil, Printer, ShieldCheck } from "lucide-react";
 import type { View } from "../../app/types";
-import { buildAtsResumeDocument, downloadResumeDocument, printResumeDocument, type ResumeData } from "../../features/candidate/atsResume";
+import { buildAtsResumeDocument, downloadResumeDocument, englishLanguageLevel, printResumeDocument, type ResumeData } from "../../features/candidate/atsResume";
 import { buildProfessionalResumeDocument } from "../../features/candidate/professionalResume";
 import { formatCandidateExperiencePeriodForAts } from "../../services/candidateService";
 import "./candidate-resume-export-page.css";
@@ -96,7 +96,7 @@ function buildEditorialResumeDocument(data: ResumeData) {
   const education = data.education.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean)
     .map((entry) => `<li>${text(entry)}</li>`).join("");
   const languages = data.languages.filter((language) => language.name.trim())
-    .map((language) => `<li>${text(language.name)}${language.level ? ` <span>${text(language.level)}</span>` : ""}</li>`)
+    .map((language) => `<li>${text(language.name)}${language.level ? ` <span>${text(englishLanguageLevel(language.level))}</span>` : ""}</li>`)
     .join("");
 
   return `<!doctype html>
@@ -145,7 +145,6 @@ function buildEditorialResumeDocument(data: ResumeData) {
   </head>
   <body><main class="resume-page">
     <header>
-      <p class="kicker">Professional profile</p>
       <h1>${text(data.full_name || "Full Name")}</h1>
       <p class="headline">${text(data.headline || "Professional Title")}</p>
       <div class="contacts">${contacts}</div>
@@ -189,6 +188,7 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
   const previewSheetRef = useRef<HTMLDivElement>(null);
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
+  const [previewContentHeight, setPreviewContentHeight] = useState(A4_PREVIEW_HEIGHT);
   const documentHtml = useMemo(() => {
     if (selectedTemplate === "ats") return buildAtsResumeDocument(data);
     if (selectedTemplate === "editorial") return buildEditorialResumeDocument(data);
@@ -229,6 +229,23 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
     );
     const fits = contentBounds.top <= pageBounds.bottom - bottomInset + 1;
     setEditorialFitResult({ signature: contentSignature, fits });
+  };
+
+  const handlePreviewLoad = () => {
+    const previewDocument = previewFrameRef.current?.contentDocument;
+    if (previewDocument) {
+      const resumePage = previewDocument.querySelector<HTMLElement>("main");
+      const contentEnd = previewDocument.getElementById("resume-content-end");
+      const measuredHeight = Math.max(
+        A4_PREVIEW_HEIGHT,
+        previewDocument.documentElement.scrollHeight,
+        previewDocument.body.scrollHeight,
+        resumePage?.scrollHeight || 0,
+        contentEnd ? contentEnd.offsetTop + contentEnd.offsetHeight : 0,
+      );
+      setPreviewContentHeight(Math.ceil(measuredHeight));
+    }
+    checkEditorialPageFit();
   };
 
   const downloadWord = () => {
@@ -343,7 +360,11 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
             <h2 id="resume-preview-heading">معاينة {selectedName}</h2>
             <span>ورقة A4 · {selectedTemplate === "editorial" ? "صفحة واحدة" : "عرض جاهز للطباعة"}</span>
           </div>
-          <div className="candidate-resume-preview-sheet" ref={previewSheetRef}>
+          <div
+            className="candidate-resume-preview-sheet"
+            ref={previewSheetRef}
+            style={{ height: previewContentHeight * previewScale }}
+          >
             <iframe
               ref={previewFrameRef}
               className="candidate-resume-preview-frame"
@@ -351,9 +372,9 @@ export function CandidateResumeExportPage({ data, onNavigate, onNotify }: Candid
               srcDoc={previewHtml}
               sandbox="allow-same-origin"
               width={A4_PREVIEW_WIDTH}
-              height={A4_PREVIEW_HEIGHT}
-              style={{ transform: `scale(${previewScale})` }}
-              onLoad={checkEditorialPageFit}
+              height={previewContentHeight}
+              style={{ height: previewContentHeight, transform: `scale(${previewScale})` }}
+              onLoad={handlePreviewLoad}
             />
           </div>
         </section>
