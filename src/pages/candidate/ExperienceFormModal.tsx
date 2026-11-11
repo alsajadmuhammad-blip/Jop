@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { BriefcaseBusiness, CalendarDays, MapPin } from "lucide-react";
+import { BriefcaseBusiness, MapPin, Save } from "lucide-react";
 import { ModalShell } from "../../components/common/ModalShell";
-import { MonthYearField } from "../../components/common/MonthYearField";
 import type { CandidateExperience } from "../../services/candidateService";
 
 type ExperienceFormModalProps = {
@@ -60,7 +59,7 @@ export function ExperienceFormModal({ onClose, onSave }: ExperienceFormModalProp
   };
 
   return (
-    <ModalShell onClose={onClose} title="إضافة خبرة مهنية">
+    <ModalShell onClose={onClose} title="إضافة خبرة مهنية" panelClassName="experience-form-modal-panel">
       <form className="application-form experience-modal-form" onSubmit={submit}>
         <div className="experience-modal-intro">
           <span><BriefcaseBusiness size={18} /></span>
@@ -71,15 +70,15 @@ export function ExperienceFormModal({ onClose, onSave }: ExperienceFormModalProp
           <label>جهة العمل <span className="optional">اختياري</span><input value={experience.company} onChange={(event) => update("company", event.target.value)} placeholder="اسم الشركة أو المشروع" /></label>
         </div>
         <div className="form-grid experience-date-grid">
-          <label>من شهر / سنة<MonthYearField value={experience.startMonth} maxValue={currentMonth} onChange={(value) => update("startMonth", value)} ariaLabel="تاريخ بداية الخبرة" /></label>
-          <label>إلى شهر / سنة<MonthYearField value={experience.endMonth} minValue={experience.startMonth} maxValue={currentMonth} disabled={experience.isCurrent} onChange={(value) => update("endMonth", value)} ariaLabel="تاريخ نهاية الخبرة" /></label>
+          <label>تاريخ البداية<input className="experience-month-input" type="month" lang="ar-IQ" max={currentMonth} value={experience.startMonth} onChange={(event) => update("startMonth", event.target.value)} aria-label="تاريخ بداية الخبرة" /></label>
+          <label>تاريخ النهاية<input className="experience-month-input" type="month" lang="ar-IQ" min={experience.startMonth || undefined} max={currentMonth} disabled={experience.isCurrent} value={experience.endMonth} onChange={(event) => update("endMonth", event.target.value)} aria-label="تاريخ نهاية الخبرة" /></label>
           <label className="checkbox-field experience-current-field"><input type="checkbox" checked={experience.isCurrent} onChange={(event) => update("isCurrent", event.target.checked)} /><span>ما زلت أعمل هنا</span></label>
           <label>الموقع<div className="experience-modal-location"><MapPin size={15} /><input value={experience.location} onChange={(event) => update("location", event.target.value)} placeholder="بغداد / عن بُعد" /></div></label>
         </div>
         <label>أبرز المسؤوليات والإنجازات<textarea rows={4} value={experience.description} onChange={(event) => update("description", event.target.value)} placeholder="اذكر ما أنجزته، وليس فقط ما كانت مهمتك..." /></label>
         <div className="experience-modal-actions">
+          <button type="submit" className="primary-btn"><Save size={16} /> حفظ الخبرة</button>
           <button type="button" className="outline-btn" onClick={onClose}>إلغاء</button>
-          <button type="submit" className="primary-btn"><CalendarDays size={16} /> حفظ الخبرة</button>
         </div>
       </form>
     </ModalShell>

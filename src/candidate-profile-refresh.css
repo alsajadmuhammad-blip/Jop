@@ -1472,6 +1472,217 @@
   }
 }
 
+.modal-backdrop {
+  z-index: 10000;
+  overflow-y: auto;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+}
+
+.modal-panel {
+  max-height: min(92vh, 760px);
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .modal-panel {
+    max-height: min(92dvh, 760px);
+  }
+}
+
+.experience-form-modal-panel {
+  width: min(660px, 100%);
+  padding: 22px;
+  border-color: #d7e6ef;
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(12, 39, 60, .3);
+  scrollbar-gutter: stable;
+}
+
+.experience-form-modal-panel .modal-header {
+  position: sticky;
+  top: -22px;
+  z-index: 5;
+  margin: -22px -22px 18px;
+  padding: 17px 22px 14px;
+  border-color: #e6eef3;
+  background: #fff;
+}
+
+.experience-form-modal-panel .modal-header h3 {
+  color: #123251;
+  font-size: 17px;
+}
+
+.experience-form-modal-panel .close-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d8e7ef;
+  color: #234e69;
+  background: #f1f7fa;
+  cursor: pointer;
+}
+
+.experience-form-modal-panel .close-btn:hover,
+.experience-form-modal-panel .close-btn:focus-visible {
+  border-color: #9bc6dc;
+  color: #123251;
+  background: #e5f3f9;
+  outline: 3px solid rgba(45, 136, 187, .2);
+  outline-offset: 1px;
+}
+
+.experience-modal-form {
+  gap: 16px;
+}
+
+.experience-modal-form .form-grid {
+  gap: 14px;
+}
+
+.experience-modal-form .experience-date-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.experience-modal-form input[type="month"] {
+  min-width: 0;
+  min-height: 48px;
+  border-color: #d4e2eb;
+  border-radius: 10px;
+  color: #173f5c;
+  background: #f8fbfd;
+  direction: ltr;
+  text-align: left;
+  cursor: pointer;
+}
+
+.experience-modal-form input[type="month"]:focus-visible,
+.experience-modal-form input:not([type="checkbox"]):focus-visible,
+.experience-modal-form textarea:focus-visible {
+  border-color: #2d88bb;
+  outline: 3px solid rgba(45, 136, 187, .18);
+  outline-offset: 1px;
+}
+
+.experience-modal-form input[type="month"]:disabled {
+  color: #8495a1;
+  background: #edf2f5;
+  cursor: not-allowed;
+}
+
+.experience-modal-form .experience-current-field {
+  display: flex !important;
+  min-height: 48px;
+  align-self: end;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #dbe8ef;
+  border-radius: 10px;
+  color: #365a70;
+  background: #f7fafc;
+  cursor: pointer;
+}
+
+.experience-modal-form .experience-current-field input {
+  flex: 0 0 18px;
+  margin: 0;
+  accent-color: #2d88bb;
+}
+
+.experience-modal-actions {
+  position: sticky;
+  bottom: -22px;
+  z-index: 4;
+  justify-content: flex-start;
+  margin: 2px -22px -22px;
+  padding: 14px 22px calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid #e5edf2;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 -8px 20px rgba(30, 58, 76, .06);
+}
+
+.experience-modal-actions .primary-btn,
+.experience-modal-actions .outline-btn {
+  min-height: 48px;
+  justify-content: center;
+  border-radius: 10px;
+  padding-inline: 19px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.experience-modal-actions .primary-btn {
+  color: #fff;
+  background: linear-gradient(110deg, #153b5c, #2d88bb);
+}
+
+.experience-modal-actions .primary-btn:hover {
+  background: linear-gradient(110deg, #123251, #236f9b);
+}
+
+.experience-modal-actions .outline-btn {
+  border: 1px solid #d2e0e8;
+  color: #36556a;
+  background: #fff;
+}
+
+.experience-modal-actions .outline-btn:hover {
+  border-color: #adc7d6;
+  background: #f4f8fa;
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .experience-form-modal-panel {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .experience-form-modal-panel .modal-header {
+    top: -16px;
+    margin: -16px -16px 14px;
+    padding: 12px 16px;
+  }
+
+  .experience-form-modal-panel .modal-header h3 {
+    font-size: 15px;
+  }
+
+  .experience-modal-form > .form-grid:not(.experience-date-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .experience-modal-form .experience-date-grid {
+    gap: 10px;
+  }
+
+  .experience-modal-actions {
+    bottom: -16px;
+    margin: 0 -16px -16px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .experience-modal-actions .primary-btn,
+  .experience-modal-actions .outline-btn {
+    flex: 1;
+    padding-inline: 9px;
+  }
+}
+
+@media (max-width: 360px) {
+  .experience-modal-form .experience-date-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 760px) {
   .candidate-profile-page .candidate-profile-tabs {
     grid-template-columns: repeat(4, max-content);
