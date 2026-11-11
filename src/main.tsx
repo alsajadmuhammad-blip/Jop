@@ -12,6 +12,7 @@ import "./job-publishing-refresh.css";
 import "./platform-polish.css";
 import "./candidate-resume.css";
 import "./hr-candidate-search.css";
+import "./candidate-profile-refresh.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
